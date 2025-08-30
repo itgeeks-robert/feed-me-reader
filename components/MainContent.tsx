@@ -5,7 +5,10 @@ import { GoogleGenAI, Type } from '@google/genai';
 import { SparklesIcon, CheckCircleIcon, MenuIcon, BookmarkIcon, ViewColumnsIcon, ViewListIcon, ViewGridIcon, LayoutGridIcon, FireIcon, ShieldCheckIcon, BugAntIcon, XIcon, SearchIcon } from './icons';
 
 // Create a single, shared AI instance, initialized once.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+if (!process.env.API_KEY) {
+    console.warn("API_KEY environment variable is not set. AI features will be degraded or unavailable.");
+}
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
 
 interface Article {
     id: string;
@@ -399,19 +402,11 @@ const ThreatDashboard: React.FC<{
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
 
+    const DASHBOARD_CACHE_KEY = 'feedme_dashboard_cache';
+    const CACHE_DURATION_MS = 60 * 60 * 1000; // 1 hour
+
     useEffect(() => {
-        if (unreadArticles.length === 0) {
-            setIsLoading(false);
-            return;
-        }
-
-        if (isAiDisabled) {
-            setError("AI features are temporarily unavailable due to rate limits.");
-            setIsLoading(false);
-            return;
-        }
-
-        const generateDashboard = async () => {
+        const generateAndCacheDashboard = async () => {
             setIsLoading(true);
             setError('');
             try {
@@ -444,7 +439,17 @@ Articles:\n\n${articlesForPrompt}`;
                     },
                 });
 
-                setDashboardData(JSON.parse(response.text));
+                const parsedData = JSON.parse(response.text);
+                setDashboardData(parsedData);
+                
+                // Cache the new data
+                try {
+                    const cacheItem = { data: parsedData, timestamp: Date.now() };
+                    window.localStorage.setItem(DASHBOARD_CACHE_KEY, JSON.stringify(cacheItem));
+                } catch (e) {
+                    console.error("Failed to write dashboard data to cache", e);
+                }
+
             } catch (e) {
                 console.error("Error generating dashboard:", e);
                 if (!handleAiError(e)) {
@@ -456,8 +461,38 @@ Articles:\n\n${articlesForPrompt}`;
                 setIsLoading(false);
             }
         };
+        
+        const loadDashboard = () => {
+            if (unreadArticles.length === 0) {
+                setIsLoading(false);
+                return;
+            }
 
-        generateDashboard();
+            if (isAiDisabled) {
+                setError("AI features are temporarily unavailable due to rate limits.");
+                setIsLoading(false);
+                return;
+            }
+
+            try {
+                const cachedItem = window.localStorage.getItem(DASHBOARD_CACHE_KEY);
+                if (cachedItem) {
+                    const { data, timestamp } = JSON.parse(cachedItem);
+                    if (Date.now() - timestamp < CACHE_DURATION_MS) {
+                        setDashboardData(data);
+                        setIsLoading(false);
+                        return; // Use cached data
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to read dashboard cache", e);
+            }
+
+            // If no valid cache, generate a new one
+            generateAndCacheDashboard();
+        };
+
+        loadDashboard();
     }, [unreadArticles, isAiDisabled, handleAiError]);
 
     if (isLoading) {
