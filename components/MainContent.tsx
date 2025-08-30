@@ -4,6 +4,9 @@ import { CORS_PROXY } from '../App';
 import { GoogleGenAI, Type } from '@google/genai';
 import { SparklesIcon, CheckCircleIcon, MenuIcon, BookmarkIcon, ViewColumnsIcon, ViewListIcon, ViewGridIcon, LayoutGridIcon, FireIcon, ShieldCheckIcon, BugAntIcon, XIcon } from './icons';
 
+// Create a single, shared AI instance, initialized once.
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
 interface Article {
     id: string;
     title: string;
@@ -134,7 +137,6 @@ const ArticleItem: React.FC<{
         setIsSummarizing(true);
         setSummaryError('');
         try {
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
             const prompt = `Provide a concise, one-paragraph summary of the following news article based on its title and snippet.\n\nTitle: "${article.title}"\n\nSnippet: "${article.snippet}"`;
             
             const maxRetries = 3;
@@ -285,7 +287,6 @@ const BriefingView: React.FC<{
             setBriefing(null);
             
             try {
-                const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
                 const articlesForPrompt = unreadArticles
                     .slice(0, 50) // Limit to 50 articles to avoid exceeding context length
                     .map(a => `Title: ${a.title}\nSnippet: ${a.snippet}`)
@@ -430,7 +431,6 @@ const ThreatDashboard: React.FC<{
             setIsLoading(true);
             setError('');
             try {
-                const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
                 const articlesForPrompt = unreadArticles
                     .slice(0, 50)
                     .map(a => `Title: ${a.title}\nSnippet: ${a.snippet}`)
@@ -570,7 +570,6 @@ const AIAnswerView: React.FC<{
             setError('');
 
             try {
-                const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
                 const articlesForPrompt = articles
                     .slice(0, 100) // Limit context size
                     .map(a => `ID: ${a.id}\nTitle: ${a.title}\nSnippet: ${a.snippet}`)
@@ -734,8 +733,6 @@ const MainContent: React.FC<MainContentProps> = (props) => {
     }, [isDashboardView, isAiDisabled, setAllFeedsView]);
 
     useEffect(() => {
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-        
         const enrichArticles = async (articlesToEnrich: Article[]) => {
             if (isAiDisabled) {
                 console.log("AI enrichment skipped as features are disabled.");
