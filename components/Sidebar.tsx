@@ -25,7 +25,7 @@ const FeedIcon: React.FC<{ iconUrl: string, feedTitle: string }> = ({ iconUrl, f
     return <img src={iconUrl} alt={`${feedTitle} icon`} className="w-5 h-5 flex-shrink-0 rounded-sm" onError={() => setHasError(true)} aria-hidden="true" />;
 };
 
-const NewFolderInput: React.FC<{ onAddFolder: (name: string); onCancel: () => void; }> = ({ onAddFolder, onCancel }) => {
+const NewFolderInput: React.FC<{ onAddFolder: (name: string) => void; onCancel: () => void; }> = ({ onAddFolder, onCancel }) => {
     const [name, setName] = useState('');
 
     const handleSubmit = (e: React.FormEvent) => {
