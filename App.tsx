@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Sidebar from './components/Sidebar';
 import MainContent from './components/MainContent';
@@ -384,7 +385,7 @@ const App: React.FC = () => {
 
         try {
             if (type === 'youtube') {
-                const response = await fetch(`${CORS_PROXY}${url}`);
+                const response = await fetch(`${CORS_PROXY}${encodeURIComponent(url)}`);
                 if (!response.ok) throw new Error('Could not fetch YouTube channel page.');
                 const text = await response.text();
                 const match = text.match(/"channelId":"(.*?)"/);
@@ -400,7 +401,7 @@ const App: React.FC = () => {
                 return;
             }
 
-            const response = await fetch(`${CORS_PROXY}${feedUrl}`);
+            const response = await fetch(`${CORS_PROXY}${encodeURIComponent(feedUrl)}`);
             if (!response.ok) throw new Error(`Network response was not ok (status: ${response.status}).`);
             const text = await response.text();
             const parser = new DOMParser();

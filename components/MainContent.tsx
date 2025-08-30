@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import type { Feed, Selection, ArticleView, AllFeedsView } from '../App';
 import { CORS_PROXY } from '../App';
@@ -1001,7 +1002,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
             setArticles([]);
             
             const promises = feeds.map(feed => 
-                fetchWithTimeout(`${CORS_PROXY}${feed.url}`, { timeout: 10000 })
+                fetchWithTimeout(`${CORS_PROXY}${encodeURIComponent(feed.url)}`, { timeout: 10000 })
                     .then(response => {
                         if (!response.ok) throw new Error(`HTTP error! status: ${response.status} for ${feed.title}`);
                         return response.text();
