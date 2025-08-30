@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
-import type { Feed, Folder, Selection, Theme } from '../App';
+import type { Feed, Folder, Selection, Theme, MagicFeed } from '../App';
 import {
-    AudreyIcon, ListIcon, PlusIcon, RssIcon, TrashIcon, FolderIcon, PencilIcon, ChevronDownIcon, ChevronRightIcon, SunIcon, MoonIcon, NewspaperIcon, XIcon
+    AudreyIcon, ListIcon, PlusIcon, RssIcon, TrashIcon, FolderIcon, PencilIcon, ChevronDownIcon, ChevronRightIcon, SunIcon, MoonIcon, NewspaperIcon, XIcon, BookmarkIcon, SearchIcon, WandIcon
 } from './icons';
 
 interface SidebarProps {
     feeds: Feed[];
     folders: Folder[];
+    magicFeeds: MagicFeed[];
     selection: Selection;
     onAddFeed: (url: string) => void;
     onRemoveFeed: (id: number) => void;
+    onAddMagicFeed: (topic: string) => void;
+    onRemoveMagicFeed: (id: number) => void;
     onSelect: (selection: Selection) => void;
     onAddFolder: (name: string) => void;
     onRenameFolder: (id: number, newName: string) => void;
@@ -174,24 +177,65 @@ const FeedItem: React.FC<{
     );
 };
 
+const MagicFeedItem: React.FC<{
+    magicFeed: MagicFeed;
+    selection: Selection;
+    onSelect: (selection: Selection) => void;
+    onRemove: (id: number) => void;
+}> = ({ magicFeed, selection, onSelect, onRemove }) => {
+    const isActive = selection.type === 'magic' && selection.id === magicFeed.id;
+    const activeClasses = isActive ? 'bg-gray-200 dark:bg-zinc-700/50 text-zinc-900 dark:text-white' : 'hover:bg-gray-200 dark:hover:bg-zinc-700/50 text-gray-600 dark:text-zinc-400';
+
+    return (
+        <div
+            onClick={() => onSelect({ type: 'magic', id: magicFeed.id })}
+            className={`group flex items-center justify-between pl-3 pr-2 py-2 rounded-md cursor-pointer transition-colors duration-150 ${activeClasses}`}
+        >
+            <div className="flex items-center space-x-3 truncate">
+                <WandIcon className="w-5 h-5 flex-shrink-0 text-purple-500 dark:text-purple-400" />
+                <span className="truncate">{magicFeed.topic}</span>
+            </div>
+            <button
+                onClick={(e) => { e.stopPropagation(); onRemove(magicFeed.id); }}
+                className="opacity-0 group-hover:opacity-100 text-gray-400 dark:text-zinc-500 hover:text-red-500 dark:hover:text-red-400 transition-opacity"
+                aria-label={`Remove ${magicFeed.topic} magic feed`}
+            >
+                <TrashIcon className="w-4 h-4" />
+            </button>
+        </div>
+    );
+};
+
 
 const Sidebar: React.FC<SidebarProps> = (props) => {
-    const { feeds, folders, selection, onAddFeed, onRemoveFeed, onSelect, onAddFolder, onRenameFolder, onDeleteFolder, onMoveFeedToFolder, theme, toggleTheme, isSidebarOpen, onClose } = props;
+    const { feeds, folders, magicFeeds, selection, onAddFeed, onRemoveFeed, onAddMagicFeed, onRemoveMagicFeed, onSelect, onAddFolder, onRenameFolder, onDeleteFolder, onMoveFeedToFolder, theme, toggleTheme, isSidebarOpen, onClose } = props;
     const [newFeedUrl, setNewFeedUrl] = useState('');
+    const [searchQuery, setSearchQuery] = useState('');
     const [isAddingFolder, setIsAddingFolder] = useState(false);
     const [dragOverTarget, setDragOverTarget] = useState<number | 'unfiled' | null>(null);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleAddFeedSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         onAddFeed(newFeedUrl);
         setNewFeedUrl('');
     };
+
+    const handleSearchSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (searchQuery.trim()) {
+            onSelect({ type: 'search', id: null, query: searchQuery.trim() });
+        }
+    };
+
+    const handleAddMagicFeedClick = () => {
+        const topic = prompt("What topic would you like to create a Magic Feed for?");
+        if (topic && topic.trim()) {
+            onAddMagicFeed(topic.trim());
+        }
+    };
     
     const unfiledFeeds = feeds.filter(f => f.folderId === null);
-    const allFeedsIsActive = selection.type === 'all';
-    const briefingIsActive = selection.type === 'briefing';
-
-
+    
     const handleUnfiledDrop = (e: React.DragEvent) => {
         e.preventDefault();
         const feedId = Number(e.dataTransfer.getData('feedId'));
@@ -203,80 +247,82 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
 
     return (
         <aside className={`w-72 bg-gray-50 dark:bg-zinc-900 flex-shrink-0 p-4 flex flex-col h-full overflow-y-auto border-r border-gray-200 dark:border-zinc-800 fixed inset-y-0 left-0 z-40 transform transition-transform duration-300 ease-in-out md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-            <div className="flex items-center justify-between space-x-2 mb-6 px-2">
+            <div className="flex items-center justify-between space-x-2 mb-4 px-2">
                 <div className="flex items-center space-x-2">
                     <AudreyIcon className="w-8 h-8 text-lime-500" />
                     <span className="text-lg font-bold text-zinc-900 dark:text-white">Feed Me</span>
                 </div>
                 <div className="flex items-center">
-                     <button
-                        onClick={toggleTheme}
-                        className="p-2 rounded-full text-zinc-500 dark:text-zinc-400 hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors"
-                        aria-label="Toggle theme"
-                    >
+                     <button onClick={toggleTheme} className="p-2 rounded-full text-zinc-500 dark:text-zinc-400 hover:bg-gray-200 dark:hover:bg-zinc-700" aria-label="Toggle theme">
                         {theme === 'light' ? <MoonIcon className="w-5 h-5" /> : <SunIcon className="w-5 h-5" />}
                     </button>
-                    <button
-                        onClick={onClose}
-                        className="p-2 -mr-2 rounded-full text-zinc-500 dark:text-zinc-400 hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors md:hidden"
-                        aria-label="Close sidebar"
-                    >
+                    <button onClick={onClose} className="p-2 -mr-2 rounded-full text-zinc-500 dark:text-zinc-400 hover:bg-gray-200 dark:hover:bg-zinc-700 md:hidden" aria-label="Close sidebar">
                         <XIcon className="w-6 h-6" />
                     </button>
                 </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="px-2 mb-4">
-                <div className="relative">
-                    <input id="feed-url" type="url" value={newFeedUrl} onChange={(e) => setNewFeedUrl(e.target.value)} placeholder="Add RSS feed URL" required className="w-full bg-white dark:bg-zinc-800 border border-gray-300 dark:border-zinc-700 rounded-md py-2 pl-3 pr-10 text-sm text-zinc-800 dark:text-zinc-300 placeholder-gray-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-lime-500 focus:border-lime-500" />
-                    <button type="submit" className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 dark:text-zinc-400 hover:text-lime-500 dark:hover:text-lime-400" aria-label="Add feed"><PlusIcon className="w-5 h-5" /></button>
-                </div>
-            </form>
-             <div className="px-2 mb-6">
-                <button onClick={() => setIsAddingFolder(true)} className="w-full text-left text-sm text-gray-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white bg-gray-200/50 dark:bg-zinc-800/50 hover:bg-gray-200 dark:hover:bg-zinc-700/50 rounded-md py-2 px-3 flex items-center space-x-2 transition-colors">
-                    <FolderIcon className="w-5 h-5" />
-                    <span>New Folder</span>
-                </button>
+            <div className="px-2 space-y-4 mb-4">
+                <form onSubmit={handleSearchSubmit}>
+                     <div className="relative">
+                        <input id="search" type="search" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search all articles..." className="w-full bg-white dark:bg-zinc-800 border border-gray-300 dark:border-zinc-700 rounded-md py-2 pl-10 pr-4 text-sm text-zinc-800 dark:text-zinc-300 placeholder-gray-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-lime-500 focus:border-lime-500" />
+                        <div className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 dark:text-zinc-400"><SearchIcon className="w-5 h-5" /></div>
+                    </div>
+                </form>
+                <form onSubmit={handleAddFeedSubmit}>
+                    <div className="relative">
+                        <input id="feed-url" type="url" value={newFeedUrl} onChange={(e) => setNewFeedUrl(e.target.value)} placeholder="Add RSS feed URL" required className="w-full bg-white dark:bg-zinc-800 border border-gray-300 dark:border-zinc-700 rounded-md py-2 pl-3 pr-10 text-sm text-zinc-800 dark:text-zinc-300 placeholder-gray-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-lime-500 focus:border-lime-500" />
+                        <button type="submit" className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 dark:text-zinc-400 hover:text-lime-500 dark:hover:text-lime-400" aria-label="Add feed"><PlusIcon className="w-5 h-5" /></button>
+                    </div>
+                </form>
             </div>
-
-
+            
             <div className="flex-grow">
-                 <div onClick={() => onSelect({ type: 'all', id: null })} className={`flex items-center space-x-3 px-3 py-2 rounded-md cursor-pointer transition-colors duration-150 ${allFeedsIsActive ? 'bg-gray-200 dark:bg-zinc-700/50 text-zinc-900 dark:text-white' : 'hover:bg-gray-200 dark:hover:bg-zinc-700/50 text-gray-600 dark:text-zinc-400'}`}>
+                 <div onClick={() => onSelect({ type: 'all', id: null })} className={`flex items-center space-x-3 px-3 py-2 rounded-md cursor-pointer ${selection.type === 'all' ? 'bg-gray-200 dark:bg-zinc-700/50 text-zinc-900 dark:text-white' : 'hover:bg-gray-200 dark:hover:bg-zinc-700/50 text-gray-600 dark:text-zinc-400'}`}>
                     <ListIcon className="w-5 h-5 flex-shrink-0" />
                     <span className="truncate font-medium">All Feeds</span>
                 </div>
-                <div onClick={() => onSelect({ type: 'briefing', id: 'briefing' })} className={`flex items-center space-x-3 px-3 py-2 rounded-md cursor-pointer transition-colors duration-150 mb-4 ${briefingIsActive ? 'bg-gray-200 dark:bg-zinc-700/50 text-zinc-900 dark:text-white' : 'hover:bg-gray-200 dark:hover:bg-zinc-700/50 text-gray-600 dark:text-zinc-400'}`}>
+                <div onClick={() => onSelect({ type: 'bookmarks', id: 'bookmarks' })} className={`flex items-center space-x-3 px-3 py-2 rounded-md cursor-pointer ${selection.type === 'bookmarks' ? 'bg-gray-200 dark:bg-zinc-700/50 text-zinc-900 dark:text-white' : 'hover:bg-gray-200 dark:hover:bg-zinc-700/50 text-gray-600 dark:text-zinc-400'}`}>
+                    <BookmarkIcon className="w-5 h-5 flex-shrink-0" />
+                    <span className="truncate font-medium">Read Later</span>
+                </div>
+                <div onClick={() => onSelect({ type: 'briefing', id: 'briefing' })} className={`flex items-center space-x-3 px-3 py-2 rounded-md cursor-pointer mb-4 ${selection.type === 'briefing' ? 'bg-gray-200 dark:bg-zinc-700/50 text-zinc-900 dark:text-white' : 'hover:bg-gray-200 dark:hover:bg-zinc-700/50 text-gray-600 dark:text-zinc-400'}`}>
                     <NewspaperIcon className="w-5 h-5 flex-shrink-0" />
                     <span className="truncate font-medium">Daily Briefing</span>
                 </div>
                 
+                <div className="px-3 mb-4 space-y-2">
+                    <button onClick={() => setIsAddingFolder(true)} className="w-full text-left text-sm text-gray-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white bg-gray-200/50 dark:bg-zinc-800/50 hover:bg-gray-200 dark:hover:bg-zinc-700/50 rounded-md py-2 px-3 flex items-center space-x-2">
+                        <FolderIcon className="w-5 h-5" />
+                        <span>New Folder</span>
+                    </button>
+                    <button onClick={handleAddMagicFeedClick} className="w-full text-left text-sm text-gray-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white bg-gray-200/50 dark:bg-zinc-800/50 hover:bg-gray-200 dark:hover:bg-zinc-700/50 rounded-md py-2 px-3 flex items-center space-x-2">
+                        <WandIcon className="w-5 h-5 text-purple-500 dark:text-purple-400" />
+                        <span>New Magic Feed</span>
+                    </button>
+                </div>
+
                 <nav className="space-y-1">
+                    {magicFeeds.length > 0 && (
+                        <div className="mt-4">
+                            <h3 className="px-3 text-xs font-semibold text-gray-400 dark:text-zinc-500 uppercase tracking-wider mb-2">Magic Feeds</h3>
+                            {magicFeeds.map(mf => <MagicFeedItem key={mf.id} magicFeed={mf} selection={selection} onSelect={onSelect} onRemove={onRemoveMagicFeed} />)}
+                        </div>
+                    )}
                     {isAddingFolder && <NewFolderInput onAddFolder={onAddFolder} onCancel={() => setIsAddingFolder(false)} />}
                     {folders.map(folder => (
                         <FolderItem
-                            key={folder.id}
-                            folder={folder}
-                            feeds={feeds.filter(f => f.folderId === folder.id)}
-                            selection={selection}
-                            onSelect={onSelect}
-                            onRenameFolder={onRenameFolder}
-                            onDeleteFolder={onDeleteFolder}
-                            onRemoveFeed={onRemoveFeed}
-                            onMoveFeedToFolder={onMoveFeedToFolder}
-                            isDragTarget={dragOverTarget === folder.id}
-                            onDragEnter={() => setDragOverTarget(folder.id)}
-                            onDragLeave={() => setDragOverTarget(null)}
+                            key={folder.id} folder={folder} feeds={feeds.filter(f => f.folderId === folder.id)} selection={selection} onSelect={onSelect}
+                            onRenameFolder={onRenameFolder} onDeleteFolder={onDeleteFolder} onRemoveFeed={onRemoveFeed} onMoveFeedToFolder={onMoveFeedToFolder}
+                            isDragTarget={dragOverTarget === folder.id} onDragEnter={() => setDragOverTarget(folder.id)} onDragLeave={() => setDragOverTarget(null)}
                         />
                     ))}
                 </nav>
                  {unfiledFeeds.length > 0 && (
                      <div className="mt-4">
                          <div 
-                            onDrop={handleUnfiledDrop}
-                            onDragOver={e => e.preventDefault()}
-                            onDragEnter={() => setDragOverTarget('unfiled')}
-                            onDragLeave={() => setDragOverTarget(null)}
-                            className={`px-3 py-2 rounded-md transition-colors ${dragOverTarget === 'unfiled' ? 'bg-lime-200/50 dark:bg-lime-900/50 ring-1 ring-lime-500' : ''}`}
+                            onDrop={handleUnfiledDrop} onDragOver={e => e.preventDefault()} onDragEnter={() => setDragOverTarget('unfiled')}
+                            onDragLeave={() => setDragOverTarget(null)} className={`px-3 py-2 rounded-md ${dragOverTarget === 'unfiled' ? 'bg-lime-200/50 dark:bg-lime-900/50 ring-1 ring-lime-500' : ''}`}
                          >
                              <h3 className="text-xs font-semibold text-gray-400 dark:text-zinc-500 uppercase tracking-wider mb-2">Unfiled</h3>
                              <div className="space-y-1">

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Sidebar from './components/Sidebar';
 import MainContent from './components/MainContent';
 
@@ -15,15 +15,26 @@ export interface Feed {
   folderId: number | null;
 }
 
+export interface MagicFeed {
+  id: number;
+  topic: string;
+}
+
 export type Selection = {
-  type: 'all' | 'feed' | 'folder' | 'briefing';
+  type: 'all' | 'feed' | 'folder' | 'briefing' | 'bookmarks' | 'search' | 'magic';
   id: string | number | null;
+  query?: string; // For search
 };
 
 export type Theme = 'light' | 'dark';
+export type ArticleView = 'card' | 'compact' | 'magazine';
+export type AllFeedsView = 'dashboard' | 'list';
 
 export const CORS_PROXY = 'https://corsproxy.io/?';
 const READ_ARTICLES_KEY = 'feedme_read_articles';
+const BOOKMARKED_ARTICLES_KEY = 'feedme_bookmarked_articles';
+const MAGIC_FEEDS_KEY = 'feedme_magic_feeds';
+const AI_DISABLED_KEY = 'feedme_ai_disabled_until';
 
 const App: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -34,6 +45,8 @@ const App: React.FC = () => {
       }
       return 'light';
   });
+  const [articleView, setArticleView] = useState<ArticleView>('card');
+  const [allFeedsView, setAllFeedsView] = useState<AllFeedsView>('dashboard');
 
   const [readArticleIds, setReadArticleIds] = useState<Set<string>>(() => {
     try {
@@ -44,6 +57,67 @@ const App: React.FC = () => {
         return new Set();
     }
   });
+  
+  const [bookmarkedArticleIds, setBookmarkedArticleIds] = useState<Set<string>>(() => {
+    try {
+        const item = window.localStorage.getItem(BOOKMARKED_ARTICLES_KEY);
+        return item ? new Set(JSON.parse(item)) : new Set();
+    } catch (error) {
+        console.error("Failed to load bookmarks from localStorage", error);
+        return new Set();
+    }
+  });
+
+  const [isAiDisabled, setIsAiDisabled] = useState<boolean>(() => {
+    try {
+        const disabledUntil = window.localStorage.getItem(AI_DISABLED_KEY);
+        if (disabledUntil && new Date().getTime() < parseInt(disabledUntil, 10)) {
+            return true;
+        }
+    } catch (error) {
+        console.error("Failed to read AI disable state from localStorage", error);
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+        try {
+            const disabledUntil = window.localStorage.getItem(AI_DISABLED_KEY);
+            if (disabledUntil) {
+                if (new Date().getTime() >= parseInt(disabledUntil, 10)) {
+                    window.localStorage.removeItem(AI_DISABLED_KEY);
+                    setIsAiDisabled(false);
+                    console.log("AI features have been re-enabled.");
+                } else if (!isAiDisabled) {
+                    setIsAiDisabled(true);
+                }
+            } else if (isAiDisabled) {
+                setIsAiDisabled(false);
+            }
+        } catch (error) {
+            console.error("Error in AI disable check interval", error);
+        }
+    }, 60 * 1000); // Check every minute
+
+    return () => clearInterval(interval);
+  }, [isAiDisabled]);
+
+  const handleAiError = useCallback((error: unknown): boolean => {
+    if (error instanceof Error && (error.message.includes('429') || error.message.includes('RESOURCE_EXHAUSTED') || error.message.includes('rate limit') || error.message.includes('quota'))) {
+        try {
+            console.warn("AI rate limit reached. Disabling AI features for 12 hours.");
+            const twelveHours = 12 * 60 * 60 * 1000;
+            const disabledUntil = new Date().getTime() + twelveHours;
+            window.localStorage.setItem(AI_DISABLED_KEY, disabledUntil.toString());
+            setIsAiDisabled(true);
+            return true; // It was a rate limit error
+        } catch (e) {
+            console.error("Failed to set AI disable state in localStorage", e);
+        }
+    }
+    return false; // Not a rate limit error
+  }, []);
 
   useEffect(() => {
       try {
@@ -52,6 +126,14 @@ const App: React.FC = () => {
           console.error("Failed to save read articles to localStorage", error);
       }
   }, [readArticleIds]);
+
+  useEffect(() => {
+    try {
+        window.localStorage.setItem(BOOKMARKED_ARTICLES_KEY, JSON.stringify(Array.from(bookmarkedArticleIds)));
+    } catch (error) {
+        console.error("Failed to save bookmarks to localStorage", error);
+    }
+  }, [bookmarkedArticleIds]);
 
 
   const toggleTheme = () => {
@@ -86,12 +168,30 @@ const App: React.FC = () => {
     { id: 8, url: 'https://feeds.bbci.co.uk/sport/football/rss.xml', title: 'BBC Football', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=bbc.co.uk', folderId: 3 },
     { id: 9, url: 'https://feeds.bbci.co.uk/sport/motorsport/rss.xml', title: 'BBC Motorsport', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=bbc.co.uk', folderId: 3 },
   ]);
+  
+  const [magicFeeds, setMagicFeeds] = useState<MagicFeed[]>(() => {
+    try {
+        const item = window.localStorage.getItem(MAGIC_FEEDS_KEY);
+        return item ? JSON.parse(item) : [];
+    } catch (error) {
+        console.error("Failed to load magic feeds from localStorage", error);
+        return [];
+    }
+  });
+  
+  useEffect(() => {
+    try {
+        window.localStorage.setItem(MAGIC_FEEDS_KEY, JSON.stringify(magicFeeds));
+    } catch (error) {
+        console.error("Failed to save magic feeds to localStorage", error);
+    }
+  }, [magicFeeds]);
 
   const [selection, setSelection] = useState<Selection>({ type: 'all', id: null });
 
   const handleSelect = (sel: Selection) => {
     setSelection(sel);
-    setIsSidebarOpen(false); // Close sidebar on selection change on mobile
+    setIsSidebarOpen(false);
   };
 
   const handleAddFeed = async (url: string) => {
@@ -115,7 +215,7 @@ const App: React.FC = () => {
           title: feedTitle,
           url,
           iconUrl,
-          folderId: null, // Add to unfiled by default
+          folderId: null,
         };
         
         setFeeds(prevFeeds => [...prevFeeds, newFeed]);
@@ -134,6 +234,19 @@ const App: React.FC = () => {
       setSelection({ type: 'all', id: null });
     }
   };
+  
+  const handleAddMagicFeed = (topic: string) => {
+    const newMagicFeed: MagicFeed = { id: Date.now(), topic };
+    setMagicFeeds(prev => [...prev, newMagicFeed]);
+    handleSelect({ type: 'magic', id: newMagicFeed.id });
+  };
+  
+  const handleRemoveMagicFeed = (id: number) => {
+    setMagicFeeds(magicFeeds.filter(mf => mf.id !== id));
+    if (selection.type === 'magic' && selection.id === id) {
+        setSelection({ type: 'all', id: null });
+    }
+  };
 
   const handleAddFolder = (name: string) => {
       const newFolder: Folder = { id: Date.now(), name };
@@ -146,7 +259,6 @@ const App: React.FC = () => {
   
   const handleDeleteFolder = (id: number) => {
       setFolders(folders.filter(f => f.id !== id));
-      // Move feeds from deleted folder to unfiled
       setFeeds(feeds.map(f => f.folderId === id ? { ...f, folderId: null } : f));
       if (selection.type === 'folder' && selection.id === id) {
           setSelection({ type: 'all', id: null });
@@ -174,27 +286,49 @@ const App: React.FC = () => {
       });
   };
 
+  const handleToggleBookmark = (articleId: string) => {
+      setBookmarkedArticleIds(prev => {
+          const newSet = new Set(prev);
+          if (newSet.has(articleId)) {
+              newSet.delete(articleId);
+          } else {
+              newSet.add(articleId);
+          }
+          return newSet;
+      });
+  };
+
   let feedsToDisplay: Feed[] = [];
   let title = '';
+  let magicFeedTopic: string | undefined = undefined;
 
-  if (selection.type === 'all') {
+  if (selection.type === 'all' || selection.type === 'search' || selection.type === 'bookmarks') {
     feedsToDisplay = feeds;
-    title = 'All Feeds';
+    if (selection.type === 'all') title = 'All Feeds';
+    if (selection.type === 'search') title = `Search: "${selection.query}"`;
+    if (selection.type === 'bookmarks') title = 'Read Later';
   } else if (selection.type === 'folder') {
     feedsToDisplay = feeds.filter(f => f.folderId === selection.id);
     title = folders.find(f => f.id === selection.id)?.name || 'Folder';
   } else if (selection.type === 'feed') {
     const feed = feeds.find(f => f.id === selection.id);
+
     feedsToDisplay = feed ? [feed] : [];
     title = feed?.title || 'Feed';
   } else if (selection.type === 'briefing') {
     feedsToDisplay = feeds;
     title = 'Daily Briefing';
+  } else if (selection.type === 'magic') {
+    feedsToDisplay = [];
+    const magicFeed = magicFeeds.find(mf => mf.id === selection.id);
+    if (magicFeed) {
+        title = `Magic: ${magicFeed.topic}`;
+        magicFeedTopic = magicFeed.topic;
+    }
   }
 
   return (
     <div className="h-screen font-sans text-sm relative overflow-hidden">
-      {/* Sidebar Overlay for mobile */}
       {isSidebarOpen && (
           <div 
               onClick={() => setIsSidebarOpen(false)}
@@ -207,9 +341,12 @@ const App: React.FC = () => {
         onClose={() => setIsSidebarOpen(false)}
         feeds={feeds}
         folders={folders}
+        magicFeeds={magicFeeds}
         selection={selection}
         onAddFeed={handleAddFeed}
         onRemoveFeed={handleRemoveFeed}
+        onAddMagicFeed={handleAddMagicFeed}
+        onRemoveMagicFeed={handleRemoveMagicFeed}
         onSelect={handleSelect}
         onAddFolder={handleAddFolder}
         onRenameFolder={handleRenameFolder}
@@ -223,11 +360,21 @@ const App: React.FC = () => {
           onMenuClick={() => setIsSidebarOpen(true)}
           feedsToDisplay={feedsToDisplay}
           title={title}
-          selectionType={selection.type}
+          selection={selection}
+          magicFeedTopic={magicFeedTopic}
           key={JSON.stringify(selection)}
           readArticleIds={readArticleIds}
+          bookmarkedArticleIds={bookmarkedArticleIds}
           onMarkAsRead={handleMarkAsRead}
           onMarkMultipleAsRead={handleMarkMultipleAsRead}
+          onToggleBookmark={handleToggleBookmark}
+          articleView={articleView}
+          setArticleView={setArticleView}
+          allFeeds={feeds}
+          allFeedsView={allFeedsView}
+          setAllFeedsView={setAllFeedsView}
+          isAiDisabled={isAiDisabled}
+          handleAiError={handleAiError}
         />
       </div>
     </div>
