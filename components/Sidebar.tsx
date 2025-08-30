@@ -53,7 +53,38 @@ const formatSyncTime = (timestamp: number | null): string => {
 
 const FeedIcon: React.FC<{ iconUrl: string, feedTitle: string }> = ({ iconUrl, feedTitle }) => {
     const [hasError, setHasError] = useState(false);
-    if (hasError || !iconUrl) return <RssIcon className="w-5 h-5 flex-shrink-0" />;
+    
+    if (hasError || !iconUrl) {
+        // If there's no title, fallback to the generic RSS icon.
+        if (!feedTitle) {
+            return <RssIcon className="w-5 h-5 flex-shrink-0" />;
+        }
+        
+        const firstLetter = feedTitle.charAt(0).toUpperCase();
+        
+        // A simple hashing function to get a consistent color from a predefined palette
+        // based on the feed title, providing a stable visual identifier.
+        const colors = [
+            'bg-red-500', 'bg-orange-500', 'bg-amber-500', 'bg-yellow-500',
+            'bg-lime-500', 'bg-green-500', 'bg-emerald-500', 'bg-teal-500',
+            'bg-cyan-500', 'bg-sky-500', 'bg-blue-500', 'bg-indigo-500',
+            'bg-violet-500', 'bg-purple-500', 'bg-fuchsia-500', 'bg-pink-500',
+            'bg-rose-500'
+        ];
+        
+        let hash = 0;
+        for (let i = 0; i < feedTitle.length; i++) {
+            hash = feedTitle.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        const colorClass = colors[Math.abs(hash) % colors.length];
+        
+        return (
+            <div className={`w-5 h-5 flex-shrink-0 rounded-sm flex items-center justify-center ${colorClass}`}>
+                <span className="text-white text-xs font-bold select-none">{firstLetter}</span>
+            </div>
+        );
+    }
+    
     return <img src={iconUrl} alt={`${feedTitle} icon`} className="w-5 h-5 flex-shrink-0 rounded-sm" onError={() => setHasError(true)} aria-hidden="true" />;
 };
 

@@ -66,9 +66,12 @@ export type SyncStatus = 'idle' | 'syncing' | 'success' | 'error';
 export const CORS_PROXY = 'https://corsproxy.io/?';
 const READ_ARTICLES_KEY = (user: string) => `feedme_read_articles_${user}`;
 const BOOKMARKED_ARTICLES_KEY = (user: string) => `feedme_bookmarked_articles_${user}`;
+const ARTICLE_TAGS_KEY = (user: string) => `feedme_article_tags_${user}`;
 const LAST_AUTO_SYNC_KEY = (user: string) => `feedme_last_auto_sync_${user}`;
 const AI_DISABLED_KEY = 'feedme_ai_disabled_until';
 const GUEST_SETTINGS_KEY = 'feedme_guest_settings';
+const AI_CACHE_KEYS = ['feedme_dashboard_cache', 'feedme_cluster_cache'];
+
 
 const defaultFolders: Folder[] = [
     { id: 1, name: 'News' },
@@ -122,10 +125,12 @@ const App: React.FC = () => {
     const [feeds, setFeeds] = useState<Feed[]>(defaultFeeds);
     const [readArticleIds, setReadArticleIds] = useState<Set<string>>(new Set());
     const [bookmarkedArticleIds, setBookmarkedArticleIds] = useState<Set<string>>(new Set());
+    const [articleTags, setArticleTags] = useState<Map<string, Set<string>>>(new Map());
     const [magicFeeds, setMagicFeeds] = useState<MagicFeed[]>([]);
 
     const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle');
     const [lastSyncTime, setLastSyncTime] = useState<number | null>(null);
+    const [lastRefresh, setLastRefresh] = useState(() => Date.now());
     
     const loadSettings = (settings: Partial<Settings>) => {
         setFeeds(settings.feeds || defaultFeeds);
@@ -159,6 +164,13 @@ const App: React.FC = () => {
                 setReadArticleIds(savedReadArticles ? new Set(JSON.parse(savedReadArticles)) : new Set());
                 const savedBookmarks = window.localStorage.getItem(BOOKMARKED_ARTICLES_KEY(profile.id));
                 setBookmarkedArticleIds(savedBookmarks ? new Set(JSON.parse(savedBookmarks)) : new Set());
+                const savedTags = window.localStorage.getItem(ARTICLE_TAGS_KEY(profile.id));
+                if (savedTags) {
+                    const parsedTags = JSON.parse(savedTags) as [string, string[]][];
+                    setArticleTags(new Map(parsedTags.map(([id, tags]) => [id, new Set(tags)])));
+                } else {
+                    setArticleTags(new Map());
+                }
              } catch(e) { console.error("Error loading local article states", e); }
 
         } else {
@@ -168,6 +180,7 @@ const App: React.FC = () => {
             loadSettings({});
             setReadArticleIds(new Set());
             setBookmarkedArticleIds(new Set());
+            setArticleTags(new Map());
             setSelection({ type: 'all', id: null });
         }
     }, []);
@@ -179,6 +192,32 @@ const App: React.FC = () => {
         };
         initGoogleClient();
     }, [handleAuthChange]);
+    
+    // Auto-refresh feeds every 5 minutes
+    useEffect(() => {
+        const feedInterval = setInterval(() => {
+            console.log('Auto-refreshing feeds...');
+            setLastRefresh(Date.now());
+        }, 5 * 60 * 1000); // 5 minutes
+
+        return () => clearInterval(feedInterval);
+    }, []);
+
+    // Auto-refresh AI insights (by clearing cache) every 6 hours
+    useEffect(() => {
+        const aiInterval = setInterval(() => {
+            console.log('Clearing AI caches for auto-refresh...');
+            try {
+                AI_CACHE_KEYS.forEach(key => window.localStorage.removeItem(key));
+                // Trigger a feed refresh at the same time to provide new data for the AI to process
+                setLastRefresh(Date.now());
+            } catch (e) {
+                console.error("Failed to clear AI caches during auto-refresh", e);
+            }
+        }, 6 * 60 * 60 * 1000); // 6 hours
+
+        return () => clearInterval(aiInterval);
+    }, []);
     
     const handleSyncToDrive = async (isSilent: boolean = false) => {
         if (!isGapiReady || !isSignedIn) {
@@ -298,6 +337,17 @@ const App: React.FC = () => {
             window.localStorage.setItem(BOOKMARKED_ARTICLES_KEY(userId), JSON.stringify(Array.from(bookmarkedArticleIds)));
         } catch (error) { console.error("Failed to save bookmarks to localStorage", error); }
     }, [bookmarkedArticleIds, userId]);
+
+    useEffect(() => {
+        if (!userId) return;
+        try {
+            const tagsToSave = Array.from(articleTags.entries()).map(([id, tags]) => [id, Array.from(tags)]);
+            const filteredTagsToSave = tagsToSave.filter(([, tags]) => tags.length > 0);
+            window.localStorage.setItem(ARTICLE_TAGS_KEY(userId), JSON.stringify(filteredTagsToSave));
+        } catch (error) {
+            console.error("Failed to save article tags to localStorage", error);
+        }
+    }, [articleTags, userId]);
     
     useEffect(() => {
         if (isGuestMode) {
@@ -452,6 +502,18 @@ const App: React.FC = () => {
         });
     };
     
+    const handleSetArticleTags = (articleId: string, tags: Set<string>) => {
+        setArticleTags(prev => {
+            const newMap = new Map(prev);
+            if (tags.size === 0) {
+                newMap.delete(articleId); // Clean up empty sets from the map
+            } else {
+                newMap.set(articleId, tags);
+            }
+            return newMap;
+        });
+    };
+
     const handleExportOpml = () => {
         let opml = `<?xml version="1.0" encoding="UTF-8"?><opml version="2.0"><body>`;
         folders.forEach(folder => {
@@ -548,11 +610,19 @@ const App: React.FC = () => {
             setReadArticleIds(savedReadArticles ? new Set(JSON.parse(savedReadArticles)) : new Set());
             const savedBookmarks = window.localStorage.getItem(BOOKMARKED_ARTICLES_KEY('guest'));
             setBookmarkedArticleIds(savedBookmarks ? new Set(JSON.parse(savedBookmarks)) : new Set());
+            const savedTags = window.localStorage.getItem(ARTICLE_TAGS_KEY('guest'));
+            if (savedTags) {
+                const parsedTags = JSON.parse(savedTags) as [string, string[]][];
+                setArticleTags(new Map(parsedTags.map(([id, tags]) => [id, new Set(tags)])));
+            } else {
+                setArticleTags(new Map());
+            }
         } catch (e) {
             console.error("Error loading guest data from localStorage", e);
             loadSettings({});
             setReadArticleIds(new Set());
             setBookmarkedArticleIds(new Set());
+            setArticleTags(new Map());
         }
     };
     
@@ -561,6 +631,7 @@ const App: React.FC = () => {
         loadSettings({});
         setReadArticleIds(new Set());
         setBookmarkedArticleIds(new Set());
+        setArticleTags(new Map());
         setSelection({ type: 'all', id: null });
     };
 
@@ -640,10 +711,12 @@ const App: React.FC = () => {
                     key={JSON.stringify(selection) + userId}
                     readArticleIds={readArticleIds}
                     bookmarkedArticleIds={bookmarkedArticleIds}
+                    articleTags={articleTags}
                     onMarkAsRead={handleMarkAsRead}
                     onMarkAsUnread={handleMarkAsUnread}
                     onMarkMultipleAsRead={handleMarkMultipleAsRead}
                     onToggleBookmark={handleToggleBookmark}
+                    onSetArticleTags={handleSetArticleTags}
                     articleView={articleView}
                     setArticleView={setArticleView}
                     allFeeds={feeds}
@@ -653,6 +726,7 @@ const App: React.FC = () => {
                     handleAiError={handleAiError}
                     isClusteringEnabled={isClusteringEnabled}
                     setIsClusteringEnabled={setIsClusteringEnabled}
+                    refreshKey={lastRefresh}
                 />
             </div>
         </div>

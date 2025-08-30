@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import type { Feed, Selection, ArticleView, AllFeedsView } from '../App';
 import { CORS_PROXY } from '../App';
 import { GoogleGenAI, Type } from '@google/genai';
-import { SparklesIcon, CheckCircleIcon, MenuIcon, BookmarkIcon, ViewColumnsIcon, ViewListIcon, ViewGridIcon, LayoutGridIcon, FireIcon, ShieldCheckIcon, BugAntIcon, XIcon, SearchIcon, ArrowUturnLeftIcon, DocumentDuplicateIcon, ChevronDownIcon } from './icons';
+import { SparklesIcon, CheckCircleIcon, MenuIcon, BookmarkIcon, ViewColumnsIcon, ViewListIcon, ViewGridIcon, LayoutGridIcon, FireIcon, ShieldCheckIcon, BugAntIcon, XIcon, SearchIcon, ArrowUturnLeftIcon, DocumentDuplicateIcon, ChevronDownIcon, TagIcon } from './icons';
 
 // Create a single, shared AI instance, initialized once.
 if (!process.env.API_KEY) {
@@ -134,18 +134,55 @@ const ArticleItem: React.FC<{
     article: EnrichedArticle,
     isRead: boolean,
     isBookmarked: boolean,
+    tags: Set<string>,
     onMarkAsRead: (id: string) => void,
     onMarkAsUnread: (id: string) => void,
     onToggleBookmark: (id: string) => void,
+    onSetTags: (tags: Set<string>) => void,
     onEnrich: (id: string, data: Partial<EnrichedArticle>) => void,
     view: ArticleView,
     isAiDisabled: boolean,
     handleAiError: (error: unknown) => boolean,
     isFocused: boolean,
     articleRef: (el: HTMLDivElement | null) => void,
-}> = ({ article, isRead, isBookmarked, onMarkAsRead, onMarkAsUnread, onToggleBookmark, onEnrich, view, isAiDisabled, handleAiError, isFocused, articleRef }) => {
+}> = ({ article, isRead, isBookmarked, tags, onMarkAsRead, onMarkAsUnread, onToggleBookmark, onSetTags, onEnrich, view, isAiDisabled, handleAiError, isFocused, articleRef }) => {
     const [isSummarizing, setIsSummarizing] = useState(false);
     const [summaryError, setSummaryError] = useState('');
+    const [isEditingTags, setIsEditingTags] = useState(false);
+    const [tagInput, setTagInput] = useState('');
+    const tagInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        if (isEditingTags) {
+            tagInputRef.current?.focus();
+        }
+    }, [isEditingTags]);
+
+    const handleAddTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const newTag = tagInput.trim().toLowerCase();
+            if (newTag && !tags.has(newTag)) {
+                onSetTags(new Set([...tags, newTag]));
+            }
+            setTagInput('');
+        }
+    };
+
+    const handleRemoveTag = (tagToRemove: string) => {
+        const newTags = new Set(tags);
+        newTags.delete(tagToRemove);
+        onSetTags(newTags);
+    };
+
+    const handleTagEditorBlur = () => {
+        const newTag = tagInput.trim().toLowerCase();
+        if (newTag && !tags.has(newTag)) {
+            onSetTags(new Set([...tags, newTag]));
+        }
+        setTagInput('');
+        setIsEditingTags(false);
+    };
 
     const handleSummarize = async () => {
         if (isAiDisabled) {
@@ -261,6 +298,9 @@ const ArticleItem: React.FC<{
                                 <SparklesIcon className="w-4 h-4" />
                                 <span>{isSummarizing ? '...' : (article.summary ? 'Summary' : 'Summarize')}</span>
                             </button>
+                            <button onClick={() => setIsEditingTags(!isEditingTags)} className="text-gray-400 hover:text-lime-500" aria-label="Add or edit tags">
+                                <TagIcon className="w-5 h-5" />
+                            </button>
                              <button onClick={() => onToggleBookmark(article.id)} className="text-gray-400 hover:text-lime-500" aria-label="Bookmark article">
                                 <BookmarkIcon className="w-5 h-5" solid={isBookmarked} />
                             </button>
@@ -268,15 +308,47 @@ const ArticleItem: React.FC<{
                     </div>
                 </div>
             </div>
-            {(isSummarizing || article.summary || summaryError) && (
-                <div className="p-4 mt-2 border-t border-gray-200 dark:border-zinc-700/50">
-                     {summaryError && <p className="text-sm text-red-600 dark:text-red-400">{summaryError}</p>}
-                     {article.summary && (
-                         <div>
-                             <h4 className="text-sm font-bold text-zinc-800 dark:text-gray-100 mb-2">AI Summary</h4>
-                             <p className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{article.summary}</p>
-                         </div>
-                     )}
+            {(tags.size > 0 || isEditingTags || isSummarizing || article.summary || summaryError) && (
+                 <div className="border-t border-gray-200 dark:border-zinc-700/50">
+                    {(tags.size > 0 || isEditingTags) && (
+                        <div className="p-4">
+                            <div className="flex flex-wrap items-center gap-2">
+                                {Array.from(tags).map(tag => (
+                                    <span key={tag} className="inline-flex items-center gap-x-1.5 rounded-full bg-gray-200 px-2 py-1 text-xs font-medium text-gray-700 dark:bg-zinc-700 dark:text-zinc-300">
+                                        {tag}
+                                        {isEditingTags && (
+                                            <button onClick={() => handleRemoveTag(tag)} className="flex-shrink-0 h-4 w-4 rounded-full inline-flex items-center justify-center text-gray-500 hover:bg-gray-300 hover:text-gray-600 dark:text-zinc-400 dark:hover:bg-zinc-600 dark:hover:text-zinc-200 focus:outline-none" aria-label={`Remove ${tag} tag`}>
+                                                <XIcon className="h-3 w-3" />
+                                            </button>
+                                        )}
+                                    </span>
+                                ))}
+                                {isEditingTags && (
+                                    <input
+                                        ref={tagInputRef}
+                                        type="text"
+                                        value={tagInput}
+                                        onChange={(e) => setTagInput(e.target.value)}
+                                        onKeyDown={handleAddTag}
+                                        onBlur={handleTagEditorBlur}
+                                        placeholder="Add a tag..."
+                                        className="bg-transparent text-sm focus:outline-none p-1 flex-grow"
+                                    />
+                                )}
+                            </div>
+                        </div>
+                    )}
+                    {(isSummarizing || article.summary || summaryError) && (
+                        <div className={`p-4 ${(tags.size > 0 || isEditingTags) ? 'border-t border-gray-200 dark:border-zinc-700/50' : ''}`}>
+                            {summaryError && <p className="text-sm text-red-600 dark:text-red-400">{summaryError}</p>}
+                            {article.summary && (
+                                <div>
+                                    <h4 className="text-sm font-bold text-zinc-800 dark:text-gray-100 mb-2">AI Summary</h4>
+                                    <p className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{article.summary}</p>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             )}
         </div>
@@ -435,7 +507,7 @@ const ThreatDashboard: React.FC<{
     const [error, setError] = useState('');
 
     const DASHBOARD_CACHE_KEY = 'feedme_dashboard_cache';
-    const CACHE_DURATION_MS = 60 * 60 * 1000; // 1 hour
+    const CACHE_DURATION_MS = 6 * 60 * 60 * 1000; // 6 hours
 
     useEffect(() => {
         const generateAndCacheDashboard = async () => {
@@ -739,10 +811,12 @@ interface MainContentProps {
     selection: Selection;
     readArticleIds: Set<string>;
     bookmarkedArticleIds: Set<string>;
+    articleTags: Map<string, Set<string>>;
     onMarkAsRead: (articleId: string) => void;
     onMarkAsUnread: (articleId: string) => void;
     onMarkMultipleAsRead: (articleIds: string[]) => void;
     onToggleBookmark: (articleId: string) => void;
+    onSetArticleTags: (articleId: string, tags: Set<string>) => void;
     onMenuClick: () => void;
     onSearch: (query: string) => void;
     articleView: ArticleView;
@@ -755,6 +829,7 @@ interface MainContentProps {
     handleAiError: (error: unknown) => boolean;
     isClusteringEnabled: boolean;
     setIsClusteringEnabled: (enabled: boolean) => void;
+    refreshKey: number;
 }
 
 const ArticleCluster: React.FC<{
@@ -765,7 +840,7 @@ const ArticleCluster: React.FC<{
     // Pass through all props needed by ArticleItem
     [key: string]: any;
 }> = (props) => {
-    const { cluster, allArticles, onMarkMultipleAsRead, articleRef, readArticleIds, bookmarkedArticleIds, ...rest } = props;
+    const { cluster, allArticles, onMarkMultipleAsRead, articleRef, readArticleIds, bookmarkedArticleIds, articleTags, onSetArticleTags, ...rest } = props;
     const [isExpanded, setIsExpanded] = useState(false);
 
     const clusterArticles = useMemo(() => 
@@ -802,6 +877,8 @@ const ArticleCluster: React.FC<{
                             article={article}
                             isRead={readArticleIds.has(article.id)}
                             isBookmarked={bookmarkedArticleIds.has(article.id)}
+                            tags={articleTags.get(article.id) || new Set()}
+                            onSetTags={(tags: Set<string>) => onSetArticleTags(article.id, tags)}
                             // FIX: Explicitly pass props to ArticleItem. The weakly-typed `...rest` spread was causing a TypeScript error as it couldn't guarantee the props existed.
                             onMarkAsRead={(props as any).onMarkAsRead}
                             onMarkAsUnread={(props as any).onMarkAsUnread}
@@ -823,7 +900,7 @@ const ArticleCluster: React.FC<{
 
 
 const MainContent: React.FC<MainContentProps> = (props) => {
-    const { feedsToDisplay, title, selection, readArticleIds, bookmarkedArticleIds, onMarkAsRead, onMarkAsUnread, onMarkMultipleAsRead, onToggleBookmark, onMenuClick, onSearch, articleView, setArticleView, allFeeds, magicFeedTopic, allFeedsView, setAllFeedsView, isAiDisabled, handleAiError, isClusteringEnabled, setIsClusteringEnabled } = props;
+    const { feedsToDisplay, title, selection, readArticleIds, bookmarkedArticleIds, articleTags, onMarkAsRead, onMarkAsUnread, onMarkMultipleAsRead, onToggleBookmark, onSetArticleTags, onMenuClick, onSearch, articleView, setArticleView, allFeeds, magicFeedTopic, allFeedsView, setAllFeedsView, isAiDisabled, handleAiError, isClusteringEnabled, setIsClusteringEnabled, refreshKey } = props;
     
     const [articles, setArticles] = useState<EnrichedArticle[]>([]);
     const [loading, setLoading] = useState(false);
@@ -958,7 +1035,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
             const feedsForFetch = (selection.type === 'bookmarks' || selection.type === 'search' || selection.type === 'all') ? allFeeds : feedsToDisplay;
             fetchRssFeeds(feedsForFetch);
         }
-    }, [feedsToDisplay, allFeeds, selection, magicFeedTopic, isAiDisabled, handleAiError]);
+    }, [feedsToDisplay, allFeeds, selection, magicFeedTopic, isAiDisabled, handleAiError, refreshKey]);
     
     const unreadArticles = useMemo(() => {
         return articles.filter(a => !readArticleIds.has(a.id));
@@ -966,7 +1043,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
 
     useEffect(() => {
         const CLUSTER_CACHE_KEY = 'feedme_cluster_cache';
-        const CACHE_DURATION_MS = 60 * 60 * 1000; // 1 hour
+        const CACHE_DURATION_MS = 6 * 60 * 60 * 1000; // 6 hours
 
         const getClusteredArticles = async () => {
             if (!isClusteringEnabled || unreadArticles.length < 3) {
@@ -1273,9 +1350,11 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                                         article={item}
                                         isRead={readArticleIds.has(item.id)}
                                         isBookmarked={bookmarkedArticleIds.has(item.id)}
+                                        tags={articleTags.get(item.id) || new Set()}
                                         onMarkAsRead={onMarkAsRead}
                                         onMarkAsUnread={onMarkAsUnread}
                                         onToggleBookmark={onToggleBookmark}
+                                        onSetTags={(tags) => onSetArticleTags(item.id, tags)}
                                         onEnrich={handleEnrichArticle}
                                         view={articleView}
                                         isAiDisabled={isAiDisabled}
