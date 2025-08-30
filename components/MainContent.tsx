@@ -128,7 +128,7 @@ const ArticleItem: React.FC<{ article: Article, isRead: boolean, onMarkAsRead: (
         setSummary('');
         setSummaryError('');
         try {
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+            const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
             const prompt = `Provide a concise, one-paragraph summary of the following news article based on its title and snippet.\n\nTitle: "${article.title}"\n\nSnippet: "${article.snippet}"`;
             const response = await ai.models.generateContent({
                 model: 'gemini-2.5-flash',
@@ -203,7 +203,7 @@ const BriefingView: React.FC<{ unreadArticles: Article[] }> = ({ unreadArticles 
             setBriefing(null);
             
             try {
-                const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+                const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
                 const articlesForPrompt = unreadArticles
                     .slice(0, 50) // Limit to 50 articles to avoid exceeding context length
                     .map(a => `Title: ${a.title}\nSnippet: ${a.snippet}`)
