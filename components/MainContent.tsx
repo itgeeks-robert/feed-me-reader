@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import type { Feed, Selection, ArticleView, AllFeedsView } from '../App';
 import { CORS_PROXY } from '../App';
 import { GoogleGenAI, Type } from '@google/genai';
-import { SparklesIcon, CheckCircleIcon, MenuIcon, BookmarkIcon, ViewColumnsIcon, ViewListIcon, ViewGridIcon, LayoutGridIcon, FireIcon, ShieldCheckIcon, BugAntIcon, XIcon, SearchIcon } from './icons';
+import { SparklesIcon, CheckCircleIcon, MenuIcon, BookmarkIcon, ViewColumnsIcon, ViewListIcon, ViewGridIcon, LayoutGridIcon, FireIcon, ShieldCheckIcon, BugAntIcon, XIcon, SearchIcon, ArrowUturnLeftIcon, DocumentDuplicateIcon, ChevronDownIcon } from './icons';
 
 // Create a single, shared AI instance, initialized once.
 if (!process.env.API_KEY) {
@@ -41,6 +41,18 @@ interface GroundingChunk {
     title: string;
   };
 }
+
+// Types for Article Clustering
+interface Cluster {
+    representativeHeadline: string;
+    articleIds: string[];
+}
+
+interface ClusteringResult {
+    clusters: Cluster[];
+    uniqueArticleIds: string[];
+}
+
 
 function timeAgo(date: Date | null): string {
     if (!date) return '';
@@ -123,12 +135,15 @@ const ArticleItem: React.FC<{
     isRead: boolean,
     isBookmarked: boolean,
     onMarkAsRead: (id: string) => void,
+    onMarkAsUnread: (id: string) => void,
     onToggleBookmark: (id: string) => void,
     onEnrich: (id: string, data: Partial<EnrichedArticle>) => void,
     view: ArticleView,
     isAiDisabled: boolean,
     handleAiError: (error: unknown) => boolean,
-}> = ({ article, isRead, isBookmarked, onMarkAsRead, onToggleBookmark, onEnrich, view, isAiDisabled, handleAiError }) => {
+    isFocused: boolean,
+    articleRef: (el: HTMLDivElement | null) => void,
+}> = ({ article, isRead, isBookmarked, onMarkAsRead, onMarkAsUnread, onToggleBookmark, onEnrich, view, isAiDisabled, handleAiError, isFocused, articleRef }) => {
     const [isSummarizing, setIsSummarizing] = useState(false);
     const [summaryError, setSummaryError] = useState('');
 
@@ -173,9 +188,15 @@ const ArticleItem: React.FC<{
         }
     };
     
+    const handleMarkAsUnread = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onMarkAsUnread(article.id);
+    };
+
     if (view === 'compact') {
         return (
-             <div className={`flex items-start justify-between gap-4 py-3 border-b border-gray-200 dark:border-zinc-700/50 ${isRead ? 'opacity-60' : ''}`}>
+             <div ref={articleRef} className={`flex items-start justify-between gap-4 py-3 border-b border-gray-200 dark:border-zinc-700/50 ${isRead ? 'opacity-60' : ''} ${isFocused ? 'bg-gray-100 dark:bg-zinc-800 rounded-md' : ''}`}>
                 <div className="flex items-center gap-3 flex-1 truncate">
                     <a href={article.link} onClick={() => onMarkAsRead(article.id)} target="_blank" rel="noopener noreferrer" className="text-base font-medium text-zinc-800 dark:text-gray-100 hover:text-lime-500 dark:hover:text-lime-400 truncate">
                         {article.title}
@@ -184,6 +205,11 @@ const ArticleItem: React.FC<{
                 <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
                     <span className="w-24 truncate text-right">{article.source}</span>
                     <span className="w-16 text-right">{timeAgo(article.publishedDate)}</span>
+                    {isRead && (
+                         <button onClick={handleMarkAsUnread} className="text-gray-400 hover:text-lime-500" aria-label="Mark as unread">
+                            <ArrowUturnLeftIcon className="w-5 h-5" />
+                        </button>
+                    )}
                      <button onClick={() => onToggleBookmark(article.id)} className="text-gray-400 hover:text-lime-500" aria-label="Bookmark article">
                         <BookmarkIcon className="w-5 h-5" solid={isBookmarked} />
                     </button>
@@ -193,7 +219,7 @@ const ArticleItem: React.FC<{
     }
 
     const isMagazine = view === 'magazine';
-    const cardClasses = `bg-gray-50 dark:bg-zinc-800/50 rounded-lg border border-gray-200 dark:border-zinc-700/50 hover:border-gray-300 dark:hover:border-zinc-600 transition-all duration-200 ${isRead ? 'opacity-60 hover:opacity-100' : ''}`;
+    const cardClasses = `bg-gray-50 dark:bg-zinc-800/50 rounded-lg border border-gray-200 dark:border-zinc-700/50 hover:border-gray-300 dark:hover:border-zinc-600 transition-all duration-200 ${isRead ? 'opacity-60 hover:opacity-100' : ''} ${isFocused ? 'ring-2 ring-lime-500' : ''}`;
     const layoutClasses = isMagazine ? 'flex flex-col' : 'flex flex-col md:flex-row md:items-start';
     const imageWrapperClasses = isMagazine ? 'w-full' : 'w-full md:w-32 md:flex-shrink-0';
     const imageClasses = isMagazine
@@ -202,7 +228,7 @@ const ArticleItem: React.FC<{
     const contentClasses = isMagazine ? 'p-4' : 'p-4 flex-1';
 
     return (
-        <div className={cardClasses}>
+        <div className={cardClasses} ref={articleRef}>
             <div className={layoutClasses}>
                 {article.imageUrl && (
                     <div className={imageWrapperClasses}>
@@ -225,6 +251,12 @@ const ArticleItem: React.FC<{
                             <span>{article.source}</span>
                         </div>
                         <div className="flex items-center space-x-4">
+                            {isRead && (
+                                <button onClick={handleMarkAsUnread} className="flex items-center space-x-1 text-xs text-gray-500 dark:text-zinc-400 hover:text-lime-500 dark:hover:text-lime-400 font-medium">
+                                    <ArrowUturnLeftIcon className="w-4 h-4" />
+                                    <span>Unread</span>
+                                </button>
+                            )}
                             <button onClick={handleSummarize} disabled={isSummarizing || !!article.summary || isAiDisabled} className="flex items-center space-x-2 text-xs text-gray-500 dark:text-zinc-400 hover:text-lime-500 dark:hover:text-lime-400 disabled:opacity-50 disabled:cursor-not-allowed font-medium" title={isAiDisabled ? "AI features are temporarily disabled" : "Summarize"}>
                                 <SparklesIcon className="w-4 h-4" />
                                 <span>{isSummarizing ? '...' : (article.summary ? 'Summary' : 'Summarize')}</span>
@@ -708,6 +740,7 @@ interface MainContentProps {
     readArticleIds: Set<string>;
     bookmarkedArticleIds: Set<string>;
     onMarkAsRead: (articleId: string) => void;
+    onMarkAsUnread: (articleId: string) => void;
     onMarkMultipleAsRead: (articleIds: string[]) => void;
     onToggleBookmark: (articleId: string) => void;
     onMenuClick: () => void;
@@ -720,16 +753,88 @@ interface MainContentProps {
     setAllFeedsView: (view: AllFeedsView) => void;
     isAiDisabled: boolean;
     handleAiError: (error: unknown) => boolean;
+    isClusteringEnabled: boolean;
+    setIsClusteringEnabled: (enabled: boolean) => void;
 }
 
+const ArticleCluster: React.FC<{
+    cluster: Cluster;
+    allArticles: Map<string, EnrichedArticle>;
+    onMarkMultipleAsRead: (ids: string[]) => void;
+    articleRef: (el: HTMLDivElement | null) => void;
+    // Pass through all props needed by ArticleItem
+    [key: string]: any;
+}> = (props) => {
+    const { cluster, allArticles, onMarkMultipleAsRead, articleRef, readArticleIds, bookmarkedArticleIds, ...rest } = props;
+    const [isExpanded, setIsExpanded] = useState(false);
+
+    const clusterArticles = useMemo(() => 
+        cluster.articleIds.map(id => allArticles.get(id)).filter((a): a is EnrichedArticle => !!a)
+    , [cluster.articleIds, allArticles]);
+    
+    if (clusterArticles.length === 0) return null;
+
+    const handleMarkAllRead = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        onMarkMultipleAsRead(cluster.articleIds);
+    };
+
+    return (
+        <div ref={articleRef} className={`bg-gray-50 dark:bg-zinc-800/50 rounded-lg border border-gray-200 dark:border-zinc-700/50 overflow-hidden transition-all ${props.isFocused ? 'ring-2 ring-lime-500' : ''}`}>
+            <div
+                className="p-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-zinc-800 flex justify-between items-center gap-4"
+                onClick={() => setIsExpanded(!isExpanded)}
+            >
+                <div className="flex-1">
+                    <h3 className="font-semibold text-lg text-zinc-900 dark:text-white">{cluster.representativeHeadline}</h3>
+                    <p className="text-sm text-gray-500 dark:text-zinc-400">{clusterArticles.length} related articles</p>
+                </div>
+                <div className="flex items-center gap-4 flex-shrink-0">
+                    <button onClick={handleMarkAllRead} className="hidden sm:block text-xs font-medium text-gray-500 dark:text-zinc-400 hover:text-lime-500 dark:hover:text-lime-400">Mark all read</button>
+                    <ChevronDownIcon className={`w-5 h-5 text-gray-400 dark:text-zinc-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                </div>
+            </div>
+            {isExpanded && (
+                <div className="px-4 pb-2 border-t border-gray-200 dark:border-zinc-700/50">
+                    {clusterArticles.map(article => (
+                        <ArticleItem
+                            key={article.id}
+                            article={article}
+                            isRead={readArticleIds.has(article.id)}
+                            isBookmarked={bookmarkedArticleIds.has(article.id)}
+                            // FIX: Explicitly pass props to ArticleItem. The weakly-typed `...rest` spread was causing a TypeScript error as it couldn't guarantee the props existed.
+                            onMarkAsRead={(props as any).onMarkAsRead}
+                            onMarkAsUnread={(props as any).onMarkAsUnread}
+                            onToggleBookmark={(props as any).onToggleBookmark}
+                            onEnrich={(props as any).onEnrich}
+                            isAiDisabled={(props as any).isAiDisabled}
+                            handleAiError={(props as any).handleAiError}
+                            view="compact"
+                            // These don't need to be passed down to the inner items from a cluster perspective
+                            isFocused={false} 
+                            articleRef={() => {}} 
+                        />
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
+
+
 const MainContent: React.FC<MainContentProps> = (props) => {
-    const { feedsToDisplay, title, selection, readArticleIds, bookmarkedArticleIds, onMarkAsRead, onMarkMultipleAsRead, onToggleBookmark, onMenuClick, onSearch, articleView, setArticleView, allFeeds, magicFeedTopic, allFeedsView, setAllFeedsView, isAiDisabled, handleAiError } = props;
+    const { feedsToDisplay, title, selection, readArticleIds, bookmarkedArticleIds, onMarkAsRead, onMarkAsUnread, onMarkMultipleAsRead, onToggleBookmark, onMenuClick, onSearch, articleView, setArticleView, allFeeds, magicFeedTopic, allFeedsView, setAllFeedsView, isAiDisabled, handleAiError, isClusteringEnabled, setIsClusteringEnabled } = props;
     
     const [articles, setArticles] = useState<EnrichedArticle[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [activeFilter, setActiveFilter] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
+    const [focusedArticleIndex, setFocusedArticleIndex] = useState<number | null>(null);
+    const articleRefs = useRef<(HTMLDivElement | null)[]>([]);
+    
+    const [clusteringResult, setClusteringResult] = useState<ClusteringResult | null>(null);
+    const [isClustering, setIsClustering] = useState(false);
 
     const handleSearchSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -854,6 +959,85 @@ const MainContent: React.FC<MainContentProps> = (props) => {
             fetchRssFeeds(feedsForFetch);
         }
     }, [feedsToDisplay, allFeeds, selection, magicFeedTopic, isAiDisabled, handleAiError]);
+    
+    const unreadArticles = useMemo(() => {
+        return articles.filter(a => !readArticleIds.has(a.id));
+    }, [articles, readArticleIds]);
+
+    useEffect(() => {
+        const CLUSTER_CACHE_KEY = 'feedme_cluster_cache';
+        const CACHE_DURATION_MS = 60 * 60 * 1000; // 1 hour
+
+        const getClusteredArticles = async () => {
+            if (!isClusteringEnabled || unreadArticles.length < 3) {
+                setClusteringResult(null);
+                return;
+            }
+
+            const unreadIds = unreadArticles.map(a => a.id).sort().join(',');
+
+            try {
+                const cached = localStorage.getItem(CLUSTER_CACHE_KEY);
+                if (cached) {
+                    const { result, timestamp, hash } = JSON.parse(cached);
+                    if (Date.now() - timestamp < CACHE_DURATION_MS && hash === unreadIds) {
+                        setClusteringResult(result);
+                        return;
+                    }
+                }
+            } catch (e) { console.error("Error reading cluster cache", e); }
+
+            setIsClustering(true);
+            try {
+                const articlesForPrompt = unreadArticles
+                    .slice(0, 50)
+                    .map(a => `ID: ${a.id}\nTitle: ${a.title}\nSnippet: ${a.snippet}`)
+                    .join('\n\n---\n\n');
+
+                const prompt = `You are a news aggregator AI. Analyze the following articles and group them into clusters based on the real-world event they are reporting on. For each cluster, create a single, representative headline. Articles that don't fit into any cluster should be considered unique. Provide your output in JSON format. Articles:\n${articlesForPrompt}`;
+
+                const response = await ai.models.generateContent({
+                    model: 'gemini-2.5-flash',
+                    contents: prompt,
+                    config: {
+                        responseMimeType: 'application/json',
+                        responseSchema: {
+                            type: Type.OBJECT,
+                            properties: {
+                                clusters: {
+                                    type: Type.ARRAY, description: "Groups of articles about the same event.",
+                                    items: {
+                                        type: Type.OBJECT,
+                                        properties: {
+                                            representativeHeadline: { type: Type.STRING, description: "A summary headline for the cluster." },
+                                            articleIds: { type: Type.ARRAY, items: { type: Type.STRING }, description: "IDs of articles in this cluster." }
+                                        }
+                                    }
+                                },
+                                uniqueArticleIds: {
+                                    type: Type.ARRAY, description: "IDs of articles that don't belong to any cluster.",
+                                    items: { type: Type.STRING }
+                                }
+                            }
+                        }
+                    }
+                });
+                const result = JSON.parse(response.text);
+                setClusteringResult(result);
+                try {
+                    localStorage.setItem(CLUSTER_CACHE_KEY, JSON.stringify({ result, timestamp: Date.now(), hash: unreadIds }));
+                } catch (e) { console.error("Error writing to cluster cache", e); }
+
+            } catch (e) {
+                console.error("Error clustering articles:", e);
+                setClusteringResult(null); // Fallback to no clustering on error
+                handleAiError(e);
+            } finally {
+                setIsClustering(false);
+            }
+        };
+        getClusteredArticles();
+    }, [unreadArticles, isClusteringEnabled, handleAiError]);
 
     const handleMarkAllAsRead = () => {
         onMarkMultipleAsRead(filteredArticles.map(a => a.id));
@@ -869,10 +1053,86 @@ const MainContent: React.FC<MainContentProps> = (props) => {
         }
         return result;
     }, [articles, selection, bookmarkedArticleIds, activeFilter]);
+    
+    const articlesById = useMemo(() => new Map(articles.map(a => [a.id, a])), [articles]);
 
-    const unreadArticles = useMemo(() => {
-        return articles.filter(a => !readArticleIds.has(a.id));
-    }, [articles, readArticleIds]);
+    const itemsToRender = useMemo(() => {
+        if (!isClusteringEnabled || !clusteringResult || isDashboardView || selection.type === 'bookmarks') {
+            return filteredArticles;
+        }
+
+        const renderedIds = new Set<string>();
+        const renderList: (Cluster | EnrichedArticle)[] = [];
+        
+        const validClusters = clusteringResult.clusters.filter(c => c.articleIds.some(id => articlesById.has(id)));
+
+        validClusters.forEach(cluster => {
+            renderList.push(cluster);
+            cluster.articleIds.forEach(id => renderedIds.add(id));
+        });
+
+        clusteringResult.uniqueArticleIds.forEach(id => {
+            const article = articlesById.get(id);
+            if (article) {
+                renderList.push(article);
+                renderedIds.add(id);
+            }
+        });
+
+        filteredArticles.forEach(article => {
+            if (!renderedIds.has(article.id)) {
+                renderList.push(article);
+            }
+        });
+        
+        return renderList;
+
+    }, [isClusteringEnabled, clusteringResult, filteredArticles, articlesById, isDashboardView, selection.type]);
+
+    useEffect(() => {
+        setFocusedArticleIndex(null);
+        articleRefs.current = articleRefs.current.slice(0, itemsToRender.length);
+    }, [itemsToRender]);
+
+    // Keyboard navigation
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (document.activeElement?.tagName === 'INPUT') return;
+
+            if (['j', 'k', 'o', 'm', 'b'].includes(e.key)) {
+                e.preventDefault();
+
+                if (e.key === 'j') {
+                    setFocusedArticleIndex(prev => {
+                        const newIndex = prev === null ? 0 : Math.min(prev + 1, itemsToRender.length - 1);
+                        articleRefs.current[newIndex]?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                        return newIndex;
+                    });
+                } else if (e.key === 'k') {
+                    setFocusedArticleIndex(prev => {
+                        const newIndex = prev === null || prev === 0 ? 0 : prev - 1;
+                        articleRefs.current[newIndex]?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                        return newIndex;
+                    });
+                } else if (focusedArticleIndex !== null) {
+                    const item = itemsToRender[focusedArticleIndex];
+                    if (!item || 'representativeHeadline' in item) return; // Ignore actions on clusters for now
+                    
+                    if (e.key === 'o') {
+                        window.open(item.link, '_blank', 'noopener,noreferrer');
+                        onMarkAsRead(item.id);
+                    } else if (e.key === 'm') {
+                        if (readArticleIds.has(item.id)) onMarkAsUnread(item.id); else onMarkAsRead(item.id);
+                    } else if (e.key === 'b') {
+                        onToggleBookmark(item.id);
+                    }
+                }
+            }
+        };
+
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, [focusedArticleIndex, itemsToRender, onMarkAsRead, onMarkAsUnread, onToggleBookmark, readArticleIds]);
 
     if (selection.type === 'briefing') {
         return (
@@ -937,7 +1197,10 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                         </div>
                     )}
                     {!isDashboardView && selection.type !== 'search' && (
-                         <div className="flex items-center rounded-md bg-gray-100 dark:bg-zinc-800 p-0.5">
+                        <div className="flex items-center rounded-md bg-gray-100 dark:bg-zinc-800 p-0.5">
+                            <button onClick={() => setIsClusteringEnabled(!isClusteringEnabled)} disabled={isClustering} className={`p-1.5 rounded-md transition-colors disabled:opacity-50 ${isClusteringEnabled ? 'bg-white dark:bg-zinc-700 text-lime-600 dark:text-lime-400' : 'text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-white'}`} title="Toggle article clustering">
+                                <DocumentDuplicateIcon className={`w-5 h-5 ${isClustering ? 'animate-pulse' : ''}`} />
+                            </button>
                             {(['card', 'compact', 'magazine'] as ArticleView[]).map(view => {
                                  const Icon = viewIcons[view];
                                  return (
@@ -986,27 +1249,42 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                     <ThreatDashboard unreadArticles={unreadArticles} onSetFilter={handleSetFilter} isAiDisabled={isAiDisabled} handleAiError={handleAiError} />
                 ) : (
                     <>
-                        {!loading && !error && filteredArticles.length === 0 && (
+                        {!loading && !error && itemsToRender.length === 0 && (
                             <div className="text-center pt-10">
                                 <h2 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">No articles found</h2>
                                 <p className="text-gray-500 dark:text-zinc-400">There are no articles to display for this selection.</p>
                             </div>
                         )}
-                        <div className={`grid gap-4 ${articleView === 'magazine' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
-                            {filteredArticles.map(article => (
-                                <ArticleItem
-                                    key={article.id}
-                                    article={article}
-                                    isRead={readArticleIds.has(article.id)}
-                                    isBookmarked={bookmarkedArticleIds.has(article.id)}
-                                    onMarkAsRead={onMarkAsRead}
-                                    onToggleBookmark={onToggleBookmark}
-                                    onEnrich={handleEnrichArticle}
-                                    view={articleView}
-                                    isAiDisabled={isAiDisabled}
-                                    handleAiError={handleAiError}
-                                />
-                            ))}
+                        <div className={`grid gap-4 ${articleView === 'magazine' && !isClusteringEnabled ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
+                            {itemsToRender.map((item, index) =>
+                                'representativeHeadline' in item ? (
+                                    <ArticleCluster
+                                        key={item.representativeHeadline}
+                                        cluster={item}
+                                        allArticles={articlesById}
+                                        isFocused={focusedArticleIndex === index}
+                                        articleRef={(el: HTMLDivElement | null) => (articleRefs.current[index] = el)}
+                                        onEnrich={handleEnrichArticle}
+                                        {...props} // Pass all necessary props
+                                    />
+                                ) : (
+                                    <ArticleItem
+                                        key={item.id}
+                                        article={item}
+                                        isRead={readArticleIds.has(item.id)}
+                                        isBookmarked={bookmarkedArticleIds.has(item.id)}
+                                        onMarkAsRead={onMarkAsRead}
+                                        onMarkAsUnread={onMarkAsUnread}
+                                        onToggleBookmark={onToggleBookmark}
+                                        onEnrich={handleEnrichArticle}
+                                        view={articleView}
+                                        isAiDisabled={isAiDisabled}
+                                        handleAiError={handleAiError}
+                                        isFocused={focusedArticleIndex === index}
+                                        articleRef={el => (articleRefs.current[index] = el)}
+                                    />
+                                )
+                            )}
                         </div>
                     </>
                 )}

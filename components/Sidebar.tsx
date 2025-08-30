@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import type { Feed, Folder, Selection, Theme, MagicFeed, SyncStatus } from '../App';
 import type { GoogleUserProfile } from '../services/googleDriveService';
 import {
-    SeymourIcon, ListIcon, PlusIcon, RssIcon, TrashIcon, FolderIcon, PencilIcon, ChevronDownIcon, ChevronRightIcon, SunIcon, MoonIcon, NewspaperIcon, XIcon, BookmarkIcon, WandIcon, LogoutIcon, CloudSyncIcon, CheckCircleIcon, LoginIcon
+    SeymourIcon, ListIcon, PlusIcon, RssIcon, TrashIcon, FolderIcon, PencilIcon, ChevronDownIcon, ChevronRightIcon, SunIcon, MoonIcon, NewspaperIcon, XIcon, BookmarkIcon, WandIcon, LogoutIcon, CloudSyncIcon, CheckCircleIcon, LoginIcon, CloudArrowDownIcon
 } from './icons';
 
 interface SidebarProps {
@@ -30,6 +30,8 @@ interface SidebarProps {
     lastSyncTime: number | null;
     isGuestMode: boolean;
     onGoToLogin: () => void;
+    onImportOpml: (file: File) => void;
+    onExportOpml: () => void;
 }
 
 const formatSyncTime = (timestamp: number | null): string => {
@@ -231,10 +233,11 @@ const MagicFeedItem: React.FC<{
 
 
 const Sidebar: React.FC<SidebarProps> = (props) => {
-    const { feeds, folders, magicFeeds, selection, onAddFeed, onRemoveFeed, onAddMagicFeed, onRemoveMagicFeed, onSelect, onAddFolder, onRenameFolder, onDeleteFolder, onMoveFeedToFolder, theme, toggleTheme, isSidebarOpen, onClose, userProfile, onLogout, onSync, syncStatus, lastSyncTime, isGuestMode, onGoToLogin } = props;
+    const { feeds, folders, magicFeeds, selection, onAddFeed, onRemoveFeed, onAddMagicFeed, onRemoveMagicFeed, onSelect, onAddFolder, onRenameFolder, onDeleteFolder, onMoveFeedToFolder, theme, toggleTheme, isSidebarOpen, onClose, userProfile, onLogout, onSync, syncStatus, lastSyncTime, isGuestMode, onGoToLogin, onImportOpml, onExportOpml } = props;
     const [newFeedUrl, setNewFeedUrl] = useState('');
     const [isAddingFolder, setIsAddingFolder] = useState(false);
     const [dragOverTarget, setDragOverTarget] = useState<number | 'unfiled' | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleAddFeedSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -249,6 +252,18 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
         }
     };
     
+    const handleImportClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            onImportOpml(file);
+        }
+        event.target.value = '';
+    };
+
     const unfiledFeeds = feeds.filter(f => f.folderId === null);
     
     const handleUnfiledDrop = (e: React.DragEvent) => {
@@ -310,6 +325,16 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                     <button onClick={handleAddMagicFeedClick} className="w-full text-left text-sm text-gray-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white bg-gray-200/50 dark:bg-zinc-800/50 hover:bg-gray-200 dark:hover:bg-zinc-700/50 rounded-md py-2 px-3 flex items-center space-x-2">
                         <WandIcon className="w-5 h-5 text-purple-500 dark:text-purple-400" />
                         <span>New Magic Feed</span>
+                    </button>
+                    <hr className="border-gray-200 dark:border-zinc-800" />
+                    <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept=".opml,.xml" aria-hidden="true" />
+                    <button onClick={handleImportClick} className="w-full text-left text-sm text-gray-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white bg-gray-200/50 dark:bg-zinc-800/50 hover:bg-gray-200 dark:hover:bg-zinc-700/50 rounded-md py-2 px-3 flex items-center space-x-2">
+                        <CloudSyncIcon className="w-5 h-5" />
+                        <span>Import from OPML</span>
+                    </button>
+                    <button onClick={onExportOpml} className="w-full text-left text-sm text-gray-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white bg-gray-200/50 dark:bg-zinc-800/50 hover:bg-gray-200 dark:hover:bg-zinc-700/50 rounded-md py-2 px-3 flex items-center space-x-2">
+                        <CloudArrowDownIcon className="w-5 h-5" />
+                        <span>Export to OPML</span>
                     </button>
                 </div>
 

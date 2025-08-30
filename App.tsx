@@ -55,6 +55,7 @@ export interface Settings {
     theme: Theme;
     articleView: ArticleView;
     allFeedsView: AllFeedsView;
+    isClusteringEnabled: boolean;
 }
 
 export type SyncStatus = 'idle' | 'syncing' | 'success' | 'error';
@@ -74,15 +75,33 @@ const defaultFolders: Folder[] = [
 ];
 
 const defaultFeeds: Feed[] = [
+    // News (folderId: 1)
     { id: 1, url: 'https://feeds.bbci.co.uk/news/rss.xml', title: 'BBC News', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=bbc.co.uk', folderId: 1 },
     { id: 2, url: 'https://www.theguardian.com/world/rss', title: 'The Guardian', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=theguardian.com', folderId: 1 },
     { id: 3, url: 'https://feeds.skynews.com/feeds/rss/world.xml', title: 'Sky News', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=news.sky.com', folderId: 1 },
+    
+    // Tech (folderId: 2)
     { id: 4, url: 'https://www.wired.com/feed/rss', title: 'Wired', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=wired.com', folderId: 2 },
     { id: 5, url: 'https://www.theverge.com/rss/index.xml', title: 'The Verge', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=theverge.com', folderId: 2 },
-    { id: 6, url: 'https://news.ycombinator.com/rss', title: 'Hacker News', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=ycombinator.com', folderId: null },
+    { id: 6, url: 'https://news.ycombinator.com/rss', title: 'Hacker News', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=ycombinator.com', folderId: 2 },
     { id: 7, url: 'https://feeds.arstechnica.com/arstechnica/index/', title: 'Ars Technica', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=arstechnica.com', folderId: 2 },
-    { id: 8, url: 'https://feeds.bbci.co.uk/sport/football/rss.xml', title: 'BBC Football', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=bbc.co.uk', folderId: 3 },
-    { id: 9, url: 'https://feeds.bbci.co.uk/sport/motorsport/rss.xml', title: 'BBC Motorsport', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=bbc.co.uk', folderId: 3 },
+    { id: 8, url: 'https://techcrunch.com/feed/', title: 'TechCrunch', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=techcrunch.com', folderId: 2 },
+    { id: 9, url: 'https://mashable.com/feeds/rss/all', title: 'Mashable', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=mashable.com', folderId: 2 },
+    { id: 10, url: 'https://www.producthunt.com/feed', title: 'Product Hunt', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=producthunt.com', folderId: 2 },
+    { id: 11, url: 'https://www.engadget.com/rss.xml', title: 'Engadget', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=engadget.com', folderId: 2 },
+    { id: 12, url: 'https://venturebeat.com/feed/', title: 'VentureBeat', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=venturebeat.com', folderId: 2 },
+    { id: 13, url: 'https://gizmodo.com/rss', title: 'Gizmodo', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=gizmodo.com', folderId: 2 },
+    
+    // Sports (folderId: 3)
+    { id: 14, url: 'https://feeds.bbci.co.uk/sport/football/rss.xml', title: 'BBC Football', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=bbc.co.uk', folderId: 3 },
+    { id: 15, url: 'https://feeds.bbci.co.uk/sport/motorsport/rss.xml', title: 'BBC Motorsport', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=bbc.co.uk', folderId: 3 },
+    { id: 16, url: 'https://www.espn.com/espn/rss/news', title: 'ESPN', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=espn.com', folderId: 3 },
+    { id: 17, url: 'https://www.skysports.com/rss/12040', title: 'Sky Sports', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=skysports.com', folderId: 3 },
+    { id: 18, url: 'https://www.si.com/nfl/football-morning-in-america/rss.xml', title: 'SI NFL (MMQB)', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=si.com', folderId: 3 },
+    { id: 19, url: 'https://www.formula1.com/rss/news/headlines.rss?searchString=home', title: 'Formula 1', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=formula1.com', folderId: 3 },
+    { id: 20, url: 'https://theathletic.com/feed/', title: 'The Athletic', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=theathletic.com', folderId: 3 },
+    { id: 21, url: 'https://bleacherreport.com/articles/feed', title: 'Bleacher Report', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=bleacherreport.com', folderId: 3 },
+    { id: 22, url: 'https://www.eurosport.com/rss.xml', title: 'Eurosport', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=eurosport.com', folderId: 3 },
 ];
 
 const App: React.FC = () => {
@@ -95,6 +114,7 @@ const App: React.FC = () => {
     const [theme, setTheme] = useState<Theme>('dark');
     const [articleView, setArticleView] = useState<ArticleView>('card');
     const [allFeedsView, setAllFeedsView] = useState<AllFeedsView>('dashboard');
+    const [isClusteringEnabled, setIsClusteringEnabled] = useState<boolean>(true);
     
     const [folders, setFolders] = useState<Folder[]>(defaultFolders);
     const [feeds, setFeeds] = useState<Feed[]>(defaultFeeds);
@@ -112,6 +132,7 @@ const App: React.FC = () => {
         setTheme(settings.theme || 'dark');
         setArticleView(settings.articleView || 'card');
         setAllFeedsView(settings.allFeedsView || 'dashboard');
+        setIsClusteringEnabled(settings.isClusteringEnabled ?? true);
     };
 
     const handleAuthChange = useCallback(async (token: google.accounts.oauth2.TokenResponse | null) => {
@@ -165,7 +186,7 @@ const App: React.FC = () => {
         if (!isSilent) setSyncStatus('syncing');
         
         try {
-            const settings: Settings = { feeds, folders, magicFeeds, theme, articleView, allFeedsView };
+            const settings: Settings = { feeds, folders, magicFeeds, theme, articleView, allFeedsView, isClusteringEnabled };
             await GoogleDriveService.uploadSettings(settings);
             if (!isSilent) setSyncStatus('success');
             setLastSyncTime(Date.now());
@@ -202,7 +223,7 @@ const App: React.FC = () => {
         autoSync(); // Check once on load
 
         return () => clearInterval(intervalId);
-    }, [isSignedIn, userProfile, feeds, folders, magicFeeds, theme, articleView, allFeedsView]); // Re-eval if user or settings change
+    }, [isSignedIn, userProfile, feeds, folders, magicFeeds, theme, articleView, allFeedsView, isClusteringEnabled]); // Re-eval if user or settings change
 
     const [isAiDisabled, setIsAiDisabled] = useState<boolean>(() => {
         try {
@@ -279,13 +300,13 @@ const App: React.FC = () => {
     useEffect(() => {
         if (isGuestMode) {
             try {
-                const settings: Settings = { feeds, folders, magicFeeds, theme, articleView, allFeedsView };
+                const settings: Settings = { feeds, folders, magicFeeds, theme, articleView, allFeedsView, isClusteringEnabled };
                 window.localStorage.setItem(GUEST_SETTINGS_KEY, JSON.stringify(settings));
             } catch (error) {
                 console.error("Failed to save guest settings to localStorage", error);
             }
         }
-    }, [isGuestMode, feeds, folders, magicFeeds, theme, articleView, allFeedsView]);
+    }, [isGuestMode, feeds, folders, magicFeeds, theme, articleView, allFeedsView, isClusteringEnabled]);
     
     useEffect(() => {
         const root = window.document.documentElement;
@@ -378,6 +399,15 @@ const App: React.FC = () => {
             return newSet;
         });
     };
+    
+    const handleMarkAsUnread = (articleId: string) => {
+        setReadArticleIds(prev => {
+            if (!prev.has(articleId)) return prev;
+            const newSet = new Set(prev);
+            newSet.delete(articleId);
+            return newSet;
+        });
+    };
 
     const handleMarkMultipleAsRead = (articleIds: string[]) => {
         setReadArticleIds(prev => {
@@ -399,6 +429,91 @@ const App: React.FC = () => {
         });
     };
     
+    const handleExportOpml = () => {
+        let opml = `<?xml version="1.0" encoding="UTF-8"?><opml version="2.0"><body>`;
+        folders.forEach(folder => {
+            opml += `<outline text="${folder.name}" title="${folder.name}">`;
+            feeds.filter(f => f.folderId === folder.id).forEach(feed => {
+                opml += `<outline type="rss" text="${feed.title}" title="${feed.title}" xmlUrl="${feed.url}" />`;
+            });
+            opml += `</outline>`;
+        });
+        feeds.filter(f => f.folderId === null).forEach(feed => {
+            opml += `<outline type="rss" text="${feed.title}" title="${feed.title}" xmlUrl="${feed.url}" />`;
+        });
+        opml += `</body></opml>`;
+
+        const blob = new Blob([opml], { type: 'application/xml' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'seemore_feeds.opml';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
+    const handleImportOpml = (file: File) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const xmlText = e.target?.result as string;
+                const parser = new DOMParser();
+                const xml = parser.parseFromString(xmlText, "application/xml");
+                if (xml.querySelector('parsererror')) throw new Error('Failed to parse OPML file.');
+                
+                const importedFolders: Folder[] = [...folders];
+                const importedFeeds: Feed[] = [...feeds];
+                
+                const body = xml.querySelector('body');
+                if (!body) throw new Error("Invalid OPML file: missing <body> tag.");
+
+                const existingFeedUrls = new Set(feeds.map(f => f.url));
+
+                body.querySelectorAll(':scope > outline').forEach(outline => {
+                    const isFolder = !outline.getAttribute('xmlUrl');
+                    if (isFolder) {
+                        const folderName = outline.getAttribute('text') || outline.getAttribute('title');
+                        if (folderName) {
+                            let folder = importedFolders.find(f => f.name === folderName);
+                            if (!folder) {
+                                folder = { id: Date.now() + Math.random(), name: folderName };
+                                importedFolders.push(folder);
+                            }
+                            
+                            outline.querySelectorAll('outline').forEach(feedOutline => {
+                                const feedUrl = feedOutline.getAttribute('xmlUrl');
+                                if (feedUrl && !existingFeedUrls.has(feedUrl)) {
+                                    const feedTitle = feedOutline.getAttribute('text') || feedOutline.getAttribute('title') || new URL(feedUrl).hostname;
+                                    const iconUrl = `https://www.google.com/s2/favicons?sz=32&domain_url=${new URL(feedUrl).hostname}`;
+                                    importedFeeds.push({ id: Date.now() + Math.random(), title: feedTitle, url: feedUrl, iconUrl, folderId: folder.id });
+                                    existingFeedUrls.add(feedUrl);
+                                }
+                            });
+                        }
+                    } else { // Unfiled feed
+                        const feedUrl = outline.getAttribute('xmlUrl');
+                        if (feedUrl && !existingFeedUrls.has(feedUrl)) {
+                            const feedTitle = outline.getAttribute('text') || outline.getAttribute('title') || new URL(feedUrl).hostname;
+                            const iconUrl = `https://www.google.com/s2/favicons?sz=32&domain_url=${new URL(feedUrl).hostname}`;
+                            importedFeeds.push({ id: Date.now() + Math.random(), title: feedTitle, url: feedUrl, iconUrl, folderId: null });
+                            existingFeedUrls.add(feedUrl);
+                        }
+                    }
+                });
+
+                setFolders(importedFolders);
+                setFeeds(importedFeeds);
+                alert('Feeds imported successfully!');
+            } catch (error) {
+                console.error("Failed to import OPML:", error);
+                alert(`Could not import OPML file. It may be invalid. Error: ${error instanceof Error ? error.message : String(error)}`);
+            }
+        };
+        reader.readAsText(file);
+    };
+
     const handleGuestLogin = () => {
         setIsGuestMode(true);
         setIsSignedIn(false);
@@ -488,6 +603,8 @@ const App: React.FC = () => {
                 lastSyncTime={lastSyncTime}
                 isGuestMode={isGuestMode}
                 onGoToLogin={handleGoToLogin}
+                onImportOpml={handleImportOpml}
+                onExportOpml={handleExportOpml}
             />
             <div className="md:ml-72 h-full">
                 <MainContent
@@ -501,6 +618,7 @@ const App: React.FC = () => {
                     readArticleIds={readArticleIds}
                     bookmarkedArticleIds={bookmarkedArticleIds}
                     onMarkAsRead={handleMarkAsRead}
+                    onMarkAsUnread={handleMarkAsUnread}
                     onMarkMultipleAsRead={handleMarkMultipleAsRead}
                     onToggleBookmark={handleToggleBookmark}
                     articleView={articleView}
@@ -510,6 +628,8 @@ const App: React.FC = () => {
                     setAllFeedsView={setAllFeedsView}
                     isAiDisabled={isAiDisabled}
                     handleAiError={handleAiError}
+                    isClusteringEnabled={isClusteringEnabled}
+                    setIsClusteringEnabled={setIsClusteringEnabled}
                 />
             </div>
         </div>
