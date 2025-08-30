@@ -358,6 +358,7 @@ const App: React.FC = () => {
       <div className="md:ml-72 h-full">
         <MainContent
           onMenuClick={() => setIsSidebarOpen(true)}
+          onSearch={(query: string) => setSelection({ type: 'search', id: null, query })}
           feedsToDisplay={feedsToDisplay}
           title={title}
           selection={selection}

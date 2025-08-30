@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import type { Feed, Folder, Selection, Theme, MagicFeed } from '../App';
 import {
-    AudreyIcon, ListIcon, PlusIcon, RssIcon, TrashIcon, FolderIcon, PencilIcon, ChevronDownIcon, ChevronRightIcon, SunIcon, MoonIcon, NewspaperIcon, XIcon, BookmarkIcon, SearchIcon, WandIcon
+    AudreyIcon, ListIcon, PlusIcon, RssIcon, TrashIcon, FolderIcon, PencilIcon, ChevronDownIcon, ChevronRightIcon, SunIcon, MoonIcon, NewspaperIcon, XIcon, BookmarkIcon, WandIcon
 } from './icons';
 
 interface SidebarProps {
@@ -210,7 +210,6 @@ const MagicFeedItem: React.FC<{
 const Sidebar: React.FC<SidebarProps> = (props) => {
     const { feeds, folders, magicFeeds, selection, onAddFeed, onRemoveFeed, onAddMagicFeed, onRemoveMagicFeed, onSelect, onAddFolder, onRenameFolder, onDeleteFolder, onMoveFeedToFolder, theme, toggleTheme, isSidebarOpen, onClose } = props;
     const [newFeedUrl, setNewFeedUrl] = useState('');
-    const [searchQuery, setSearchQuery] = useState('');
     const [isAddingFolder, setIsAddingFolder] = useState(false);
     const [dragOverTarget, setDragOverTarget] = useState<number | 'unfiled' | null>(null);
 
@@ -218,13 +217,6 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
         e.preventDefault();
         onAddFeed(newFeedUrl);
         setNewFeedUrl('');
-    };
-
-    const handleSearchSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (searchQuery.trim()) {
-            onSelect({ type: 'search', id: null, query: searchQuery.trim() });
-        }
     };
 
     const handleAddMagicFeedClick = () => {
@@ -263,12 +255,6 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
             </div>
 
             <div className="px-2 space-y-4 mb-4">
-                <form onSubmit={handleSearchSubmit}>
-                     <div className="relative">
-                        <input id="search" type="search" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search all articles..." className="w-full bg-white dark:bg-zinc-800 border border-gray-300 dark:border-zinc-700 rounded-md py-2 pl-10 pr-4 text-sm text-zinc-800 dark:text-zinc-300 placeholder-gray-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-lime-500 focus:border-lime-500" />
-                        <div className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 dark:text-zinc-400"><SearchIcon className="w-5 h-5" /></div>
-                    </div>
-                </form>
                 <form onSubmit={handleAddFeedSubmit}>
                     <div className="relative">
                         <input id="feed-url" type="url" value={newFeedUrl} onChange={(e) => setNewFeedUrl(e.target.value)} placeholder="Add RSS feed URL" required className="w-full bg-white dark:bg-zinc-800 border border-gray-300 dark:border-zinc-700 rounded-md py-2 pl-3 pr-10 text-sm text-zinc-800 dark:text-zinc-300 placeholder-gray-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-lime-500 focus:border-lime-500" />

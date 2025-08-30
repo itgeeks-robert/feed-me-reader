@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import type { Feed, Selection, ArticleView, AllFeedsView } from '../App';
 import { CORS_PROXY } from '../App';
 import { GoogleGenAI, Type } from '@google/genai';
-import { SparklesIcon, CheckCircleIcon, MenuIcon, BookmarkIcon, ViewColumnsIcon, ViewListIcon, ViewGridIcon, LayoutGridIcon, FireIcon, ShieldCheckIcon, BugAntIcon, XIcon } from './icons';
+import { SparklesIcon, CheckCircleIcon, MenuIcon, BookmarkIcon, ViewColumnsIcon, ViewListIcon, ViewGridIcon, LayoutGridIcon, FireIcon, ShieldCheckIcon, BugAntIcon, XIcon, SearchIcon } from './icons';
 
 // Create a single, shared AI instance, initialized once.
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -676,6 +676,7 @@ interface MainContentProps {
     onMarkMultipleAsRead: (articleIds: string[]) => void;
     onToggleBookmark: (articleId: string) => void;
     onMenuClick: () => void;
+    onSearch: (query: string) => void;
     articleView: ArticleView;
     setArticleView: (view: ArticleView) => void;
     allFeeds: Feed[];
@@ -687,12 +688,18 @@ interface MainContentProps {
 }
 
 const MainContent: React.FC<MainContentProps> = (props) => {
-    const { feedsToDisplay, title, selection, readArticleIds, bookmarkedArticleIds, onMarkAsRead, onMarkMultipleAsRead, onToggleBookmark, onMenuClick, articleView, setArticleView, allFeeds, magicFeedTopic, allFeedsView, setAllFeedsView, isAiDisabled, handleAiError } = props;
+    const { feedsToDisplay, title, selection, readArticleIds, bookmarkedArticleIds, onMarkAsRead, onMarkMultipleAsRead, onToggleBookmark, onMenuClick, onSearch, articleView, setArticleView, allFeeds, magicFeedTopic, allFeedsView, setAllFeedsView, isAiDisabled, handleAiError } = props;
     
     const [articles, setArticles] = useState<EnrichedArticle[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [activeFilter, setActiveFilter] = useState<string | null>(null);
+    const [searchQuery, setSearchQuery] = useState('');
+
+    const handleSearchSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (searchQuery.trim()) onSearch(searchQuery.trim());
+    };
     
     const handleEnrichArticle = (articleId: string, data: Partial<EnrichedArticle>) => {
         setArticles(prev => prev.map(a => a.id === articleId ? { ...a, ...data } : a));
@@ -866,6 +873,18 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                     <h1 className="text-xl font-bold text-zinc-900 dark:text-white truncate">{title}</h1>
                 </div>
                 <div className="flex items-center space-x-2">
+                    <form onSubmit={handleSearchSubmit} className="relative hidden md:block">
+                        <input
+                            type="search"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Ask AI..."
+                            className="w-48 bg-gray-100 dark:bg-zinc-800 border-transparent rounded-md py-1.5 pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-lime-500 dark:text-zinc-200 dark:placeholder-zinc-400"
+                        />
+                        <div className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 dark:text-zinc-400">
+                            <SearchIcon className="w-4 h-4" />
+                        </div>
+                    </form>
                     {filteredArticles.length > 0 && !isDashboardView && selection.type !== 'search' &&(
                         <button onClick={handleMarkAllAsRead} className="flex items-center space-x-2 text-xs text-gray-500 dark:text-zinc-400 hover:text-lime-500 dark:hover:text-lime-400 font-medium">
                             <CheckCircleIcon className="w-4 h-4" />
