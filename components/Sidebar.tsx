@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import type { Feed, Folder, Selection, Theme, MagicFeed } from '../App';
+import type { Feed, Folder, Selection, Theme, MagicFeed, SyncStatus } from '../App';
+import type { GoogleUserProfile } from '../services/googleDriveService';
 import {
-    AudreyIcon, ListIcon, PlusIcon, RssIcon, TrashIcon, FolderIcon, PencilIcon, ChevronDownIcon, ChevronRightIcon, SunIcon, MoonIcon, NewspaperIcon, XIcon, BookmarkIcon, WandIcon
+    SeymourIcon, ListIcon, PlusIcon, RssIcon, TrashIcon, FolderIcon, PencilIcon, ChevronDownIcon, ChevronRightIcon, SunIcon, MoonIcon, NewspaperIcon, XIcon, BookmarkIcon, WandIcon, LogoutIcon, CloudSyncIcon, CheckCircleIcon, LoginIcon
 } from './icons';
 
 interface SidebarProps {
@@ -22,7 +23,29 @@ interface SidebarProps {
     toggleTheme: () => void;
     isSidebarOpen: boolean;
     onClose: () => void;
+    userProfile: GoogleUserProfile | null;
+    onLogout: () => void;
+    onSync: () => void;
+    syncStatus: SyncStatus;
+    lastSyncTime: number | null;
+    isGuestMode: boolean;
+    onGoToLogin: () => void;
 }
+
+const formatSyncTime = (timestamp: number | null): string => {
+    if (!timestamp) return 'never';
+    const now = new Date();
+    const syncDate = new Date(timestamp);
+    const diffSeconds = Math.round((now.getTime() - syncDate.getTime()) / 1000);
+
+    if (diffSeconds < 60) return `${diffSeconds}s ago`;
+    const diffMinutes = Math.round(diffSeconds / 60);
+    if (diffMinutes < 60) return `${diffMinutes}m ago`;
+    const diffHours = Math.round(diffMinutes / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    
+    return syncDate.toLocaleDateString();
+};
 
 const FeedIcon: React.FC<{ iconUrl: string, feedTitle: string }> = ({ iconUrl, feedTitle }) => {
     const [hasError, setHasError] = useState(false);
@@ -208,7 +231,7 @@ const MagicFeedItem: React.FC<{
 
 
 const Sidebar: React.FC<SidebarProps> = (props) => {
-    const { feeds, folders, magicFeeds, selection, onAddFeed, onRemoveFeed, onAddMagicFeed, onRemoveMagicFeed, onSelect, onAddFolder, onRenameFolder, onDeleteFolder, onMoveFeedToFolder, theme, toggleTheme, isSidebarOpen, onClose } = props;
+    const { feeds, folders, magicFeeds, selection, onAddFeed, onRemoveFeed, onAddMagicFeed, onRemoveMagicFeed, onSelect, onAddFolder, onRenameFolder, onDeleteFolder, onMoveFeedToFolder, theme, toggleTheme, isSidebarOpen, onClose, userProfile, onLogout, onSync, syncStatus, lastSyncTime, isGuestMode, onGoToLogin } = props;
     const [newFeedUrl, setNewFeedUrl] = useState('');
     const [isAddingFolder, setIsAddingFolder] = useState(false);
     const [dragOverTarget, setDragOverTarget] = useState<number | 'unfiled' | null>(null);
@@ -239,31 +262,33 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
 
     return (
         <aside className={`w-72 bg-gray-50 dark:bg-zinc-900 flex-shrink-0 p-4 flex flex-col h-full overflow-y-auto border-r border-gray-200 dark:border-zinc-800 fixed inset-y-0 left-0 z-40 transform transition-transform duration-300 ease-in-out md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-            <div className="flex items-center justify-between space-x-2 mb-4 px-2">
-                <div className="flex items-center space-x-2">
-                    <AudreyIcon className="w-8 h-8 text-lime-500" />
-                    <span className="text-lg font-bold text-zinc-900 dark:text-white">Feed Me</span>
-                </div>
-                <div className="flex items-center">
-                     <button onClick={toggleTheme} className="p-2 rounded-full text-zinc-500 dark:text-zinc-400 hover:bg-gray-200 dark:hover:bg-zinc-700" aria-label="Toggle theme">
-                        {theme === 'light' ? <MoonIcon className="w-5 h-5" /> : <SunIcon className="w-5 h-5" />}
-                    </button>
-                    <button onClick={onClose} className="p-2 -mr-2 rounded-full text-zinc-500 dark:text-zinc-400 hover:bg-gray-200 dark:hover:bg-zinc-700 md:hidden" aria-label="Close sidebar">
-                        <XIcon className="w-6 h-6" />
-                    </button>
-                </div>
-            </div>
-
-            <div className="px-2 space-y-4 mb-4">
-                <form onSubmit={handleAddFeedSubmit}>
-                    <div className="relative">
-                        <input id="feed-url" type="url" value={newFeedUrl} onChange={(e) => setNewFeedUrl(e.target.value)} placeholder="Add RSS feed URL" required className="w-full bg-white dark:bg-zinc-800 border border-gray-300 dark:border-zinc-700 rounded-md py-2 pl-3 pr-10 text-sm text-zinc-800 dark:text-zinc-300 placeholder-gray-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-lime-500 focus:border-lime-500" />
-                        <button type="submit" className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 dark:text-zinc-400 hover:text-lime-500 dark:hover:text-lime-400" aria-label="Add feed"><PlusIcon className="w-5 h-5" /></button>
+            <div>
+                <div className="flex items-center justify-between space-x-2 mb-4 px-2">
+                    <div className="flex items-center space-x-2">
+                        <SeymourIcon className="w-8 h-8" />
+                        <span className="text-lg font-bold text-zinc-900 dark:text-white">See More</span>
                     </div>
-                </form>
+                    <div className="flex items-center">
+                         <button onClick={toggleTheme} className="p-2 rounded-full text-zinc-500 dark:text-zinc-400 hover:bg-gray-200 dark:hover:bg-zinc-700" aria-label="Toggle theme">
+                            {theme === 'light' ? <MoonIcon className="w-5 h-5" /> : <SunIcon className="w-5 h-5" />}
+                        </button>
+                        <button onClick={onClose} className="p-2 -mr-2 rounded-full text-zinc-500 dark:text-zinc-400 hover:bg-gray-200 dark:hover:bg-zinc-700 md:hidden" aria-label="Close sidebar">
+                            <XIcon className="w-6 h-6" />
+                        </button>
+                    </div>
+                </div>
+    
+                <div className="px-2 space-y-4 mb-4">
+                    <form onSubmit={handleAddFeedSubmit}>
+                        <div className="relative">
+                            <input id="feed-url" type="url" value={newFeedUrl} onChange={(e) => setNewFeedUrl(e.target.value)} placeholder="Add RSS feed URL" required className="w-full bg-white dark:bg-zinc-800 border border-gray-300 dark:border-zinc-700 rounded-md py-2 pl-3 pr-10 text-sm text-zinc-800 dark:text-zinc-300 placeholder-gray-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-lime-500 focus:border-lime-500" />
+                            <button type="submit" className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 dark:text-zinc-400 hover:text-lime-500 dark:hover:text-lime-400" aria-label="Add feed"><PlusIcon className="w-5 h-5" /></button>
+                        </div>
+                    </form>
+                </div>
             </div>
             
-            <div className="flex-grow">
+            <div className="flex-grow overflow-y-auto">
                  <div onClick={() => onSelect({ type: 'all', id: null })} className={`flex items-center space-x-3 px-3 py-2 rounded-md cursor-pointer ${selection.type === 'all' ? 'bg-gray-200 dark:bg-zinc-700/50 text-zinc-900 dark:text-white' : 'hover:bg-gray-200 dark:hover:bg-zinc-700/50 text-gray-600 dark:text-zinc-400'}`}>
                     <ListIcon className="w-5 h-5 flex-shrink-0" />
                     <span className="truncate font-medium">All Feeds</span>
@@ -319,6 +344,46 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                          </div>
                      </div>
                  )}
+            </div>
+            <div className="mt-auto pt-4 border-t border-gray-200 dark:border-zinc-800">
+                {isGuestMode ? (
+                    <div className="px-3">
+                        <div className="flex items-center gap-3 mb-2">
+                           <SeymourIcon className="w-7 h-7" />
+                            <span className="text-sm font-medium text-gray-700 dark:text-zinc-300">
+                                Guest Mode
+                            </span>
+                        </div>
+                        <button onClick={onGoToLogin} className="w-full flex items-center justify-center gap-2 py-2 px-3 text-sm font-medium rounded-md text-white bg-lime-600 hover:bg-lime-700 dark:bg-lime-500 dark:hover:bg-lime-600">
+                            <LoginIcon className="w-5 h-5" />
+                            <span>Sign In to Sync</span>
+                        </button>
+                    </div>
+                ) : (
+                <>
+                    <div className="px-3 flex items-center justify-between">
+                         <div className="flex items-center gap-3 truncate">
+                            {userProfile?.picture && <img src={userProfile.picture} alt="User" className="w-7 h-7 rounded-full" />}
+                            <span className="text-sm font-medium text-gray-700 dark:text-zinc-300 truncate">
+                                {userProfile?.name || 'Guest'}
+                            </span>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                            <button onClick={onSync} disabled={syncStatus === 'syncing'} className="text-gray-500 dark:text-zinc-400 hover:text-lime-500 dark:hover:text-lime-400 disabled:opacity-50 disabled:cursor-wait" title="Sync to Drive">
+                                {syncStatus === 'success' ? <CheckCircleIcon className="w-5 h-5 text-lime-500" /> : <CloudSyncIcon className={`w-5 h-5 ${syncStatus === 'syncing' ? 'animate-pulse' : ''}`}/>}
+                            </button>
+                            <button onClick={onLogout} className="text-gray-500 dark:text-zinc-400 hover:text-red-500 dark:hover:text-red-400" title="Log out">
+                                <LogoutIcon className="w-5 h-5"/>
+                            </button>
+                        </div>
+                    </div>
+                     <div className="px-3 pt-1 text-center">
+                        <p className="text-xs text-gray-400 dark:text-zinc-500">
+                            Last sync: {formatSyncTime(lastSyncTime)}
+                        </p>
+                    </div>
+                </>
+                )}
             </div>
         </aside>
     );

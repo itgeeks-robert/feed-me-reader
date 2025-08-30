@@ -899,7 +899,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
     };
     
     return (
-        <main className="flex-1 flex flex-col bg-white dark:bg-zinc-900 overflow-y-auto">
+        <main className="h-full flex flex-col bg-white dark:bg-zinc-900 overflow-y-auto">
             <header className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-zinc-800 sticky top-0 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm z-10">
                 <div className="flex items-center gap-2">
                     <button onClick={onMenuClick} className="p-2 -ml-2 rounded-full text-zinc-500 dark:text-zinc-400 hover:bg-gray-200 dark:hover:bg-zinc-700 md:hidden" aria-label="Open sidebar">

@@ -1,0 +1,213 @@
+import type { Settings } from '../App';
+
+// Fix for TypeScript errors: Cannot find name 'gapi' and cannot find namespace 'google'.
+declare const gapi: any;
+// Fix: Replaced `declare const google: any;` with a proper `declare namespace google` to fix "Cannot find namespace 'google'" TypeScript errors.
+declare namespace google {
+  namespace accounts {
+    namespace oauth2 {
+      interface TokenResponse {
+        access_token: string;
+        error?: string;
+        [key: string]: any;
+      }
+      interface TokenClient {
+        requestAccessToken: (options: { prompt: string }) => void;
+      }
+      function initTokenClient(config: {
+        client_id: string;
+        scope: string;
+        callback: (tokenResponse: TokenResponse) => void;
+      }): TokenClient;
+      function revoke(token: string, callback: () => void): void;
+    }
+  }
+}
+
+const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY as string;
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID as string;
+const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
+const SCOPES = 'https://www.googleapis.com/auth/drive.file';
+const SETTINGS_FILE_NAME = 'feedme_settings.json';
+
+export interface GoogleUserProfile {
+    id: string;
+    name: string;
+    email: string;
+    picture: string;
+}
+
+let tokenClient: google.accounts.oauth2.TokenClient | null = null;
+let onAuthChangeCallback: ((token: google.accounts.oauth2.TokenResponse | null) => void) | null = null;
+let gapiLoaded = false;
+let gisLoaded = false;
+let fileId: string | null = null;
+
+const gapiLoadPromise = new Promise<void>((resolve) => {
+    if (typeof gapi !== 'undefined' && gapi.client) {
+        gapiLoaded = true;
+        resolve();
+    } else {
+        const interval = setInterval(() => {
+            if (typeof gapi !== 'undefined' && gapi.client) {
+                gapiLoaded = true;
+                clearInterval(interval);
+                resolve();
+            }
+        }, 100);
+    }
+});
+
+const gisLoadPromise = new Promise<void>((resolve) => {
+    if (typeof google !== 'undefined' && google.accounts) {
+        gisLoaded = true;
+        resolve();
+    } else {
+        const interval = setInterval(() => {
+            if (typeof google !== 'undefined' && google.accounts) {
+                gisLoaded = true;
+                clearInterval(interval);
+                resolve();
+            }
+        }, 100);
+    }
+});
+
+const GoogleDriveService = {
+    async initClient(callback: (token: google.accounts.oauth2.TokenResponse | null) => void): Promise<void> {
+        onAuthChangeCallback = callback;
+        await Promise.all([gapiLoadPromise, gisLoadPromise]);
+
+        await new Promise<void>((resolve, reject) => {
+            gapi.load('client', async () => {
+                try {
+                    await gapi.client.init({
+                        apiKey: GOOGLE_API_KEY,
+                        discoveryDocs: [DISCOVERY_DOC],
+                    });
+                    resolve();
+                } catch (error) {
+                    reject(error);
+                }
+            });
+        });
+
+        tokenClient = google.accounts.oauth2.initTokenClient({
+            client_id: GOOGLE_CLIENT_ID,
+            scope: SCOPES,
+            callback: async (tokenResponse) => {
+                if (tokenResponse.error) {
+                    console.error('Google Auth Error:', tokenResponse.error);
+                    onAuthChangeCallback?.(null);
+                    return;
+                }
+                onAuthChangeCallback?.(tokenResponse);
+            },
+        });
+    },
+
+    signIn() {
+        if (tokenClient) {
+            if (gapi.client.getToken() === null) {
+                tokenClient.requestAccessToken({ prompt: 'consent' });
+            } else {
+                tokenClient.requestAccessToken({ prompt: '' });
+            }
+        } else {
+            console.error('Google Auth client not initialized.');
+        }
+    },
+
+    signOut() {
+        const token = gapi.client.getToken();
+        if (token) {
+            google.accounts.oauth2.revoke(token.access_token, () => {
+                gapi.client.setToken(null);
+                fileId = null;
+                onAuthChangeCallback?.(null);
+            });
+        }
+    },
+    
+    async getSignedInUser(): Promise<GoogleUserProfile> {
+         const response = await gapi.client.request({
+            path: 'https://www.googleapis.com/oauth2/v3/userinfo',
+        });
+        const profile = JSON.parse(response.body);
+        return {
+            id: profile.sub,
+            name: profile.name,
+            email: profile.email,
+            picture: profile.picture,
+        };
+    },
+
+    async findOrCreateFile(): Promise<string> {
+        if (fileId) return fileId;
+
+        const response = await gapi.client.drive.files.list({
+            q: `name='${SETTINGS_FILE_NAME}' and trashed=false`,
+            spaces: 'drive',
+            fields: 'files(id, name)',
+        });
+        
+        if (response.result.files && response.result.files.length > 0) {
+            fileId = response.result.files[0].id!;
+            return fileId;
+        }
+
+        const createResponse = await gapi.client.drive.files.create({
+            resource: {
+                name: SETTINGS_FILE_NAME,
+                parents: ['root'],
+            },
+            fields: 'id',
+        });
+        
+        fileId = createResponse.result.id!;
+        return fileId;
+    },
+
+    async uploadSettings(settings: Settings): Promise<void> {
+        const currentFileId = await this.findOrCreateFile();
+        const settingsBlob = new Blob([JSON.stringify(settings, null, 2)], { type: 'application/json' });
+
+        const formData = new FormData();
+        formData.append('metadata', new Blob([JSON.stringify({ name: SETTINGS_FILE_NAME })], { type: 'application/json' }));
+        formData.append('file', settingsBlob);
+
+        await gapi.client.request({
+            path: `/upload/drive/v3/files/${currentFileId}`,
+            method: 'PATCH',
+            params: { uploadType: 'media' },
+            body: settingsBlob,
+        });
+    },
+
+    async downloadSettings(): Promise<Settings | null> {
+        try {
+            const currentFileId = await this.findOrCreateFile();
+            const response = await gapi.client.drive.files.get({
+                fileId: currentFileId,
+                alt: 'media',
+            });
+            
+            if(response.body && response.body.length > 0) {
+                 return JSON.parse(response.body) as Settings;
+            }
+            return null;
+
+        } catch (error: any) {
+            // A 404 probably just means the file doesn't exist yet, which is fine.
+            if (error.status === 404) {
+                 console.log("Settings file not found. A new one will be created.");
+                 fileId = null; // Reset fileId so findOrCreateFile will create a new one
+                 return null;
+            }
+            console.error('Error downloading settings:', error);
+            throw error;
+        }
+    },
+};
+
+export default GoogleDriveService;

@@ -1,14 +1,47 @@
 import React from 'react';
 
-export const AudreyIcon: React.FC<{ className?: string }> = ({ className }) => (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M15.5 8.5c-1.2 0-2.2-1-2.2-2.2s1-2.2 2.2-2.2c1.2 0 2.2 1 2.2 2.2s-1 2.2-2.2 2.2zM8.5 8.5c-1.2 0-2.2-1-2.2-2.2s1-2.2 2.2-2.2c1.2 0 2.2 1 2.2 2.2s-1 2.2-2.2 2.2zM12 18c-3.3 0-6-2.7-6-6v-2c0-1.1.9-2 2-2h8c1.1 0 2 .9 2 2v2c0 3.3-2.7 6-6 6zM9 13v-1h1v1zm5 0v-1h1v1z" fill="#a3e635" stroke="none" />
-        <path d="M12 21c-4 0-6-2-6-4v-1h12v1c0 2-2 4-6 4z" stroke="#4d7c0f" fill="#84cc16" />
-        <path d="M18 10c0 3.3-2.7 6-6 6s-6-2.7-6-6V8h12v2z" stroke="#4d7c0f" fill="#a3e635" />
-        <path d="M9 14l-1 4m7-4l1 4" stroke="#4d7c0f" />
-        <path d="M10 13l-1-1.5m5 1.5l1-1.5" stroke="#4d7c0f" />
+export const SeymourIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg className={className} viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+        <g stroke="black" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            {/* Pot */}
+            <path d="M30 75H50L55 60H25L30 75Z" fill="#A0522D"/>
+            <path d="M24 60H56V55H24V60Z" fill="#8B4513"/>
+
+            {/* Stem */}
+            <path d="M40 60C35 50 45 45 42 35 C40 28 35 25 38 20" fill="none" stroke="#2E7D32" strokeWidth="4"/>
+            {/* Thorns */}
+            <path d="M41 48L44 46" stroke="#2E7D32" strokeWidth="1.5"/>
+            <path d="M38 38L35 36" stroke="#2E7D32" strokeWidth="1.5"/>
+            <path d="M39 28L42 26" stroke="#2E7D32" strokeWidth="1.5"/>
+            
+            {/* Leaves behind head */}
+            <path d="M40 10 L50 2 L55 12 L65 5 L68 18 L78 15 L75 28 L65 25 L60 35 L50 28 Z" fill="#FDD835"/>
+            
+            {/* Head */}
+            <path d="M38 20 C10 15 10 45 35 48 C55 52 65 35 60 20 C50 10 45 12 38 20 Z" fill="#66BB6A"/>
+            
+            {/* Lips */}
+            <path d="M20 38 C30 45 50 48 58 40 C55 45 35 48 20 38 Z" fill="#D4E157"/>
+
+            {/* Mouth Interior and Teeth */}
+            <g>
+                <path d="M25 35 C35 40 50 42 55 36 C50 38 35 40 28 35Z" fill="#424242"/>
+                {/* Teeth */}
+                <path d="M28 35.5 L30 38 L32 35.5" stroke="white" strokeWidth="0.5" fill="white"/>
+                <path d="M33 36 L35 38.5 L37 36" stroke="white" strokeWidth="0.5" fill="white"/>
+                <path d="M38 36.5 L40 39 L42 36.5" stroke="white" strokeWidth="0.5" fill="white"/>
+                <path d="M43 37 L45 39.5 L47 37" stroke="white" strokeWidth="0.5" fill="white"/>
+            </g>
+
+            {/* Eye */}
+            <path d="M25 25 C 30 22 38 25 38 25" fill="none" strokeWidth="1.5"/>
+
+            {/* Blood drip */}
+            <path d="M21 39 C 21 45 18 45 18 42 C18 45 15 45 15 39" fill="#E53935" stroke="#c42a2a"/>
+        </g>
     </svg>
 );
+
 
 export const PlusIcon: React.FC<{ className?: string }> = ({ className }) => (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
@@ -122,12 +155,36 @@ export const ShieldCheckIcon: React.FC<{ className?: string }> = ({ className })
 
 export const BugAntIcon: React.FC<{ className?: string }> = ({ className }) => (
     <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632zM15.375 9.375c.621 0 1.125.504 1.125 1.125v2.25c0 .621-.504 1.125-1.125 1.125h-6.75c-.621 0-1.125-.504-1.125-1.125v-2.25c0-.621.504-1.125 1.125-1.125h6.75z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632zM15.375 9.375c.621 0 1.125.504 1.125 1.125v2.25c0 .621-.504 1.125-1.125 1.125h-6.75c-.621 0-1.125-.504-1.125-1.125v-2.25c0 .621.504-1.125 1.125-1.125h6.75z" />
     </svg>
 );
 
 export const LayoutGridIcon: React.FC<{ className?: string }> = ({ className }) => (
     <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 8.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6A2.25 2.25 0 0115.75 3.75h2.25A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25A2.25 2.25 0 0113.5 8.25V6zM13.5 15.75A2.25 2.25 0 0115.75 13.5h2.25a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+    </svg>
+);
+
+export const LogoutIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+    </svg>
+);
+
+export const LoginIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M9 12h9m0 0l-3-3m3 3l-3 3" />
+    </svg>
+);
+
+export const GoogleIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg className={className} viewBox="0 0 24 24">
+        <path fill="#4285F4" d="M21.35,11.1H12.18V13.83H18.69C18.36,17.64 15.19,19.27 12.19,19.27C8.36,19.27 5,16.25 5,12C5,7.75 8.36,4.73 12.19,4.73C14.03,4.73 15.6,5.33 16.85,6.45L19.05,4.24C17.2,2.77 15,2 12.19,2C6.92,2 3,6.5 3,12C3,17.5 6.92,22 12.19,22C17.6,22 21.7,18.25 21.7,12.33C21.7,11.73 21.55,11.4 21.35,11.1Z" />
+    </svg>
+);
+
+export const CloudSyncIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" />
     </svg>
 );
