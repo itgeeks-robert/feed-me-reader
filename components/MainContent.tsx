@@ -169,18 +169,11 @@ const ArticleItem: React.FC<{
             setIsSummarizing(false);
         }
     };
-
-    const sentimentColor = {
-        'Positive': 'bg-green-500',
-        'Neutral': 'bg-gray-500',
-        'Negative': 'bg-red-500',
-    };
     
     if (view === 'compact') {
         return (
              <div className={`flex items-start justify-between gap-4 py-3 border-b border-gray-200 dark:border-zinc-700/50 ${isRead ? 'opacity-60' : ''}`}>
                 <div className="flex items-center gap-3 flex-1 truncate">
-                    {article.sentiment && <div className={`w-2 h-2 rounded-full flex-shrink-0 ${sentimentColor[article.sentiment]}`} title={`Sentiment: ${article.sentiment}`}></div>}
                     <a href={article.link} onClick={() => onMarkAsRead(article.id)} target="_blank" rel="noopener noreferrer" className="text-base font-medium text-zinc-800 dark:text-gray-100 hover:text-lime-500 dark:hover:text-lime-400 truncate">
                         {article.title}
                     </a>
@@ -224,17 +217,8 @@ const ArticleItem: React.FC<{
                     </div>
                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">{article.snippet}</p>
                     
-                    {article.tags && article.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mb-3">
-                            {article.tags.map(tag => (
-                                <span key={tag} className="text-xs bg-lime-100 text-lime-800 dark:bg-lime-900/50 dark:text-lime-300 px-2 py-1 rounded-full">{tag}</span>
-                            ))}
-                        </div>
-                    )}
-                    
                     <div className="flex justify-between items-center">
                         <div className="flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500">
-                            {article.sentiment && <div className={`w-2 h-2 rounded-full ${sentimentColor[article.sentiment]}`} title={`Sentiment: ${article.sentiment}`}></div>}
                             <span>{article.source}</span>
                         </div>
                         <div className="flex items-center space-x-4">
@@ -710,11 +694,6 @@ const MainContent: React.FC<MainContentProps> = (props) => {
     const [error, setError] = useState<string | null>(null);
     const [activeFilter, setActiveFilter] = useState<string | null>(null);
     
-    const readArticleIdsRef = useRef(readArticleIds);
-    useEffect(() => {
-        readArticleIdsRef.current = readArticleIds;
-    }, [readArticleIds]);
-
     const handleEnrichArticle = (articleId: string, data: Partial<EnrichedArticle>) => {
         setArticles(prev => prev.map(a => a.id === articleId ? { ...a, ...data } : a));
     };
@@ -733,71 +712,6 @@ const MainContent: React.FC<MainContentProps> = (props) => {
     }, [isDashboardView, isAiDisabled, setAllFeedsView]);
 
     useEffect(() => {
-        const enrichArticles = async (articlesToEnrich: Article[]) => {
-            if (isAiDisabled) {
-                console.log("AI enrichment skipped as features are disabled.");
-                return;
-            }
-
-            const articlesNeedingEnrichment = articlesToEnrich.filter(a => (a as EnrichedArticle).sentiment === undefined);
-            if (articlesNeedingEnrichment.length === 0) return;
-
-            for (const article of articlesNeedingEnrichment) {
-                 if (isAiDisabled) {
-                    console.log("Stopping enrichment mid-run as AI features are now disabled.");
-                    break;
-                 }
-
-                if (readArticleIdsRef.current.has(article.id)) {
-                    continue;
-                }
-
-                const maxRetries = 3;
-                for (let attempt = 1; attempt <= maxRetries; attempt++) {
-                    try {
-                        const prompt = `Analyze the sentiment and extract key entity tags from this article.
-                        Title: "${article.title}"
-                        Snippet: "${article.snippet}"
-                        Sentiment must be one of: "Positive", "Neutral", or "Negative".
-                        Tags should be a list of 1 to 4 important entities (companies, technologies, people, concepts).`;
-
-                        const response = await ai.models.generateContent({
-                            model: 'gemini-2.5-flash',
-                            contents: prompt,
-                            config: {
-                                responseMimeType: "application/json",
-                                responseSchema: {
-                                    type: Type.OBJECT,
-                                    properties: {
-                                        sentiment: { type: Type.STRING, enum: ["Positive", "Neutral", "Negative"] },
-                                        tags: { type: Type.ARRAY, items: { type: Type.STRING } }
-                                    },
-                                }
-                            }
-                        });
-                        
-                        const enrichedData = JSON.parse(response.text);
-                        handleEnrichArticle(article.id, enrichedData);
-                        break; // Exit retry loop on success
-                    } catch (err) {
-                        console.error(`Attempt ${attempt} failed for article: ${article.title}`, err);
-                        if (handleAiError(err)) {
-                           break; // Stop retrying for this article and the outer loop will stop on next iteration
-                        }
-                        if (attempt < maxRetries && err instanceof Error && (err.message.includes('429') || err.message.includes('RESOURCE_EXHAUSTED'))) {
-                            const delay = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
-                            console.warn(`Rate limit hit. Retrying in ${delay.toFixed(0)}ms...`);
-                            await new Promise(resolve => setTimeout(resolve, delay));
-                        } else {
-                            console.error(`Skipping enrichment for "${article.title}" after max retries or due to a non-retriable error.`);
-                            break; // Exit retry loop
-                        }
-                    }
-                }
-                await new Promise(resolve => setTimeout(resolve, 2000));
-            }
-        };
-
         const fetchMagicFeed = async (topic: string) => {
             setLoading(true);
             setError(null);
@@ -840,7 +754,6 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                 
                 const uniqueMagicArticles = Array.from(new Map(magicArticles.map(a => [a.id, a])).values());
                 setArticles(uniqueMagicArticles);
-                enrichArticles(uniqueMagicArticles);
             } catch (e) {
                 console.error('Error fetching magic feed:', e);
                  if (!handleAiError(e)) {
@@ -884,7 +797,6 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                 const uniqueArticles = Array.from(new Map(allArticles.map(a => [a.id, a])).values());
                 
                 setArticles(uniqueArticles);
-                enrichArticles(uniqueArticles);
             } catch (e) {
                 console.error('Error fetching RSS feeds:', e);
                 setError(e instanceof Error ? e.message : 'An unknown error occurred while fetching feeds.');
