@@ -3,6 +3,8 @@ import Sidebar from './components/Sidebar';
 import MainContent from './components/MainContent';
 import LoginView from './components/LoginView';
 import GoogleDriveService, { type GoogleUserProfile } from './services/googleDriveService';
+import { type SourceType } from './components/AddSource';
+
 
 // Fix for TypeScript error: Cannot find namespace 'google'.
 // Fix: Replaced `declare const google: any;` with a proper `declare namespace google` to fix "Cannot find namespace 'google'" TypeScript error.
@@ -326,26 +328,47 @@ const App: React.FC = () => {
         setIsSidebarOpen(false);
     };
 
-    const handleAddFeed = async (url: string) => {
-        if (url && !feeds.some(feed => feed.url === url)) {
-            try {
+    const handleAddSource = async (url: string, type: SourceType) => {
+        let feedUrl = url;
+        let originalUrl = url;
+
+        try {
+            if (type === 'youtube') {
                 const response = await fetch(`${CORS_PROXY}${url}`);
-                if (!response.ok) throw new Error('Network response was not ok.');
+                if (!response.ok) throw new Error('Could not fetch YouTube channel page.');
                 const text = await response.text();
-                const parser = new DOMParser();
-                const xml = parser.parseFromString(text, "application/xml");
-                if (xml.querySelector('parsererror')) throw new Error('Failed to parse RSS feed.');
-                const feedTitle = xml.querySelector('channel > title')?.textContent || xml.querySelector('feed > title')?.textContent || new URL(url).hostname;
-                const siteLink = xml.querySelector('channel > link')?.textContent;
-                const domainUrl = siteLink ? new URL(siteLink).hostname : new URL(url).hostname;
-                const iconUrl = `https://www.google.com/s2/favicons?sz=32&domain_url=${domainUrl}`;
-                const newFeed: Feed = { id: Date.now(), title: feedTitle, url, iconUrl, folderId: null };
-                setFeeds(prevFeeds => [...prevFeeds, newFeed]);
-                setSelection({ type: 'feed', id: newFeed.id });
-            } catch (error) {
-                console.error("Failed to add feed:", error);
-                alert("Could not fetch or parse the RSS feed. Please check the URL and try again.");
+                const match = text.match(/"channelId":"(.*?)"/);
+                if (!match || !match[1]) throw new Error('Could not find YouTube channel ID.');
+                const channelId = match[1];
+                feedUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
+            } else if (type === 'website') {
+                feedUrl = `https://www.fivefilters.org/feed-creator/extract.php?url=${encodeURIComponent(url)}&format=xml`;
             }
+
+            if (feeds.some(feed => feed.url === feedUrl)) {
+                alert("This feed has already been added.");
+                return;
+            }
+
+            const response = await fetch(`${CORS_PROXY}${feedUrl}`);
+            if (!response.ok) throw new Error(`Network response was not ok (status: ${response.status}).`);
+            const text = await response.text();
+            const parser = new DOMParser();
+            const xml = parser.parseFromString(text, "application/xml");
+            if (xml.querySelector('parsererror')) {
+                throw new Error('Failed to parse RSS feed. If this is a website URL, please use the "Website" tab.');
+            }
+            const feedTitle = xml.querySelector('channel > title')?.textContent || xml.querySelector('feed > title')?.textContent || new URL(originalUrl).hostname;
+            const siteLink = xml.querySelector('channel > link')?.textContent || originalUrl;
+            const domainUrl = new URL(siteLink).hostname;
+            const iconUrl = `https://www.google.com/s2/favicons?sz=32&domain_url=${domainUrl}`;
+            const newFeed: Feed = { id: Date.now(), title: feedTitle, url: feedUrl, iconUrl, folderId: null };
+            setFeeds(prevFeeds => [...prevFeeds, newFeed]);
+            setSelection({ type: 'feed', id: newFeed.id });
+
+        } catch (error) {
+            console.error("Failed to add source:", error);
+            alert(`Could not add source. ${error instanceof Error ? error.message : 'Please check the URL and try again.'}`);
         }
     };
 
@@ -585,7 +608,7 @@ const App: React.FC = () => {
                 folders={folders}
                 magicFeeds={magicFeeds}
                 selection={selection}
-                onAddFeed={handleAddFeed}
+                onAddSource={handleAddSource}
                 onRemoveFeed={handleRemoveFeed}
                 onAddMagicFeed={handleAddMagicFeed}
                 onRemoveMagicFeed={handleRemoveMagicFeed}

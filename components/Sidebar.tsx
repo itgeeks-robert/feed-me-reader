@@ -1,6 +1,8 @@
 import React, { useState, useRef } from 'react';
 import type { Feed, Folder, Selection, Theme, MagicFeed, SyncStatus } from '../App';
 import type { GoogleUserProfile } from '../services/googleDriveService';
+import type { SourceType } from './AddSource';
+import AddSource from './AddSource';
 import {
     SeymourIcon, ListIcon, PlusIcon, RssIcon, TrashIcon, FolderIcon, PencilIcon, ChevronDownIcon, ChevronRightIcon, SunIcon, MoonIcon, NewspaperIcon, XIcon, BookmarkIcon, WandIcon, LogoutIcon, CloudSyncIcon, CheckCircleIcon, LoginIcon, CloudArrowDownIcon
 } from './icons';
@@ -10,7 +12,7 @@ interface SidebarProps {
     folders: Folder[];
     magicFeeds: MagicFeed[];
     selection: Selection;
-    onAddFeed: (url: string) => void;
+    onAddSource: (url: string, type: SourceType) => void;
     onRemoveFeed: (id: number) => void;
     onAddMagicFeed: (topic: string) => void;
     onRemoveMagicFeed: (id: number) => void;
@@ -233,17 +235,10 @@ const MagicFeedItem: React.FC<{
 
 
 const Sidebar: React.FC<SidebarProps> = (props) => {
-    const { feeds, folders, magicFeeds, selection, onAddFeed, onRemoveFeed, onAddMagicFeed, onRemoveMagicFeed, onSelect, onAddFolder, onRenameFolder, onDeleteFolder, onMoveFeedToFolder, theme, toggleTheme, isSidebarOpen, onClose, userProfile, onLogout, onSync, syncStatus, lastSyncTime, isGuestMode, onGoToLogin, onImportOpml, onExportOpml } = props;
-    const [newFeedUrl, setNewFeedUrl] = useState('');
+    const { feeds, folders, magicFeeds, selection, onAddSource, onRemoveFeed, onAddMagicFeed, onRemoveMagicFeed, onSelect, onAddFolder, onRenameFolder, onDeleteFolder, onMoveFeedToFolder, theme, toggleTheme, isSidebarOpen, onClose, userProfile, onLogout, onSync, syncStatus, lastSyncTime, isGuestMode, onGoToLogin, onImportOpml, onExportOpml } = props;
     const [isAddingFolder, setIsAddingFolder] = useState(false);
     const [dragOverTarget, setDragOverTarget] = useState<number | 'unfiled' | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
-
-    const handleAddFeedSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        onAddFeed(newFeedUrl);
-        setNewFeedUrl('');
-    };
 
     const handleAddMagicFeedClick = () => {
         const topic = prompt("What topic would you like to create a Magic Feed for?");
@@ -292,15 +287,8 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                         </button>
                     </div>
                 </div>
-    
-                <div className="px-2 space-y-4 mb-4">
-                    <form onSubmit={handleAddFeedSubmit}>
-                        <div className="relative">
-                            <input id="feed-url" type="url" value={newFeedUrl} onChange={(e) => setNewFeedUrl(e.target.value)} placeholder="Add RSS feed URL" required className="w-full bg-white dark:bg-zinc-800 border border-gray-300 dark:border-zinc-700 rounded-md py-2 pl-3 pr-10 text-sm text-zinc-800 dark:text-zinc-300 placeholder-gray-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-lime-500 focus:border-lime-500" />
-                            <button type="submit" className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 dark:text-zinc-400 hover:text-lime-500 dark:hover:text-lime-400" aria-label="Add feed"><PlusIcon className="w-5 h-5" /></button>
-                        </div>
-                    </form>
-                </div>
+                
+                <AddSource onAddSource={onAddSource} />
             </div>
             
             <div className="flex-grow overflow-y-auto">

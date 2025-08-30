@@ -37,59 +37,54 @@ export interface GoogleUserProfile {
     picture: string;
 }
 
+// Promise to wait for the GAPI script to load and initialize the client library.
+// This is more robust than the previous setInterval implementation.
+const gapiReady = new Promise<void>((resolve, reject) => {
+    const checkGapi = () => {
+        if (typeof gapi !== 'undefined' && gapi.load) {
+            // Use the built-in callback and error handling for gapi.load
+            gapi.load('client', {
+                callback: resolve,
+                onerror: () => reject(new Error('GAPI client failed to load.')),
+                timeout: 5000,
+                ontimeout: () => reject(new Error('GAPI client load timed out.')),
+            });
+        } else {
+            // Poll for the gapi object itself if the script hasn't loaded yet.
+            setTimeout(checkGapi, 100);
+        }
+    };
+    checkGapi();
+});
+
+// Promise to wait for the Google Identity Services (GIS) script to load.
+const gisReady = new Promise<void>((resolve) => {
+    const checkGis = () => {
+        if (typeof google !== 'undefined' && google.accounts) {
+            resolve();
+        } else {
+            setTimeout(checkGis, 100);
+        }
+    };
+    checkGis();
+});
+
 let tokenClient: google.accounts.oauth2.TokenClient | null = null;
 let onAuthChangeCallback: ((token: google.accounts.oauth2.TokenResponse | null) => void) | null = null;
-let gapiLoaded = false;
-let gisLoaded = false;
 let fileId: string | null = null;
-
-const gapiLoadPromise = new Promise<void>((resolve) => {
-    if (typeof gapi !== 'undefined' && gapi.client) {
-        gapiLoaded = true;
-        resolve();
-    } else {
-        const interval = setInterval(() => {
-            if (typeof gapi !== 'undefined' && gapi.client) {
-                gapiLoaded = true;
-                clearInterval(interval);
-                resolve();
-            }
-        }, 100);
-    }
-});
-
-const gisLoadPromise = new Promise<void>((resolve) => {
-    if (typeof google !== 'undefined' && google.accounts) {
-        gisLoaded = true;
-        resolve();
-    } else {
-        const interval = setInterval(() => {
-            if (typeof google !== 'undefined' && google.accounts) {
-                gisLoaded = true;
-                clearInterval(interval);
-                resolve();
-            }
-        }, 100);
-    }
-});
 
 const GoogleDriveService = {
     async initClient(callback: (token: google.accounts.oauth2.TokenResponse | null) => void): Promise<void> {
         onAuthChangeCallback = callback;
-        await Promise.all([gapiLoadPromise, gisLoadPromise]);
+        
+        // Wait for both Google libraries to be loaded and ready.
+        await Promise.all([gapiReady, gisReady]);
 
-        await new Promise<void>((resolve, reject) => {
-            gapi.load('client', async () => {
-                try {
-                    await gapi.client.init({
-                        apiKey: GOOGLE_API_KEY,
-                        discoveryDocs: [DISCOVERY_DOC],
-                    });
-                    resolve();
-                } catch (error) {
-                    reject(error);
-                }
-            });
+        // Now that the gapi client library is loaded, we can initialize it.
+        await gapi.client.init({
+            apiKey: GOOGLE_API_KEY,
+            clientId: GOOGLE_CLIENT_ID,
+            discoveryDocs: [DISCOVERY_DOC],
         });
 
         tokenClient = google.accounts.oauth2.initTokenClient({
@@ -101,6 +96,7 @@ const GoogleDriveService = {
                     onAuthChangeCallback?.(null);
                     return;
                 }
+                gapi.client.setToken(tokenResponse);
                 onAuthChangeCallback?.(tokenResponse);
             },
         });
