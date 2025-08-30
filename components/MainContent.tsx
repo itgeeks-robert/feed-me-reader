@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import type { Feed, Selection } from '../App';
 import { CORS_PROXY } from '../App';
 import { GoogleGenAI, Type } from '@google/genai';
-import { SparklesIcon, CheckCircleIcon, NewspaperIcon } from './icons';
+import { SparklesIcon, CheckCircleIcon, NewspaperIcon, MenuIcon } from './icons';
 
 interface Article {
     id: string;
@@ -337,9 +337,10 @@ interface MainContentProps {
     readArticleIds: Set<string>;
     onMarkAsRead: (articleId: string) => void;
     onMarkMultipleAsRead: (articleIds: string[]) => void;
+    onMenuClick: () => void;
 }
 
-const MainContent: React.FC<MainContentProps> = ({ feedsToDisplay, title, selectionType, readArticleIds, onMarkAsRead, onMarkMultipleAsRead }) => {
+const MainContent: React.FC<MainContentProps> = ({ feedsToDisplay, title, selectionType, readArticleIds, onMarkAsRead, onMarkMultipleAsRead, onMenuClick }) => {
     const [articles, setArticles] = useState<Article[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -467,18 +468,27 @@ const MainContent: React.FC<MainContentProps> = ({ feedsToDisplay, title, select
     }
     
     return (
-        <main className="flex-1 bg-gray-100 dark:bg-zinc-800 p-8 overflow-y-auto">
+        <main className="h-full bg-gray-100 dark:bg-zinc-800 p-4 sm:p-8 overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">{title}</h1>
+                 <div className="flex items-center gap-2">
+                    <button
+                        onClick={onMenuClick}
+                        className="p-2 -ml-2 rounded-full text-zinc-500 dark:text-zinc-400 hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors md:hidden"
+                        aria-label="Open sidebar"
+                    >
+                        <MenuIcon className="w-6 h-6" />
+                    </button>
+                    <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white truncate">{title}</h1>
+                </div>
                 {articles.length > 0 && !loading && selectionType !== 'briefing' && (
                     <button
                         onClick={handleMarkAllAsRead}
                         disabled={unreadCount === 0}
-                        className="flex items-center space-x-2 text-sm text-gray-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="flex items-center space-x-2 text-sm text-gray-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex-shrink-0"
                         aria-label="Mark all articles as read"
                     >
                         <CheckCircleIcon className="w-5 h-5" />
-                        <span>Mark all as read</span>
+                        <span className="hidden sm:inline">Mark all as read</span>
                     </button>
                 )}
             </div>

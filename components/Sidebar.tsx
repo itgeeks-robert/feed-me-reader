@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import type { Feed, Folder, Selection, Theme } from '../App';
 import {
-    AudreyIcon, ListIcon, PlusIcon, RssIcon, TrashIcon, FolderIcon, PencilIcon, ChevronDownIcon, ChevronRightIcon, SunIcon, MoonIcon, NewspaperIcon
+    AudreyIcon, ListIcon, PlusIcon, RssIcon, TrashIcon, FolderIcon, PencilIcon, ChevronDownIcon, ChevronRightIcon, SunIcon, MoonIcon, NewspaperIcon, XIcon
 } from './icons';
 
 interface SidebarProps {
@@ -17,6 +17,8 @@ interface SidebarProps {
     onMoveFeedToFolder: (feedId: number, folderId: number | null) => void;
     theme: Theme;
     toggleTheme: () => void;
+    isSidebarOpen: boolean;
+    onClose: () => void;
 }
 
 const FeedIcon: React.FC<{ iconUrl: string, feedTitle: string }> = ({ iconUrl, feedTitle }) => {
@@ -174,7 +176,7 @@ const FeedItem: React.FC<{
 
 
 const Sidebar: React.FC<SidebarProps> = (props) => {
-    const { feeds, folders, selection, onAddFeed, onRemoveFeed, onSelect, onAddFolder, onRenameFolder, onDeleteFolder, onMoveFeedToFolder, theme, toggleTheme } = props;
+    const { feeds, folders, selection, onAddFeed, onRemoveFeed, onSelect, onAddFolder, onRenameFolder, onDeleteFolder, onMoveFeedToFolder, theme, toggleTheme, isSidebarOpen, onClose } = props;
     const [newFeedUrl, setNewFeedUrl] = useState('');
     const [isAddingFolder, setIsAddingFolder] = useState(false);
     const [dragOverTarget, setDragOverTarget] = useState<number | 'unfiled' | null>(null);
@@ -200,19 +202,28 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
     };
 
     return (
-        <aside className="w-72 bg-gray-50 dark:bg-zinc-900 flex-shrink-0 p-4 flex flex-col h-full overflow-y-auto border-r border-gray-200 dark:border-zinc-800">
+        <aside className={`w-72 bg-gray-50 dark:bg-zinc-900 flex-shrink-0 p-4 flex flex-col h-full overflow-y-auto border-r border-gray-200 dark:border-zinc-800 fixed inset-y-0 left-0 z-40 transform transition-transform duration-300 ease-in-out md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
             <div className="flex items-center justify-between space-x-2 mb-6 px-2">
                 <div className="flex items-center space-x-2">
                     <AudreyIcon className="w-8 h-8 text-lime-500" />
                     <span className="text-lg font-bold text-zinc-900 dark:text-white">Feed Me</span>
                 </div>
-                <button
-                    onClick={toggleTheme}
-                    className="p-2 rounded-full text-zinc-500 dark:text-zinc-400 hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors"
-                    aria-label="Toggle theme"
-                >
-                    {theme === 'light' ? <MoonIcon className="w-5 h-5" /> : <SunIcon className="w-5 h-5" />}
-                </button>
+                <div className="flex items-center">
+                     <button
+                        onClick={toggleTheme}
+                        className="p-2 rounded-full text-zinc-500 dark:text-zinc-400 hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors"
+                        aria-label="Toggle theme"
+                    >
+                        {theme === 'light' ? <MoonIcon className="w-5 h-5" /> : <SunIcon className="w-5 h-5" />}
+                    </button>
+                    <button
+                        onClick={onClose}
+                        className="p-2 -mr-2 rounded-full text-zinc-500 dark:text-zinc-400 hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors md:hidden"
+                        aria-label="Close sidebar"
+                    >
+                        <XIcon className="w-6 h-6" />
+                    </button>
+                </div>
             </div>
 
             <form onSubmit={handleSubmit} className="px-2 mb-4">

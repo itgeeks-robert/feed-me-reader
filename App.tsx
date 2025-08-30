@@ -26,6 +26,7 @@ export const CORS_PROXY = 'https://corsproxy.io/?';
 const READ_ARTICLES_KEY = 'feedme_read_articles';
 
 const App: React.FC = () => {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [theme, setTheme] = useState<Theme>(() => {
       if (typeof window === 'undefined') return 'light';
       if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
@@ -87,6 +88,11 @@ const App: React.FC = () => {
   ]);
 
   const [selection, setSelection] = useState<Selection>({ type: 'all', id: null });
+
+  const handleSelect = (sel: Selection) => {
+    setSelection(sel);
+    setIsSidebarOpen(false); // Close sidebar on selection change on mobile
+  };
 
   const handleAddFeed = async (url: string) => {
     if (url && !feeds.some(feed => feed.url === url)) {
@@ -187,14 +193,24 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="flex h-screen font-sans text-sm">
+    <div className="h-screen font-sans text-sm relative overflow-hidden">
+      {/* Sidebar Overlay for mobile */}
+      {isSidebarOpen && (
+          <div 
+              onClick={() => setIsSidebarOpen(false)}
+              className="fixed inset-0 bg-black/60 z-30 md:hidden"
+              aria-hidden="true"
+          />
+      )}
       <Sidebar
+        isSidebarOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
         feeds={feeds}
         folders={folders}
         selection={selection}
         onAddFeed={handleAddFeed}
         onRemoveFeed={handleRemoveFeed}
-        onSelect={setSelection}
+        onSelect={handleSelect}
         onAddFolder={handleAddFolder}
         onRenameFolder={handleRenameFolder}
         onDeleteFolder={handleDeleteFolder}
@@ -202,15 +218,18 @@ const App: React.FC = () => {
         theme={theme}
         toggleTheme={toggleTheme}
       />
-      <MainContent
-        feedsToDisplay={feedsToDisplay}
-        title={title}
-        selectionType={selection.type}
-        key={JSON.stringify(selection)}
-        readArticleIds={readArticleIds}
-        onMarkAsRead={handleMarkAsRead}
-        onMarkMultipleAsRead={handleMarkMultipleAsRead}
-      />A
+      <div className="md:ml-72 h-full">
+        <MainContent
+          onMenuClick={() => setIsSidebarOpen(true)}
+          feedsToDisplay={feedsToDisplay}
+          title={title}
+          selectionType={selection.type}
+          key={JSON.stringify(selection)}
+          readArticleIds={readArticleIds}
+          onMarkAsRead={handleMarkAsRead}
+          onMarkMultipleAsRead={handleMarkMultipleAsRead}
+        />
+      </div>
     </div>
   );
 };
