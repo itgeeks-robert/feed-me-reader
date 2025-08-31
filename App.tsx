@@ -1,30 +1,9 @@
 
-
-
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Sidebar from './components/Sidebar';
 import MainContent from './components/MainContent';
-import LoginView from './components/LoginView';
-import GoogleDriveService, { type GoogleUserProfile } from './services/googleDriveService';
 import { type SourceType } from './components/AddSource';
 import SettingsModal from './components/SettingsModal';
-
-
-// Fix for TypeScript error: Cannot find namespace 'google'.
-// Fix: Replaced `declare const google: any;` with a proper `declare namespace google` to fix "Cannot find namespace 'google'" TypeScript error.
-declare namespace google {
-  namespace accounts {
-    namespace oauth2 {
-      interface TokenResponse {
-        access_token: string;
-        expires_in: number;
-        scope: string;
-        token_type: string;
-        error?: string;
-      }
-    }
-  }
-}
 
 export interface Folder {
   id: number;
@@ -47,6 +26,7 @@ export type Selection = {
 
 export type Theme = 'light' | 'dark';
 export type ArticleView = 'card' | 'compact' | 'magazine';
+export type ViewMode = 'pc' | 'mobile';
 
 export interface WidgetSettings {
     showWeather: boolean;
@@ -62,17 +42,15 @@ export interface Settings {
     theme: Theme;
     articleView: ArticleView;
     widgets: WidgetSettings;
+    viewMode: ViewMode;
 }
 
-export type SyncStatus = 'idle' | 'syncing' | 'success' | 'error';
-
-
 export const CORS_PROXY = 'https://corsproxy.io/?';
-const READ_ARTICLES_KEY = (user: string) => `feedme_read_articles_${user}`;
-const BOOKMARKED_ARTICLES_KEY = (user: string) => `feedme_bookmarked_articles_${user}`;
-const ARTICLE_TAGS_KEY = (user: string) => `feedme_article_tags_${user}`;
-const LAST_AUTO_SYNC_KEY = (user: string) => `feedme_last_auto_sync_${user}`;
-const GUEST_SETTINGS_KEY = 'feedme_guest_settings';
+const GUEST_USER_ID = 'guest';
+const READ_ARTICLES_KEY = `feedme_read_articles_${GUEST_USER_ID}`;
+const BOOKMARKED_ARTICLES_KEY = `feedme_bookmarked_articles_${GUEST_USER_ID}`;
+const ARTICLE_TAGS_KEY = `feedme_article_tags_${GUEST_USER_ID}`;
+const SETTINGS_KEY = `feedme_settings_${GUEST_USER_ID}`;
 
 
 const defaultFolders: Folder[] = [
@@ -113,15 +91,10 @@ const defaultWidgetSettings: WidgetSettings = {
 };
 
 const App: React.FC = () => {
-    const [userProfile, setUserProfile] = useState<GoogleUserProfile | null>(null);
-    const [isGapiReady, setIsGapiReady] = useState(false);
-    const [isSignedIn, setIsSignedIn] = useState(false);
-    const [isGuestMode, setIsGuestMode] = useState(false);
-    const [forceMobileView, setForceMobileView] = useState(false);
-
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [theme, setTheme] = useState<Theme>('dark');
     const [articleView, setArticleView] = useState<ArticleView>('card');
+    const [viewMode, setViewMode] = useState<ViewMode>('pc');
     const [widgetSettings, setWidgetSettings] = useState<WidgetSettings>(defaultWidgetSettings);
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
     
@@ -131,73 +104,49 @@ const App: React.FC = () => {
     const [bookmarkedArticleIds, setBookmarkedArticleIds] = useState<Set<string>>(new Set());
     const [articleTags, setArticleTags] = useState<Map<string, Set<string>>>(new Map());
 
-    const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle');
-    const [lastSyncTime, setLastSyncTime] = useState<number | null>(null);
     const [lastRefresh, setLastRefresh] = useState(() => Date.now());
     
     const isApiKeyMissing = !process.env.API_KEY;
-    const isGoogleClientIdMissing = !process.env.GOOGLE_CLIENT_ID;
 
-    const loadSettings = (settings: Partial<Settings>) => {
+    const loadSettings = useCallback((settings: Partial<Settings>) => {
         setFeeds(settings.feeds || defaultFeeds);
         setFolders(settings.folders || defaultFolders);
         setTheme(settings.theme || 'dark');
         setArticleView(settings.articleView || 'card');
+        setViewMode(settings.viewMode || 'pc');
         setWidgetSettings(settings.widgets || defaultWidgetSettings);
-    };
+    }, []);
 
-    const handleAuthChange = useCallback(async (token: google.accounts.oauth2.TokenResponse | null) => {
-        if (token) {
-            const profile = await GoogleDriveService.getSignedInUser();
-            setUserProfile(profile);
-            setIsSignedIn(true);
-            setIsGuestMode(false);
-            setForceMobileView(false);
-            
-            // User signed in, load data from Drive or local as fallback
-            const driveSettings = await GoogleDriveService.downloadSettings();
-            if (driveSettings) {
-                console.log("Settings loaded from Google Drive.");
-                loadSettings(driveSettings);
-                setLastSyncTime(Date.now());
+    const loadLocalData = useCallback(() => {
+        try {
+            const storedSettings = window.localStorage.getItem(SETTINGS_KEY);
+            const settings = storedSettings ? JSON.parse(storedSettings) : {};
+            loadSettings(settings);
+
+            const savedReadArticles = window.localStorage.getItem(READ_ARTICLES_KEY);
+            setReadArticleIds(savedReadArticles ? new Set(JSON.parse(savedReadArticles)) : new Set());
+            const savedBookmarks = window.localStorage.getItem(BOOKMARKED_ARTICLES_KEY);
+            setBookmarkedArticleIds(savedBookmarks ? new Set(JSON.parse(savedBookmarks)) : new Set());
+            const savedTags = window.localStorage.getItem(ARTICLE_TAGS_KEY);
+            if (savedTags) {
+                const parsedTags = JSON.parse(savedTags) as [string, string[]][];
+                setArticleTags(new Map(parsedTags.map(([id, tags]) => [id, new Set(tags)])));
             } else {
-                console.log("No settings file found in Drive. Preparing to upload local/default settings.");
-                await handleSyncToDrive(true); // Initial sync for new users
+                setArticleTags(new Map());
             }
-             try {
-                const savedReadArticles = window.localStorage.getItem(READ_ARTICLES_KEY(profile.id));
-                setReadArticleIds(savedReadArticles ? new Set(JSON.parse(savedReadArticles)) : new Set());
-                const savedBookmarks = window.localStorage.getItem(BOOKMARKED_ARTICLES_KEY(profile.id));
-                setBookmarkedArticleIds(savedBookmarks ? new Set(JSON.parse(savedBookmarks)) : new Set());
-                const savedTags = window.localStorage.getItem(ARTICLE_TAGS_KEY(profile.id));
-                if (savedTags) {
-                    const parsedTags = JSON.parse(savedTags) as [string, string[]][];
-                    setArticleTags(new Map(parsedTags.map(([id, tags]) => [id, new Set(tags)])));
-                } else {
-                    setArticleTags(new Map());
-                }
-             } catch(e) { console.error("Error loading local article states", e); }
-
-        } else {
-            setUserProfile(null);
-            setIsSignedIn(false);
-            setForceMobileView(false);
-            // Reset state to defaults on logout
+        } catch (e) {
+            console.error("Error loading data from localStorage", e);
             loadSettings({});
             setReadArticleIds(new Set());
             setBookmarkedArticleIds(new Set());
             setArticleTags(new Map());
-            setSelection({ type: 'all', id: null });
         }
-    }, []);
-
+    }, [loadSettings]);
+    
+    // Load data from local storage on initial mount
     useEffect(() => {
-        const initGoogleClient = async () => {
-            await GoogleDriveService.initClient(handleAuthChange);
-            setIsGapiReady(true);
-        };
-        initGoogleClient();
-    }, [handleAuthChange]);
+        loadLocalData();
+    }, [loadLocalData]);
     
     // Auto-refresh feeds every 5 minutes
     useEffect(() => {
@@ -208,96 +157,41 @@ const App: React.FC = () => {
 
         return () => clearInterval(feedInterval);
     }, []);
-    
-    const handleSyncToDrive = async (isSilent: boolean = false) => {
-        if (!isGapiReady || !isSignedIn) {
-            alert("Please sign in with Google first.");
-            return;
-        }
-        if (!isSilent) setSyncStatus('syncing');
-        
-        try {
-            const settings: Settings = { feeds, folders, theme, articleView, widgets: widgetSettings };
-            await GoogleDriveService.uploadSettings(settings);
-            if (!isSilent) setSyncStatus('success');
-            setLastSyncTime(Date.now());
-            console.log("Settings successfully synced to Google Drive.");
-        } catch (error) {
-            console.error("Failed to sync settings to Google Drive:", error);
-            if (!isSilent) setSyncStatus('error');
-        } finally {
-            if (!isSilent) {
-                setTimeout(() => setSyncStatus('idle'), 2000);
-            }
-        }
-    };
-    
-    // Automatic daily backup
+
+    // Save article states to local storage when they change
     useEffect(() => {
-        if (!isSignedIn || !userProfile) return;
-
-        const autoSync = async () => {
-            try {
-                const lastSync = localStorage.getItem(LAST_AUTO_SYNC_KEY(userProfile.id));
-                const twentyFourHours = 24 * 60 * 60 * 1000;
-                if (!lastSync || (Date.now() - parseInt(lastSync) > twentyFourHours)) {
-                    console.log("Performing automatic daily backup to Google Drive...");
-                    await handleSyncToDrive(true);
-                    localStorage.setItem(LAST_AUTO_SYNC_KEY(userProfile.id), String(Date.now()));
-                }
-            } catch (e) {
-                console.error("Auto-sync failed:", e);
-            }
-        };
-
-        const intervalId = setInterval(autoSync, 60 * 60 * 1000); // Check every hour
-        autoSync(); // Check once on load
-
-        return () => clearInterval(intervalId);
-    }, [isSignedIn, userProfile, feeds, folders, theme, articleView, widgetSettings]); // Re-eval if user or settings change
-
-    const userId = useMemo(() => {
-        if (isSignedIn && userProfile) return userProfile.id;
-        if (isGuestMode) return 'guest';
-        return null;
-    }, [isSignedIn, userProfile, isGuestMode]);
-
-    useEffect(() => {
-        if (!userId) return;
         try {
-            window.localStorage.setItem(READ_ARTICLES_KEY(userId), JSON.stringify(Array.from(readArticleIds)));
+            window.localStorage.setItem(READ_ARTICLES_KEY, JSON.stringify(Array.from(readArticleIds)));
         } catch (error) { console.error("Failed to save read articles to localStorage", error); }
-    }, [readArticleIds, userId]);
+    }, [readArticleIds]);
 
     useEffect(() => {
-        if (!userId) return;
         try {
-            window.localStorage.setItem(BOOKMARKED_ARTICLES_KEY(userId), JSON.stringify(Array.from(bookmarkedArticleIds)));
+            window.localStorage.setItem(BOOKMARKED_ARTICLES_KEY, JSON.stringify(Array.from(bookmarkedArticleIds)));
         } catch (error) { console.error("Failed to save bookmarks to localStorage", error); }
-    }, [bookmarkedArticleIds, userId]);
+    }, [bookmarkedArticleIds]);
 
     useEffect(() => {
-        if (!userId) return;
         try {
             const tagsToSave = Array.from(articleTags.entries()).map(([id, tags]) => [id, Array.from(tags)]);
             const filteredTagsToSave = tagsToSave.filter(([, tags]) => tags.length > 0);
-            window.localStorage.setItem(ARTICLE_TAGS_KEY(userId), JSON.stringify(filteredTagsToSave));
+            window.localStorage.setItem(ARTICLE_TAGS_KEY, JSON.stringify(filteredTagsToSave));
         } catch (error) {
             console.error("Failed to save article tags to localStorage", error);
         }
-    }, [articleTags, userId]);
+    }, [articleTags]);
     
+    // Save settings to local storage when they change
     useEffect(() => {
-        if (isGuestMode) {
-            try {
-                const settings: Settings = { feeds, folders, theme, articleView, widgets: widgetSettings };
-                window.localStorage.setItem(GUEST_SETTINGS_KEY, JSON.stringify(settings));
-            } catch (error) {
-                console.error("Failed to save guest settings to localStorage", error);
-            }
+        try {
+            const settings: Settings = { feeds, folders, theme, articleView, viewMode, widgets: widgetSettings };
+            window.localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+        } catch (error) {
+            console.error("Failed to save settings to localStorage", error);
         }
-    }, [isGuestMode, feeds, folders, theme, articleView, widgetSettings]);
+    }, [feeds, folders, theme, articleView, viewMode, widgetSettings]);
     
+    // Apply theme to HTML element
     useEffect(() => {
         const root = window.document.documentElement;
         if (theme === 'dark') {
@@ -530,6 +424,7 @@ const App: React.FC = () => {
             folders,
             theme,
             articleView,
+            viewMode,
             widgets: widgetSettings
         };
         const jsonString = JSON.stringify(settingsToExport, null, 2);
@@ -568,67 +463,14 @@ const App: React.FC = () => {
         };
         reader.readAsText(file);
     };
-
-    const loadGuestData = () => {
-        try {
-            const guestSettings = JSON.parse(window.localStorage.getItem(GUEST_SETTINGS_KEY) || '{}');
-            loadSettings(guestSettings);
-            const savedReadArticles = window.localStorage.getItem(READ_ARTICLES_KEY('guest'));
-            setReadArticleIds(savedReadArticles ? new Set(JSON.parse(savedReadArticles)) : new Set());
-            const savedBookmarks = window.localStorage.getItem(BOOKMARKED_ARTICLES_KEY('guest'));
-            setBookmarkedArticleIds(savedBookmarks ? new Set(JSON.parse(savedBookmarks)) : new Set());
-            const savedTags = window.localStorage.getItem(ARTICLE_TAGS_KEY('guest'));
-            if (savedTags) {
-                const parsedTags = JSON.parse(savedTags) as [string, string[]][];
-                setArticleTags(new Map(parsedTags.map(([id, tags]) => [id, new Set(tags)])));
-            } else {
-                setArticleTags(new Map());
-            }
-        } catch (e) {
-            console.error("Error loading guest data from localStorage", e);
-            loadSettings({});
-            setReadArticleIds(new Set());
-            setBookmarkedArticleIds(new Set());
-            setArticleTags(new Map());
-        }
-    };
-
-    const handleGuestLogin = () => {
-        setIsGuestMode(true);
-        setIsSignedIn(false);
-        setUserProfile(null);
-        setForceMobileView(false);
-        loadGuestData();
-    };
-    
-    const handleOpenMobileView = () => {
-        setIsGuestMode(true);
-        setIsSignedIn(false);
-        setUserProfile(null);
-        setForceMobileView(true);
-        loadGuestData();
-    };
-    
-    const handleGoToLogin = () => {
-        setIsGuestMode(false);
-        setForceMobileView(false);
-        loadSettings({});
-        setReadArticleIds(new Set());
-        setBookmarkedArticleIds(new Set());
-        setArticleTags(new Map());
-        setSelection({ type: 'all', id: null });
-    };
     
     const handleUpdateSettings = (newSettings: Partial<Omit<Settings, 'feeds' | 'folders'>>) => {
         if (newSettings.theme) setTheme(newSettings.theme);
         if (newSettings.articleView) setArticleView(newSettings.articleView);
+        if (newSettings.viewMode) setViewMode(newSettings.viewMode);
         if (newSettings.widgets) setWidgetSettings(newSettings.widgets);
     };
-
-    if (!isSignedIn && !isGuestMode) {
-        return <LoginView onLogin={GoogleDriveService.signIn} onGuestLogin={handleGuestLogin} onOpenMobileView={handleOpenMobileView} isApiReady={isGapiReady} isApiKeyMissing={isApiKeyMissing} isGoogleClientIdMissing={isGoogleClientIdMissing} />;
-    }
-
+    
     let feedsToDisplay: Feed[] = [];
     let title = '';
 
@@ -647,13 +489,13 @@ const App: React.FC = () => {
     }
 
     const currentSettings: Settings = {
-        feeds, folders, theme, articleView, widgets: widgetSettings
+        feeds, folders, theme, articleView, viewMode, widgets: widgetSettings
     };
     
     return (
         <div className="h-screen font-sans text-sm relative bg-white dark:bg-zinc-950">
             {isSidebarOpen && (
-                <div onClick={() => setIsSidebarOpen(false)} className={`fixed inset-0 bg-black/60 z-30 ${!forceMobileView ? 'md:hidden' : ''}`} aria-hidden="true" />
+                <div onClick={() => setIsSidebarOpen(false)} className={`fixed inset-0 bg-black/60 z-30 ${viewMode === 'pc' ? 'md:hidden' : ''}`} aria-hidden="true" />
             )}
             <Sidebar
                 isSidebarOpen={isSidebarOpen}
@@ -669,23 +511,17 @@ const App: React.FC = () => {
                 onDeleteFolder={handleDeleteFolder}
                 onMoveFeedToFolder={handleMoveFeedToFolder}
                 onOpenSettings={() => setIsSettingsModalOpen(true)}
-                userProfile={userProfile}
-                onLogout={GoogleDriveService.signOut}
-                onSync={handleSyncToDrive}
-                syncStatus={syncStatus}
-                lastSyncTime={lastSyncTime}
-                isGuestMode={isGuestMode}
-                onGoToLogin={handleGoToLogin}
-                forceMobileView={forceMobileView}
+                viewMode={viewMode}
+                setViewMode={setViewMode}
             />
-            <div className={`${!forceMobileView ? 'md:ml-72' : ''} h-full`}>
+            <div className={`${viewMode === 'pc' ? 'md:ml-72' : ''} h-full`}>
                 <MainContent
                     onMenuClick={() => setIsSidebarOpen(true)}
                     onSearch={(query: string) => setSelection({ type: 'search', id: null, query })}
                     feedsToDisplay={feedsToDisplay}
                     title={title}
                     selection={selection}
-                    key={JSON.stringify(selection) + userId}
+                    key={JSON.stringify(selection)}
                     readArticleIds={readArticleIds}
                     bookmarkedArticleIds={bookmarkedArticleIds}
                     articleTags={articleTags}
@@ -695,13 +531,13 @@ const App: React.FC = () => {
                     onToggleBookmark={handleToggleBookmark}
                     onSetArticleTags={handleSetArticleTags}
                     articleView={articleView}
+                    setArticleView={setArticleView}
                     allFeeds={feeds}
                     isApiKeyMissing={isApiKeyMissing}
                     refreshKey={lastRefresh}
-                    userProfile={userProfile}
                     widgetSettings={widgetSettings}
                     onOpenSettings={() => setIsSettingsModalOpen(true)}
-                    forceMobileView={forceMobileView}
+                    viewMode={viewMode}
                 />
             </div>
             <SettingsModal

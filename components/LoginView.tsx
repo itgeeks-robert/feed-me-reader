@@ -1,18 +1,15 @@
-
-
 import React from 'react';
 import { SeymourIcon, GoogleIcon } from './icons';
 
 interface LoginViewProps {
     onLogin: () => void;
     onGuestLogin: () => void;
-    onOpenMobileView: () => void;
     isApiReady: boolean;
     isApiKeyMissing: boolean;
     isGoogleClientIdMissing: boolean;
 }
 
-const LoginView: React.FC<LoginViewProps> = ({ onLogin, onGuestLogin, onOpenMobileView, isApiReady, isApiKeyMissing, isGoogleClientIdMissing }) => {
+const LoginView: React.FC<LoginViewProps> = ({ onLogin, onGuestLogin, isApiReady, isApiKeyMissing, isGoogleClientIdMissing }) => {
     const isConfigMissing = isApiKeyMissing || isGoogleClientIdMissing;
 
     return (
@@ -53,13 +50,6 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin, onGuestLogin, onOpenMobi
                         className="mt-4 text-sm font-medium text-gray-500 dark:text-zinc-400 hover:text-lime-500 dark:hover:text-lime-400"
                     >
                         Continue as Guest
-                    </button>
-                    <button
-                        type="button"
-                        onClick={onOpenMobileView}
-                        className="mt-2 text-sm font-medium text-gray-500 dark:text-zinc-400 hover:text-lime-500 dark:hover:text-lime-400"
-                    >
-                        Open in mobile view
                     </button>
                     {!isApiReady && <p className="text-xs text-gray-400 dark:text-zinc-500 mt-4">Initializing...</p>}
                 </div>

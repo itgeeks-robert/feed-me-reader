@@ -1,7 +1,7 @@
 
 
 import React, { useState, useEffect, useRef } from 'react';
-import type { Settings, Theme, ArticleView, WidgetSettings } from '../App';
+import type { Settings, Theme, ArticleView, WidgetSettings, ViewMode } from '../App';
 import { XIcon, SunIcon, MoonIcon, CloudSyncIcon, CloudArrowDownIcon, ChevronDownIcon } from './icons';
 import { leagues } from '../services/sportsData';
 import { teamLogos } from '../services/teamLogos';
@@ -40,6 +40,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
     const [localSettings, setLocalSettings] = useState({
         theme: settings.theme,
         articleView: settings.articleView,
+        viewMode: settings.viewMode,
         widgets: { ...settings.widgets }
     });
     const [openLeague, setOpenLeague] = useState<string | null>(leagues.length > 0 ? leagues[0].name : null);
@@ -53,6 +54,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
             setLocalSettings({
                 theme: settings.theme,
                 articleView: settings.articleView,
+                viewMode: settings.viewMode,
                 widgets: { ...settings.widgets }
             });
         }
@@ -127,6 +129,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                 <div className="flex items-center rounded-md bg-gray-100 dark:bg-zinc-800 p-0.5">
                                     <button onClick={() => setLocalSettings(s => ({...s, theme: 'light'}))} className={`p-1.5 rounded-md transition-colors ${localSettings.theme === 'light' ? 'bg-white dark:bg-zinc-700 text-lime-600 dark:text-lime-400' : 'text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-white'}`}><SunIcon className="w-5 h-5"/></button>
                                     <button onClick={() => setLocalSettings(s => ({...s, theme: 'dark'}))} className={`p-1.5 rounded-md transition-colors ${localSettings.theme === 'dark' ? 'bg-white dark:bg-zinc-700 text-lime-600 dark:text-lime-400' : 'text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-white'}`}><MoonIcon className="w-5 h-5"/></button>
+                                </div>
+                            </div>
+                             <div className="flex items-center justify-between">
+                                <label className="text-zinc-700 dark:text-zinc-300">Default View Mode</label>
+                                <div className="flex items-center rounded-md bg-gray-100 dark:bg-zinc-800 p-0.5">
+                                    <button onClick={() => setLocalSettings(s => ({...s, viewMode: 'mobile'}))} className={`px-3 py-1.5 text-sm rounded-md transition-colors ${localSettings.viewMode === 'mobile' ? 'bg-white dark:bg-zinc-700 text-lime-600 dark:text-lime-400' : 'text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-white'}`}>Mobile</button>
+                                    <button onClick={() => setLocalSettings(s => ({...s, viewMode: 'pc'}))} className={`px-3 py-1.5 text-sm rounded-md transition-colors ${localSettings.viewMode === 'pc' ? 'bg-white dark:bg-zinc-700 text-lime-600 dark:text-lime-400' : 'text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-white'}`}>PC</button>
                                 </div>
                             </div>
                             <div>

@@ -1,6 +1,6 @@
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import type { Feed, Selection, ArticleView, WidgetSettings } from '../App';
-import type { GoogleUserProfile } from '../services/googleDriveService';
+import type { Feed, Selection, ArticleView, WidgetSettings, ViewMode } from '../App';
 import { CORS_PROXY } from '../App';
 import { SparklesIcon, CheckCircleIcon, MenuIcon, BookmarkIcon, ViewColumnsIcon, ViewListIcon, ViewGridIcon, XIcon, SearchIcon, ArrowUturnLeftIcon, ChevronDownIcon, TagIcon, SettingsIcon, CloudIcon, SunIcon, ShareIcon, DotsHorizontalIcon, SeymourIcon, DayWeatherBackground, NightWeatherBackground, SunriseIcon, SunsetIcon } from './icons';
 import { teamLogos } from '../services/teamLogos';
@@ -307,17 +307,17 @@ interface MainContentProps {
     onMenuClick: () => void;
     onSearch: (query: string) => void;
     articleView: ArticleView;
+    setArticleView: (view: ArticleView) => void;
     allFeeds: Feed[];
     isApiKeyMissing: boolean;
     refreshKey: number;
-    userProfile: GoogleUserProfile | null;
     widgetSettings: WidgetSettings;
     onOpenSettings: () => void;
-    forceMobileView: boolean;
+    viewMode: ViewMode;
 }
 
 const MainContent: React.FC<MainContentProps> = (props) => {
-    const { feedsToDisplay, title, selection, readArticleIds, bookmarkedArticleIds, articleTags, onMarkAsRead, onMarkAsUnread, onMarkMultipleAsRead, onToggleBookmark, onSetArticleTags, onMenuClick, onSearch, articleView, allFeeds, isApiKeyMissing, refreshKey, userProfile, widgetSettings, onOpenSettings, forceMobileView } = props;
+    const { feedsToDisplay, title, selection, readArticleIds, bookmarkedArticleIds, articleTags, onMarkAsRead, onMarkAsUnread, onMarkMultipleAsRead, onToggleBookmark, onSetArticleTags, onMenuClick, onSearch, articleView, setArticleView, allFeeds, isApiKeyMissing, refreshKey, widgetSettings, onOpenSettings, viewMode } = props;
     
     const [articles, setArticles] = useState<Article[]>([]);
     const [loading, setLoading] = useState(false);
@@ -522,29 +522,58 @@ const MainContent: React.FC<MainContentProps> = (props) => {
         magazine: ViewGridIcon,
     };
     
-    const DiscoverView = () => (
-        <div className="flex-1 flex flex-col bg-zinc-900 text-gray-300 h-full">
-            <div className="sticky top-0 bg-zinc-900/95 backdrop-blur-sm z-10 flex-shrink-0">
-                <header className="flex items-center justify-between p-4">
-                    <div className="flex items-center gap-2">
-                        <button onClick={onMenuClick} className="p-2 -ml-2 rounded-full text-zinc-400 hover:bg-zinc-700" aria-label="Open sidebar">
-                            <MenuIcon className="w-6 h-6" />
-                        </button>
-                        <div className="flex items-center space-x-2">
-                            <SeymourIcon className="w-7 h-7" />
-                            <span className="text-md font-bold text-white">See More</span>
-                        </div>
+    return (
+        <main className="h-full flex flex-col bg-white dark:bg-zinc-950 overflow-y-auto">
+            <header className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-zinc-800 sticky top-0 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm z-20">
+                {/* Mobile Header */}
+                <div className={`flex items-center gap-2 ${viewMode === 'pc' ? 'md:hidden' : ''}`}>
+                    <button onClick={onMenuClick} className="p-2 -ml-2 rounded-full text-zinc-500 dark:text-zinc-400 hover:bg-gray-200 dark:hover:bg-zinc-700" aria-label="Open sidebar">
+                        <MenuIcon className="w-6 h-6" />
+                    </button>
+                    <div className="flex items-center space-x-2">
+                        <SeymourIcon className="w-7 h-7" />
+                        <span className="text-md font-bold text-zinc-900 dark:text-white">See More</span>
                     </div>
-                    <div>
-                        {userProfile?.picture ? (
-                            <img src={userProfile.picture} alt="User" className="w-8 h-8 rounded-full" />
-                        ) : (
-                            <div className="w-8 h-8 rounded-full bg-zinc-700"></div>
-                        )}
-                    </div>
-                </header>
+                </div>
 
-                <DiscoverWidgetCarousel 
+                {/* Desktop Header */}
+                <div className={`hidden ${viewMode === 'pc' ? 'md:flex' : ''} items-center gap-2`}>
+                    <h1 className="text-xl font-bold text-zinc-900 dark:text-white truncate">{title}</h1>
+                </div>
+                <div className={`hidden ${viewMode === 'pc' ? 'md:flex' : ''} items-center space-x-2`}>
+                    <form onSubmit={handleSearchSubmit} className="relative">
+                        <input
+                            type="search"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Search articles..."
+                            className="w-48 bg-gray-100 dark:bg-zinc-800 border-transparent rounded-md py-1.5 pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-lime-500 dark:text-zinc-200 dark:placeholder-zinc-400"
+                        />
+                        <div className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 dark:text-zinc-400">
+                            <SearchIcon className="w-4 h-4" />
+                        </div>
+                    </form>
+                    {filteredArticles.length > 0 && (
+                        <button onClick={handleMarkAllAsRead} className="flex items-center space-x-2 text-xs text-gray-500 dark:text-zinc-400 hover:text-lime-500 dark:hover:text-lime-400 font-medium">
+                            <CheckCircleIcon className="w-4 h-4" />
+                            <span>Mark All as Read</span>
+                        </button>
+                    )}
+                    <div className="flex items-center rounded-md bg-gray-100 dark:bg-zinc-800 p-0.5">
+                        {(['card', 'compact', 'magazine'] as ArticleView[]).map(view => {
+                            const Icon = viewIcons[view];
+                            return (
+                                <button key={view} onClick={() => setArticleView(view)} className={`p-1.5 rounded-md transition-colors ${articleView === view ? 'bg-white dark:bg-zinc-700 text-lime-600 dark:text-lime-400' : 'text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-white'}`} aria-label={`Switch to ${view} view`}>
+                                    <Icon className="w-5 h-5" />
+                                </button>
+                            )
+                        })}
+                    </div>
+                </div>
+            </header>
+
+            <div className="sticky top-[72px] bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm z-10">
+                 <DiscoverWidgetCarousel 
                     settings={widgetSettings}
                     onCustomizeClick={onOpenSettings}
                     sportsResults={sportsResults}
@@ -553,131 +582,46 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                     refreshKey={refreshKey}
                 />
             </div>
-
-            <div className="flex-1 overflow-y-auto">
-                <div className="p-4 space-y-4">
-                    {loading && <div className="text-center p-8 text-zinc-400">Loading articles...</div>}
-                    {error && <div className="text-center text-red-500 p-4 bg-red-900/20 rounded-lg">{error}</div>}
-                    {filteredArticles.map(article => (
-                        <DiscoverArticleItem key={article.id} article={article} />
-                    ))}
-                </div>
-            </div>
-        </div>
-    );
-    
-    return (
-        <>
-            {/* Mobile Discover View */}
-            <div className={`h-full ${!forceMobileView ? 'md:hidden' : ''}`}>
-                <DiscoverView />
-            </div>
-
-            {/* Desktop View */}
-            <main className={`hidden h-full flex-col bg-white dark:bg-zinc-900 overflow-y-auto ${!forceMobileView ? 'md:flex' : ''}`}>
-                <header className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-zinc-800 sticky top-0 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm z-10">
-                    <div className="flex items-center gap-2">
-                        <button onClick={onMenuClick} className="p-2 -ml-2 rounded-full text-zinc-500 dark:text-zinc-400 hover:bg-gray-200 dark:hover:bg-zinc-700 md:hidden" aria-label="Open sidebar">
-                            <MenuIcon className="w-6 h-6" />
-                        </button>
-                        <h1 className="text-xl font-bold text-zinc-900 dark:text-white truncate">{title}</h1>
+            
+            <div className="flex-1 p-4 md:p-6 lg:p-8">
+                {loading && !articles.length && (
+                    <div className="flex justify-center items-center h-full pt-10">
+                        <svg className="animate-spin h-8 w-8 text-lime-500 dark:text-lime-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
                     </div>
-                    <div className="flex items-center space-x-2">
-                        <form onSubmit={handleSearchSubmit} className="relative hidden md:block">
-                            <input
-                                type="search"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder="Search articles..."
-                                className="w-48 bg-gray-100 dark:bg-zinc-800 border-transparent rounded-md py-1.5 pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-lime-500 dark:text-zinc-200 dark:placeholder-zinc-400"
-                            />
-                            <div className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 dark:text-zinc-400">
-                                <SearchIcon className="w-4 h-4" />
-                            </div>
-                        </form>
-                        {filteredArticles.length > 0 && (
-                            <button onClick={handleMarkAllAsRead} className="flex items-center space-x-2 text-xs text-gray-500 dark:text-zinc-400 hover:text-lime-500 dark:hover:text-lime-400 font-medium">
-                                <CheckCircleIcon className="w-4 h-4" />
-                                <span>Mark All as Read</span>
-                            </button>
-                        )}
-                        <div className="flex items-center rounded-md bg-gray-100 dark:bg-zinc-800 p-0.5">
-                            {(['card', 'compact', 'magazine'] as ArticleView[]).map(view => {
-                                const Icon = viewIcons[view];
-                                return (
-                                    <button key={view} onClick={() => { (props as any).setArticleView(view); }} className={`p-1.5 rounded-md transition-colors ${articleView === view ? 'bg-white dark:bg-zinc-700 text-lime-600 dark:text-lime-400' : 'text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-white'}`} aria-label={`Switch to ${view} view`}>
-                                        <Icon className="w-5 h-5" />
-                                    </button>
-                                )
-                            })}
-                        </div>
-                    </div>
-                </header>
+                )}
+                {error && <div className="text-center text-red-700 dark:text-red-400 mt-4 bg-red-100 dark:bg-red-900/20 p-4 rounded-md border border-red-300 dark:border-red-500/30">{error}</div>}
                 
-                <div className="flex-1 p-4 md:p-6 lg:p-8">
-                    {loading && !articles.length && (
-                        <div className="flex justify-center items-center h-full pt-10">
-                            <svg className="animate-spin h-8 w-8 text-lime-500 dark:text-lime-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                        </div>
-                    )}
-                    {error && <div className="text-center text-red-700 dark:text-red-400 mt-4 bg-red-100 dark:bg-red-900/20 p-4 rounded-md border border-red-300 dark:border-red-500/30">{error}</div>}
-                    
-                    {!loading && !error && itemsToRender.length === 0 && (
-                        <div className="text-center pt-10">
-                            <h2 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">No articles found</h2>
-                            <p className="text-gray-500 dark:text-zinc-400">There are no articles to display for this selection.</p>
-                        </div>
-                    )}
-                    <div className={`grid gap-4 ${articleView === 'magazine' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
-                        {itemsToRender.map((item, index) =>
-                            <ArticleItem
-                                key={item.id}
-                                article={item}
-                                isRead={readArticleIds.has(item.id)}
-                                isBookmarked={bookmarkedArticleIds.has(item.id)}
-                                tags={articleTags.get(item.id) || new Set()}
-                                onMarkAsRead={onMarkAsRead}
-                                onMarkAsUnread={onMarkAsUnread}
-                                onToggleBookmark={onToggleBookmark}
-                                onSetTags={(tags) => onSetArticleTags(item.id, tags)}
-                                view={articleView}
-                                isFocused={focusedArticleIndex === index}
-                                articleRef={el => (articleRefs.current[index] = el)}
-                            />
-                        )}
+                {!loading && !error && itemsToRender.length === 0 && (
+                    <div className="text-center pt-10">
+                        <h2 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">No articles found</h2>
+                        <p className="text-gray-500 dark:text-zinc-400">There are no articles to display for this selection.</p>
                     </div>
+                )}
+                <div className={`grid gap-4 ${articleView === 'magazine' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
+                    {itemsToRender.map((item, index) =>
+                        <ArticleItem
+                            key={item.id}
+                            article={item}
+                            isRead={readArticleIds.has(item.id)}
+                            isBookmarked={bookmarkedArticleIds.has(item.id)}
+                            tags={articleTags.get(item.id) || new Set()}
+                            onMarkAsRead={onMarkAsRead}
+                            onMarkAsUnread={onMarkAsUnread}
+                            onToggleBookmark={onToggleBookmark}
+                            onSetTags={(tags) => onSetArticleTags(item.id, tags)}
+                            view={articleView}
+                            isFocused={focusedArticleIndex === index}
+                            articleRef={el => (articleRefs.current[index] = el)}
+                        />
+                    )}
                 </div>
-            </main>
-        </>
+            </div>
+        </main>
     );
 };
-
-
-// --- Components for Mobile Discover View ---
-
-const DiscoverArticleItem: React.FC<{ article: Article }> = ({ article }) => (
-    <a href={article.link} target="_blank" rel="noopener noreferrer" className="block bg-zinc-800 rounded-xl overflow-hidden border border-zinc-700/50">
-        {article.imageUrl && <img src={article.imageUrl} alt="" className="w-full h-48 object-cover bg-zinc-700" />}
-        <div className="p-4">
-            <div className="flex items-center space-x-2 mb-2">
-                {article.source && <img src={`https://www.google.com/s2/favicons?sz=32&domain_url=${new URL(article.link).hostname}`} alt="" className="w-4 h-4 rounded-full" />}
-                <p className="text-xs text-zinc-400">{article.source}</p>
-            </div>
-            <h3 className="font-semibold text-white mb-4">{article.title}</h3>
-            <div className="flex justify-between items-center">
-                <p className="text-xs text-zinc-500">{timeAgo(article.publishedDate)}</p>
-                <div className="flex items-center space-x-2 text-zinc-400">
-                    <button className="p-2 -m-2 hover:text-red-400"><BookmarkIcon className="w-5 h-5"/></button>
-                    <button className="p-2 -m-2 hover:text-lime-400"><ShareIcon className="w-5 h-5"/></button>
-                    <button className="p-2 -m-2 hover:text-lime-400"><DotsHorizontalIcon className="w-5 h-5"/></button>
-                </div>
-            </div>
-        </div>
-    </a>
-);
 
 
 const DiscoverWidgetCarousel: React.FC<{
@@ -689,20 +633,18 @@ const DiscoverWidgetCarousel: React.FC<{
     refreshKey: number;
 }> = ({ settings, onCustomizeClick, sportsResults, isSportsLoading, sportsApiFailed, refreshKey }) => {
     return (
-        <div className="sticky top-[72px] bg-zinc-900/95 backdrop-blur-sm z-10">
-            <div className="flex space-x-3 overflow-x-auto px-4 pb-4 scrollbar-hide flex-shrink-0">
-                {settings.showWeather && <WeatherWidget location={settings.weatherLocation} refreshKey={refreshKey} />}
-                {settings.showSports && settings.sportsTeams.map(team => 
-                    <SportsWidget 
-                        key={team} 
-                        team={team}
-                        isLoading={isSportsLoading}
-                        apiFailed={sportsApiFailed}
-                        result={sportsResults.get(team)}
-                    />
-                )}
-                <CustomizeWidget onClick={onCustomizeClick} />
-            </div>
+        <div className="flex space-x-3 overflow-x-auto px-4 pb-4 scrollbar-hide flex-shrink-0">
+            {settings.showWeather && <WeatherWidget location={settings.weatherLocation} refreshKey={refreshKey} />}
+            {settings.showSports && settings.sportsTeams.map(team => 
+                <SportsWidget 
+                    key={team} 
+                    team={team}
+                    isLoading={isSportsLoading}
+                    apiFailed={sportsApiFailed}
+                    result={sportsResults.get(team)}
+                />
+            )}
+            <CustomizeWidget onClick={onCustomizeClick} />
         </div>
     );
 };
@@ -823,19 +765,19 @@ const WeatherWidget: React.FC<{ location: string; refreshKey: number; }> = ({ lo
     if (isLoading) {
         return (
             <div className="flex items-center space-x-3">
-                <div className="flex-shrink-0 w-28 h-24 p-3 bg-zinc-800 rounded-2xl text-white flex flex-col justify-center items-center animate-pulse border border-zinc-200">
-                    <p className="text-sm text-zinc-400">Loading...</p>
+                <div className="flex-shrink-0 w-28 h-24 p-3 bg-zinc-100 dark:bg-zinc-800 rounded-2xl flex flex-col justify-center items-center animate-pulse border border-zinc-200 dark:border-zinc-700">
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400">Loading...</p>
                 </div>
-                <div className="flex-shrink-0 w-24 h-24 p-3 bg-zinc-800 rounded-2xl animate-pulse border border-zinc-200" />
+                <div className="flex-shrink-0 w-24 h-24 p-3 bg-zinc-100 dark:bg-zinc-800 rounded-2xl animate-pulse border border-zinc-200 dark:border-zinc-700" />
             </div>
         );
     }
     
     if (error) {
         return (
-            <div className="flex-shrink-0 w-40 h-24 p-3 bg-zinc-800 rounded-2xl text-white flex flex-col justify-center items-center text-center border border-zinc-200">
-                <p className="text-sm font-bold text-red-400">Weather Error</p>
-                <p className="text-xs text-zinc-400 mt-1">{location}: {error}</p>
+            <div className="flex-shrink-0 w-40 h-24 p-3 bg-zinc-100 dark:bg-zinc-800 rounded-2xl flex flex-col justify-center items-center text-center border border-zinc-200 dark:border-zinc-700">
+                <p className="text-sm font-bold text-red-500 dark:text-red-400">Weather Error</p>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">{location}: {error}</p>
             </div>
         );
     }
@@ -848,7 +790,7 @@ const WeatherWidget: React.FC<{ location: string; refreshKey: number; }> = ({ lo
 
     return (
         <div className="flex-shrink-0 flex items-center space-x-3">
-            <div className="relative flex-shrink-0 w-28 h-24 p-3 rounded-2xl text-white flex flex-col justify-between overflow-hidden border border-zinc-200">
+            <div className="relative flex-shrink-0 w-28 h-24 p-3 rounded-2xl text-white flex flex-col justify-between overflow-hidden border border-zinc-200 dark:border-zinc-700">
                  <div className="absolute inset-0 w-full h-full z-0">
                     {isDayTime ? <DayWeatherBackground /> : <NightWeatherBackground />}
                 </div>
@@ -862,13 +804,13 @@ const WeatherWidget: React.FC<{ location: string; refreshKey: number; }> = ({ lo
                 </div>
             </div>
             
-            <div className="relative flex-shrink-0 w-24 h-24 p-2 rounded-2xl text-white flex flex-col justify-around bg-zinc-800 border border-zinc-200">
+            <div className="relative flex-shrink-0 w-24 h-24 p-2 rounded-2xl flex flex-col justify-around bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-white">
                 <div className="flex items-center space-x-2 w-full">
-                    <SunriseIcon className="w-5 h-5 text-yellow-400 flex-shrink-0" />
+                    <SunriseIcon className="w-5 h-5 text-yellow-500 dark:text-yellow-400 flex-shrink-0" />
                     <span className="text-xs font-medium truncate">{formatTo24Hour(weather.sunrise)}</span>
                 </div>
                 <div className="flex items-center space-x-2 w-full">
-                    <SunsetIcon className="w-5 h-5 text-blue-300 flex-shrink-0" />
+                    <SunsetIcon className="w-5 h-5 text-blue-500 dark:text-blue-300 flex-shrink-0" />
                     <span className="text-xs font-medium truncate">{formatTo24Hour(weather.sunset)}</span>
                 </div>
             </div>
@@ -892,7 +834,7 @@ const SportsWidget: React.FC<{
 
         if (hasError || !logoUrl) {
             const displayName = (name || '').trim().substring(0, 3).toUpperCase() || '???';
-            return <div className="w-8 h-8 rounded-full bg-zinc-300 flex items-center justify-center font-bold text-sm text-zinc-600">{displayName}</div>;
+            return <div className="w-8 h-8 rounded-full bg-zinc-300 dark:bg-zinc-600 flex items-center justify-center font-bold text-sm text-zinc-600 dark:text-zinc-300">{displayName}</div>;
         }
         return <img src={logoUrl} onError={() => setHasError(true)} alt={`${name} logo`} className="w-8 h-8 object-contain" />;
     };
@@ -911,19 +853,19 @@ const SportsWidget: React.FC<{
             href={`https://www.google.com/search?q=${encodeURIComponent(result?.teamFullName || team)}+score`}
             target="_blank"
             rel="noopener noreferrer"
-            className="relative group flex-shrink-0 w-48 h-24 p-3 bg-zinc-200 rounded-2xl text-zinc-900 flex flex-col justify-between items-center hover:bg-zinc-300/70 transition-colors"
+            className="relative group flex-shrink-0 w-48 h-24 p-3 bg-zinc-200 dark:bg-zinc-800 rounded-2xl text-zinc-900 dark:text-zinc-100 flex flex-col justify-between items-center hover:bg-zinc-300/70 dark:hover:bg-zinc-700/70 transition-colors"
         >
             <SearchIcon className={`absolute top-2 right-2 w-4 h-4 text-zinc-500 transition-opacity ${isErrorState ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} />
             
             {isLoading ? (
-                <div className="text-zinc-600 text-sm m-auto animate-pulse">Loading...</div>
+                <div className="text-zinc-600 dark:text-zinc-400 text-sm m-auto animate-pulse">Loading...</div>
             ) : isErrorState ? (
                 renderFallback()
             ) : (
                  <>
                     <div className="flex justify-between items-start w-full">
-                        <p className="text-xs font-semibold text-zinc-700 truncate pr-2">{result.teamFullName || team.toUpperCase()}</p>
-                        <span className="text-[10px] bg-white/60 px-1.5 py-0.5 rounded-md font-semibold flex-shrink-0">{result.matchStatus}</span>
+                        <p className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 truncate pr-2">{result.teamFullName || team.toUpperCase()}</p>
+                        <span className="text-[10px] bg-white/60 dark:bg-black/20 px-1.5 py-0.5 rounded-md font-semibold flex-shrink-0">{result.matchStatus}</span>
                     </div>
                     <div className="flex justify-around items-center w-full">
                         <TeamLogo logoUrl={result.homeTeamLogo} name={result.homeTeam} />
@@ -938,7 +880,7 @@ const SportsWidget: React.FC<{
 };
 
 const CustomizeWidget: React.FC<{ onClick: () => void }> = ({ onClick }) => (
-    <button onClick={onClick} className="flex-shrink-0 w-40 h-24 p-3 bg-zinc-800 rounded-2xl text-white flex flex-col items-center justify-center space-y-2 text-center hover:bg-zinc-700 transition-colors">
+    <button onClick={onClick} className="flex-shrink-0 w-40 h-24 p-3 bg-zinc-800 dark:bg-zinc-800 rounded-2xl text-white flex flex-col items-center justify-center space-y-2 text-center hover:bg-zinc-700 transition-colors border border-dashed border-zinc-600 hover:border-lime-500">
         <SettingsIcon className="w-6 h-6" />
         <p className="text-sm font-semibold">Customize your space</p>
     </button>

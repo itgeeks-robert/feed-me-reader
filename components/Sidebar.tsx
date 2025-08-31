@@ -1,11 +1,10 @@
 
 import React, { useState, useRef } from 'react';
-import type { Feed, Folder, Selection, SyncStatus } from '../App';
-import type { GoogleUserProfile } from '../services/googleDriveService';
+import type { Feed, Folder, Selection, ViewMode } from '../App';
 import type { SourceType } from './AddSource';
 import AddSource from './AddSource';
 import {
-    SeymourIcon, ListIcon, PlusIcon, RssIcon, TrashIcon, FolderIcon, PencilIcon, ChevronDownIcon, ChevronRightIcon, XIcon, BookmarkIcon, LogoutIcon, CloudSyncIcon, CheckCircleIcon, LoginIcon, SettingsIcon
+    SeymourIcon, ListIcon, PlusIcon, RssIcon, TrashIcon, FolderIcon, PencilIcon, ChevronDownIcon, ChevronRightIcon, XIcon, BookmarkIcon, SettingsIcon
 } from './icons';
 
 interface SidebarProps {
@@ -21,31 +20,10 @@ interface SidebarProps {
     onMoveFeedToFolder: (feedId: number, folderId: number | null) => void;
     isSidebarOpen: boolean;
     onClose: () => void;
-    userProfile: GoogleUserProfile | null;
-    onLogout: () => void;
-    onSync: () => void;
-    syncStatus: SyncStatus;
-    lastSyncTime: number | null;
-    isGuestMode: boolean;
-    onGoToLogin: () => void;
     onOpenSettings: () => void;
-    forceMobileView: boolean;
+    viewMode: ViewMode;
+    setViewMode: (mode: ViewMode) => void;
 }
-
-const formatSyncTime = (timestamp: number | null): string => {
-    if (!timestamp) return 'never';
-    const now = new Date();
-    const syncDate = new Date(timestamp);
-    const diffSeconds = Math.round((now.getTime() - syncDate.getTime()) / 1000);
-
-    if (diffSeconds < 60) return `${diffSeconds}s ago`;
-    const diffMinutes = Math.round(diffSeconds / 60);
-    if (diffMinutes < 60) return `${diffMinutes}m ago`;
-    const diffHours = Math.round(diffMinutes / 60);
-    if (diffHours < 24) return `${diffHours}h ago`;
-    
-    return syncDate.toLocaleDateString();
-};
 
 const FeedIcon: React.FC<{ iconUrl: string, feedTitle: string }> = ({ iconUrl, feedTitle }) => {
     const [hasError, setHasError] = useState(false);
@@ -232,7 +210,7 @@ const FeedItem: React.FC<{
 };
 
 const Sidebar: React.FC<SidebarProps> = (props) => {
-    const { feeds, folders, selection, onAddSource, onRemoveFeed, onSelect, onAddFolder, onRenameFolder, onDeleteFolder, onMoveFeedToFolder, isSidebarOpen, onClose, userProfile, onLogout, onSync, syncStatus, lastSyncTime, isGuestMode, onGoToLogin, onOpenSettings, forceMobileView } = props;
+    const { feeds, folders, selection, onAddSource, onRemoveFeed, onSelect, onAddFolder, onRenameFolder, onDeleteFolder, onMoveFeedToFolder, isSidebarOpen, onClose, onOpenSettings, viewMode, setViewMode } = props;
     const [isAddingFolder, setIsAddingFolder] = useState(false);
     const [dragOverTarget, setDragOverTarget] = useState<number | 'unfiled' | null>(null);
 
@@ -248,7 +226,7 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
     };
 
     return (
-        <aside className={`w-72 bg-gray-50 dark:bg-zinc-900 flex-shrink-0 p-4 flex flex-col h-full overflow-y-auto border-r border-gray-200 dark:border-zinc-800 fixed inset-y-0 left-0 z-40 transform transition-transform duration-300 ease-in-out ${!forceMobileView ? 'md:translate-x-0' : ''} ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <aside className={`w-72 bg-gray-50 dark:bg-zinc-900 flex-shrink-0 p-4 flex flex-col h-full overflow-y-auto border-r border-gray-200 dark:border-zinc-800 fixed inset-y-0 left-0 z-40 transform transition-transform duration-300 ease-in-out ${viewMode === 'pc' ? 'md:translate-x-0' : ''} ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
             <div>
                 <div className="flex items-center justify-between space-x-2 mb-4 px-2">
                     <div className="flex items-center space-x-2">
@@ -256,7 +234,7 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                         <span className="text-lg font-bold text-zinc-900 dark:text-white">See More</span>
                     </div>
                     <div className="flex items-center">
-                        <button onClick={onClose} className={`p-2 -mr-2 rounded-full text-zinc-500 dark:text-zinc-400 hover:bg-gray-200 dark:hover:bg-zinc-700 ${!forceMobileView ? 'md:hidden' : ''}`} aria-label="Close sidebar">
+                        <button onClick={onClose} className={`p-2 -mr-2 rounded-full text-zinc-500 dark:text-zinc-400 hover:bg-gray-200 dark:hover:bg-zinc-700 ${viewMode === 'pc' ? 'md:hidden' : ''}`} aria-label="Close sidebar">
                             <XIcon className="w-6 h-6" />
                         </button>
                     </div>
@@ -309,50 +287,19 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                  )}
             </div>
             <div className="mt-auto pt-4 border-t border-gray-200 dark:border-zinc-800">
-                <div className="px-3 mb-2">
+                <div className="px-3 space-y-3">
+                    <div className="flex items-center justify-between">
+                        <label className="text-xs font-medium text-gray-500 dark:text-zinc-400">View Mode</label>
+                        <div className="flex items-center rounded-md bg-gray-200 dark:bg-zinc-800 p-0.5">
+                            <button onClick={() => setViewMode('mobile')} className={`px-2 py-0.5 text-xs rounded-sm transition-colors ${viewMode === 'mobile' ? 'bg-white dark:bg-zinc-700 text-lime-600 dark:text-lime-400 font-semibold shadow-sm' : 'text-gray-500 dark:text-zinc-400'}`}>Mobile</button>
+                            <button onClick={() => setViewMode('pc')} className={`px-2 py-0.5 text-xs rounded-sm transition-colors ${viewMode === 'pc' ? 'bg-white dark:bg-zinc-700 text-lime-600 dark:text-lime-400 font-semibold shadow-sm' : 'text-gray-500 dark:text-zinc-400'}`}>PC</button>
+                        </div>
+                    </div>
                     <button onClick={onOpenSettings} className="w-full flex items-center gap-2 py-2 px-3 text-sm font-medium rounded-md text-gray-600 dark:text-zinc-400 hover:bg-gray-200 dark:hover:bg-zinc-700/50 hover:text-zinc-900 dark:hover:text-white">
                         <SettingsIcon className="w-5 h-5" />
                         <span>Settings</span>
                     </button>
                 </div>
-                {isGuestMode ? (
-                    <div className="px-3">
-                        <div className="flex items-center gap-3 mb-2">
-                           <SeymourIcon className="w-7 h-7" />
-                            <span className="text-sm font-medium text-gray-700 dark:text-zinc-300">
-                                Guest Mode
-                            </span>
-                        </div>
-                        <button onClick={onGoToLogin} className="w-full flex items-center justify-center gap-2 py-2 px-3 text-sm font-medium rounded-md text-white bg-lime-600 hover:bg-lime-700 dark:bg-lime-500 dark:hover:bg-lime-600">
-                            <LoginIcon className="w-5 h-5" />
-                            <span>Sign In to Sync</span>
-                        </button>
-                    </div>
-                ) : (
-                <>
-                    <div className="px-3 flex items-center justify-between">
-                         <div className="flex items-center gap-3 truncate">
-                            {userProfile?.picture && <img src={userProfile.picture} alt="User" className="w-7 h-7 rounded-full" />}
-                            <span className="text-sm font-medium text-gray-700 dark:text-zinc-300 truncate">
-                                {userProfile?.name || 'Guest'}
-                            </span>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                            <button onClick={onSync} disabled={syncStatus === 'syncing'} className="text-gray-500 dark:text-zinc-400 hover:text-lime-500 dark:hover:text-lime-400 disabled:opacity-50 disabled:cursor-wait" title="Sync to Drive">
-                                {syncStatus === 'success' ? <CheckCircleIcon className="w-5 h-5 text-lime-500" /> : <CloudSyncIcon className={`w-5 h-5 ${syncStatus === 'syncing' ? 'animate-pulse' : ''}`}/>}
-                            </button>
-                            <button onClick={onLogout} className="text-gray-500 dark:text-zinc-400 hover:text-red-500 dark:hover:text-red-400" title="Log out">
-                                <LogoutIcon className="w-5 h-5"/>
-                            </button>
-                        </div>
-                    </div>
-                     <div className="px-3 pt-1 text-center">
-                        <p className="text-xs text-gray-400 dark:text-zinc-500">
-                            Last sync: {formatSyncTime(lastSyncTime)}
-                        </p>
-                    </div>
-                </>
-                )}
             </div>
         </aside>
     );
