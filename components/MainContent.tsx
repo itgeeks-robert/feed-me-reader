@@ -1,10 +1,8 @@
-
-
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import type { Feed, Selection, ArticleView, WidgetSettings } from '../App';
 import type { GoogleUserProfile } from '../services/googleDriveService';
 import { CORS_PROXY } from '../App';
-import { SparklesIcon, CheckCircleIcon, MenuIcon, BookmarkIcon, ViewColumnsIcon, ViewListIcon, ViewGridIcon, XIcon, SearchIcon, ArrowUturnLeftIcon, ChevronDownIcon, TagIcon, SettingsIcon, CloudIcon, SunIcon, ShareIcon, DotsHorizontalIcon, SeymourIcon } from './icons';
+import { SparklesIcon, CheckCircleIcon, MenuIcon, BookmarkIcon, ViewColumnsIcon, ViewListIcon, ViewGridIcon, XIcon, SearchIcon, ArrowUturnLeftIcon, ChevronDownIcon, TagIcon, SettingsIcon, CloudIcon, SunIcon, ShareIcon, DotsHorizontalIcon, SeymourIcon, DayWeatherBackground, NightWeatherBackground, SunriseIcon, SunsetIcon } from './icons';
 import { teamLogos } from '../services/teamLogos';
 import { allTeamsMap } from '../services/sportsData';
 
@@ -713,6 +711,8 @@ interface WeatherData {
     temperatureCelsius: number;
     condition: string;
     precipitationChance: number;
+    sunrise: string;
+    sunset: string;
 }
 
 const WeatherWidget: React.FC<{ location: string; refreshKey: number; }> = ({ location, refreshKey }) => {
@@ -737,17 +737,20 @@ const WeatherWidget: React.FC<{ location: string; refreshKey: number; }> = ({ lo
                 }
                 const data = await response.json();
                 
-                if (!data.current_condition || !data.weather) {
+                if (!data.current_condition || !data.weather || !data.weather[0].astronomy) {
                     throw new Error("Invalid data format.");
                 }
 
                 const current = data.current_condition[0];
                 const forecast = data.weather[0];
+                const astronomy = forecast.astronomy[0];
 
                 setWeather({
                     temperatureCelsius: parseInt(current.temp_C, 10),
                     condition: current.weatherDesc[0].value,
                     precipitationChance: parseInt(forecast.hourly[0].chanceofrain, 10),
+                    sunrise: astronomy.sunrise,
+                    sunset: astronomy.sunset,
                 });
             } catch (e) {
                 console.error("Failed to fetch weather:", e);
@@ -761,6 +764,55 @@ const WeatherWidget: React.FC<{ location: string; refreshKey: number; }> = ({ lo
         fetchWeather();
     }, [location, refreshKey]);
 
+    const isDayTime = useMemo(() => {
+        if (!weather?.sunrise || !weather?.sunset) return true; // Default to day
+        try {
+            const parseTimeString = (timeStr: string): Date => {
+                const now = new Date();
+                const [time, modifier] = timeStr.split(' ');
+                let [hours, minutes] = time.split(':').map(Number);
+                if (modifier.toUpperCase() === 'PM' && hours < 12) {
+                    hours += 12;
+                }
+                if (modifier.toUpperCase() === 'AM' && hours === 12) {
+                    hours = 0;
+                }
+                now.setHours(hours, minutes, 0, 0);
+                return now;
+            };
+            const now = new Date();
+            const sunriseTime = parseTimeString(weather.sunrise);
+            const sunsetTime = parseTimeString(weather.sunset);
+            return now >= sunriseTime && now < sunsetTime;
+        } catch (e) {
+            console.error("Failed to parse sunrise/sunset times", e);
+            return true;
+        }
+    }, [weather]);
+
+    const formatTo24Hour = (timeStr: string): string => {
+        if (!timeStr) return '';
+        try {
+            const [time, modifier] = timeStr.split(' ');
+            if (!time || !modifier) return timeStr;
+
+            let [hours, minutes] = time.split(':');
+            let hoursNum = parseInt(hours, 10);
+
+            if (modifier.toUpperCase() === 'PM' && hoursNum < 12) {
+                hoursNum += 12;
+            }
+            if (modifier.toUpperCase() === 'AM' && hoursNum === 12) {
+                hoursNum = 0;
+            }
+
+            return `${String(hoursNum).padStart(2, '0')}:${minutes}`;
+        } catch (e) {
+            console.error("Failed to parse time string:", timeStr, e);
+            return timeStr.replace(/ (AM|PM)/i, '').trim();
+        }
+    };
+
     const WeatherIcon = ({ condition }: { condition: string }) => {
         const lowerCondition = condition ? condition.toLowerCase() : '';
         if (lowerCondition.includes('sun') || lowerCondition.includes('clear')) return <SunIcon className="w-6 h-6 text-yellow-400" />;
@@ -770,15 +822,18 @@ const WeatherWidget: React.FC<{ location: string; refreshKey: number; }> = ({ lo
 
     if (isLoading) {
         return (
-            <div className="flex-shrink-0 w-40 h-24 p-3 bg-zinc-800 rounded-2xl text-white flex flex-col justify-center items-center animate-pulse">
-                <p className="text-sm text-zinc-400">Loading Weather...</p>
+            <div className="flex items-center space-x-3">
+                <div className="flex-shrink-0 w-28 h-24 p-3 bg-zinc-800 rounded-2xl text-white flex flex-col justify-center items-center animate-pulse border border-zinc-200">
+                    <p className="text-sm text-zinc-400">Loading...</p>
+                </div>
+                <div className="flex-shrink-0 w-24 h-24 p-3 bg-zinc-800 rounded-2xl animate-pulse border border-zinc-200" />
             </div>
         );
     }
     
     if (error) {
         return (
-            <div className="flex-shrink-0 w-40 h-24 p-3 bg-zinc-800 rounded-2xl text-white flex flex-col justify-center items-center text-center">
+            <div className="flex-shrink-0 w-40 h-24 p-3 bg-zinc-800 rounded-2xl text-white flex flex-col justify-center items-center text-center border border-zinc-200">
                 <p className="text-sm font-bold text-red-400">Weather Error</p>
                 <p className="text-xs text-zinc-400 mt-1">{location}: {error}</p>
             </div>
@@ -786,18 +841,36 @@ const WeatherWidget: React.FC<{ location: string; refreshKey: number; }> = ({ lo
     }
 
     if (!weather) {
-        return null; // Should not happen if not loading and no error, but good practice.
+        return null;
     }
 
+    const textShadow = { textShadow: '1px 1px 2px rgba(0, 0, 0, 0.6)' };
+
     return (
-        <div className="flex-shrink-0 w-40 h-24 p-3 bg-zinc-800 rounded-2xl text-white flex flex-col justify-between">
-            <div>
-                <p className="font-bold truncate">{location}</p>
-                <p className="text-xs text-zinc-400">{weather.precipitationChance}% <span role="img" aria-label="rain">💧</span></p>
+        <div className="flex-shrink-0 flex items-center space-x-3">
+            <div className="relative flex-shrink-0 w-28 h-24 p-3 rounded-2xl text-white flex flex-col justify-between overflow-hidden border border-zinc-200">
+                 <div className="absolute inset-0 w-full h-full z-0">
+                    {isDayTime ? <DayWeatherBackground /> : <NightWeatherBackground />}
+                </div>
+                <div className="relative z-10">
+                    <p className="font-bold truncate" style={textShadow}>{location}</p>
+                    <p className="text-xs text-white/90" style={textShadow}>{weather.precipitationChance}% <span role="img" aria-label="rain">💧</span></p>
+                </div>
+                <div className="relative z-10 flex items-center justify-between mt-1">
+                    <p className="text-3xl font-bold" style={textShadow}>{weather.temperatureCelsius}°</p>
+                    <WeatherIcon condition={weather.condition} />
+                </div>
             </div>
-            <div className="flex items-center justify-between mt-1">
-                <p className="text-3xl font-bold">{weather.temperatureCelsius}°</p>
-                <WeatherIcon condition={weather.condition} />
+            
+            <div className="relative flex-shrink-0 w-24 h-24 p-2 rounded-2xl text-white flex flex-col justify-around bg-zinc-800 border border-zinc-200">
+                <div className="flex items-center space-x-2 w-full">
+                    <SunriseIcon className="w-5 h-5 text-yellow-400 flex-shrink-0" />
+                    <span className="text-xs font-medium truncate">{formatTo24Hour(weather.sunrise)}</span>
+                </div>
+                <div className="flex items-center space-x-2 w-full">
+                    <SunsetIcon className="w-5 h-5 text-blue-300 flex-shrink-0" />
+                    <span className="text-xs font-medium truncate">{formatTo24Hour(weather.sunset)}</span>
+                </div>
             </div>
         </div>
     );

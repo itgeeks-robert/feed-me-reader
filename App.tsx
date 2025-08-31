@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Sidebar from './components/Sidebar';
 import MainContent from './components/MainContent';
@@ -523,6 +524,51 @@ const App: React.FC = () => {
         reader.readAsText(file);
     };
 
+    const handleExportSettings = () => {
+        const settingsToExport: Settings = {
+            feeds,
+            folders,
+            theme,
+            articleView,
+            widgets: widgetSettings
+        };
+        const jsonString = JSON.stringify(settingsToExport, null, 2);
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'seemore_backup.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
+    const handleImportSettings = (file: File) => {
+        if (!window.confirm('This will overwrite all your current feeds, folders, and preferences. Are you sure you want to continue?')) {
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const text = e.target?.result as string;
+                const importedSettings = JSON.parse(text) as Settings;
+                
+                // Basic validation
+                if (importedSettings.feeds && importedSettings.folders && importedSettings.theme && importedSettings.articleView && importedSettings.widgets) {
+                    loadSettings(importedSettings);
+                    alert('Settings imported successfully!');
+                } else {
+                    throw new Error('Invalid settings file format.');
+                }
+            } catch (error) {
+                 console.error("Failed to import settings:", error);
+                 alert(`Could not import settings file. It may be invalid. Error: ${error instanceof Error ? error.message : String(error)}`);
+            }
+        };
+        reader.readAsText(file);
+    };
+
     const loadGuestData = () => {
         try {
             const guestSettings = JSON.parse(window.localStorage.getItem(GUEST_SETTINGS_KEY) || '{}');
@@ -665,6 +711,8 @@ const App: React.FC = () => {
                 onUpdateSettings={handleUpdateSettings}
                 onImportOpml={handleImportOpml}
                 onExportOpml={handleExportOpml}
+                onImportSettings={handleImportSettings}
+                onExportSettings={handleExportSettings}
             />
         </div>
     );
