@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import type { Feed, Selection, ArticleView, WidgetSettings } from '../App';
 import type { GoogleUserProfile } from '../services/googleDriveService';
@@ -423,32 +422,34 @@ const MainContent: React.FC<MainContentProps> = (props) => {
     
     const DiscoverView = () => (
         <div className="flex-1 flex flex-col bg-zinc-900 text-gray-300 h-full">
-            <header className="flex items-center justify-between p-4 sticky top-0 bg-zinc-900/80 backdrop-blur-sm z-10 flex-shrink-0">
-                 <div className="flex items-center gap-2">
-                    <button onClick={onMenuClick} className="p-2 -ml-2 rounded-full text-zinc-400 hover:bg-zinc-700" aria-label="Open sidebar">
-                        <MenuIcon className="w-6 h-6" />
-                    </button>
-                    <div className="flex items-center space-x-2">
-                        <SeymourIcon className="w-7 h-7" />
-                        <span className="text-md font-bold text-white">See More</span>
+            <div className="sticky top-0 bg-zinc-900/95 backdrop-blur-sm z-10 flex-shrink-0">
+                <header className="flex items-center justify-between p-4">
+                    <div className="flex items-center gap-2">
+                        <button onClick={onMenuClick} className="p-2 -ml-2 rounded-full text-zinc-400 hover:bg-zinc-700" aria-label="Open sidebar">
+                            <MenuIcon className="w-6 h-6" />
+                        </button>
+                        <div className="flex items-center space-x-2">
+                            <SeymourIcon className="w-7 h-7" />
+                            <span className="text-md font-bold text-white">See More</span>
+                        </div>
                     </div>
-                </div>
-                <div>
-                    {userProfile?.picture ? (
-                        <img src={userProfile.picture} alt="User" className="w-8 h-8 rounded-full" />
-                    ) : (
-                        <div className="w-8 h-8 rounded-full bg-zinc-700"></div>
-                    )}
-                </div>
-            </header>
+                    <div>
+                        {userProfile?.picture ? (
+                            <img src={userProfile.picture} alt="User" className="w-8 h-8 rounded-full" />
+                        ) : (
+                            <div className="w-8 h-8 rounded-full bg-zinc-700"></div>
+                        )}
+                    </div>
+                </header>
 
-            <div className="flex-1 overflow-y-auto">
                 <DiscoverWidgetCarousel 
                     settings={widgetSettings}
                     onCustomizeClick={onOpenSettings}
                     isApiKeyMissing={isApiKeyMissing}
                 />
+            </div>
 
+            <div className="flex-1 overflow-y-auto">
                 <div className="p-4 space-y-4">
                     {loading && <div className="text-center p-8 text-zinc-400">Loading articles...</div>}
                     {error && <div className="text-center text-red-500 p-4 bg-red-900/20 rounded-lg">{error}</div>}
@@ -580,47 +581,23 @@ const DiscoverWidgetCarousel: React.FC<{
     isApiKeyMissing: boolean;
 }> = ({ settings, onCustomizeClick, isApiKeyMissing }) => {
     return (
-        <div className="flex space-x-3 overflow-x-auto p-4 pt-0 scrollbar-hide flex-shrink-0">
-            {settings.showWeather && <WeatherWidget location={settings.weatherLocation} isApiKeyMissing={isApiKeyMissing} />}
-            {settings.showSports && settings.sportsTeams.map(team => <SportsWidget key={team} team={team} isApiKeyMissing={isApiKeyMissing} />)}
-            <CustomizeWidget onClick={onCustomizeClick} />
+        <div className="sticky top-[72px] bg-zinc-900/95 backdrop-blur-sm z-10">
+            <div className="flex space-x-3 overflow-x-auto px-4 pb-4 scrollbar-hide flex-shrink-0">
+                {settings.showWeather && <WeatherWidget location={settings.weatherLocation} />}
+                {settings.showSports && settings.sportsTeams.map(team => <SportsWidget key={team} team={team} isApiKeyMissing={isApiKeyMissing} />)}
+                <CustomizeWidget onClick={onCustomizeClick} />
+            </div>
         </div>
     );
 };
 
-const WeatherWidget: React.FC<{ location: string; isApiKeyMissing: boolean }> = ({ location, isApiKeyMissing }) => {
-    const [weather, setWeather] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        const fetchWeather = async () => {
-            if (isApiKeyMissing) { setLoading(false); return; }
-            setLoading(true);
-            try {
-                const response = await ai.models.generateContent({
-                    model: 'gemini-2.5-flash',
-                    contents: `Get the current weather for ${location}.`,
-                    config: {
-                        responseMimeType: "application/json",
-                        responseSchema: {
-                            type: Type.OBJECT, properties: {
-                                location: { type: Type.STRING },
-                                temperatureCelsius: { type: Type.NUMBER },
-                                condition: { type: Type.STRING },
-                                precipitationChance: { type: Type.NUMBER }
-                            }
-                        }
-                    }
-                });
-                setWeather(JSON.parse(response.text));
-            } catch (e) {
-                console.error("Error fetching weather", e);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchWeather();
-    }, [location, isApiKeyMissing]);
+const WeatherWidget: React.FC<{ location: string; }> = ({ location }) => {
+    const staticWeather = {
+        location: location,
+        temperatureCelsius: 18,
+        condition: "Sunny",
+        precipitationChance: 10,
+    };
 
     const WeatherIcon = ({ condition }: { condition: string }) => {
         const lowerCondition = condition ? condition.toLowerCase() : '';
@@ -630,19 +607,15 @@ const WeatherWidget: React.FC<{ location: string; isApiKeyMissing: boolean }> = 
     };
 
     return (
-        <div className="flex-shrink-0 w-40 p-3 bg-zinc-800 rounded-2xl text-white flex flex-col justify-between">
-            {loading ? <div className="text-zinc-400 text-sm">Loading...</div> : weather ? (
-                <>
-                    <div>
-                        <p className="font-bold">{weather.location}</p>
-                        <p className="text-xs text-zinc-400">{weather.precipitationChance}% <span role="img" aria-label="rain">💧</span></p>
-                    </div>
-                    <div className="flex items-center justify-between mt-2">
-                        <p className="text-3xl font-bold">{weather.temperatureCelsius}°</p>
-                        <WeatherIcon condition={weather.condition} />
-                    </div>
-                </>
-            ) : <p className="text-xs text-zinc-400">Weather unavailable</p>}
+        <div className="flex-shrink-0 w-40 h-24 p-3 bg-zinc-800 rounded-2xl text-white flex flex-col justify-between">
+            <div>
+                <p className="font-bold truncate">{staticWeather.location}</p>
+                <p className="text-xs text-zinc-400">{staticWeather.precipitationChance}% <span role="img" aria-label="rain">💧</span></p>
+            </div>
+            <div className="flex items-center justify-between mt-1">
+                <p className="text-3xl font-bold">{staticWeather.temperatureCelsius}°</p>
+                <WeatherIcon condition={staticWeather.condition} />
+            </div>
         </div>
     );
 };
@@ -690,8 +663,8 @@ const SportsWidget: React.FC<{ team: string; isApiKeyMissing: boolean }> = ({ te
     };
 
     return (
-        <div className="flex-shrink-0 w-48 p-3 bg-zinc-800 rounded-2xl text-white flex flex-col">
-            {loading ? <div className="text-zinc-400 text-sm">Loading...</div> : result ? (
+        <div className="flex-shrink-0 w-48 h-24 p-3 bg-zinc-800 rounded-2xl text-white flex flex-col">
+            {loading ? <div className="text-zinc-400 text-sm m-auto">Loading...</div> : result ? (
                 <>
                     <div className="flex justify-between items-center text-sm">
                         <span>{result.homeTeam.substring(0,3).toUpperCase()} vs {result.awayTeam.substring(0,3).toUpperCase()}</span>
@@ -703,13 +676,23 @@ const SportsWidget: React.FC<{ team: string; isApiKeyMissing: boolean }> = ({ te
                         <TeamLogo website={result.awayTeamWebsite} name={result.awayTeam} />
                     </div>
                 </>
-            ) : <p className="text-xs text-zinc-400">Result for {team} unavailable</p>}
+            ) : (
+                <a 
+                    href={`https://www.google.com/search?q=latest+${encodeURIComponent(team)}+score`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex flex-col justify-center items-center text-center space-y-1 h-full w-full"
+                >
+                    <SearchIcon className="w-5 h-5 text-zinc-400 mb-1" />
+                    <p className="text-xs font-semibold">Find score for<br/><strong>{team.toUpperCase()}</strong></p>
+                </a>
+            )}
         </div>
     );
 };
 
 const CustomizeWidget: React.FC<{ onClick: () => void }> = ({ onClick }) => (
-    <button onClick={onClick} className="flex-shrink-0 w-40 p-3 bg-zinc-800 rounded-2xl text-white flex flex-col items-center justify-center space-y-2 text-center">
+    <button onClick={onClick} className="flex-shrink-0 w-40 h-24 p-3 bg-zinc-800 rounded-2xl text-white flex flex-col items-center justify-center space-y-2 text-center hover:bg-zinc-700 transition-colors">
         <SettingsIcon className="w-6 h-6" />
         <p className="text-sm font-semibold">Customize your space</p>
     </button>
