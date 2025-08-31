@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Sidebar from './components/Sidebar';
 import MainContent from './components/MainContent';
@@ -115,6 +116,7 @@ const App: React.FC = () => {
     const [isGapiReady, setIsGapiReady] = useState(false);
     const [isSignedIn, setIsSignedIn] = useState(false);
     const [isGuestMode, setIsGuestMode] = useState(false);
+    const [forceMobileView, setForceMobileView] = useState(false);
 
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [theme, setTheme] = useState<Theme>('dark');
@@ -133,6 +135,7 @@ const App: React.FC = () => {
     const [lastRefresh, setLastRefresh] = useState(() => Date.now());
     
     const isApiKeyMissing = !process.env.API_KEY;
+    const isGoogleClientIdMissing = !process.env.GOOGLE_CLIENT_ID;
 
     const loadSettings = (settings: Partial<Settings>) => {
         setFeeds(settings.feeds || defaultFeeds);
@@ -148,6 +151,7 @@ const App: React.FC = () => {
             setUserProfile(profile);
             setIsSignedIn(true);
             setIsGuestMode(false);
+            setForceMobileView(false);
             
             // User signed in, load data from Drive or local as fallback
             const driveSettings = await GoogleDriveService.downloadSettings();
@@ -176,6 +180,7 @@ const App: React.FC = () => {
         } else {
             setUserProfile(null);
             setIsSignedIn(false);
+            setForceMobileView(false);
             // Reset state to defaults on logout
             loadSettings({});
             setReadArticleIds(new Set());
@@ -518,10 +523,7 @@ const App: React.FC = () => {
         reader.readAsText(file);
     };
 
-    const handleGuestLogin = () => {
-        setIsGuestMode(true);
-        setIsSignedIn(false);
-        setUserProfile(null);
+    const loadGuestData = () => {
         try {
             const guestSettings = JSON.parse(window.localStorage.getItem(GUEST_SETTINGS_KEY) || '{}');
             loadSettings(guestSettings);
@@ -544,9 +546,26 @@ const App: React.FC = () => {
             setArticleTags(new Map());
         }
     };
+
+    const handleGuestLogin = () => {
+        setIsGuestMode(true);
+        setIsSignedIn(false);
+        setUserProfile(null);
+        setForceMobileView(false);
+        loadGuestData();
+    };
+    
+    const handleOpenMobileView = () => {
+        setIsGuestMode(true);
+        setIsSignedIn(false);
+        setUserProfile(null);
+        setForceMobileView(true);
+        loadGuestData();
+    };
     
     const handleGoToLogin = () => {
         setIsGuestMode(false);
+        setForceMobileView(false);
         loadSettings({});
         setReadArticleIds(new Set());
         setBookmarkedArticleIds(new Set());
@@ -561,7 +580,7 @@ const App: React.FC = () => {
     };
 
     if (!isSignedIn && !isGuestMode) {
-        return <LoginView onLogin={GoogleDriveService.signIn} onGuestLogin={handleGuestLogin} isApiReady={isGapiReady} isApiKeyMissing={isApiKeyMissing} />;
+        return <LoginView onLogin={GoogleDriveService.signIn} onGuestLogin={handleGuestLogin} onOpenMobileView={handleOpenMobileView} isApiReady={isGapiReady} isApiKeyMissing={isApiKeyMissing} isGoogleClientIdMissing={isGoogleClientIdMissing} />;
     }
 
     let feedsToDisplay: Feed[] = [];
@@ -588,7 +607,7 @@ const App: React.FC = () => {
     return (
         <div className="h-screen font-sans text-sm relative bg-white dark:bg-zinc-950">
             {isSidebarOpen && (
-                <div onClick={() => setIsSidebarOpen(false)} className="fixed inset-0 bg-black/60 z-30 md:hidden" aria-hidden="true" />
+                <div onClick={() => setIsSidebarOpen(false)} className={`fixed inset-0 bg-black/60 z-30 ${!forceMobileView ? 'md:hidden' : ''}`} aria-hidden="true" />
             )}
             <Sidebar
                 isSidebarOpen={isSidebarOpen}
@@ -611,8 +630,9 @@ const App: React.FC = () => {
                 lastSyncTime={lastSyncTime}
                 isGuestMode={isGuestMode}
                 onGoToLogin={handleGoToLogin}
+                forceMobileView={forceMobileView}
             />
-            <div className="md:ml-72 h-full">
+            <div className={`${!forceMobileView ? 'md:ml-72' : ''} h-full`}>
                 <MainContent
                     onMenuClick={() => setIsSidebarOpen(true)}
                     onSearch={(query: string) => setSelection({ type: 'search', id: null, query })}
@@ -635,6 +655,7 @@ const App: React.FC = () => {
                     userProfile={userProfile}
                     widgetSettings={widgetSettings}
                     onOpenSettings={() => setIsSettingsModalOpen(true)}
+                    forceMobileView={forceMobileView}
                 />
             </div>
             <SettingsModal

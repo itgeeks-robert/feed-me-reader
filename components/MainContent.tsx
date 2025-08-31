@@ -1,15 +1,21 @@
+
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import type { Feed, Selection, ArticleView, WidgetSettings } from '../App';
 import type { GoogleUserProfile } from '../services/googleDriveService';
 import { CORS_PROXY } from '../App';
-import { GoogleGenAI, Type } from '@google/genai';
 import { SparklesIcon, CheckCircleIcon, MenuIcon, BookmarkIcon, ViewColumnsIcon, ViewListIcon, ViewGridIcon, XIcon, SearchIcon, ArrowUturnLeftIcon, ChevronDownIcon, TagIcon, SettingsIcon, CloudIcon, SunIcon, ShareIcon, DotsHorizontalIcon, SeymourIcon } from './icons';
+import { teamLogos } from '../services/teamLogos';
 
-// Create a single, shared AI instance, initialized once.
-if (!process.env.API_KEY) {
-    console.warn("API_KEY environment variable is not set. AI features will be degraded or unavailable.");
-}
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+const sportsCache = new Map<string, { data: any; timestamp: number }>();
+
+
+const isCacheValid = (timestamp: number): boolean => {
+    const now = new Date();
+    const cacheDate = new Date(timestamp);
+    // Cache is valid for 6 hours
+    return (now.getTime() - cacheDate.getTime()) < 6 * 60 * 60 * 1000;
+};
 
 interface Article {
     id: string;
@@ -269,6 +275,24 @@ const fetchWithTimeout = (resource: RequestInfo, options: RequestInit & { timeou
   return promise;
 };
 
+const getTeamLogo = (teamName: string): string | null => {
+    if (!teamName) return null;
+    
+    // Direct match
+    if (teamLogos[teamName]) {
+        return teamLogos[teamName];
+    }
+    
+    // Match without "FC" or "F.C."
+    const simplifiedName = teamName.replace(/ F\.?C\.?$/, '').trim();
+    if (teamLogos[simplifiedName]) {
+        return teamLogos[simplifiedName];
+    }
+
+    return null;
+};
+
+
 interface MainContentProps {
     feedsToDisplay: Feed[];
     title: string;
@@ -290,10 +314,11 @@ interface MainContentProps {
     userProfile: GoogleUserProfile | null;
     widgetSettings: WidgetSettings;
     onOpenSettings: () => void;
+    forceMobileView: boolean;
 }
 
 const MainContent: React.FC<MainContentProps> = (props) => {
-    const { feedsToDisplay, title, selection, readArticleIds, bookmarkedArticleIds, articleTags, onMarkAsRead, onMarkAsUnread, onMarkMultipleAsRead, onToggleBookmark, onSetArticleTags, onMenuClick, onSearch, articleView, allFeeds, isApiKeyMissing, refreshKey, userProfile, widgetSettings, onOpenSettings } = props;
+    const { feedsToDisplay, title, selection, readArticleIds, bookmarkedArticleIds, articleTags, onMarkAsRead, onMarkAsUnread, onMarkMultipleAsRead, onToggleBookmark, onSetArticleTags, onMenuClick, onSearch, articleView, allFeeds, isApiKeyMissing, refreshKey, userProfile, widgetSettings, onOpenSettings, forceMobileView } = props;
     
     const [articles, setArticles] = useState<Article[]>([]);
     const [loading, setLoading] = useState(false);
@@ -301,6 +326,10 @@ const MainContent: React.FC<MainContentProps> = (props) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [focusedArticleIndex, setFocusedArticleIndex] = useState<number | null>(null);
     const articleRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+    const [sportsResults, setSportsResults] = useState<Map<string, any>>(new Map());
+    const [isSportsLoading, setIsSportsLoading] = useState(false);
+    const [sportsApiFailed, setSportsApiFailed] = useState(false);
     
     const handleSearchSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -351,6 +380,185 @@ const MainContent: React.FC<MainContentProps> = (props) => {
         fetchRssFeeds(feedsForFetch);
 
     }, [feedsToDisplay, allFeeds, selection, refreshKey]);
+
+    useEffect(() => {
+        if (!widgetSettings.showSports || widgetSettings.sportsTeams.length === 0) {
+            setIsSportsLoading(false);
+            setSportsApiFailed(false);
+            return;
+        }
+
+        const fetchAllSportsData = async () => {
+            setIsSportsLoading(true);
+            setSportsApiFailed(false);
+            setSportsResults(new Map()); // Clear old results
+
+            const teamNameMap: { [key: string]: string } = {
+                // Premier League
+                'ARS': 'Arsenal',
+                'AVL': 'Aston Villa',
+                'BOU': 'Bournemouth',
+                'BRE': 'Brentford',
+                'BHA': 'Brighton & Hove Albion',
+                'BUR': 'Burnley',
+                'CHE': 'Chelsea',
+                'CRY': 'Crystal Palace',
+                'EVE': 'Everton',
+                'FUL': 'Fulham',
+                'LIV': 'Liverpool',
+                'LUT': 'Luton Town',
+                'MCI': 'Manchester City',
+                'MUN': 'Manchester United',
+                'NEW': 'Newcastle United',
+                'NOT': 'Nottingham Forest',
+                'SHU': 'Sheffield United',
+                'TOT': 'Tottenham Hotspur',
+                'WHU': 'West Ham United',
+                'WOL': 'Wolverhampton Wanderers',
+                
+                // Championship
+                'BIR': 'Birmingham City',
+                'BBR': 'Blackburn Rovers',
+                'BRC': 'Bristol City',
+                'CAR': 'Cardiff City',
+                'COV': 'Coventry City',
+                'HUD': 'Huddersfield Town',
+                'HUL': 'Hull City',
+                'IPS': 'Ipswich Town',
+                'LEE': 'Leeds United',
+                'LEI': 'Leicester City',
+                'MID': 'Middlesbrough',
+                'MIL': 'Millwall',
+                'NOR': 'Norwich City',
+                'PLY': 'Plymouth Argyle',
+                'PNE': 'Preston North End',
+                'QPR': 'Queens Park Rangers',
+                'ROT': 'Rotherham United',
+                'SHW': 'Sheffield Wednesday',
+                'SOU': 'Southampton',
+                'STO': 'Stoke City',
+                'SUN': 'Sunderland',
+                'SWA': 'Swansea City',
+                'WAT': 'Watford',
+                'WBA': 'West Bromwich Albion',
+            
+                // League One
+                'BAR': 'Barnsley',
+                'BLA': 'Blackpool',
+                'BOL': 'Bolton Wanderers',
+                'BRR': 'Bristol Rovers',
+                'BUA': 'Burton Albion',
+                'CAM': 'Cambridge United',
+                'CSL': 'Carlisle United',
+                'CHA': 'Charlton Athletic',
+                'CTN': 'Cheltenham Town',
+                'DER': 'Derby County',
+                'EXE': 'Exeter City',
+                'FLE': 'Fleetwood Town',
+                'LEY': 'Leyton Orient',
+                'LIN': 'Lincoln City',
+                'NHT': 'Northampton Town',
+                'OXF': 'Oxford United',
+                'PET': 'Peterborough United',
+                'POV': 'Port Vale',
+                'POR': 'Portsmouth',
+                'REA': 'Reading',
+                'SHR': 'Shrewsbury Town',
+                'STE': 'Stevenage',
+                'WIG': 'Wigan Athletic',
+                'WYC': 'Wycombe Wanderers',
+            
+                // League Two
+                'ACC': 'Accrington Stanley',
+                'WIM': 'AFC Wimbledon',
+                'BRW': 'Barrow',
+                'BRA': 'Bradford City',
+                'COL': 'Colchester United',
+                'CRA': 'Crawley Town',
+                'CRE': 'Crewe Alexandra',
+                'DON': 'Doncaster Rovers',
+                'FGR': 'Forest Green Rovers',
+                'GIL': 'Gillingham',
+                'GRI': 'Grimsby Town',
+                'HAR': 'Harrogate Town',
+                'MAN': 'Mansfield Town',
+                'MKD': 'Milton Keynes Dons',
+                'MOR': 'Morecambe',
+                'NCP': 'Newport County',
+                'NTT': 'Notts County',
+                'SAL': 'Salford City',
+                'STK': 'Stockport County',
+                'SUT': 'Sutton United',
+                'SWI': 'Swindon Town',
+                'TRA': 'Tranmere Rovers',
+                'WAL': 'Walsall',
+                'WRE': 'Wrexham',
+            
+                // National League
+                'FYL': 'AFC Fylde',
+            };
+
+            const fetchTeamData = async (teamCode: string): Promise<{ team: string; result: any; }> => {
+                const cachedEntry = sportsCache.get(teamCode);
+                if (cachedEntry && isCacheValid(cachedEntry.timestamp)) {
+                    return { team: teamCode, result: cachedEntry.data };
+                }
+                
+                const teamFullName = teamNameMap[teamCode.toUpperCase()] || teamCode;
+
+                try {
+                    const teamSearchRes = await fetchWithTimeout(`https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t=${encodeURIComponent(teamFullName)}`);
+                    if (!teamSearchRes.ok) throw new Error('Failed to search for team.');
+                    const teamSearchData = await teamSearchRes.json();
+                    const teamInfo = teamSearchData.teams?.[0];
+                    if (!teamInfo) throw new Error(`Team "${teamFullName}" not found.`);
+
+                    const lastEventsRes = await fetchWithTimeout(`https://www.thesportsdb.com/api/v1/json/3/eventslast.php?id=${teamInfo.idTeam}`);
+                    if (!lastEventsRes.ok) throw new Error('Failed to fetch last events.');
+                    
+                    const lastEventsData = await lastEventsRes.json();
+                    const lastMatch = lastEventsData.results?.[0];
+                    if (!lastMatch) throw new Error('No last match data found.');
+
+                    const homeTeamLogo = getTeamLogo(lastMatch.strHomeTeam);
+                    const awayTeamLogo = getTeamLogo(lastMatch.strAwayTeam);
+                    
+                    const result = {
+                        teamFullName: teamInfo.strTeam,
+                        homeTeam: lastMatch.strHomeTeam,
+                        homeScore: lastMatch.intHomeScore,
+                        awayTeam: lastMatch.strAwayTeam,
+                        awayScore: lastMatch.intAwayScore,
+                        matchStatus: "Final",
+                        homeTeamLogo,
+                        awayTeamLogo
+                    };
+                    
+                    sportsCache.set(teamCode, { data: result, timestamp: Date.now() });
+                    return { team: teamCode, result };
+
+                } catch (error) {
+                    console.warn(`Error fetching data for ${teamCode}:`, error);
+                    return { team: teamCode, result: { error: (error as Error).message } };
+                }
+            };
+            
+            try {
+                const promises = widgetSettings.sportsTeams.map(team => fetchTeamData(team));
+                const allResults = await Promise.all(promises);
+                const newResults = new Map<string, any>();
+                allResults.forEach(res => newResults.set(res.team, res.result));
+                setSportsResults(newResults);
+            } catch (e) {
+                 console.error("Sports API fetch failed globally.", e);
+                 setSportsApiFailed(true);
+            } finally {
+                 setIsSportsLoading(false);
+            }
+        };
+
+        fetchAllSportsData();
+    }, [widgetSettings.showSports, widgetSettings.sportsTeams, refreshKey]);
     
     const handleMarkAllAsRead = () => {
         onMarkMultipleAsRead(filteredArticles.map(a => a.id));
@@ -445,7 +653,10 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                 <DiscoverWidgetCarousel 
                     settings={widgetSettings}
                     onCustomizeClick={onOpenSettings}
-                    isApiKeyMissing={isApiKeyMissing}
+                    sportsResults={sportsResults}
+                    isSportsLoading={isSportsLoading}
+                    sportsApiFailed={sportsApiFailed}
+                    refreshKey={refreshKey}
                 />
             </div>
 
@@ -464,12 +675,12 @@ const MainContent: React.FC<MainContentProps> = (props) => {
     return (
         <>
             {/* Mobile Discover View */}
-            <div className="md:hidden h-full">
+            <div className={`h-full ${!forceMobileView ? 'md:hidden' : ''}`}>
                 <DiscoverView />
             </div>
 
             {/* Desktop View */}
-            <main className="hidden md:flex h-full flex-col bg-white dark:bg-zinc-900 overflow-y-auto">
+            <main className={`hidden h-full flex-col bg-white dark:bg-zinc-900 overflow-y-auto ${!forceMobileView ? 'md:flex' : ''}`}>
                 <header className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-zinc-800 sticky top-0 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm z-10">
                     <div className="flex items-center gap-2">
                         <button onClick={onMenuClick} className="p-2 -ml-2 rounded-full text-zinc-500 dark:text-zinc-400 hover:bg-gray-200 dark:hover:bg-zinc-700 md:hidden" aria-label="Open sidebar">
@@ -578,26 +789,81 @@ const DiscoverArticleItem: React.FC<{ article: Article }> = ({ article }) => (
 const DiscoverWidgetCarousel: React.FC<{
     settings: WidgetSettings;
     onCustomizeClick: () => void;
-    isApiKeyMissing: boolean;
-}> = ({ settings, onCustomizeClick, isApiKeyMissing }) => {
+    sportsResults: Map<string, any>;
+    isSportsLoading: boolean;
+    sportsApiFailed: boolean;
+    refreshKey: number;
+}> = ({ settings, onCustomizeClick, sportsResults, isSportsLoading, sportsApiFailed, refreshKey }) => {
     return (
         <div className="sticky top-[72px] bg-zinc-900/95 backdrop-blur-sm z-10">
             <div className="flex space-x-3 overflow-x-auto px-4 pb-4 scrollbar-hide flex-shrink-0">
-                {settings.showWeather && <WeatherWidget location={settings.weatherLocation} />}
-                {settings.showSports && settings.sportsTeams.map(team => <SportsWidget key={team} team={team} isApiKeyMissing={isApiKeyMissing} />)}
+                {settings.showWeather && <WeatherWidget location={settings.weatherLocation} refreshKey={refreshKey} />}
+                {settings.showSports && settings.sportsTeams.map(team => 
+                    <SportsWidget 
+                        key={team} 
+                        team={team}
+                        isLoading={isSportsLoading}
+                        apiFailed={sportsApiFailed}
+                        result={sportsResults.get(team)}
+                    />
+                )}
                 <CustomizeWidget onClick={onCustomizeClick} />
             </div>
         </div>
     );
 };
 
-const WeatherWidget: React.FC<{ location: string; }> = ({ location }) => {
-    const staticWeather = {
-        location: location,
-        temperatureCelsius: 18,
-        condition: "Sunny",
-        precipitationChance: 10,
-    };
+interface WeatherData {
+    temperatureCelsius: number;
+    condition: string;
+    precipitationChance: number;
+}
+
+const WeatherWidget: React.FC<{ location: string; refreshKey: number; }> = ({ location, refreshKey }) => {
+    const [weather, setWeather] = useState<WeatherData | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        const fetchWeather = async () => {
+            if (!location) {
+                setError("No location set.");
+                setIsLoading(false);
+                return;
+            }
+            setIsLoading(true);
+            setError(null);
+            try {
+                // wttr.in is a simple, free API that doesn't require a key for basic JSON output.
+                const response = await fetchWithTimeout(`https://wttr.in/${encodeURIComponent(location)}?format=j1`, { timeout: 5000 });
+                if (!response.ok) {
+                    throw new Error(`Data not found.`);
+                }
+                const data = await response.json();
+                
+                if (!data.current_condition || !data.weather) {
+                    throw new Error("Invalid data format.");
+                }
+
+                const current = data.current_condition[0];
+                const forecast = data.weather[0];
+
+                setWeather({
+                    temperatureCelsius: parseInt(current.temp_C, 10),
+                    condition: current.weatherDesc[0].value,
+                    precipitationChance: parseInt(forecast.hourly[0].chanceofrain, 10),
+                });
+            } catch (e) {
+                console.error("Failed to fetch weather:", e);
+                setError(e instanceof Error ? e.message : "Could not fetch.");
+                setWeather(null);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchWeather();
+    }, [location, refreshKey]);
 
     const WeatherIcon = ({ condition }: { condition: string }) => {
         const lowerCondition = condition ? condition.toLowerCase() : '';
@@ -606,88 +872,98 @@ const WeatherWidget: React.FC<{ location: string; }> = ({ location }) => {
         return <CloudIcon className="w-6 h-6 text-gray-400" />;
     };
 
+    if (isLoading) {
+        return (
+            <div className="flex-shrink-0 w-40 h-24 p-3 bg-zinc-800 rounded-2xl text-white flex flex-col justify-center items-center animate-pulse">
+                <p className="text-sm text-zinc-400">Loading Weather...</p>
+            </div>
+        );
+    }
+    
+    if (error) {
+        return (
+            <div className="flex-shrink-0 w-40 h-24 p-3 bg-zinc-800 rounded-2xl text-white flex flex-col justify-center items-center text-center">
+                <p className="text-sm font-bold text-red-400">Weather Error</p>
+                <p className="text-xs text-zinc-400 mt-1">{location}: {error}</p>
+            </div>
+        );
+    }
+
+    if (!weather) {
+        return null; // Should not happen if not loading and no error, but good practice.
+    }
+
     return (
         <div className="flex-shrink-0 w-40 h-24 p-3 bg-zinc-800 rounded-2xl text-white flex flex-col justify-between">
             <div>
-                <p className="font-bold truncate">{staticWeather.location}</p>
-                <p className="text-xs text-zinc-400">{staticWeather.precipitationChance}% <span role="img" aria-label="rain">💧</span></p>
+                <p className="font-bold truncate">{location}</p>
+                <p className="text-xs text-zinc-400">{weather.precipitationChance}% <span role="img" aria-label="rain">💧</span></p>
             </div>
             <div className="flex items-center justify-between mt-1">
-                <p className="text-3xl font-bold">{staticWeather.temperatureCelsius}°</p>
-                <WeatherIcon condition={staticWeather.condition} />
+                <p className="text-3xl font-bold">{weather.temperatureCelsius}°</p>
+                <WeatherIcon condition={weather.condition} />
             </div>
         </div>
     );
 };
 
-const SportsWidget: React.FC<{ team: string; isApiKeyMissing: boolean }> = ({ team, isApiKeyMissing }) => {
-    const [result, setResult] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
+const SportsWidget: React.FC<{ 
+    team: string; 
+    isLoading: boolean;
+    apiFailed: boolean;
+    result: any;
+}> = ({ team, isLoading, apiFailed, result }) => {
+    
+    const TeamLogo = ({ logoUrl, name }: { logoUrl?: string, name: string }) => {
+        const [hasError, setHasError] = useState(!logoUrl);
 
-    useEffect(() => {
-        const fetchScore = async () => {
-            if (isApiKeyMissing) { setLoading(false); return; }
-            setLoading(true);
-             try {
-                const response = await ai.models.generateContent({
-                    model: 'gemini-2.5-flash',
-                    contents: `Get the latest final match result for the ${team} football team.`,
-                    config: {
-                        responseMimeType: "application/json",
-                        responseSchema: {
-                            type: Type.OBJECT, properties: {
-                                homeTeam: { type: Type.STRING }, homeScore: { type: Type.NUMBER },
-                                awayTeam: { type: Type.STRING }, awayScore: { type: Type.NUMBER },
-                                status: { type: Type.STRING },
-                                homeTeamWebsite: { type: Type.STRING }, awayTeamWebsite: { type: Type.STRING }
-                            }
-                        }
-                    }
-                });
-                setResult(JSON.parse(response.text));
-            } catch (e) {
-                console.error(`Error fetching score for ${team}`, e);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchScore();
-    }, [team, isApiKeyMissing]);
+        useEffect(() => {
+            setHasError(!logoUrl);
+        }, [logoUrl]);
 
-    const TeamLogo = ({ website, name }: { website: string; name: string }) => {
-        const [hasError, setHasError] = useState(!website);
-        if (hasError) {
-             return <div className="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center font-bold text-sm">{name.substring(0, 3).toUpperCase()}</div>;
+        if (hasError || !logoUrl) {
+             return <div className="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center font-bold text-sm text-gray-400">{name.substring(0, 3).toUpperCase()}</div>;
         }
-        return <img src={`https://www.google.com/s2/favicons?sz=32&domain_url=${website}`} onError={() => setHasError(true)} alt={`${name} logo`} className="w-8 h-8 object-contain" />;
+        return <img src={logoUrl} onError={() => setHasError(true)} alt={`${name} logo`} className="w-8 h-8 object-contain" />;
     };
 
-    return (
-        <div className="flex-shrink-0 w-48 h-24 p-3 bg-zinc-800 rounded-2xl text-white flex flex-col">
-            {loading ? <div className="text-zinc-400 text-sm m-auto">Loading...</div> : result ? (
-                <>
-                    <div className="flex justify-between items-center text-sm">
-                        <span>{result.homeTeam.substring(0,3).toUpperCase()} vs {result.awayTeam.substring(0,3).toUpperCase()}</span>
-                        <span className="text-xs bg-zinc-700 px-1.5 py-0.5 rounded-md font-semibold">{result.status}</span>
-                    </div>
-                    <div className="flex justify-around items-center mt-2 flex-grow">
-                        <TeamLogo website={result.homeTeamWebsite} name={result.homeTeam} />
-                        <span className="text-2xl font-bold">{result.homeScore} - {result.awayScore}</span>
-                        <TeamLogo website={result.awayTeamWebsite} name={result.awayTeam} />
-                    </div>
-                </>
-            ) : (
-                <a 
-                    href={`https://www.google.com/search?q=latest+${encodeURIComponent(team)}+score`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex flex-col justify-center items-center text-center space-y-1 h-full w-full"
-                >
-                    <SearchIcon className="w-5 h-5 text-zinc-400 mb-1" />
-                    <p className="text-xs font-semibold">Find score for<br/><strong>{team.toUpperCase()}</strong></p>
-                </a>
-            )}
+    const renderFallback = () => (
+        <div className="flex flex-col justify-center items-center text-center h-full w-full p-2">
+            <p className="text-sm font-bold">{team.toUpperCase()}</p>
+            <p className="text-xs text-zinc-400 mt-1">Score unavailable</p>
         </div>
+    );
+    
+    const isErrorState = !isLoading && (apiFailed || (result && result.error) || !result);
+
+    return (
+        <a 
+            href={`https://www.google.com/search?q=${encodeURIComponent(result?.teamFullName || team)}+score`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="relative group flex-shrink-0 w-48 h-24 p-3 bg-zinc-800 rounded-2xl text-white flex flex-col justify-between items-center hover:bg-zinc-700/70 transition-colors"
+        >
+            <SearchIcon className={`absolute top-2 right-2 w-4 h-4 text-zinc-500 transition-opacity ${isErrorState ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} />
+            
+            {isLoading ? (
+                <div className="text-zinc-400 text-sm m-auto animate-pulse">Loading...</div>
+            ) : isErrorState ? (
+                renderFallback()
+            ) : (
+                 <>
+                    <div className="flex justify-between items-start w-full">
+                        <p className="text-xs font-semibold text-zinc-300 truncate pr-2">{result.teamFullName || team.toUpperCase()}</p>
+                        <span className="text-[10px] bg-zinc-700 px-1.5 py-0.5 rounded-md font-semibold flex-shrink-0">{result.matchStatus}</span>
+                    </div>
+                    <div className="flex justify-around items-center w-full">
+                        <TeamLogo logoUrl={result.homeTeamLogo} name={result.homeTeam} />
+                        <span className="text-2xl font-bold">{result.homeScore} - {result.awayScore}</span>
+                        <TeamLogo logoUrl={result.awayTeamLogo} name={result.awayTeam} />
+                    </div>
+                    <div className="h-[12px]"></div>
+                </>
+            )}
+        </a>
     );
 };
 

@@ -30,6 +30,14 @@ const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/res
 const SCOPES = 'https://www.googleapis.com/auth/drive.file';
 const SETTINGS_FILE_NAME = 'feedme_settings.json';
 
+if (!GOOGLE_CLIENT_ID) {
+    console.error("CRITICAL: GOOGLE_CLIENT_ID is not set in your .env file. Google Sign-In will not work.");
+}
+if (!GOOGLE_API_KEY) {
+    console.error("CRITICAL: GOOGLE_API_KEY is not set in your .env file. Google Drive sync may not work.");
+}
+
+
 export interface GoogleUserProfile {
     id: string;
     name: string;
@@ -77,6 +85,11 @@ const GoogleDriveService = {
     async initClient(callback: (token: google.accounts.oauth2.TokenResponse | null) => void): Promise<void> {
         onAuthChangeCallback = callback;
         
+        if (!GOOGLE_CLIENT_ID || !GOOGLE_API_KEY) {
+            console.error("Google Drive Service initialization skipped due to missing API keys.");
+            return;
+        }
+
         // Wait for both Google libraries to be loaded and ready.
         await Promise.all([gapiReady, gisReady]);
 

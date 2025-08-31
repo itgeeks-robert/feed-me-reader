@@ -29,6 +29,7 @@ interface SidebarProps {
     isGuestMode: boolean;
     onGoToLogin: () => void;
     onOpenSettings: () => void;
+    forceMobileView: boolean;
 }
 
 const formatSyncTime = (timestamp: number | null): string => {
@@ -231,7 +232,7 @@ const FeedItem: React.FC<{
 };
 
 const Sidebar: React.FC<SidebarProps> = (props) => {
-    const { feeds, folders, selection, onAddSource, onRemoveFeed, onSelect, onAddFolder, onRenameFolder, onDeleteFolder, onMoveFeedToFolder, isSidebarOpen, onClose, userProfile, onLogout, onSync, syncStatus, lastSyncTime, isGuestMode, onGoToLogin, onOpenSettings } = props;
+    const { feeds, folders, selection, onAddSource, onRemoveFeed, onSelect, onAddFolder, onRenameFolder, onDeleteFolder, onMoveFeedToFolder, isSidebarOpen, onClose, userProfile, onLogout, onSync, syncStatus, lastSyncTime, isGuestMode, onGoToLogin, onOpenSettings, forceMobileView } = props;
     const [isAddingFolder, setIsAddingFolder] = useState(false);
     const [dragOverTarget, setDragOverTarget] = useState<number | 'unfiled' | null>(null);
 
@@ -247,7 +248,7 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
     };
 
     return (
-        <aside className={`w-72 bg-gray-50 dark:bg-zinc-900 flex-shrink-0 p-4 flex flex-col h-full overflow-y-auto border-r border-gray-200 dark:border-zinc-800 fixed inset-y-0 left-0 z-40 transform transition-transform duration-300 ease-in-out md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <aside className={`w-72 bg-gray-50 dark:bg-zinc-900 flex-shrink-0 p-4 flex flex-col h-full overflow-y-auto border-r border-gray-200 dark:border-zinc-800 fixed inset-y-0 left-0 z-40 transform transition-transform duration-300 ease-in-out ${!forceMobileView ? 'md:translate-x-0' : ''} ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
             <div>
                 <div className="flex items-center justify-between space-x-2 mb-4 px-2">
                     <div className="flex items-center space-x-2">
@@ -255,7 +256,7 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                         <span className="text-lg font-bold text-zinc-900 dark:text-white">See More</span>
                     </div>
                     <div className="flex items-center">
-                        <button onClick={onClose} className="p-2 -mr-2 rounded-full text-zinc-500 dark:text-zinc-400 hover:bg-gray-200 dark:hover:bg-zinc-700 md:hidden" aria-label="Close sidebar">
+                        <button onClick={onClose} className={`p-2 -mr-2 rounded-full text-zinc-500 dark:text-zinc-400 hover:bg-gray-200 dark:hover:bg-zinc-700 ${!forceMobileView ? 'md:hidden' : ''}`} aria-label="Close sidebar">
                             <XIcon className="w-6 h-6" />
                         </button>
                     </div>

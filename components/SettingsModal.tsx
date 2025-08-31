@@ -21,6 +21,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
         articleView: settings.articleView,
         widgets: { ...settings.widgets }
     });
+    const [sportsTeamsInput, setSportsTeamsInput] = useState('');
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -32,13 +33,22 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                 articleView: settings.articleView,
                 widgets: { ...settings.widgets }
             });
+            setSportsTeamsInput(settings.widgets.sportsTeams.join(', '));
         }
     }, [isOpen, settings]);
 
     if (!isOpen) return null;
 
     const handleSave = () => {
-        onUpdateSettings(localSettings);
+        const teams = sportsTeamsInput.split(',').map(t => t.trim()).filter(Boolean);
+        const finalSettings = {
+            ...localSettings,
+            widgets: {
+                ...localSettings.widgets,
+                sportsTeams: teams,
+            },
+        };
+        onUpdateSettings(finalSettings);
         onClose();
     };
 
@@ -61,11 +71,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
             ...prev,
             widgets: { ...prev.widgets, [key]: value }
         }));
-    };
-
-    const handleSportsTeamsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const teams = e.target.value.split(',').map(t => t.trim()).filter(Boolean);
-        handleWidgetChange('sportsTeams', teams);
     };
 
     const TabButton: React.FC<{ name: Tab }> = ({ name }) => (
@@ -131,8 +136,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                 <input type="checkbox" checked={localSettings.widgets.showSports} onChange={e => handleWidgetChange('showSports', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-lime-600 focus:ring-lime-500" />
                             </div>
                              <div>
-                                <label htmlFor="sportsTeams" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Sports Teams (comma-separated)</label>
-                                <input id="sportsTeams" type="text" value={localSettings.widgets.sportsTeams.join(', ')} onChange={handleSportsTeamsChange} className="w-full bg-white dark:bg-zinc-800 border border-gray-300 dark:border-zinc-700 rounded-md py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-lime-500" placeholder="e.g. MUN, LFC, ARS" />
+                                <label htmlFor="sportsTeams" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Sports Team Codes (comma-separated)</label>
+                                <input id="sportsTeams" type="text" value={sportsTeamsInput} onChange={(e) => setSportsTeamsInput(e.target.value)} className="w-full bg-white dark:bg-zinc-800 border border-gray-300 dark:border-zinc-700 rounded-md py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-lime-500" placeholder="e.g. MUN, LFC, ARS" />
+                                <p className="text-xs text-gray-400 dark:text-zinc-500 mt-1">Enter team codes to see live scores in the mobile Discover view.</p>
                             </div>
                              <hr className="border-gray-200 dark:border-zinc-800" />
                              <div className="flex items-center justify-between">
