@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import type { Feed, Selection, ArticleView, AllFeedsView } from '../App';
+import type { Feed, Selection, ArticleView, AllFeedsView, WidgetSettings } from '../App';
+import type { GoogleUserProfile } from '../services/googleDriveService';
 import { CORS_PROXY } from '../App';
 import { GoogleGenAI, Type } from '@google/genai';
-import { SparklesIcon, CheckCircleIcon, MenuIcon, BookmarkIcon, ViewColumnsIcon, ViewListIcon, ViewGridIcon, LayoutGridIcon, FireIcon, ShieldCheckIcon, BugAntIcon, XIcon, SearchIcon, ArrowUturnLeftIcon, DocumentDuplicateIcon, ChevronDownIcon, TagIcon } from './icons';
+import { SparklesIcon, CheckCircleIcon, MenuIcon, BookmarkIcon, ViewColumnsIcon, ViewListIcon, ViewGridIcon, LayoutGridIcon, FireIcon, ShieldCheckIcon, BugAntIcon, XIcon, SearchIcon, ArrowUturnLeftIcon, DocumentDuplicateIcon, ChevronDownIcon, TagIcon, SettingsIcon, CloudIcon, SunIcon, ShareIcon, DotsHorizontalIcon } from './icons';
 
 // Create a single, shared AI instance, initialized once.
 if (!process.env.API_KEY) {
@@ -831,6 +832,11 @@ interface MainContentProps {
     isClusteringEnabled: boolean;
     setIsClusteringEnabled: (enabled: boolean) => void;
     refreshKey: number;
+    userProfile: GoogleUserProfile | null;
+    widgetSettings: WidgetSettings;
+    onWidgetSettingsChange: (settings: WidgetSettings) => void;
+    isCustomizeModalOpen: boolean;
+    setCustomizeModalOpen: (isOpen: boolean) => void;
 }
 
 const ArticleCluster: React.FC<{
@@ -901,7 +907,7 @@ const ArticleCluster: React.FC<{
 
 
 const MainContent: React.FC<MainContentProps> = (props) => {
-    const { feedsToDisplay, title, selection, readArticleIds, bookmarkedArticleIds, articleTags, onMarkAsRead, onMarkAsUnread, onMarkMultipleAsRead, onToggleBookmark, onSetArticleTags, onMenuClick, onSearch, articleView, setArticleView, allFeeds, magicFeedTopic, allFeedsView, setAllFeedsView, isAiDisabled, handleAiError, isClusteringEnabled, setIsClusteringEnabled, refreshKey } = props;
+    const { feedsToDisplay, title, selection, readArticleIds, bookmarkedArticleIds, articleTags, onMarkAsRead, onMarkAsUnread, onMarkMultipleAsRead, onToggleBookmark, onSetArticleTags, onMenuClick, onSearch, articleView, setArticleView, allFeeds, magicFeedTopic, allFeedsView, setAllFeedsView, isAiDisabled, handleAiError, isClusteringEnabled, setIsClusteringEnabled, refreshKey, userProfile, widgetSettings, onWidgetSettingsChange, isCustomizeModalOpen, setCustomizeModalOpen } = props;
     
     const [articles, setArticles] = useState<EnrichedArticle[]>([]);
     const [loading, setLoading] = useState(false);
@@ -1236,140 +1242,408 @@ const MainContent: React.FC<MainContentProps> = (props) => {
         magazine: ViewGridIcon,
     };
     
-    return (
-        <main className="h-full flex flex-col bg-white dark:bg-zinc-900 overflow-y-auto">
-            <header className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-zinc-800 sticky top-0 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm z-10">
-                <div className="flex items-center gap-2">
-                    <button onClick={onMenuClick} className="p-2 -ml-2 rounded-full text-zinc-500 dark:text-zinc-400 hover:bg-gray-200 dark:hover:bg-zinc-700 md:hidden" aria-label="Open sidebar">
-                        <MenuIcon className="w-6 h-6" />
-                    </button>
-                    <h1 className="text-xl font-bold text-zinc-900 dark:text-white truncate">{title}</h1>
-                </div>
-                <div className="flex items-center space-x-2">
-                    <form onSubmit={handleSearchSubmit} className="relative hidden md:block">
-                        <input
-                            type="search"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="Ask AI..."
-                            className="w-48 bg-gray-100 dark:bg-zinc-800 border-transparent rounded-md py-1.5 pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-lime-500 dark:text-zinc-200 dark:placeholder-zinc-400"
-                        />
-                        <div className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 dark:text-zinc-400">
-                            <SearchIcon className="w-4 h-4" />
-                        </div>
-                    </form>
-                    {filteredArticles.length > 0 && !isDashboardView && selection.type !== 'search' &&(
-                        <button onClick={handleMarkAllAsRead} className="flex items-center space-x-2 text-xs text-gray-500 dark:text-zinc-400 hover:text-lime-500 dark:hover:text-lime-400 font-medium">
-                            <CheckCircleIcon className="w-4 h-4" />
-                            <span>Mark All as Read</span>
-                        </button>
-                    )}
-                    {selection.type === 'all' && (
-                         <div className="flex items-center rounded-md bg-gray-100 dark:bg-zinc-800 p-0.5">
-                           <button onClick={() => setAllFeedsView('dashboard')} className={`p-1.5 rounded-md transition-colors ${allFeedsView === 'dashboard' ? 'bg-white dark:bg-zinc-700 text-lime-600 dark:text-lime-400' : 'text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-white'}`} aria-label="Switch to dashboard view">
-                                <LayoutGridIcon className="w-5 h-5" />
-                            </button>
-                            <button onClick={() => setAllFeedsView('list')} className={`p-1.5 rounded-md transition-colors ${allFeedsView === 'list' ? 'bg-white dark:bg-zinc-700 text-lime-600 dark:text-lime-400' : 'text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-white'}`} aria-label="Switch to list view">
-                                <ViewListIcon className="w-5 h-5" />
-                            </button>
-                        </div>
-                    )}
-                    {!isDashboardView && selection.type !== 'search' && (
-                        <div className="flex items-center rounded-md bg-gray-100 dark:bg-zinc-800 p-0.5">
-                            <button onClick={() => setIsClusteringEnabled(!isClusteringEnabled)} disabled={isClustering} className={`p-1.5 rounded-md transition-colors disabled:opacity-50 ${isClusteringEnabled ? 'bg-white dark:bg-zinc-700 text-lime-600 dark:text-lime-400' : 'text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-white'}`} title="Toggle article clustering">
-                                <DocumentDuplicateIcon className={`w-5 h-5 ${isClustering ? 'animate-pulse' : ''}`} />
-                            </button>
-                            {(['card', 'compact', 'magazine'] as ArticleView[]).map(view => {
-                                 const Icon = viewIcons[view];
-                                 return (
-                                    <button key={view} onClick={() => setArticleView(view)} className={`p-1.5 rounded-md transition-colors ${articleView === view ? 'bg-white dark:bg-zinc-700 text-lime-600 dark:text-lime-400' : 'text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-white'}`} aria-label={`Switch to ${view} view`}>
-                                        <Icon className="w-5 h-5" />
-                                    </button>
-                                 )
-                            })}
-                        </div>
+    // The new mobile-first "Discover" view
+    const DiscoverView = () => (
+        <div className="flex-1 flex flex-col bg-white dark:bg-zinc-950 overflow-y-auto">
+            <header className="flex items-center justify-between p-4">
+                <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">Google</h1>
+                <div>
+                    {userProfile?.picture ? (
+                        <img src={userProfile.picture} alt="User" className="w-8 h-8 rounded-full" />
+                    ) : (
+                        <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-zinc-700"></div>
                     )}
                 </div>
             </header>
-            
-            <div className="flex-1 p-4 md:p-6 lg:p-8">
-                {isAiDisabled && (
-                    <div className="mb-4 p-3 bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-500/40 rounded-lg text-sm text-yellow-800 dark:text-yellow-200" role="alert">
-                        AI features are temporarily disabled due to high usage. They will be re-enabled automatically.
-                    </div>
-                )}
-                 {activeFilter && (
-                    <div className="mb-4 flex items-center gap-2">
-                        <span className="text-sm text-gray-500 dark:text-zinc-400">Filtered by:</span>
-                        <span className="inline-flex items-center gap-x-2 rounded-full bg-lime-100 px-3 py-1 text-sm font-medium text-lime-800 dark:bg-lime-900/50 dark:text-lime-300">
-                            {activeFilter}
-                            <button onClick={() => setActiveFilter(null)} className="flex-shrink-0 h-4 w-4 rounded-full inline-flex items-center justify-center text-lime-600 dark:text-lime-200 hover:bg-lime-200 dark:hover:bg-lime-800/50 focus:outline-none">
-                                <span className="sr-only">Remove filter</span>
-                                <XIcon className="h-3 w-3" />
-                            </button>
-                        </span>
-                    </div>
-                 )}
 
-                {loading && !articles.length && (
-                    <div className="flex justify-center items-center h-full pt-10">
-                        <svg className="animate-spin h-8 w-8 text-lime-500 dark:text-lime-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
+            <DiscoverWidgetCarousel 
+                settings={widgetSettings}
+                onCustomizeClick={() => setCustomizeModalOpen(true)}
+                isAiDisabled={isAiDisabled}
+                handleAiError={handleAiError}
+            />
+
+            <div className="p-4 space-y-4">
+                {loading && <div className="text-center p-8 text-gray-500 dark:text-zinc-400">Loading articles...</div>}
+                {error && <div className="text-center text-red-500">{error}</div>}
+                {filteredArticles.map(article => (
+                    <DiscoverArticleItem key={article.id} article={article} />
+                ))}
+            </div>
+
+            <CustomizeModal 
+                show={isCustomizeModalOpen}
+                onClose={() => setCustomizeModalOpen(false)}
+                settings={widgetSettings}
+                onSettingsChange={onWidgetSettingsChange}
+            />
+        </div>
+    );
+    
+    return (
+        <>
+            {/* Mobile Discover View */}
+            <div className="md:hidden h-full">
+                <DiscoverView />
+            </div>
+
+            {/* Desktop View */}
+            <main className="hidden md:flex h-full flex-col bg-white dark:bg-zinc-900 overflow-y-auto">
+                <header className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-zinc-800 sticky top-0 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm z-10">
+                    <div className="flex items-center gap-2">
+                        <button onClick={onMenuClick} className="p-2 -ml-2 rounded-full text-zinc-500 dark:text-zinc-400 hover:bg-gray-200 dark:hover:bg-zinc-700 md:hidden" aria-label="Open sidebar">
+                            <MenuIcon className="w-6 h-6" />
+                        </button>
+                        <h1 className="text-xl font-bold text-zinc-900 dark:text-white truncate">{title}</h1>
                     </div>
-                )}
-                {error && <div className="text-center text-red-700 dark:text-red-400 mt-4 bg-red-100 dark:bg-red-900/20 p-4 rounded-md border border-red-300 dark:border-red-500/30">{error}</div>}
-                
-                {selection.type === 'search' && selection.query ? (
-                    <AIAnswerView query={selection.query} articles={articles} isAiDisabled={isAiDisabled} handleAiError={handleAiError} />
-                ) : isDashboardView ? (
-                    <ThreatDashboard unreadArticles={unreadArticles} onSetFilter={handleSetFilter} isAiDisabled={isAiDisabled} handleAiError={handleAiError} />
-                ) : (
-                    <>
-                        {!loading && !error && itemsToRender.length === 0 && (
-                            <div className="text-center pt-10">
-                                <h2 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">No articles found</h2>
-                                <p className="text-gray-500 dark:text-zinc-400">There are no articles to display for this selection.</p>
+                    <div className="flex items-center space-x-2">
+                        <form onSubmit={handleSearchSubmit} className="relative hidden md:block">
+                            <input
+                                type="search"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="Ask AI..."
+                                className="w-48 bg-gray-100 dark:bg-zinc-800 border-transparent rounded-md py-1.5 pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-lime-500 dark:text-zinc-200 dark:placeholder-zinc-400"
+                            />
+                            <div className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 dark:text-zinc-400">
+                                <SearchIcon className="w-4 h-4" />
+                            </div>
+                        </form>
+                        {filteredArticles.length > 0 && !isDashboardView && selection.type !== 'search' &&(
+                            <button onClick={handleMarkAllAsRead} className="flex items-center space-x-2 text-xs text-gray-500 dark:text-zinc-400 hover:text-lime-500 dark:hover:text-lime-400 font-medium">
+                                <CheckCircleIcon className="w-4 h-4" />
+                                <span>Mark All as Read</span>
+                            </button>
+                        )}
+                        {selection.type === 'all' && (
+                            <div className="flex items-center rounded-md bg-gray-100 dark:bg-zinc-800 p-0.5">
+                            <button onClick={() => setAllFeedsView('dashboard')} className={`p-1.5 rounded-md transition-colors ${allFeedsView === 'dashboard' ? 'bg-white dark:bg-zinc-700 text-lime-600 dark:text-lime-400' : 'text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-white'}`} aria-label="Switch to dashboard view">
+                                    <LayoutGridIcon className="w-5 h-5" />
+                                </button>
+                                <button onClick={() => setAllFeedsView('list')} className={`p-1.5 rounded-md transition-colors ${allFeedsView === 'list' ? 'bg-white dark:bg-zinc-700 text-lime-600 dark:text-lime-400' : 'text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-white'}`} aria-label="Switch to list view">
+                                    <ViewListIcon className="w-5 h-5" />
+                                </button>
                             </div>
                         )}
-                        <div className={`grid gap-4 ${articleView === 'magazine' && !isClusteringEnabled ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
-                            {itemsToRender.map((item, index) =>
-                                'representativeHeadline' in item ? (
-                                    <ArticleCluster
-                                        key={item.representativeHeadline}
-                                        cluster={item}
-                                        allArticles={articlesById}
-                                        isFocused={focusedArticleIndex === index}
-                                        articleRef={(el: HTMLDivElement | null) => (articleRefs.current[index] = el)}
-                                        onEnrich={handleEnrichArticle}
-                                        {...props} // Pass all necessary props
-                                    />
-                                ) : (
-                                    <ArticleItem
-                                        key={item.id}
-                                        article={item}
-                                        isRead={readArticleIds.has(item.id)}
-                                        isBookmarked={bookmarkedArticleIds.has(item.id)}
-                                        tags={articleTags.get(item.id) || new Set()}
-                                        onMarkAsRead={onMarkAsRead}
-                                        onMarkAsUnread={onMarkAsUnread}
-                                        onToggleBookmark={onToggleBookmark}
-                                        onSetTags={(tags) => onSetArticleTags(item.id, tags)}
-                                        onEnrich={handleEnrichArticle}
-                                        view={articleView}
-                                        isAiDisabled={isAiDisabled}
-                                        handleAiError={handleAiError}
-                                        isFocused={focusedArticleIndex === index}
-                                        articleRef={el => (articleRefs.current[index] = el)}
-                                    />
-                                )
-                            )}
+                        {!isDashboardView && selection.type !== 'search' && (
+                            <div className="flex items-center rounded-md bg-gray-100 dark:bg-zinc-800 p-0.5">
+                                <button onClick={() => setIsClusteringEnabled(!isClusteringEnabled)} disabled={isClustering} className={`p-1.5 rounded-md transition-colors disabled:opacity-50 ${isClusteringEnabled ? 'bg-white dark:bg-zinc-700 text-lime-600 dark:text-lime-400' : 'text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-white'}`} title="Toggle article clustering">
+                                    <DocumentDuplicateIcon className={`w-5 h-5 ${isClustering ? 'animate-pulse' : ''}`} />
+                                </button>
+                                {(['card', 'compact', 'magazine'] as ArticleView[]).map(view => {
+                                    const Icon = viewIcons[view];
+                                    return (
+                                        <button key={view} onClick={() => setArticleView(view)} className={`p-1.5 rounded-md transition-colors ${articleView === view ? 'bg-white dark:bg-zinc-700 text-lime-600 dark:text-lime-400' : 'text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-white'}`} aria-label={`Switch to ${view} view`}>
+                                            <Icon className="w-5 h-5" />
+                                        </button>
+                                    )
+                                })}
+                            </div>
+                        )}
+                    </div>
+                </header>
+                
+                <div className="flex-1 p-4 md:p-6 lg:p-8">
+                    {isAiDisabled && (
+                        <div className="mb-4 p-3 bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-500/40 rounded-lg text-sm text-yellow-800 dark:text-yellow-200" role="alert">
+                            AI features are temporarily disabled due to high usage. They will be re-enabled automatically.
                         </div>
-                    </>
-                )}
+                    )}
+                    {activeFilter && (
+                        <div className="mb-4 flex items-center gap-2">
+                            <span className="text-sm text-gray-500 dark:text-zinc-400">Filtered by:</span>
+                            <span className="inline-flex items-center gap-x-2 rounded-full bg-lime-100 px-3 py-1 text-sm font-medium text-lime-800 dark:bg-lime-900/50 dark:text-lime-300">
+                                {activeFilter}
+                                <button onClick={() => setActiveFilter(null)} className="flex-shrink-0 h-4 w-4 rounded-full inline-flex items-center justify-center text-lime-600 dark:text-lime-200 hover:bg-lime-200 dark:hover:bg-lime-800/50 focus:outline-none">
+                                    <span className="sr-only">Remove filter</span>
+                                    <XIcon className="h-3 w-3" />
+                                </button>
+                            </span>
+                        </div>
+                    )}
+
+                    {loading && !articles.length && (
+                        <div className="flex justify-center items-center h-full pt-10">
+                            <svg className="animate-spin h-8 w-8 text-lime-500 dark:text-lime-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        </div>
+                    )}
+                    {error && <div className="text-center text-red-700 dark:text-red-400 mt-4 bg-red-100 dark:bg-red-900/20 p-4 rounded-md border border-red-300 dark:border-red-500/30">{error}</div>}
+                    
+                    {selection.type === 'search' && selection.query ? (
+                        <AIAnswerView query={selection.query} articles={articles} isAiDisabled={isAiDisabled} handleAiError={handleAiError} />
+                    ) : isDashboardView ? (
+                        <ThreatDashboard unreadArticles={unreadArticles} onSetFilter={handleSetFilter} isAiDisabled={isAiDisabled} handleAiError={handleAiError} />
+                    ) : (
+                        <>
+                            {!loading && !error && itemsToRender.length === 0 && (
+                                <div className="text-center pt-10">
+                                    <h2 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">No articles found</h2>
+                                    <p className="text-gray-500 dark:text-zinc-400">There are no articles to display for this selection.</p>
+                                </div>
+                            )}
+                            <div className={`grid gap-4 ${articleView === 'magazine' && !isClusteringEnabled ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
+                                {itemsToRender.map((item, index) =>
+                                    'representativeHeadline' in item ? (
+                                        <ArticleCluster
+                                            key={item.representativeHeadline}
+                                            cluster={item}
+                                            allArticles={articlesById}
+                                            isFocused={focusedArticleIndex === index}
+                                            articleRef={(el: HTMLDivElement | null) => (articleRefs.current[index] = el)}
+                                            onEnrich={handleEnrichArticle}
+                                            {...props} // Pass all necessary props
+                                        />
+                                    ) : (
+                                        <ArticleItem
+                                            key={item.id}
+                                            article={item}
+                                            isRead={readArticleIds.has(item.id)}
+                                            isBookmarked={bookmarkedArticleIds.has(item.id)}
+                                            tags={articleTags.get(item.id) || new Set()}
+                                            onMarkAsRead={onMarkAsRead}
+                                            onMarkAsUnread={onMarkAsUnread}
+                                            onToggleBookmark={onToggleBookmark}
+                                            onSetTags={(tags) => onSetArticleTags(item.id, tags)}
+                                            onEnrich={handleEnrichArticle}
+                                            view={articleView}
+                                            isAiDisabled={isAiDisabled}
+                                            handleAiError={handleAiError}
+                                            isFocused={focusedArticleIndex === index}
+                                            articleRef={el => (articleRefs.current[index] = el)}
+                                        />
+                                    )
+                                )}
+                            </div>
+                        </>
+                    )}
+                </div>
+            </main>
+        </>
+    );
+};
+
+
+// --- Components for Mobile Discover View ---
+
+// A new article item component styled for the mobile view
+const DiscoverArticleItem: React.FC<{ article: Article }> = ({ article }) => (
+    <div className="bg-white dark:bg-zinc-800/50 rounded-xl overflow-hidden border border-gray-200 dark:border-zinc-800">
+        {article.imageUrl && <img src={article.imageUrl} alt="" className="w-full h-40 object-cover" />}
+        <div className="p-4">
+            <p className="text-xs text-gray-500 dark:text-zinc-400 mb-1">{article.source}</p>
+            <h3 className="font-semibold text-zinc-900 dark:text-white mb-3">{article.title}</h3>
+            <div className="flex justify-between items-center">
+                <p className="text-xs text-gray-400 dark:text-zinc-500">{timeAgo(article.publishedDate)}</p>
+                <div className="flex items-center space-x-2 text-gray-500 dark:text-zinc-400">
+                    <button className="p-1 hover:text-red-500"><BookmarkIcon className="w-5 h-5"/></button>
+                    <button className="p-1 hover:text-lime-500"><ShareIcon className="w-5 h-5"/></button>
+                    <button className="p-1 hover:text-lime-500"><DotsHorizontalIcon className="w-5 h-5"/></button>
+                </div>
             </div>
-        </main>
+        </div>
+    </div>
+);
+
+
+const DiscoverWidgetCarousel: React.FC<{
+    settings: WidgetSettings;
+    onCustomizeClick: () => void;
+    isAiDisabled: boolean;
+    handleAiError: (error: unknown) => boolean;
+}> = ({ settings, onCustomizeClick, isAiDisabled, handleAiError }) => {
+    return (
+        <div className="flex space-x-3 overflow-x-auto p-4 scrollbar-hide">
+            {settings.showWeather && <WeatherWidget location={settings.weatherLocation} isAiDisabled={isAiDisabled} handleAiError={handleAiError} />}
+            {settings.showSports && settings.sportsTeams.map(team => <SportsWidget key={team} team={team} isAiDisabled={isAiDisabled} handleAiError={handleAiError} />)}
+            <CustomizeWidget onClick={onCustomizeClick} />
+        </div>
+    );
+};
+
+// Weather Widget Component
+const WeatherWidget: React.FC<{ location: string; isAiDisabled: boolean; handleAiError: (e: unknown) => boolean }> = ({ location, isAiDisabled, handleAiError }) => {
+    const [weather, setWeather] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchWeather = async () => {
+            if (isAiDisabled) { setLoading(false); return; }
+            setLoading(true);
+            try {
+                const response = await ai.models.generateContent({
+                    model: 'gemini-2.5-flash',
+                    contents: `Get the current weather for ${location}.`,
+                    config: {
+                        responseMimeType: "application/json",
+                        responseSchema: {
+                            type: Type.OBJECT, properties: {
+                                location: { type: Type.STRING },
+                                temperatureCelsius: { type: Type.NUMBER },
+                                condition: { type: Type.STRING },
+                                precipitationChance: { type: Type.NUMBER }
+                            }
+                        }
+                    }
+                });
+                setWeather(JSON.parse(response.text));
+            } catch (e) {
+                console.error("Error fetching weather", e);
+                handleAiError(e);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchWeather();
+    }, [location, isAiDisabled, handleAiError]);
+
+    const WeatherIcon = ({ condition }: { condition: string }) => {
+        const lowerCondition = condition.toLowerCase();
+        if (lowerCondition.includes('sun') || lowerCondition.includes('clear')) return <SunIcon className="w-6 h-6 text-yellow-400" />;
+        if (lowerCondition.includes('cloud')) return <CloudIcon className="w-6 h-6 text-gray-400" />;
+        return <CloudIcon className="w-6 h-6 text-gray-400" />;
+    };
+
+    return (
+        <div className="flex-shrink-0 w-40 p-3 bg-zinc-800 rounded-xl text-white flex flex-col justify-between">
+            {loading ? <p>Loading...</p> : weather ? (
+                <>
+                    <div>
+                        <p className="font-bold">{weather.location}</p>
+                        <p className="text-xs text-zinc-400">{weather.precipitationChance}% rain</p>
+                    </div>
+                    <div className="flex items-center justify-between mt-2">
+                        <p className="text-2xl font-bold">{weather.temperatureCelsius}°</p>
+                        <WeatherIcon condition={weather.condition} />
+                    </div>
+                </>
+            ) : <p className="text-xs">Weather unavailable</p>}
+        </div>
+    );
+};
+
+// Sports Widget Component
+const SportsWidget: React.FC<{ team: string; isAiDisabled: boolean; handleAiError: (e: unknown) => boolean }> = ({ team, isAiDisabled, handleAiError }) => {
+    const [result, setResult] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchScore = async () => {
+            if (isAiDisabled) { setLoading(false); return; }
+            setLoading(true);
+             try {
+                const response = await ai.models.generateContent({
+                    model: 'gemini-2.5-flash',
+                    contents: `Get the latest final match result for the ${team} football team.`,
+                    config: {
+                        responseMimeType: "application/json",
+                        responseSchema: {
+                            type: Type.OBJECT, properties: {
+                                homeTeam: { type: Type.STRING }, homeScore: { type: Type.NUMBER },
+                                awayTeam: { type: Type.STRING }, awayScore: { type: Type.NUMBER },
+                                status: { type: Type.STRING },
+                                homeTeamWebsite: { type: Type.STRING }, awayTeamWebsite: { type: Type.STRING }
+                            }
+                        }
+                    }
+                });
+                setResult(JSON.parse(response.text));
+            } catch (e) {
+                console.error(`Error fetching score for ${team}`, e);
+                handleAiError(e);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchScore();
+    }, [team, isAiDisabled, handleAiError]);
+
+    const TeamLogo = ({ website, name }: { website: string; name: string }) => {
+        const [hasError, setHasError] = useState(!website);
+        if (hasError) {
+             return <div className="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center font-bold text-sm">{name.substring(0, 3).toUpperCase()}</div>;
+        }
+        return <img src={`https://www.google.com/s2/favicons?sz=32&domain_url=${website}`} onError={() => setHasError(true)} alt={`${name} logo`} className="w-8 h-8 object-contain" />;
+    };
+
+    return (
+        <div className="flex-shrink-0 w-48 p-3 bg-zinc-800 rounded-xl text-white flex flex-col">
+            {loading ? <p>Loading...</p> : result ? (
+                <>
+                    <div className="flex justify-between items-center text-sm">
+                        <span>{result.homeTeam.substring(0,3)} vs {result.awayTeam.substring(0,3)}</span>
+                        <span className="text-xs bg-zinc-700 px-1.5 py-0.5 rounded">{result.status}</span>
+                    </div>
+                    <div className="flex justify-around items-center mt-2 flex-grow">
+                        <TeamLogo website={result.homeTeamWebsite} name={result.homeTeam} />
+                        <span className="text-2xl font-bold">{result.homeScore} - {result.awayScore}</span>
+                        <TeamLogo website={result.awayTeamWebsite} name={result.awayTeam} />
+                    </div>
+                </>
+            ) : <p className="text-xs">Result for {team} unavailable</p>}
+        </div>
+    );
+};
+
+// Customize Widget Component
+const CustomizeWidget: React.FC<{ onClick: () => void }> = ({ onClick }) => (
+    <button onClick={onClick} className="flex-shrink-0 w-40 p-3 bg-zinc-800 rounded-xl text-white flex flex-col items-center justify-center space-y-2">
+        <SettingsIcon className="w-6 h-6" />
+        <p className="text-sm font-semibold">Customize your space</p>
+    </button>
+);
+
+// Customize Modal Component
+const CustomizeModal: React.FC<{ show: boolean; onClose: () => void; settings: WidgetSettings; onSettingsChange: (s: WidgetSettings) => void; }> = ({ show, onClose, settings, onSettingsChange }) => {
+    const [localSettings, setLocalSettings] = useState(settings);
+
+    useEffect(() => {
+        setLocalSettings(settings);
+    }, [settings, show]);
+
+    if (!show) return null;
+
+    const handleToggle = (key: keyof WidgetSettings) => {
+        setLocalSettings(prev => ({ ...prev, [key]: !prev[key] }));
+    };
+
+    const handleDone = () => {
+        onSettingsChange(localSettings);
+        onClose();
+    };
+
+    const CheckboxRow = ({ label, description, isChecked, onToggle }: { label: string; description: string; isChecked: boolean; onToggle: () => void; }) => (
+        <div className="flex items-start justify-between py-4 border-b border-zinc-700">
+            <div className="pr-4">
+                <p className="font-semibold">{label}</p>
+                <p className="text-sm text-zinc-400">{description}</p>
+                 <button className="text-sm text-pink-400 mt-2">Manage your {label.toLowerCase()} in...</button>
+            </div>
+            <div onClick={onToggle} className={`w-10 h-6 flex items-center rounded-full p-1 cursor-pointer ${isChecked ? 'bg-pink-400' : 'bg-zinc-600'}`}>
+                <div className={`bg-white w-4 h-4 rounded-full shadow-md transform duration-300 ease-in-out ${isChecked ? 'translate-x-4' : ''}`}></div>
+            </div>
+        </div>
+    );
+
+    return (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-end" onClick={onClose}>
+            <div className="w-full bg-zinc-800 text-white rounded-t-2xl p-4" onClick={e => e.stopPropagation()}>
+                <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-xl font-bold">Customize</h2>
+                    <button onClick={onClose}><XIcon className="w-6 h-6" /></button>
+                </div>
+                <div className="px-2">
+                    <CheckboxRow label="Sports" description="Event updates from teams you follow" isChecked={localSettings.showSports} onToggle={() => handleToggle('showSports')} />
+                    <CheckboxRow label="Finance" description="Stock prices and market trends from industries you follow" isChecked={localSettings.showFinance} onToggle={() => handleToggle('showFinance')} />
+                    <CheckboxRow label="Weather" description="Conditions from your current location" isChecked={localSettings.showWeather} onToggle={() => handleToggle('showWeather')} />
+                </div>
+                <div className="p-4 mt-4">
+                    <button onClick={handleDone} className="w-full bg-pink-400 text-zinc-900 font-bold py-3 rounded-full">Done</button>
+                </div>
+            </div>
+        </div>
     );
 };
 

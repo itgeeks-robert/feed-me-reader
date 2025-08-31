@@ -51,6 +51,14 @@ export type Theme = 'light' | 'dark';
 export type ArticleView = 'card' | 'compact' | 'magazine';
 export type AllFeedsView = 'dashboard' | 'list';
 
+export interface WidgetSettings {
+    showWeather: boolean;
+    showSports: boolean;
+    showFinance: boolean;
+    weatherLocation: string;
+    sportsTeams: string[];
+}
+
 export interface Settings {
     feeds: Feed[];
     folders: Folder[];
@@ -59,6 +67,7 @@ export interface Settings {
     articleView: ArticleView;
     allFeedsView: AllFeedsView;
     isClusteringEnabled: boolean;
+    widgets: WidgetSettings;
 }
 
 export type SyncStatus = 'idle' | 'syncing' | 'success' | 'error';
@@ -71,7 +80,7 @@ const ARTICLE_TAGS_KEY = (user: string) => `feedme_article_tags_${user}`;
 const LAST_AUTO_SYNC_KEY = (user: string) => `feedme_last_auto_sync_${user}`;
 const AI_DISABLED_KEY = 'feedme_ai_disabled_until';
 const GUEST_SETTINGS_KEY = 'feedme_guest_settings';
-const AI_CACHE_KEYS = ['feedme_dashboard_cache', 'feedme_cluster_cache'];
+const AI_CACHE_KEYS = ['feedme_dashboard_cache', 'feedme_cluster_cache', 'feedme_weather_cache', 'feedme_sports_cache'];
 
 
 const defaultFolders: Folder[] = [
@@ -110,6 +119,14 @@ const defaultFeeds: Feed[] = [
     { id: 22, url: 'https://www.eurosport.com/rss.xml', title: 'Eurosport', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=eurosport.com', folderId: 3 },
 ];
 
+const defaultWidgetSettings: WidgetSettings = {
+    showWeather: true,
+    showSports: true,
+    showFinance: false,
+    weatherLocation: 'Kirkham',
+    sportsTeams: ['MUN', 'FYL'],
+};
+
 const App: React.FC = () => {
     const [userProfile, setUserProfile] = useState<GoogleUserProfile | null>(null);
     const [isGapiReady, setIsGapiReady] = useState(false);
@@ -119,8 +136,10 @@ const App: React.FC = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [theme, setTheme] = useState<Theme>('dark');
     const [articleView, setArticleView] = useState<ArticleView>('card');
-    const [allFeedsView, setAllFeedsView] = useState<AllFeedsView>('dashboard');
+    const [allFeedsView, setAllFeedsView] = useState<AllFeedsView>('list');
     const [isClusteringEnabled, setIsClusteringEnabled] = useState<boolean>(true);
+    const [widgetSettings, setWidgetSettings] = useState<WidgetSettings>(defaultWidgetSettings);
+    const [isCustomizeModalOpen, setIsCustomizeModalOpen] = useState(false);
     
     const [folders, setFolders] = useState<Folder[]>(defaultFolders);
     const [feeds, setFeeds] = useState<Feed[]>(defaultFeeds);
@@ -139,8 +158,9 @@ const App: React.FC = () => {
         setMagicFeeds(settings.magicFeeds || []);
         setTheme(settings.theme || 'dark');
         setArticleView(settings.articleView || 'card');
-        setAllFeedsView(settings.allFeedsView || 'dashboard');
+        setAllFeedsView(settings.allFeedsView || 'list');
         setIsClusteringEnabled(settings.isClusteringEnabled ?? true);
+        setWidgetSettings(settings.widgets || defaultWidgetSettings);
     };
 
     const handleAuthChange = useCallback(async (token: google.accounts.oauth2.TokenResponse | null) => {
@@ -228,7 +248,7 @@ const App: React.FC = () => {
         if (!isSilent) setSyncStatus('syncing');
         
         try {
-            const settings: Settings = { feeds, folders, magicFeeds, theme, articleView, allFeedsView, isClusteringEnabled };
+            const settings: Settings = { feeds, folders, magicFeeds, theme, articleView, allFeedsView, isClusteringEnabled, widgets: widgetSettings };
             await GoogleDriveService.uploadSettings(settings);
             if (!isSilent) setSyncStatus('success');
             setLastSyncTime(Date.now());
@@ -265,7 +285,7 @@ const App: React.FC = () => {
         autoSync(); // Check once on load
 
         return () => clearInterval(intervalId);
-    }, [isSignedIn, userProfile, feeds, folders, magicFeeds, theme, articleView, allFeedsView, isClusteringEnabled]); // Re-eval if user or settings change
+    }, [isSignedIn, userProfile, feeds, folders, magicFeeds, theme, articleView, allFeedsView, isClusteringEnabled, widgetSettings]); // Re-eval if user or settings change
 
     const [isAiDisabled, setIsAiDisabled] = useState<boolean>(() => {
         try {
@@ -353,13 +373,13 @@ const App: React.FC = () => {
     useEffect(() => {
         if (isGuestMode) {
             try {
-                const settings: Settings = { feeds, folders, magicFeeds, theme, articleView, allFeedsView, isClusteringEnabled };
+                const settings: Settings = { feeds, folders, magicFeeds, theme, articleView, allFeedsView, isClusteringEnabled, widgets: widgetSettings };
                 window.localStorage.setItem(GUEST_SETTINGS_KEY, JSON.stringify(settings));
             } catch (error) {
                 console.error("Failed to save guest settings to localStorage", error);
             }
         }
-    }, [isGuestMode, feeds, folders, magicFeeds, theme, articleView, allFeedsView, isClusteringEnabled]);
+    }, [isGuestMode, feeds, folders, magicFeeds, theme, articleView, allFeedsView, isClusteringEnabled, widgetSettings]);
     
     useEffect(() => {
         const root = window.document.documentElement;
@@ -669,7 +689,7 @@ const App: React.FC = () => {
     }
 
     return (
-        <div className="h-screen font-sans text-sm relative overflow-hidden">
+        <div className="h-screen font-sans text-sm relative overflow-hidden bg-white dark:bg-zinc-950">
             {isSidebarOpen && (
                 <div onClick={() => setIsSidebarOpen(false)} className="fixed inset-0 bg-black/60 z-30 md:hidden" aria-hidden="true" />
             )}
@@ -728,6 +748,11 @@ const App: React.FC = () => {
                     isClusteringEnabled={isClusteringEnabled}
                     setIsClusteringEnabled={setIsClusteringEnabled}
                     refreshKey={lastRefresh}
+                    userProfile={userProfile}
+                    widgetSettings={widgetSettings}
+                    onWidgetSettingsChange={setWidgetSettings}
+                    isCustomizeModalOpen={isCustomizeModalOpen}
+                    setCustomizeModalOpen={setIsCustomizeModalOpen}
                 />
             </div>
         </div>
