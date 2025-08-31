@@ -6,6 +6,7 @@ import type { GoogleUserProfile } from '../services/googleDriveService';
 import { CORS_PROXY } from '../App';
 import { SparklesIcon, CheckCircleIcon, MenuIcon, BookmarkIcon, ViewColumnsIcon, ViewListIcon, ViewGridIcon, XIcon, SearchIcon, ArrowUturnLeftIcon, ChevronDownIcon, TagIcon, SettingsIcon, CloudIcon, SunIcon, ShareIcon, DotsHorizontalIcon, SeymourIcon } from './icons';
 import { teamLogos } from '../services/teamLogos';
+import { allTeamsMap } from '../services/sportsData';
 
 const sportsCache = new Map<string, { data: any; timestamp: number }>();
 
@@ -393,118 +394,13 @@ const MainContent: React.FC<MainContentProps> = (props) => {
             setSportsApiFailed(false);
             setSportsResults(new Map()); // Clear old results
 
-            const teamNameMap: { [key: string]: string } = {
-                // Premier League
-                'ARS': 'Arsenal',
-                'AVL': 'Aston Villa',
-                'BOU': 'Bournemouth',
-                'BRE': 'Brentford',
-                'BHA': 'Brighton & Hove Albion',
-                'BUR': 'Burnley',
-                'CHE': 'Chelsea',
-                'CRY': 'Crystal Palace',
-                'EVE': 'Everton',
-                'FUL': 'Fulham',
-                'LIV': 'Liverpool',
-                'LUT': 'Luton Town',
-                'MCI': 'Manchester City',
-                'MUN': 'Manchester United',
-                'NEW': 'Newcastle United',
-                'NOT': 'Nottingham Forest',
-                'SHU': 'Sheffield United',
-                'TOT': 'Tottenham Hotspur',
-                'WHU': 'West Ham United',
-                'WOL': 'Wolverhampton Wanderers',
-                
-                // Championship
-                'BIR': 'Birmingham City',
-                'BBR': 'Blackburn Rovers',
-                'BRC': 'Bristol City',
-                'CAR': 'Cardiff City',
-                'COV': 'Coventry City',
-                'HUD': 'Huddersfield Town',
-                'HUL': 'Hull City',
-                'IPS': 'Ipswich Town',
-                'LEE': 'Leeds United',
-                'LEI': 'Leicester City',
-                'MID': 'Middlesbrough',
-                'MIL': 'Millwall',
-                'NOR': 'Norwich City',
-                'PLY': 'Plymouth Argyle',
-                'PNE': 'Preston North End',
-                'QPR': 'Queens Park Rangers',
-                'ROT': 'Rotherham United',
-                'SHW': 'Sheffield Wednesday',
-                'SOU': 'Southampton',
-                'STO': 'Stoke City',
-                'SUN': 'Sunderland',
-                'SWA': 'Swansea City',
-                'WAT': 'Watford',
-                'WBA': 'West Bromwich Albion',
-            
-                // League One
-                'BAR': 'Barnsley',
-                'BLA': 'Blackpool',
-                'BOL': 'Bolton Wanderers',
-                'BRR': 'Bristol Rovers',
-                'BUA': 'Burton Albion',
-                'CAM': 'Cambridge United',
-                'CSL': 'Carlisle United',
-                'CHA': 'Charlton Athletic',
-                'CTN': 'Cheltenham Town',
-                'DER': 'Derby County',
-                'EXE': 'Exeter City',
-                'FLE': 'Fleetwood Town',
-                'LEY': 'Leyton Orient',
-                'LIN': 'Lincoln City',
-                'NHT': 'Northampton Town',
-                'OXF': 'Oxford United',
-                'PET': 'Peterborough United',
-                'POV': 'Port Vale',
-                'POR': 'Portsmouth',
-                'REA': 'Reading',
-                'SHR': 'Shrewsbury Town',
-                'STE': 'Stevenage',
-                'WIG': 'Wigan Athletic',
-                'WYC': 'Wycombe Wanderers',
-            
-                // League Two
-                'ACC': 'Accrington Stanley',
-                'WIM': 'AFC Wimbledon',
-                'BRW': 'Barrow',
-                'BRA': 'Bradford City',
-                'COL': 'Colchester United',
-                'CRA': 'Crawley Town',
-                'CRE': 'Crewe Alexandra',
-                'DON': 'Doncaster Rovers',
-                'FGR': 'Forest Green Rovers',
-                'GIL': 'Gillingham',
-                'GRI': 'Grimsby Town',
-                'HAR': 'Harrogate Town',
-                'MAN': 'Mansfield Town',
-                'MKD': 'Milton Keynes Dons',
-                'MOR': 'Morecambe',
-                'NCP': 'Newport County',
-                'NTT': 'Notts County',
-                'SAL': 'Salford City',
-                'STK': 'Stockport County',
-                'SUT': 'Sutton United',
-                'SWI': 'Swindon Town',
-                'TRA': 'Tranmere Rovers',
-                'WAL': 'Walsall',
-                'WRE': 'Wrexham',
-            
-                // National League
-                'FYL': 'AFC Fylde',
-            };
-
             const fetchTeamData = async (teamCode: string): Promise<{ team: string; result: any; }> => {
                 const cachedEntry = sportsCache.get(teamCode);
                 if (cachedEntry && isCacheValid(cachedEntry.timestamp)) {
                     return { team: teamCode, result: cachedEntry.data };
                 }
                 
-                const teamFullName = teamNameMap[teamCode.toUpperCase()] || teamCode;
+                const teamFullName = allTeamsMap.get(teamCode.toUpperCase()) || teamCode;
 
                 try {
                     const teamSearchRes = await fetchWithTimeout(`https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t=${encodeURIComponent(teamFullName)}`);
@@ -922,7 +818,8 @@ const SportsWidget: React.FC<{
         }, [logoUrl]);
 
         if (hasError || !logoUrl) {
-             return <div className="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center font-bold text-sm text-gray-400">{name.substring(0, 3).toUpperCase()}</div>;
+            const displayName = (name || '').trim().substring(0, 3).toUpperCase() || '???';
+            return <div className="w-8 h-8 rounded-full bg-zinc-300 flex items-center justify-center font-bold text-sm text-zinc-600">{displayName}</div>;
         }
         return <img src={logoUrl} onError={() => setHasError(true)} alt={`${name} logo`} className="w-8 h-8 object-contain" />;
     };
@@ -930,7 +827,7 @@ const SportsWidget: React.FC<{
     const renderFallback = () => (
         <div className="flex flex-col justify-center items-center text-center h-full w-full p-2">
             <p className="text-sm font-bold">{team.toUpperCase()}</p>
-            <p className="text-xs text-zinc-400 mt-1">Score unavailable</p>
+            <p className="text-xs text-zinc-500 mt-1">Score unavailable</p>
         </div>
     );
     
@@ -941,19 +838,19 @@ const SportsWidget: React.FC<{
             href={`https://www.google.com/search?q=${encodeURIComponent(result?.teamFullName || team)}+score`}
             target="_blank"
             rel="noopener noreferrer"
-            className="relative group flex-shrink-0 w-48 h-24 p-3 bg-zinc-800 rounded-2xl text-white flex flex-col justify-between items-center hover:bg-zinc-700/70 transition-colors"
+            className="relative group flex-shrink-0 w-48 h-24 p-3 bg-zinc-200 rounded-2xl text-zinc-900 flex flex-col justify-between items-center hover:bg-zinc-300/70 transition-colors"
         >
             <SearchIcon className={`absolute top-2 right-2 w-4 h-4 text-zinc-500 transition-opacity ${isErrorState ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} />
             
             {isLoading ? (
-                <div className="text-zinc-400 text-sm m-auto animate-pulse">Loading...</div>
+                <div className="text-zinc-600 text-sm m-auto animate-pulse">Loading...</div>
             ) : isErrorState ? (
                 renderFallback()
             ) : (
                  <>
                     <div className="flex justify-between items-start w-full">
-                        <p className="text-xs font-semibold text-zinc-300 truncate pr-2">{result.teamFullName || team.toUpperCase()}</p>
-                        <span className="text-[10px] bg-zinc-700 px-1.5 py-0.5 rounded-md font-semibold flex-shrink-0">{result.matchStatus}</span>
+                        <p className="text-xs font-semibold text-zinc-700 truncate pr-2">{result.teamFullName || team.toUpperCase()}</p>
+                        <span className="text-[10px] bg-white/60 px-1.5 py-0.5 rounded-md font-semibold flex-shrink-0">{result.matchStatus}</span>
                     </div>
                     <div className="flex justify-around items-center w-full">
                         <TeamLogo logoUrl={result.homeTeamLogo} name={result.homeTeam} />

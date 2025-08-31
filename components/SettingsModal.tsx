@@ -1,7 +1,9 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import type { Settings, Theme, ArticleView, WidgetSettings } from '../App';
-import { XIcon, SunIcon, MoonIcon, CloudSyncIcon, CloudArrowDownIcon } from './icons';
+import { XIcon, SunIcon, MoonIcon, CloudSyncIcon, CloudArrowDownIcon, ChevronDownIcon } from './icons';
+import { leagues } from '../services/sportsData';
+import { teamLogos } from '../services/teamLogos';
 
 interface SettingsModalProps {
     isOpen: boolean;
@@ -14,6 +16,22 @@ interface SettingsModalProps {
 
 type Tab = 'General' | 'Feeds' | 'Widgets';
 
+const TeamLogo: React.FC<{ name: string }> = ({ name }) => {
+    const logoUrl = teamLogos[name];
+    const [hasError, setHasError] = useState(!logoUrl);
+
+    useEffect(() => {
+        setHasError(!logoUrl);
+    }, [logoUrl]);
+
+    if (hasError) {
+        const displayName = (name || '').trim().substring(0, 3).toUpperCase() || '???';
+        return <div className="w-5 h-5 rounded-full bg-zinc-700 flex items-center justify-center font-bold text-xs text-gray-400 flex-shrink-0">{displayName}</div>;
+    }
+    return <img src={logoUrl} onError={() => setHasError(true)} alt={`${name} logo`} className="w-5 h-5 object-contain flex-shrink-0" />;
+};
+
+
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onUpdateSettings, onImportOpml, onExportOpml }) => {
     const [activeTab, setActiveTab] = useState<Tab>('General');
     const [localSettings, setLocalSettings] = useState({
@@ -21,7 +39,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
         articleView: settings.articleView,
         widgets: { ...settings.widgets }
     });
-    const [sportsTeamsInput, setSportsTeamsInput] = useState('');
+    const [openLeague, setOpenLeague] = useState<string | null>(leagues.length > 0 ? leagues[0].name : null);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -33,22 +51,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                 articleView: settings.articleView,
                 widgets: { ...settings.widgets }
             });
-            setSportsTeamsInput(settings.widgets.sportsTeams.join(', '));
         }
     }, [isOpen, settings]);
 
     if (!isOpen) return null;
 
     const handleSave = () => {
-        const teams = sportsTeamsInput.split(',').map(t => t.trim()).filter(Boolean);
-        const finalSettings = {
-            ...localSettings,
-            widgets: {
-                ...localSettings.widgets,
-                sportsTeams: teams,
-            },
-        };
-        onUpdateSettings(finalSettings);
+        onUpdateSettings(localSettings);
         onClose();
     };
 
@@ -70,6 +79,16 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
         setLocalSettings(prev => ({
             ...prev,
             widgets: { ...prev.widgets, [key]: value }
+        }));
+    };
+    
+    const handleTeamSelectionChange = (teamCodes: string[]) => {
+        setLocalSettings(prev => ({
+            ...prev,
+            widgets: {
+                ...prev.widgets,
+                sportsTeams: teamCodes,
+            }
         }));
     };
 
@@ -124,7 +143,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                         <div className="space-y-6">
                              <div className="flex items-center justify-between">
                                 <span className="text-zinc-700 dark:text-zinc-300">Show Weather Widget</span>
-                                <input type="checkbox" checked={localSettings.widgets.showWeather} onChange={e => handleWidgetChange('showWeather', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-lime-600 focus:ring-lime-500" />
+                                <input type="checkbox" checked={localSettings.widgets.showWeather} onChange={e => handleWidgetChange('showWeather', e.target.checked)} className="h-4 w-4 rounded border-gray-300 dark:border-zinc-600 text-lime-600 focus:ring-lime-500 bg-transparent dark:bg-zinc-800" />
                             </div>
                              <div>
                                 <label htmlFor="weatherLocation" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Weather Location</label>
@@ -133,12 +152,77 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                             <hr className="border-gray-200 dark:border-zinc-800" />
                              <div className="flex items-center justify-between">
                                 <span className="text-zinc-700 dark:text-zinc-300">Show Sports Widget</span>
-                                <input type="checkbox" checked={localSettings.widgets.showSports} onChange={e => handleWidgetChange('showSports', e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-lime-600 focus:ring-lime-500" />
+                                <input type="checkbox" checked={localSettings.widgets.showSports} onChange={e => handleWidgetChange('showSports', e.target.checked)} className="h-4 w-4 rounded border-gray-300 dark:border-zinc-600 text-lime-600 focus:ring-lime-500 bg-transparent dark:bg-zinc-800" />
                             </div>
                              <div>
-                                <label htmlFor="sportsTeams" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Sports Team Codes (comma-separated)</label>
-                                <input id="sportsTeams" type="text" value={sportsTeamsInput} onChange={(e) => setSportsTeamsInput(e.target.value)} className="w-full bg-white dark:bg-zinc-800 border border-gray-300 dark:border-zinc-700 rounded-md py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-lime-500" placeholder="e.g. MUN, LFC, ARS" />
-                                <p className="text-xs text-gray-400 dark:text-zinc-500 mt-1">Enter team codes to see live scores in the mobile Discover view.</p>
+                                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Select Teams</label>
+                                <div className="border border-gray-300 dark:border-zinc-700 rounded-md max-h-64 overflow-y-auto">
+                                    {leagues.map(league => {
+                                        const isLeagueOpen = openLeague === league.name;
+                                        const teamsInLeague = league.teams.map(t => t.code);
+                                        const selectedTeamsInLeague = teamsInLeague.filter(code => localSettings.widgets.sportsTeams.includes(code));
+                                        const isAllSelected = selectedTeamsInLeague.length === teamsInLeague.length;
+                                        const isSomeSelected = selectedTeamsInLeague.length > 0 && !isAllSelected;
+
+                                        const handleLeagueToggle = () => {
+                                            const currentTeams = new Set(localSettings.widgets.sportsTeams);
+                                            if (isAllSelected) {
+                                                teamsInLeague.forEach(code => currentTeams.delete(code));
+                                            } else {
+                                                teamsInLeague.forEach(code => currentTeams.add(code));
+                                            }
+                                            handleTeamSelectionChange(Array.from(currentTeams));
+                                        };
+
+                                        return (
+                                            <div key={league.name} className="border-b border-gray-200 dark:border-zinc-800 last:border-b-0">
+                                                <div className="flex items-center p-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-800/50" onClick={() => setOpenLeague(isLeagueOpen ? null : league.name)}>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isAllSelected}
+                                                        ref={el => { if (el) el.indeterminate = isSomeSelected; }}
+                                                        onChange={handleLeagueToggle}
+                                                        onClick={e => e.stopPropagation()}
+                                                        className="h-4 w-4 rounded border-gray-300 dark:border-zinc-600 text-lime-600 focus:ring-lime-500 bg-transparent dark:bg-zinc-800"
+                                                        aria-label={`Select all teams in ${league.name}`}
+                                                    />
+                                                    <span className="ml-3 font-medium text-zinc-800 dark:text-zinc-200 flex-grow">{league.name}</span>
+                                                    <ChevronDownIcon className={`w-5 h-5 text-gray-400 dark:text-zinc-500 transition-transform ${isLeagueOpen ? 'rotate-180' : ''}`} />
+                                                </div>
+                                                {isLeagueOpen && (
+                                                    <div className="pl-6 pr-3 pb-3 space-y-2">
+                                                        {league.teams.map(team => {
+                                                            const isSelected = localSettings.widgets.sportsTeams.includes(team.code);
+                                                            const handleTeamToggle = () => {
+                                                                const currentTeams = new Set(localSettings.widgets.sportsTeams);
+                                                                if (isSelected) {
+                                                                    currentTeams.delete(team.code);
+                                                                } else {
+                                                                    currentTeams.add(team.code);
+                                                                }
+                                                                handleTeamSelectionChange(Array.from(currentTeams));
+                                                            };
+                                                            return (
+                                                                <label key={team.code} className="flex items-center p-2 rounded-md hover:bg-gray-100 dark:hover:bg-zinc-800 cursor-pointer">
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={isSelected}
+                                                                        onChange={handleTeamToggle}
+                                                                        className="h-4 w-4 rounded border-gray-300 dark:border-zinc-600 text-lime-600 focus:ring-lime-500 bg-transparent dark:bg-zinc-800"
+                                                                    />
+                                                                    <div className="ml-3 flex items-center gap-2">
+                                                                        <TeamLogo name={team.name} />
+                                                                        <span className="text-sm text-zinc-700 dark:text-zinc-300">{team.name}</span>
+                                                                    </div>
+                                                                </label>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
                             </div>
                              <hr className="border-gray-200 dark:border-zinc-800" />
                              <div className="flex items-center justify-between">
