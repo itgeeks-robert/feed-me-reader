@@ -1,10 +1,10 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import type { Feed, Selection, ArticleView, AllFeedsView, WidgetSettings } from '../App';
+import type { Feed, Selection, ArticleView, WidgetSettings } from '../App';
 import type { GoogleUserProfile } from '../services/googleDriveService';
 import { CORS_PROXY } from '../App';
 import { GoogleGenAI, Type } from '@google/genai';
-import { SparklesIcon, CheckCircleIcon, MenuIcon, BookmarkIcon, ViewColumnsIcon, ViewListIcon, ViewGridIcon, LayoutGridIcon, FireIcon, ShieldCheckIcon, BugAntIcon, XIcon, SearchIcon, ArrowUturnLeftIcon, DocumentDuplicateIcon, ChevronDownIcon, TagIcon, SettingsIcon, CloudIcon, SunIcon, ShareIcon, DotsHorizontalIcon } from './icons';
+import { SparklesIcon, CheckCircleIcon, MenuIcon, BookmarkIcon, ViewColumnsIcon, ViewListIcon, ViewGridIcon, XIcon, SearchIcon, ArrowUturnLeftIcon, ChevronDownIcon, TagIcon, SettingsIcon, CloudIcon, SunIcon, ShareIcon, DotsHorizontalIcon, SeymourIcon } from './icons';
 
 // Create a single, shared AI instance, initialized once.
 if (!process.env.API_KEY) {
@@ -22,54 +22,19 @@ interface Article {
     imageUrl: string | null;
 }
 
-interface EnrichedArticle extends Article {
-    summary?: string;
-    sentiment?: 'Positive' | 'Neutral' | 'Negative';
-    tags?: string[];
-}
-
-interface Briefing {
-    topHeadlines: string[];
-    keyThemes: string[];
-    deepDive: {
-        title: string;
-        snippet: string;
-    };
-}
-
-interface GroundingChunk {
-  web?: {
-    uri: string;
-    title: string;
-  };
-}
-
-// Types for Article Clustering
-interface Cluster {
-    representativeHeadline: string;
-    articleIds: string[];
-}
-
-interface ClusteringResult {
-    clusters: Cluster[];
-    uniqueArticleIds: string[];
-}
-
-
 function timeAgo(date: Date | null): string {
     if (!date) return '';
     const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
-    let interval = seconds / 31536000;
-    if (interval > 1) return `${Math.floor(interval)}y ago`;
-    interval = seconds / 2592000;
-    if (interval > 1) return `${Math.floor(interval)}mo ago`;
-    interval = seconds / 86400;
-    if (interval > 1) return `${Math.floor(interval)}d ago`;
-    interval = seconds / 3600;
-    if (interval > 1) return `${Math.floor(interval)}h ago`;
-    interval = seconds / 60;
-    if (interval > 1) return `${Math.floor(interval)}m ago`;
-    return `${Math.floor(seconds)}s ago`;
+    if (seconds < 60) return `${seconds}s`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h`;
+    const days = Math.floor(hours / 24);
+    if (days < 7) return `${days}d`;
+    
+    // For anything older than a week, show the date
+    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
 const parseRssXml = (xmlText: string, sourceTitle: string): Article[] => {
@@ -133,7 +98,7 @@ const parseRssXml = (xmlText: string, sourceTitle: string): Article[] => {
 };
 
 const ArticleItem: React.FC<{
-    article: EnrichedArticle,
+    article: Article,
     isRead: boolean,
     isBookmarked: boolean,
     tags: Set<string>,
@@ -141,15 +106,10 @@ const ArticleItem: React.FC<{
     onMarkAsUnread: (id: string) => void,
     onToggleBookmark: (id: string) => void,
     onSetTags: (tags: Set<string>) => void,
-    onEnrich: (id: string, data: Partial<EnrichedArticle>) => void,
     view: ArticleView,
-    isAiDisabled: boolean,
-    handleAiError: (error: unknown) => boolean,
     isFocused: boolean,
     articleRef: (el: HTMLDivElement | null) => void,
-}> = ({ article, isRead, isBookmarked, tags, onMarkAsRead, onMarkAsUnread, onToggleBookmark, onSetTags, onEnrich, view, isAiDisabled, handleAiError, isFocused, articleRef }) => {
-    const [isSummarizing, setIsSummarizing] = useState(false);
-    const [summaryError, setSummaryError] = useState('');
+}> = ({ article, isRead, isBookmarked, tags, onMarkAsRead, onMarkAsUnread, onToggleBookmark, onSetTags, view, isFocused, articleRef }) => {
     const [isEditingTags, setIsEditingTags] = useState(false);
     const [tagInput, setTagInput] = useState('');
     const tagInputRef = useRef<HTMLInputElement>(null);
@@ -184,47 +144,6 @@ const ArticleItem: React.FC<{
         }
         setTagInput('');
         setIsEditingTags(false);
-    };
-
-    const handleSummarize = async () => {
-        if (isAiDisabled) {
-            setSummaryError("AI features are temporarily disabled.");
-            return;
-        }
-        setIsSummarizing(true);
-        setSummaryError('');
-        try {
-            const prompt = `Provide a concise, one-paragraph summary of the following news article based on its title and snippet.\n\nTitle: "${article.title}"\n\nSnippet: "${article.snippet}"`;
-            
-            const maxRetries = 3;
-            for (let attempt = 1; attempt <= maxRetries; attempt++) {
-                try {
-                    const response = await ai.models.generateContent({
-                        model: 'gemini-2.5-flash',
-                        contents: prompt,
-                    });
-                    onEnrich(article.id, { summary: response.text });
-                    return;
-                } catch (e) {
-                    console.error(`Error summarizing article (attempt ${attempt}):`, e);
-                    if (handleAiError(e)) {
-                        setSummaryError("AI features are temporarily disabled.");
-                        return;
-                    }
-                    if (attempt < maxRetries && e instanceof Error && (e.message.includes('429') || e.message.includes('RESOURCE_EXHAUSTED'))) {
-                        const delay = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
-                        await new Promise(resolve => setTimeout(resolve, delay));
-                    } else {
-                        throw e;
-                    }
-                }
-            }
-        } catch (e) {
-            console.error("Final error summarizing article:", e);
-            setSummaryError("Could not generate summary.");
-        } finally {
-            setIsSummarizing(false);
-        }
     };
     
     const handleMarkAsUnread = (e: React.MouseEvent) => {
@@ -296,10 +215,6 @@ const ArticleItem: React.FC<{
                                     <span>Unread</span>
                                 </button>
                             )}
-                            <button onClick={handleSummarize} disabled={isSummarizing || !!article.summary || isAiDisabled} className="flex items-center space-x-2 text-xs text-gray-500 dark:text-zinc-400 hover:text-lime-500 dark:hover:text-lime-400 disabled:opacity-50 disabled:cursor-not-allowed font-medium" title={isAiDisabled ? "AI features are temporarily disabled" : "Summarize"}>
-                                <SparklesIcon className="w-4 h-4" />
-                                <span>{isSummarizing ? '...' : (article.summary ? 'Summary' : 'Summarize')}</span>
-                            </button>
                             <button onClick={() => setIsEditingTags(!isEditingTags)} className="text-gray-400 hover:text-lime-500" aria-label="Add or edit tags">
                                 <TagIcon className="w-5 h-5" />
                             </button>
@@ -310,7 +225,7 @@ const ArticleItem: React.FC<{
                     </div>
                 </div>
             </div>
-            {(tags.size > 0 || isEditingTags || isSummarizing || article.summary || summaryError) && (
+            {(tags.size > 0 || isEditingTags) && (
                  <div className="border-t border-gray-200 dark:border-zinc-700/50">
                     {(tags.size > 0 || isEditingTags) && (
                         <div className="p-4">
@@ -340,463 +255,11 @@ const ArticleItem: React.FC<{
                             </div>
                         </div>
                     )}
-                    {(isSummarizing || article.summary || summaryError) && (
-                        <div className={`p-4 ${(tags.size > 0 || isEditingTags) ? 'border-t border-gray-200 dark:border-zinc-700/50' : ''}`}>
-                            {summaryError && <p className="text-sm text-red-600 dark:text-red-400">{summaryError}</p>}
-                            {article.summary && (
-                                <div>
-                                    <h4 className="text-sm font-bold text-zinc-800 dark:text-gray-100 mb-2">AI Summary</h4>
-                                    <p className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{article.summary}</p>
-                                </div>
-                            )}
-                        </div>
-                    )}
                 </div>
             )}
         </div>
     );
 };
-
-const BriefingView: React.FC<{
-    unreadArticles: Article[],
-    isAiDisabled: boolean,
-    handleAiError: (error: unknown) => boolean,
-}> = ({ unreadArticles, isAiDisabled, handleAiError }) => {
-    const [briefing, setBriefing] = useState<Briefing | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState('');
-
-    useEffect(() => {
-        if (unreadArticles.length === 0) return;
-
-        if (isAiDisabled) {
-            setError("AI features are temporarily unavailable due to rate limits.");
-            return;
-        }
-
-        const generateBriefing = async () => {
-            setIsLoading(true);
-            setError('');
-            setBriefing(null);
-            
-            try {
-                const articlesForPrompt = unreadArticles
-                    .slice(0, 50) // Limit to 50 articles to avoid exceeding context length
-                    .map(a => `Title: ${a.title}\nSnippet: ${a.snippet}`)
-                    .join('\n\n');
-
-                const prompt = `Analyze the following list of unread article titles and snippets. From this list, provide an executive summary that includes:
-1.  The top 3-5 most important headlines.
-2.  A list of 2-4 key themes or recurring topics found across the articles.
-3.  A recommendation for a single "deep dive" article that seems most significant or interesting, including its title and snippet.
-
-Here are the articles:\n\n${articlesForPrompt}`;
-
-                const response = await ai.models.generateContent({
-                    model: 'gemini-2.5-flash',
-                    contents: prompt,
-                    config: {
-                        responseMimeType: "application/json",
-                        responseSchema: {
-                            type: Type.OBJECT,
-                            properties: {
-                                topHeadlines: { type: Type.ARRAY, items: { type: Type.STRING } },
-                                keyThemes: { type: Type.ARRAY, items: { type: Type.STRING } },
-                                deepDive: {
-                                    type: Type.OBJECT,
-                                    properties: {
-                                        title: { type: Type.STRING },
-                                        snippet: { type: Type.STRING }
-                                    },
-                                },
-                            },
-                        },
-                    },
-                });
-
-                const parsedBriefing = JSON.parse(response.text);
-                setBriefing(parsedBriefing);
-
-            } catch (e) {
-                console.error("Error generating briefing:", e);
-                if (!handleAiError(e)) {
-                    setError("Sorry, the AI briefing could not be generated at this time.");
-                } else {
-                    setError("AI features are temporarily unavailable due to rate limits.");
-                }
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        generateBriefing();
-    }, [unreadArticles, isAiDisabled, handleAiError]);
-
-    if (unreadArticles.length === 0) {
-        return (
-            <div className="text-center pt-10">
-                <h2 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">You're all caught up!</h2>
-                <p className="text-gray-500 dark:text-zinc-400">There are no new articles to include in your briefing.</p>
-            </div>
-        );
-    }
-
-    if (isLoading) {
-        return (
-             <div className="flex justify-center items-center pt-10">
-                <svg className="animate-spin -ml-1 mr-3 h-8 w-8 text-lime-500 dark:text-lime-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <span className="text-gray-500 dark:text-zinc-400 text-lg">Generating your AI briefing...</span>
-            </div>
-        );
-    }
-    
-    if (error) {
-         return (
-             <div className="text-center text-red-700 dark:text-red-400 mt-10 bg-red-100 dark:bg-red-900/20 p-4 rounded-md border border-red-300 dark:border-red-500/30">
-                 <h2 className="font-bold text-lg mb-2">Briefing Error</h2>
-                 <p className="text-sm">{error}</p>
-             </div>
-         );
-    }
-
-    if (!briefing) return null;
-
-    return (
-        <div className="bg-gray-50 dark:bg-zinc-800/50 p-6 rounded-lg border border-gray-200 dark:border-zinc-700/50">
-            <h2 className="text-2xl font-bold text-zinc-900 dark:text-white mb-6">Your Briefing for Today</h2>
-            <div className="space-y-8">
-                <div>
-                    <h3 className="text-lg font-semibold text-zinc-800 dark:text-gray-100 mb-3 border-b border-gray-200 dark:border-zinc-700 pb-2">Top Headlines</h3>
-                    <ul className="list-disc list-inside space-y-2 text-gray-600 dark:text-gray-300">
-                        {briefing.topHeadlines.map((headline, i) => <li key={i}>{headline}</li>)}
-                    </ul>
-                </div>
-                 <div>
-                    <h3 className="text-lg font-semibold text-zinc-800 dark:text-gray-100 mb-3 border-b border-gray-200 dark:border-zinc-700 pb-2">Key Themes</h3>
-                    <ul className="list-disc list-inside space-y-2 text-gray-600 dark:text-gray-300">
-                        {briefing.keyThemes.map((theme, i) => <li key={i}>{theme}</li>)}
-                    </ul>
-                </div>
-                <div>
-                    <h3 className="text-lg font-semibold text-zinc-800 dark:text-gray-100 mb-3 border-b border-gray-200 dark:border-zinc-700 pb-2">Recommended Deep Dive</h3>
-                    <div className="bg-gray-100 dark:bg-zinc-900/50 p-4 rounded-md">
-                        <h4 className="font-bold text-zinc-900 dark:text-white">{briefing.deepDive.title}</h4>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{briefing.deepDive.snippet}</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-interface ThreatDashboardData {
-    trendingTopics: string[];
-    keyVulnerabilities: string[];
-    emergingThreats: string[];
-}
-
-const ThreatDashboard: React.FC<{
-    unreadArticles: Article[];
-    onSetFilter: (filter: string) => void;
-    isAiDisabled: boolean;
-    handleAiError: (error: unknown) => boolean;
-}> = ({ unreadArticles, onSetFilter, isAiDisabled, handleAiError }) => {
-    const [dashboardData, setDashboardData] = useState<ThreatDashboardData | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState('');
-
-    const DASHBOARD_CACHE_KEY = 'feedme_dashboard_cache';
-    const CACHE_DURATION_MS = 6 * 60 * 60 * 1000; // 6 hours
-
-    useEffect(() => {
-        const generateAndCacheDashboard = async () => {
-            setIsLoading(true);
-            setError('');
-            try {
-                const articlesForPrompt = unreadArticles
-                    .slice(0, 50)
-                    .map(a => `Title: ${a.title}\nSnippet: ${a.snippet}`)
-                    .join('\n\n');
-
-                const prompt = `You are a cybersecurity intelligence analyst. Analyze the following article titles and snippets and generate a "Threat Landscape" dashboard. Identify:
-1.  3-5 'Trending Topics': The most frequently discussed subjects or events.
-2.  3-5 'Key Vulnerabilities': Specific CVEs or significant software/hardware security flaws.
-3.  3-5 'Emerging Threats': New malware families, threat actor groups, or attack techniques.
-
-Do not invent information. If a category is empty, return an empty list for it.
-Articles:\n\n${articlesForPrompt}`;
-
-                const response = await ai.models.generateContent({
-                    model: 'gemini-2.5-flash',
-                    contents: prompt,
-                    config: {
-                        responseMimeType: "application/json",
-                        responseSchema: {
-                            type: Type.OBJECT,
-                            properties: {
-                                trendingTopics: { type: Type.ARRAY, items: { type: Type.STRING } },
-                                keyVulnerabilities: { type: Type.ARRAY, items: { type: Type.STRING } },
-                                emergingThreats: { type: Type.ARRAY, items: { type: Type.STRING } },
-                            },
-                        },
-                    },
-                });
-
-                const parsedData = JSON.parse(response.text);
-                setDashboardData(parsedData);
-                
-                // Cache the new data
-                try {
-                    const cacheItem = { data: parsedData, timestamp: Date.now() };
-                    window.localStorage.setItem(DASHBOARD_CACHE_KEY, JSON.stringify(cacheItem));
-                } catch (e) {
-                    console.error("Failed to write dashboard data to cache", e);
-                }
-
-            } catch (e) {
-                console.error("Error generating dashboard:", e);
-                if (!handleAiError(e)) {
-                    setError("The AI-powered dashboard could not be generated.");
-                } else {
-                    setError("AI features are temporarily unavailable due to rate limits.");
-                }
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        
-        const loadDashboard = () => {
-            if (unreadArticles.length === 0) {
-                setIsLoading(false);
-                return;
-            }
-
-            if (isAiDisabled) {
-                setError("AI features are temporarily unavailable due to rate limits.");
-                setIsLoading(false);
-                return;
-            }
-
-            try {
-                const cachedItem = window.localStorage.getItem(DASHBOARD_CACHE_KEY);
-                if (cachedItem) {
-                    const { data, timestamp } = JSON.parse(cachedItem);
-                    if (Date.now() - timestamp < CACHE_DURATION_MS) {
-                        setDashboardData(data);
-                        setIsLoading(false);
-                        return; // Use cached data
-                    }
-                }
-            } catch (e) {
-                console.error("Failed to read dashboard cache", e);
-            }
-
-            // If no valid cache, generate a new one
-            generateAndCacheDashboard();
-        };
-
-        loadDashboard();
-    }, [unreadArticles, isAiDisabled, handleAiError]);
-
-    if (isLoading) {
-        return (
-            <div className="flex justify-center items-center pt-10">
-                <svg className="animate-spin -ml-1 mr-3 h-8 w-8 text-lime-500 dark:text-lime-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <span className="text-gray-500 dark:text-zinc-400 text-lg">Generating Threat Landscape...</span>
-            </div>
-        );
-    }
-    
-    if (error) {
-        return (
-             <div className="text-center text-red-700 dark:text-red-400 mt-10 bg-red-100 dark:bg-red-900/20 p-4 rounded-md border border-red-300 dark:border-red-500/30">
-                 <h2 className="font-bold text-lg mb-2">Dashboard Error</h2>
-                 <p className="text-sm">{error}</p>
-             </div>
-        );
-    }
-    
-    if (!dashboardData || (dashboardData.trendingTopics.length === 0 && dashboardData.keyVulnerabilities.length === 0 && dashboardData.emergingThreats.length === 0)) {
-        return (
-            <div className="text-center pt-10">
-                <h2 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">All caught up!</h2>
-                <p className="text-gray-500 dark:text-zinc-400">No new articles to analyze for the Threat Landscape.</p>
-            </div>
-        );
-    }
-
-    const DashboardSection: React.FC<{ title: string; items: string[]; icon: React.ReactNode; onSetFilter: (filter: string) => void }> = ({ title, items, icon, onSetFilter }) => {
-        if (!items || items.length === 0) return null;
-        return (
-            <div className="bg-gray-50 dark:bg-zinc-800/50 p-4 rounded-lg border border-gray-200 dark:border-zinc-700/50">
-                <h3 className="flex items-center gap-2 text-base font-semibold text-zinc-800 dark:text-gray-100 mb-3">
-                    {icon}
-                    {title}
-                </h3>
-                <div className="flex flex-col space-y-2">
-                    {items.map(item => (
-                        <button key={item} onClick={() => onSetFilter(item)} className="text-left text-sm text-gray-600 dark:text-gray-300 hover:text-lime-600 dark:hover:text-lime-400 bg-white dark:bg-zinc-800 p-2 rounded-md hover:bg-lime-50 dark:hover:bg-zinc-700/50 transition-colors duration-150">
-                           {item}
-                        </button>
-                    ))}
-                </div>
-            </div>
-        );
-    };
-
-    return (
-        <div>
-            <h2 className="text-2xl font-bold text-zinc-900 dark:text-white mb-4">Threat Landscape</h2>
-             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <DashboardSection title="Trending Topics" items={dashboardData.trendingTopics} icon={<FireIcon className="w-5 h-5 text-orange-500" />} onSetFilter={onSetFilter} />
-                <DashboardSection title="Key Vulnerabilities" items={dashboardData.keyVulnerabilities} icon={<ShieldCheckIcon className="w-5 h-5 text-blue-500" />} onSetFilter={onSetFilter} />
-                <DashboardSection title="Emerging Threats" items={dashboardData.emergingThreats} icon={<BugAntIcon className="w-5 h-5 text-red-500" />} onSetFilter={onSetFilter} />
-            </div>
-        </div>
-    );
-};
-
-interface AIAnswer {
-    answer: string;
-    source_ids: string[];
-}
-
-const AIAnswerView: React.FC<{
-    query: string;
-    articles: Article[];
-    isAiDisabled: boolean;
-    handleAiError: (error: unknown) => boolean;
-}> = ({ query, articles, isAiDisabled, handleAiError }) => {
-    const [result, setResult] = useState<AIAnswer | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState('');
-
-    useEffect(() => {
-        const getAnswer = async () => {
-            if (isAiDisabled) {
-                setError("AI features are temporarily unavailable due to rate limits.");
-                setIsLoading(false);
-                return;
-            }
-
-            if (articles.length === 0) {
-                setError("There are no articles to search through.");
-                setIsLoading(false);
-                return;
-            }
-
-            setIsLoading(true);
-            setError('');
-
-            try {
-                const articlesForPrompt = articles
-                    .slice(0, 100) // Limit context size
-                    .map(a => `ID: ${a.id}\nTitle: ${a.title}\nSnippet: ${a.snippet}`)
-                    .join('\n\n---\n\n');
-
-                const prompt = `You are a helpful research assistant. Based ONLY on the provided article summaries below, answer the user's question.
-- Your answer must be comprehensive and directly address the user's query.
-- If the articles do not contain enough information to answer the question, you MUST respond with "I could not find a definitive answer in the current articles."
-- After your answer, you MUST list the most relevant article IDs that you used to formulate the response.
-
-User Question: "${query}"
-
-Articles:
-${articlesForPrompt}`;
-
-                const response = await ai.models.generateContent({
-                    model: 'gemini-2.5-flash',
-                    contents: prompt,
-                    config: {
-                        responseMimeType: "application/json",
-                        responseSchema: {
-                            type: Type.OBJECT,
-                            properties: {
-                                answer: { type: Type.STRING, description: 'A synthesized answer to the user query based on the provided articles.' },
-                                source_ids: { type: Type.ARRAY, items: { type: Type.STRING }, description: 'A list of the article IDs that were most relevant to generating the answer.' }
-                            }
-                        }
-                    }
-                });
-                
-                setResult(JSON.parse(response.text));
-            } catch (e) {
-                console.error("Error generating AI answer:", e);
-                if (!handleAiError(e)) {
-                    setError("The AI was unable to answer the question. Please try again.");
-                } else {
-                    setError("AI features are temporarily unavailable due to rate limits.");
-                }
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        getAnswer();
-    }, [query, articles, isAiDisabled, handleAiError]);
-
-    if (isLoading) {
-        return (
-            <div className="flex justify-center items-center pt-10">
-                <svg className="animate-spin -ml-1 mr-3 h-8 w-8 text-lime-500 dark:text-lime-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <span className="text-gray-500 dark:text-zinc-400 text-lg">Searching for an answer...</span>
-            </div>
-        );
-    }
-
-    if (error) {
-        return (
-            <div className="text-center text-red-700 dark:text-red-400 mt-10 bg-red-100 dark:bg-red-900/20 p-4 rounded-md border border-red-300 dark:border-red-500/30">
-                <h2 className="font-bold text-lg mb-2">Search Error</h2>
-                <p className="text-sm">{error}</p>
-            </div>
-        );
-    }
-
-    if (!result) return null;
-
-    const sourceArticles = result.source_ids
-        .map(id => articles.find(a => a.id === id))
-        .filter((a): a is Article => !!a);
-
-    return (
-        <div className="space-y-6">
-            <div>
-                <h2 className="text-sm text-gray-500 dark:text-zinc-400">AI Answer for:</h2>
-                <p className="text-xl font-semibold text-zinc-900 dark:text-white">"{query}"</p>
-            </div>
-            <div className="p-4 bg-gray-50 dark:bg-zinc-800/50 border border-gray-200 dark:border-zinc-700/50 rounded-lg">
-                <div className="flex items-start gap-3">
-                    <SparklesIcon className="w-5 h-5 text-lime-500 flex-shrink-0 mt-1" />
-                    <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{result.answer}</p>
-                </div>
-            </div>
-            {sourceArticles.length > 0 && (
-                 <div>
-                    <h3 className="text-base font-semibold text-zinc-800 dark:text-gray-100 mb-3">Sources</h3>
-                    <div className="space-y-2">
-                        {sourceArticles.map(article => (
-                            <a href={article.link} target="_blank" rel="noopener noreferrer" key={article.id} className="block p-3 bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700/50 rounded-md hover:bg-gray-50 dark:hover:bg-zinc-700 transition-colors">
-                                <p className="font-medium text-zinc-800 dark:text-gray-100">{article.title}</p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">{article.source}</p>
-                            </a>
-                        ))}
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-};
-
 
 const fetchWithTimeout = (resource: RequestInfo, options: RequestInit & { timeout?: number } = {}) => {
   const { timeout = 8000 } = options;
@@ -822,181 +285,30 @@ interface MainContentProps {
     onMenuClick: () => void;
     onSearch: (query: string) => void;
     articleView: ArticleView;
-    setArticleView: (view: ArticleView) => void;
     allFeeds: Feed[];
-    magicFeedTopic?: string;
-    allFeedsView: AllFeedsView;
-    setAllFeedsView: (view: AllFeedsView) => void;
-    isAiDisabled: boolean;
-    handleAiError: (error: unknown) => boolean;
-    isClusteringEnabled: boolean;
-    setIsClusteringEnabled: (enabled: boolean) => void;
+    isApiKeyMissing: boolean;
     refreshKey: number;
     userProfile: GoogleUserProfile | null;
     widgetSettings: WidgetSettings;
-    onWidgetSettingsChange: (settings: WidgetSettings) => void;
-    isCustomizeModalOpen: boolean;
-    setCustomizeModalOpen: (isOpen: boolean) => void;
+    onOpenSettings: () => void;
 }
 
-const ArticleCluster: React.FC<{
-    cluster: Cluster;
-    allArticles: Map<string, EnrichedArticle>;
-    onMarkMultipleAsRead: (ids: string[]) => void;
-    articleRef: (el: HTMLDivElement | null) => void;
-    // Pass through all props needed by ArticleItem
-    [key: string]: any;
-}> = (props) => {
-    const { cluster, allArticles, onMarkMultipleAsRead, articleRef, readArticleIds, bookmarkedArticleIds, articleTags, onSetArticleTags, ...rest } = props;
-    const [isExpanded, setIsExpanded] = useState(false);
-
-    const clusterArticles = useMemo(() => 
-        cluster.articleIds.map(id => allArticles.get(id)).filter((a): a is EnrichedArticle => !!a)
-    , [cluster.articleIds, allArticles]);
-    
-    if (clusterArticles.length === 0) return null;
-
-    const handleMarkAllRead = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        onMarkMultipleAsRead(cluster.articleIds);
-    };
-
-    return (
-        <div ref={articleRef} className={`bg-gray-50 dark:bg-zinc-800/50 rounded-lg border border-gray-200 dark:border-zinc-700/50 overflow-hidden transition-all ${props.isFocused ? 'ring-2 ring-lime-500' : ''}`}>
-            <div
-                className="p-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-zinc-800 flex justify-between items-center gap-4"
-                onClick={() => setIsExpanded(!isExpanded)}
-            >
-                <div className="flex-1">
-                    <h3 className="font-semibold text-lg text-zinc-900 dark:text-white">{cluster.representativeHeadline}</h3>
-                    <p className="text-sm text-gray-500 dark:text-zinc-400">{clusterArticles.length} related articles</p>
-                </div>
-                <div className="flex items-center gap-4 flex-shrink-0">
-                    <button onClick={handleMarkAllRead} className="hidden sm:block text-xs font-medium text-gray-500 dark:text-zinc-400 hover:text-lime-500 dark:hover:text-lime-400">Mark all read</button>
-                    <ChevronDownIcon className={`w-5 h-5 text-gray-400 dark:text-zinc-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-                </div>
-            </div>
-            {isExpanded && (
-                <div className="px-4 pb-2 border-t border-gray-200 dark:border-zinc-700/50">
-                    {clusterArticles.map(article => (
-                        <ArticleItem
-                            key={article.id}
-                            article={article}
-                            isRead={readArticleIds.has(article.id)}
-                            isBookmarked={bookmarkedArticleIds.has(article.id)}
-                            tags={articleTags.get(article.id) || new Set()}
-                            onSetTags={(tags: Set<string>) => onSetArticleTags(article.id, tags)}
-                            // FIX: Explicitly pass props to ArticleItem. The weakly-typed `...rest` spread was causing a TypeScript error as it couldn't guarantee the props existed.
-                            onMarkAsRead={(props as any).onMarkAsRead}
-                            onMarkAsUnread={(props as any).onMarkAsUnread}
-                            onToggleBookmark={(props as any).onToggleBookmark}
-                            onEnrich={(props as any).onEnrich}
-                            isAiDisabled={(props as any).isAiDisabled}
-                            handleAiError={(props as any).handleAiError}
-                            view="compact"
-                            // These don't need to be passed down to the inner items from a cluster perspective
-                            isFocused={false} 
-                            articleRef={() => {}} 
-                        />
-                    ))}
-                </div>
-            )}
-        </div>
-    );
-};
-
-
 const MainContent: React.FC<MainContentProps> = (props) => {
-    const { feedsToDisplay, title, selection, readArticleIds, bookmarkedArticleIds, articleTags, onMarkAsRead, onMarkAsUnread, onMarkMultipleAsRead, onToggleBookmark, onSetArticleTags, onMenuClick, onSearch, articleView, setArticleView, allFeeds, magicFeedTopic, allFeedsView, setAllFeedsView, isAiDisabled, handleAiError, isClusteringEnabled, setIsClusteringEnabled, refreshKey, userProfile, widgetSettings, onWidgetSettingsChange, isCustomizeModalOpen, setCustomizeModalOpen } = props;
+    const { feedsToDisplay, title, selection, readArticleIds, bookmarkedArticleIds, articleTags, onMarkAsRead, onMarkAsUnread, onMarkMultipleAsRead, onToggleBookmark, onSetArticleTags, onMenuClick, onSearch, articleView, allFeeds, isApiKeyMissing, refreshKey, userProfile, widgetSettings, onOpenSettings } = props;
     
-    const [articles, setArticles] = useState<EnrichedArticle[]>([]);
+    const [articles, setArticles] = useState<Article[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [activeFilter, setActiveFilter] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [focusedArticleIndex, setFocusedArticleIndex] = useState<number | null>(null);
     const articleRefs = useRef<(HTMLDivElement | null)[]>([]);
     
-    const [clusteringResult, setClusteringResult] = useState<ClusteringResult | null>(null);
-    const [isClustering, setIsClustering] = useState(false);
-
     const handleSearchSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (searchQuery.trim()) onSearch(searchQuery.trim());
     };
     
-    const handleEnrichArticle = (articleId: string, data: Partial<EnrichedArticle>) => {
-        setArticles(prev => prev.map(a => a.id === articleId ? { ...a, ...data } : a));
-    };
-    
-    const handleSetFilter = (filter: string) => {
-        setActiveFilter(filter);
-        setAllFeedsView('list');
-    };
-    
-    const isDashboardView = selection.type === 'all' && allFeedsView === 'dashboard' && !activeFilter;
-
     useEffect(() => {
-        if (isDashboardView && isAiDisabled) {
-            setAllFeedsView('list');
-        }
-    }, [isDashboardView, isAiDisabled, setAllFeedsView]);
-
-    useEffect(() => {
-        const fetchMagicFeed = async (topic: string) => {
-            setLoading(true);
-            setError(null);
-            setArticles([]);
-            if (isAiDisabled) {
-                setError("AI features are temporarily unavailable due to rate limits.");
-                setLoading(false);
-                return;
-            }
-            try {
-                const response = await ai.models.generateContent({
-                    model: "gemini-2.5-flash",
-                    contents: `Find recent, relevant online articles about the topic: "${topic}". Provide a diverse list of sources.`,
-                    config: {
-                      tools: [{googleSearch: {}}],
-                    },
-                });
-
-                const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks as GroundingChunk[] | undefined;
-                if (!groundingChunks || groundingChunks.length === 0) {
-                    throw new Error("The AI couldn't find any articles for this topic.");
-                }
-                
-                const magicArticles: Article[] = groundingChunks
-                    .map((chunk: GroundingChunk) => {
-                        if (chunk.web) {
-                            return {
-                                id: chunk.web.uri,
-                                title: chunk.web.title || 'Untitled Article',
-                                link: chunk.web.uri,
-                                source: new URL(chunk.web.uri).hostname.replace('www.', ''),
-                                publishedDate: new Date(), // Grounding API doesn't provide dates
-                                snippet: `Sourced via Google Search. Click to read the full article.`,
-                                imageUrl: null,
-                            };
-                        }
-                        return null;
-                    })
-                    .filter((article: Article | null): article is Article => article !== null && !!article.link);
-                
-                const uniqueMagicArticles = Array.from(new Map(magicArticles.map(a => [a.id, a])).values());
-                setArticles(uniqueMagicArticles);
-            } catch (e) {
-                console.error('Error fetching magic feed:', e);
-                 if (!handleAiError(e)) {
-                    setError(e instanceof Error ? e.message : 'An unknown error occurred while fetching the magic feed.');
-                 } else {
-                    setError("AI features are temporarily unavailable due to rate limits.");
-                 }
-            } finally {
-                setLoading(false);
-            }
-        };
-
         const fetchRssFeeds = async (feeds: Feed[]) => {
             if (feeds.length === 0) {
                 setArticles([]);
@@ -1036,93 +348,11 @@ const MainContent: React.FC<MainContentProps> = (props) => {
             }
         };
 
-        if (magicFeedTopic) {
-            fetchMagicFeed(magicFeedTopic);
-        } else if (selection.type !== 'briefing') {
-            const feedsForFetch = (selection.type === 'bookmarks' || selection.type === 'search' || selection.type === 'all') ? allFeeds : feedsToDisplay;
-            fetchRssFeeds(feedsForFetch);
-        }
-    }, [feedsToDisplay, allFeeds, selection, magicFeedTopic, isAiDisabled, handleAiError, refreshKey]);
+        const feedsForFetch = (selection.type === 'bookmarks' || selection.type === 'search' || selection.type === 'all') ? allFeeds : feedsToDisplay;
+        fetchRssFeeds(feedsForFetch);
+
+    }, [feedsToDisplay, allFeeds, selection, refreshKey]);
     
-    const unreadArticles = useMemo(() => {
-        return articles.filter(a => !readArticleIds.has(a.id));
-    }, [articles, readArticleIds]);
-
-    useEffect(() => {
-        const CLUSTER_CACHE_KEY = 'feedme_cluster_cache';
-        const CACHE_DURATION_MS = 6 * 60 * 60 * 1000; // 6 hours
-
-        const getClusteredArticles = async () => {
-            if (!isClusteringEnabled || unreadArticles.length < 3) {
-                setClusteringResult(null);
-                return;
-            }
-
-            const unreadIds = unreadArticles.map(a => a.id).sort().join(',');
-
-            try {
-                const cached = localStorage.getItem(CLUSTER_CACHE_KEY);
-                if (cached) {
-                    const { result, timestamp, hash } = JSON.parse(cached);
-                    if (Date.now() - timestamp < CACHE_DURATION_MS && hash === unreadIds) {
-                        setClusteringResult(result);
-                        return;
-                    }
-                }
-            } catch (e) { console.error("Error reading cluster cache", e); }
-
-            setIsClustering(true);
-            try {
-                const articlesForPrompt = unreadArticles
-                    .slice(0, 50)
-                    .map(a => `ID: ${a.id}\nTitle: ${a.title}\nSnippet: ${a.snippet}`)
-                    .join('\n\n---\n\n');
-
-                const prompt = `You are a news aggregator AI. Analyze the following articles and group them into clusters based on the real-world event they are reporting on. For each cluster, create a single, representative headline. Articles that don't fit into any cluster should be considered unique. Provide your output in JSON format. Articles:\n${articlesForPrompt}`;
-
-                const response = await ai.models.generateContent({
-                    model: 'gemini-2.5-flash',
-                    contents: prompt,
-                    config: {
-                        responseMimeType: 'application/json',
-                        responseSchema: {
-                            type: Type.OBJECT,
-                            properties: {
-                                clusters: {
-                                    type: Type.ARRAY, description: "Groups of articles about the same event.",
-                                    items: {
-                                        type: Type.OBJECT,
-                                        properties: {
-                                            representativeHeadline: { type: Type.STRING, description: "A summary headline for the cluster." },
-                                            articleIds: { type: Type.ARRAY, items: { type: Type.STRING }, description: "IDs of articles in this cluster." }
-                                        }
-                                    }
-                                },
-                                uniqueArticleIds: {
-                                    type: Type.ARRAY, description: "IDs of articles that don't belong to any cluster.",
-                                    items: { type: Type.STRING }
-                                }
-                            }
-                        }
-                    }
-                });
-                const result = JSON.parse(response.text);
-                setClusteringResult(result);
-                try {
-                    localStorage.setItem(CLUSTER_CACHE_KEY, JSON.stringify({ result, timestamp: Date.now(), hash: unreadIds }));
-                } catch (e) { console.error("Error writing to cluster cache", e); }
-
-            } catch (e) {
-                console.error("Error clustering articles:", e);
-                setClusteringResult(null); // Fallback to no clustering on error
-                handleAiError(e);
-            } finally {
-                setIsClustering(false);
-            }
-        };
-        getClusteredArticles();
-    }, [unreadArticles, isClusteringEnabled, handleAiError]);
-
     const handleMarkAllAsRead = () => {
         onMarkMultipleAsRead(filteredArticles.map(a => a.id));
     };
@@ -1131,47 +361,14 @@ const MainContent: React.FC<MainContentProps> = (props) => {
         let result = articles;
         if (selection.type === 'bookmarks') {
             result = result.filter(a => bookmarkedArticleIds.has(a.id));
-        } else if (activeFilter) {
-            const filter = activeFilter.toLowerCase();
-            result = result.filter(a => a.title.toLowerCase().includes(filter) || a.snippet.toLowerCase().includes(filter));
+        } else if (selection.type === 'search' && selection.query) {
+             const filter = selection.query.toLowerCase();
+             result = result.filter(a => a.title.toLowerCase().includes(filter) || a.snippet.toLowerCase().includes(filter));
         }
         return result;
-    }, [articles, selection, bookmarkedArticleIds, activeFilter]);
+    }, [articles, selection, bookmarkedArticleIds]);
     
-    const articlesById = useMemo(() => new Map(articles.map(a => [a.id, a])), [articles]);
-
-    const itemsToRender = useMemo(() => {
-        if (!isClusteringEnabled || !clusteringResult || isDashboardView || selection.type === 'bookmarks') {
-            return filteredArticles;
-        }
-
-        const renderedIds = new Set<string>();
-        const renderList: (Cluster | EnrichedArticle)[] = [];
-        
-        const validClusters = clusteringResult.clusters.filter(c => c.articleIds.some(id => articlesById.has(id)));
-
-        validClusters.forEach(cluster => {
-            renderList.push(cluster);
-            cluster.articleIds.forEach(id => renderedIds.add(id));
-        });
-
-        clusteringResult.uniqueArticleIds.forEach(id => {
-            const article = articlesById.get(id);
-            if (article) {
-                renderList.push(article);
-                renderedIds.add(id);
-            }
-        });
-
-        filteredArticles.forEach(article => {
-            if (!renderedIds.has(article.id)) {
-                renderList.push(article);
-            }
-        });
-        
-        return renderList;
-
-    }, [isClusteringEnabled, clusteringResult, filteredArticles, articlesById, isDashboardView, selection.type]);
+    const itemsToRender = filteredArticles;
 
     useEffect(() => {
         setFocusedArticleIndex(null);
@@ -1200,7 +397,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                     });
                 } else if (focusedArticleIndex !== null) {
                     const item = itemsToRender[focusedArticleIndex];
-                    if (!item || 'representativeHeadline' in item) return; // Ignore actions on clusters for now
+                    if (!item) return;
                     
                     if (e.key === 'o') {
                         window.open(item.link, '_blank', 'noopener,noreferrer');
@@ -1217,24 +414,6 @@ const MainContent: React.FC<MainContentProps> = (props) => {
         document.addEventListener('keydown', handleKeyDown);
         return () => document.removeEventListener('keydown', handleKeyDown);
     }, [focusedArticleIndex, itemsToRender, onMarkAsRead, onMarkAsUnread, onToggleBookmark, readArticleIds]);
-
-    if (selection.type === 'briefing') {
-        return (
-            <main className="flex-1 flex flex-col bg-white dark:bg-zinc-900 overflow-y-auto">
-                <header className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-zinc-800 sticky top-0 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm z-10">
-                    <div className="flex items-center gap-2">
-                         <button onClick={onMenuClick} className="p-2 -ml-2 rounded-full text-zinc-500 dark:text-zinc-400 hover:bg-gray-200 dark:hover:bg-zinc-700 md:hidden" aria-label="Open sidebar">
-                            <MenuIcon className="w-6 h-6" />
-                        </button>
-                        <h1 className="text-xl font-bold text-zinc-900 dark:text-white truncate">{title}</h1>
-                    </div>
-                </header>
-                <div className="p-4 md:p-6 lg:p-8">
-                     <BriefingView unreadArticles={unreadArticles} isAiDisabled={isAiDisabled} handleAiError={handleAiError} />
-                </div>
-            </main>
-        );
-    }
     
     const viewIcons = {
         card: ViewColumnsIcon,
@@ -1242,41 +421,42 @@ const MainContent: React.FC<MainContentProps> = (props) => {
         magazine: ViewGridIcon,
     };
     
-    // The new mobile-first "Discover" view
     const DiscoverView = () => (
-        <div className="flex-1 flex flex-col bg-white dark:bg-zinc-950 overflow-y-auto">
-            <header className="flex items-center justify-between p-4">
-                <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">Google</h1>
+        <div className="flex-1 flex flex-col bg-zinc-900 text-gray-300 h-full">
+            <header className="flex items-center justify-between p-4 sticky top-0 bg-zinc-900/80 backdrop-blur-sm z-10 flex-shrink-0">
+                 <div className="flex items-center gap-2">
+                    <button onClick={onMenuClick} className="p-2 -ml-2 rounded-full text-zinc-400 hover:bg-zinc-700" aria-label="Open sidebar">
+                        <MenuIcon className="w-6 h-6" />
+                    </button>
+                    <div className="flex items-center space-x-2">
+                        <SeymourIcon className="w-7 h-7" />
+                        <span className="text-md font-bold text-white">See More</span>
+                    </div>
+                </div>
                 <div>
                     {userProfile?.picture ? (
                         <img src={userProfile.picture} alt="User" className="w-8 h-8 rounded-full" />
                     ) : (
-                        <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-zinc-700"></div>
+                        <div className="w-8 h-8 rounded-full bg-zinc-700"></div>
                     )}
                 </div>
             </header>
 
-            <DiscoverWidgetCarousel 
-                settings={widgetSettings}
-                onCustomizeClick={() => setCustomizeModalOpen(true)}
-                isAiDisabled={isAiDisabled}
-                handleAiError={handleAiError}
-            />
+            <div className="flex-1 overflow-y-auto">
+                <DiscoverWidgetCarousel 
+                    settings={widgetSettings}
+                    onCustomizeClick={onOpenSettings}
+                    isApiKeyMissing={isApiKeyMissing}
+                />
 
-            <div className="p-4 space-y-4">
-                {loading && <div className="text-center p-8 text-gray-500 dark:text-zinc-400">Loading articles...</div>}
-                {error && <div className="text-center text-red-500">{error}</div>}
-                {filteredArticles.map(article => (
-                    <DiscoverArticleItem key={article.id} article={article} />
-                ))}
+                <div className="p-4 space-y-4">
+                    {loading && <div className="text-center p-8 text-zinc-400">Loading articles...</div>}
+                    {error && <div className="text-center text-red-500 p-4 bg-red-900/20 rounded-lg">{error}</div>}
+                    {filteredArticles.map(article => (
+                        <DiscoverArticleItem key={article.id} article={article} />
+                    ))}
+                </div>
             </div>
-
-            <CustomizeModal 
-                show={isCustomizeModalOpen}
-                onClose={() => setCustomizeModalOpen(false)}
-                settings={widgetSettings}
-                onSettingsChange={onWidgetSettingsChange}
-            />
         </div>
     );
     
@@ -1302,66 +482,33 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                                 type="search"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder="Ask AI..."
+                                placeholder="Search articles..."
                                 className="w-48 bg-gray-100 dark:bg-zinc-800 border-transparent rounded-md py-1.5 pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-lime-500 dark:text-zinc-200 dark:placeholder-zinc-400"
                             />
                             <div className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 dark:text-zinc-400">
                                 <SearchIcon className="w-4 h-4" />
                             </div>
                         </form>
-                        {filteredArticles.length > 0 && !isDashboardView && selection.type !== 'search' &&(
+                        {filteredArticles.length > 0 && (
                             <button onClick={handleMarkAllAsRead} className="flex items-center space-x-2 text-xs text-gray-500 dark:text-zinc-400 hover:text-lime-500 dark:hover:text-lime-400 font-medium">
                                 <CheckCircleIcon className="w-4 h-4" />
                                 <span>Mark All as Read</span>
                             </button>
                         )}
-                        {selection.type === 'all' && (
-                            <div className="flex items-center rounded-md bg-gray-100 dark:bg-zinc-800 p-0.5">
-                            <button onClick={() => setAllFeedsView('dashboard')} className={`p-1.5 rounded-md transition-colors ${allFeedsView === 'dashboard' ? 'bg-white dark:bg-zinc-700 text-lime-600 dark:text-lime-400' : 'text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-white'}`} aria-label="Switch to dashboard view">
-                                    <LayoutGridIcon className="w-5 h-5" />
-                                </button>
-                                <button onClick={() => setAllFeedsView('list')} className={`p-1.5 rounded-md transition-colors ${allFeedsView === 'list' ? 'bg-white dark:bg-zinc-700 text-lime-600 dark:text-lime-400' : 'text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-white'}`} aria-label="Switch to list view">
-                                    <ViewListIcon className="w-5 h-5" />
-                                </button>
-                            </div>
-                        )}
-                        {!isDashboardView && selection.type !== 'search' && (
-                            <div className="flex items-center rounded-md bg-gray-100 dark:bg-zinc-800 p-0.5">
-                                <button onClick={() => setIsClusteringEnabled(!isClusteringEnabled)} disabled={isClustering} className={`p-1.5 rounded-md transition-colors disabled:opacity-50 ${isClusteringEnabled ? 'bg-white dark:bg-zinc-700 text-lime-600 dark:text-lime-400' : 'text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-white'}`} title="Toggle article clustering">
-                                    <DocumentDuplicateIcon className={`w-5 h-5 ${isClustering ? 'animate-pulse' : ''}`} />
-                                </button>
-                                {(['card', 'compact', 'magazine'] as ArticleView[]).map(view => {
-                                    const Icon = viewIcons[view];
-                                    return (
-                                        <button key={view} onClick={() => setArticleView(view)} className={`p-1.5 rounded-md transition-colors ${articleView === view ? 'bg-white dark:bg-zinc-700 text-lime-600 dark:text-lime-400' : 'text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-white'}`} aria-label={`Switch to ${view} view`}>
-                                            <Icon className="w-5 h-5" />
-                                        </button>
-                                    )
-                                })}
-                            </div>
-                        )}
+                        <div className="flex items-center rounded-md bg-gray-100 dark:bg-zinc-800 p-0.5">
+                            {(['card', 'compact', 'magazine'] as ArticleView[]).map(view => {
+                                const Icon = viewIcons[view];
+                                return (
+                                    <button key={view} onClick={() => { (props as any).setArticleView(view); }} className={`p-1.5 rounded-md transition-colors ${articleView === view ? 'bg-white dark:bg-zinc-700 text-lime-600 dark:text-lime-400' : 'text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-white'}`} aria-label={`Switch to ${view} view`}>
+                                        <Icon className="w-5 h-5" />
+                                    </button>
+                                )
+                            })}
+                        </div>
                     </div>
                 </header>
                 
                 <div className="flex-1 p-4 md:p-6 lg:p-8">
-                    {isAiDisabled && (
-                        <div className="mb-4 p-3 bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-500/40 rounded-lg text-sm text-yellow-800 dark:text-yellow-200" role="alert">
-                            AI features are temporarily disabled due to high usage. They will be re-enabled automatically.
-                        </div>
-                    )}
-                    {activeFilter && (
-                        <div className="mb-4 flex items-center gap-2">
-                            <span className="text-sm text-gray-500 dark:text-zinc-400">Filtered by:</span>
-                            <span className="inline-flex items-center gap-x-2 rounded-full bg-lime-100 px-3 py-1 text-sm font-medium text-lime-800 dark:bg-lime-900/50 dark:text-lime-300">
-                                {activeFilter}
-                                <button onClick={() => setActiveFilter(null)} className="flex-shrink-0 h-4 w-4 rounded-full inline-flex items-center justify-center text-lime-600 dark:text-lime-200 hover:bg-lime-200 dark:hover:bg-lime-800/50 focus:outline-none">
-                                    <span className="sr-only">Remove filter</span>
-                                    <XIcon className="h-3 w-3" />
-                                </button>
-                            </span>
-                        </div>
-                    )}
-
                     {loading && !articles.length && (
                         <div className="flex justify-center items-center h-full pt-10">
                             <svg className="animate-spin h-8 w-8 text-lime-500 dark:text-lime-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -1372,53 +519,30 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                     )}
                     {error && <div className="text-center text-red-700 dark:text-red-400 mt-4 bg-red-100 dark:bg-red-900/20 p-4 rounded-md border border-red-300 dark:border-red-500/30">{error}</div>}
                     
-                    {selection.type === 'search' && selection.query ? (
-                        <AIAnswerView query={selection.query} articles={articles} isAiDisabled={isAiDisabled} handleAiError={handleAiError} />
-                    ) : isDashboardView ? (
-                        <ThreatDashboard unreadArticles={unreadArticles} onSetFilter={handleSetFilter} isAiDisabled={isAiDisabled} handleAiError={handleAiError} />
-                    ) : (
-                        <>
-                            {!loading && !error && itemsToRender.length === 0 && (
-                                <div className="text-center pt-10">
-                                    <h2 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">No articles found</h2>
-                                    <p className="text-gray-500 dark:text-zinc-400">There are no articles to display for this selection.</p>
-                                </div>
-                            )}
-                            <div className={`grid gap-4 ${articleView === 'magazine' && !isClusteringEnabled ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
-                                {itemsToRender.map((item, index) =>
-                                    'representativeHeadline' in item ? (
-                                        <ArticleCluster
-                                            key={item.representativeHeadline}
-                                            cluster={item}
-                                            allArticles={articlesById}
-                                            isFocused={focusedArticleIndex === index}
-                                            articleRef={(el: HTMLDivElement | null) => (articleRefs.current[index] = el)}
-                                            onEnrich={handleEnrichArticle}
-                                            {...props} // Pass all necessary props
-                                        />
-                                    ) : (
-                                        <ArticleItem
-                                            key={item.id}
-                                            article={item}
-                                            isRead={readArticleIds.has(item.id)}
-                                            isBookmarked={bookmarkedArticleIds.has(item.id)}
-                                            tags={articleTags.get(item.id) || new Set()}
-                                            onMarkAsRead={onMarkAsRead}
-                                            onMarkAsUnread={onMarkAsUnread}
-                                            onToggleBookmark={onToggleBookmark}
-                                            onSetTags={(tags) => onSetArticleTags(item.id, tags)}
-                                            onEnrich={handleEnrichArticle}
-                                            view={articleView}
-                                            isAiDisabled={isAiDisabled}
-                                            handleAiError={handleAiError}
-                                            isFocused={focusedArticleIndex === index}
-                                            articleRef={el => (articleRefs.current[index] = el)}
-                                        />
-                                    )
-                                )}
-                            </div>
-                        </>
+                    {!loading && !error && itemsToRender.length === 0 && (
+                        <div className="text-center pt-10">
+                            <h2 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">No articles found</h2>
+                            <p className="text-gray-500 dark:text-zinc-400">There are no articles to display for this selection.</p>
+                        </div>
                     )}
+                    <div className={`grid gap-4 ${articleView === 'magazine' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
+                        {itemsToRender.map((item, index) =>
+                            <ArticleItem
+                                key={item.id}
+                                article={item}
+                                isRead={readArticleIds.has(item.id)}
+                                isBookmarked={bookmarkedArticleIds.has(item.id)}
+                                tags={articleTags.get(item.id) || new Set()}
+                                onMarkAsRead={onMarkAsRead}
+                                onMarkAsUnread={onMarkAsUnread}
+                                onToggleBookmark={onToggleBookmark}
+                                onSetTags={(tags) => onSetArticleTags(item.id, tags)}
+                                view={articleView}
+                                isFocused={focusedArticleIndex === index}
+                                articleRef={el => (articleRefs.current[index] = el)}
+                            />
+                        )}
+                    </div>
                 </div>
             </main>
         </>
@@ -1428,49 +552,49 @@ const MainContent: React.FC<MainContentProps> = (props) => {
 
 // --- Components for Mobile Discover View ---
 
-// A new article item component styled for the mobile view
 const DiscoverArticleItem: React.FC<{ article: Article }> = ({ article }) => (
-    <div className="bg-white dark:bg-zinc-800/50 rounded-xl overflow-hidden border border-gray-200 dark:border-zinc-800">
-        {article.imageUrl && <img src={article.imageUrl} alt="" className="w-full h-40 object-cover" />}
+    <a href={article.link} target="_blank" rel="noopener noreferrer" className="block bg-zinc-800 rounded-xl overflow-hidden border border-zinc-700/50">
+        {article.imageUrl && <img src={article.imageUrl} alt="" className="w-full h-48 object-cover bg-zinc-700" />}
         <div className="p-4">
-            <p className="text-xs text-gray-500 dark:text-zinc-400 mb-1">{article.source}</p>
-            <h3 className="font-semibold text-zinc-900 dark:text-white mb-3">{article.title}</h3>
+            <div className="flex items-center space-x-2 mb-2">
+                {article.source && <img src={`https://www.google.com/s2/favicons?sz=32&domain_url=${new URL(article.link).hostname}`} alt="" className="w-4 h-4 rounded-full" />}
+                <p className="text-xs text-zinc-400">{article.source}</p>
+            </div>
+            <h3 className="font-semibold text-white mb-4">{article.title}</h3>
             <div className="flex justify-between items-center">
-                <p className="text-xs text-gray-400 dark:text-zinc-500">{timeAgo(article.publishedDate)}</p>
-                <div className="flex items-center space-x-2 text-gray-500 dark:text-zinc-400">
-                    <button className="p-1 hover:text-red-500"><BookmarkIcon className="w-5 h-5"/></button>
-                    <button className="p-1 hover:text-lime-500"><ShareIcon className="w-5 h-5"/></button>
-                    <button className="p-1 hover:text-lime-500"><DotsHorizontalIcon className="w-5 h-5"/></button>
+                <p className="text-xs text-zinc-500">{timeAgo(article.publishedDate)}</p>
+                <div className="flex items-center space-x-2 text-zinc-400">
+                    <button className="p-2 -m-2 hover:text-red-400"><BookmarkIcon className="w-5 h-5"/></button>
+                    <button className="p-2 -m-2 hover:text-lime-400"><ShareIcon className="w-5 h-5"/></button>
+                    <button className="p-2 -m-2 hover:text-lime-400"><DotsHorizontalIcon className="w-5 h-5"/></button>
                 </div>
             </div>
         </div>
-    </div>
+    </a>
 );
 
 
 const DiscoverWidgetCarousel: React.FC<{
     settings: WidgetSettings;
     onCustomizeClick: () => void;
-    isAiDisabled: boolean;
-    handleAiError: (error: unknown) => boolean;
-}> = ({ settings, onCustomizeClick, isAiDisabled, handleAiError }) => {
+    isApiKeyMissing: boolean;
+}> = ({ settings, onCustomizeClick, isApiKeyMissing }) => {
     return (
-        <div className="flex space-x-3 overflow-x-auto p-4 scrollbar-hide">
-            {settings.showWeather && <WeatherWidget location={settings.weatherLocation} isAiDisabled={isAiDisabled} handleAiError={handleAiError} />}
-            {settings.showSports && settings.sportsTeams.map(team => <SportsWidget key={team} team={team} isAiDisabled={isAiDisabled} handleAiError={handleAiError} />)}
+        <div className="flex space-x-3 overflow-x-auto p-4 pt-0 scrollbar-hide flex-shrink-0">
+            {settings.showWeather && <WeatherWidget location={settings.weatherLocation} isApiKeyMissing={isApiKeyMissing} />}
+            {settings.showSports && settings.sportsTeams.map(team => <SportsWidget key={team} team={team} isApiKeyMissing={isApiKeyMissing} />)}
             <CustomizeWidget onClick={onCustomizeClick} />
         </div>
     );
 };
 
-// Weather Widget Component
-const WeatherWidget: React.FC<{ location: string; isAiDisabled: boolean; handleAiError: (e: unknown) => boolean }> = ({ location, isAiDisabled, handleAiError }) => {
+const WeatherWidget: React.FC<{ location: string; isApiKeyMissing: boolean }> = ({ location, isApiKeyMissing }) => {
     const [weather, setWeather] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchWeather = async () => {
-            if (isAiDisabled) { setLoading(false); return; }
+            if (isApiKeyMissing) { setLoading(false); return; }
             setLoading(true);
             try {
                 const response = await ai.models.generateContent({
@@ -1491,47 +615,45 @@ const WeatherWidget: React.FC<{ location: string; isAiDisabled: boolean; handleA
                 setWeather(JSON.parse(response.text));
             } catch (e) {
                 console.error("Error fetching weather", e);
-                handleAiError(e);
             } finally {
                 setLoading(false);
             }
         };
         fetchWeather();
-    }, [location, isAiDisabled, handleAiError]);
+    }, [location, isApiKeyMissing]);
 
     const WeatherIcon = ({ condition }: { condition: string }) => {
-        const lowerCondition = condition.toLowerCase();
+        const lowerCondition = condition ? condition.toLowerCase() : '';
         if (lowerCondition.includes('sun') || lowerCondition.includes('clear')) return <SunIcon className="w-6 h-6 text-yellow-400" />;
-        if (lowerCondition.includes('cloud')) return <CloudIcon className="w-6 h-6 text-gray-400" />;
+        if (lowerCondition.includes('cloud') || lowerCondition.includes('overcast')) return <CloudIcon className="w-6 h-6 text-gray-400" />;
         return <CloudIcon className="w-6 h-6 text-gray-400" />;
     };
 
     return (
-        <div className="flex-shrink-0 w-40 p-3 bg-zinc-800 rounded-xl text-white flex flex-col justify-between">
-            {loading ? <p>Loading...</p> : weather ? (
+        <div className="flex-shrink-0 w-40 p-3 bg-zinc-800 rounded-2xl text-white flex flex-col justify-between">
+            {loading ? <div className="text-zinc-400 text-sm">Loading...</div> : weather ? (
                 <>
                     <div>
                         <p className="font-bold">{weather.location}</p>
-                        <p className="text-xs text-zinc-400">{weather.precipitationChance}% rain</p>
+                        <p className="text-xs text-zinc-400">{weather.precipitationChance}% <span role="img" aria-label="rain">💧</span></p>
                     </div>
                     <div className="flex items-center justify-between mt-2">
-                        <p className="text-2xl font-bold">{weather.temperatureCelsius}°</p>
+                        <p className="text-3xl font-bold">{weather.temperatureCelsius}°</p>
                         <WeatherIcon condition={weather.condition} />
                     </div>
                 </>
-            ) : <p className="text-xs">Weather unavailable</p>}
+            ) : <p className="text-xs text-zinc-400">Weather unavailable</p>}
         </div>
     );
 };
 
-// Sports Widget Component
-const SportsWidget: React.FC<{ team: string; isAiDisabled: boolean; handleAiError: (e: unknown) => boolean }> = ({ team, isAiDisabled, handleAiError }) => {
+const SportsWidget: React.FC<{ team: string; isApiKeyMissing: boolean }> = ({ team, isApiKeyMissing }) => {
     const [result, setResult] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchScore = async () => {
-            if (isAiDisabled) { setLoading(false); return; }
+            if (isApiKeyMissing) { setLoading(false); return; }
             setLoading(true);
              try {
                 const response = await ai.models.generateContent({
@@ -1552,13 +674,12 @@ const SportsWidget: React.FC<{ team: string; isAiDisabled: boolean; handleAiErro
                 setResult(JSON.parse(response.text));
             } catch (e) {
                 console.error(`Error fetching score for ${team}`, e);
-                handleAiError(e);
             } finally {
                 setLoading(false);
             }
         };
         fetchScore();
-    }, [team, isAiDisabled, handleAiError]);
+    }, [team, isApiKeyMissing]);
 
     const TeamLogo = ({ website, name }: { website: string; name: string }) => {
         const [hasError, setHasError] = useState(!website);
@@ -1569,12 +690,12 @@ const SportsWidget: React.FC<{ team: string; isAiDisabled: boolean; handleAiErro
     };
 
     return (
-        <div className="flex-shrink-0 w-48 p-3 bg-zinc-800 rounded-xl text-white flex flex-col">
-            {loading ? <p>Loading...</p> : result ? (
+        <div className="flex-shrink-0 w-48 p-3 bg-zinc-800 rounded-2xl text-white flex flex-col">
+            {loading ? <div className="text-zinc-400 text-sm">Loading...</div> : result ? (
                 <>
                     <div className="flex justify-between items-center text-sm">
-                        <span>{result.homeTeam.substring(0,3)} vs {result.awayTeam.substring(0,3)}</span>
-                        <span className="text-xs bg-zinc-700 px-1.5 py-0.5 rounded">{result.status}</span>
+                        <span>{result.homeTeam.substring(0,3).toUpperCase()} vs {result.awayTeam.substring(0,3).toUpperCase()}</span>
+                        <span className="text-xs bg-zinc-700 px-1.5 py-0.5 rounded-md font-semibold">{result.status}</span>
                     </div>
                     <div className="flex justify-around items-center mt-2 flex-grow">
                         <TeamLogo website={result.homeTeamWebsite} name={result.homeTeam} />
@@ -1582,69 +703,16 @@ const SportsWidget: React.FC<{ team: string; isAiDisabled: boolean; handleAiErro
                         <TeamLogo website={result.awayTeamWebsite} name={result.awayTeam} />
                     </div>
                 </>
-            ) : <p className="text-xs">Result for {team} unavailable</p>}
+            ) : <p className="text-xs text-zinc-400">Result for {team} unavailable</p>}
         </div>
     );
 };
 
-// Customize Widget Component
 const CustomizeWidget: React.FC<{ onClick: () => void }> = ({ onClick }) => (
-    <button onClick={onClick} className="flex-shrink-0 w-40 p-3 bg-zinc-800 rounded-xl text-white flex flex-col items-center justify-center space-y-2">
+    <button onClick={onClick} className="flex-shrink-0 w-40 p-3 bg-zinc-800 rounded-2xl text-white flex flex-col items-center justify-center space-y-2 text-center">
         <SettingsIcon className="w-6 h-6" />
         <p className="text-sm font-semibold">Customize your space</p>
     </button>
 );
-
-// Customize Modal Component
-const CustomizeModal: React.FC<{ show: boolean; onClose: () => void; settings: WidgetSettings; onSettingsChange: (s: WidgetSettings) => void; }> = ({ show, onClose, settings, onSettingsChange }) => {
-    const [localSettings, setLocalSettings] = useState(settings);
-
-    useEffect(() => {
-        setLocalSettings(settings);
-    }, [settings, show]);
-
-    if (!show) return null;
-
-    const handleToggle = (key: keyof WidgetSettings) => {
-        setLocalSettings(prev => ({ ...prev, [key]: !prev[key] }));
-    };
-
-    const handleDone = () => {
-        onSettingsChange(localSettings);
-        onClose();
-    };
-
-    const CheckboxRow = ({ label, description, isChecked, onToggle }: { label: string; description: string; isChecked: boolean; onToggle: () => void; }) => (
-        <div className="flex items-start justify-between py-4 border-b border-zinc-700">
-            <div className="pr-4">
-                <p className="font-semibold">{label}</p>
-                <p className="text-sm text-zinc-400">{description}</p>
-                 <button className="text-sm text-pink-400 mt-2">Manage your {label.toLowerCase()} in...</button>
-            </div>
-            <div onClick={onToggle} className={`w-10 h-6 flex items-center rounded-full p-1 cursor-pointer ${isChecked ? 'bg-pink-400' : 'bg-zinc-600'}`}>
-                <div className={`bg-white w-4 h-4 rounded-full shadow-md transform duration-300 ease-in-out ${isChecked ? 'translate-x-4' : ''}`}></div>
-            </div>
-        </div>
-    );
-
-    return (
-        <div className="fixed inset-0 bg-black/70 z-50 flex items-end" onClick={onClose}>
-            <div className="w-full bg-zinc-800 text-white rounded-t-2xl p-4" onClick={e => e.stopPropagation()}>
-                <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-bold">Customize</h2>
-                    <button onClick={onClose}><XIcon className="w-6 h-6" /></button>
-                </div>
-                <div className="px-2">
-                    <CheckboxRow label="Sports" description="Event updates from teams you follow" isChecked={localSettings.showSports} onToggle={() => handleToggle('showSports')} />
-                    <CheckboxRow label="Finance" description="Stock prices and market trends from industries you follow" isChecked={localSettings.showFinance} onToggle={() => handleToggle('showFinance')} />
-                    <CheckboxRow label="Weather" description="Conditions from your current location" isChecked={localSettings.showWeather} onToggle={() => handleToggle('showWeather')} />
-                </div>
-                <div className="p-4 mt-4">
-                    <button onClick={handleDone} className="w-full bg-pink-400 text-zinc-900 font-bold py-3 rounded-full">Done</button>
-                </div>
-            </div>
-        </div>
-    );
-};
 
 export default MainContent;

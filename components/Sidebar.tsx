@@ -1,28 +1,24 @@
+
 import React, { useState, useRef } from 'react';
-import type { Feed, Folder, Selection, Theme, MagicFeed, SyncStatus } from '../App';
+import type { Feed, Folder, Selection, SyncStatus } from '../App';
 import type { GoogleUserProfile } from '../services/googleDriveService';
 import type { SourceType } from './AddSource';
 import AddSource from './AddSource';
 import {
-    SeymourIcon, ListIcon, PlusIcon, RssIcon, TrashIcon, FolderIcon, PencilIcon, ChevronDownIcon, ChevronRightIcon, SunIcon, MoonIcon, NewspaperIcon, XIcon, BookmarkIcon, WandIcon, LogoutIcon, CloudSyncIcon, CheckCircleIcon, LoginIcon, CloudArrowDownIcon
+    SeymourIcon, ListIcon, PlusIcon, RssIcon, TrashIcon, FolderIcon, PencilIcon, ChevronDownIcon, ChevronRightIcon, XIcon, BookmarkIcon, LogoutIcon, CloudSyncIcon, CheckCircleIcon, LoginIcon, SettingsIcon
 } from './icons';
 
 interface SidebarProps {
     feeds: Feed[];
     folders: Folder[];
-    magicFeeds: MagicFeed[];
     selection: Selection;
     onAddSource: (url: string, type: SourceType) => void;
     onRemoveFeed: (id: number) => void;
-    onAddMagicFeed: (topic: string) => void;
-    onRemoveMagicFeed: (id: number) => void;
     onSelect: (selection: Selection) => void;
     onAddFolder: (name: string) => void;
     onRenameFolder: (id: number, newName: string) => void;
     onDeleteFolder: (id: number) => void;
     onMoveFeedToFolder: (feedId: number, folderId: number | null) => void;
-    theme: Theme;
-    toggleTheme: () => void;
     isSidebarOpen: boolean;
     onClose: () => void;
     userProfile: GoogleUserProfile | null;
@@ -32,8 +28,7 @@ interface SidebarProps {
     lastSyncTime: number | null;
     isGuestMode: boolean;
     onGoToLogin: () => void;
-    onImportOpml: (file: File) => void;
-    onExportOpml: () => void;
+    onOpenSettings: () => void;
 }
 
 const formatSyncTime = (timestamp: number | null): string => {
@@ -235,60 +230,10 @@ const FeedItem: React.FC<{
     );
 };
 
-const MagicFeedItem: React.FC<{
-    magicFeed: MagicFeed;
-    selection: Selection;
-    onSelect: (selection: Selection) => void;
-    onRemove: (id: number) => void;
-}> = ({ magicFeed, selection, onSelect, onRemove }) => {
-    const isActive = selection.type === 'magic' && selection.id === magicFeed.id;
-    const activeClasses = isActive ? 'bg-gray-200 dark:bg-zinc-700/50 text-zinc-900 dark:text-white' : 'hover:bg-gray-200 dark:hover:bg-zinc-700/50 text-gray-600 dark:text-zinc-400';
-
-    return (
-        <div
-            onClick={() => onSelect({ type: 'magic', id: magicFeed.id })}
-            className={`group flex items-center justify-between pl-3 pr-2 py-2 rounded-md cursor-pointer transition-colors duration-150 ${activeClasses}`}
-        >
-            <div className="flex items-center space-x-3 truncate">
-                <WandIcon className="w-5 h-5 flex-shrink-0 text-purple-500 dark:text-purple-400" />
-                <span className="truncate">{magicFeed.topic}</span>
-            </div>
-            <button
-                onClick={(e) => { e.stopPropagation(); onRemove(magicFeed.id); }}
-                className="opacity-0 group-hover:opacity-100 text-gray-400 dark:text-zinc-500 hover:text-red-500 dark:hover:text-red-400 transition-opacity"
-                aria-label={`Remove ${magicFeed.topic} magic feed`}
-            >
-                <TrashIcon className="w-4 h-4" />
-            </button>
-        </div>
-    );
-};
-
-
 const Sidebar: React.FC<SidebarProps> = (props) => {
-    const { feeds, folders, magicFeeds, selection, onAddSource, onRemoveFeed, onAddMagicFeed, onRemoveMagicFeed, onSelect, onAddFolder, onRenameFolder, onDeleteFolder, onMoveFeedToFolder, theme, toggleTheme, isSidebarOpen, onClose, userProfile, onLogout, onSync, syncStatus, lastSyncTime, isGuestMode, onGoToLogin, onImportOpml, onExportOpml } = props;
+    const { feeds, folders, selection, onAddSource, onRemoveFeed, onSelect, onAddFolder, onRenameFolder, onDeleteFolder, onMoveFeedToFolder, isSidebarOpen, onClose, userProfile, onLogout, onSync, syncStatus, lastSyncTime, isGuestMode, onGoToLogin, onOpenSettings } = props;
     const [isAddingFolder, setIsAddingFolder] = useState(false);
     const [dragOverTarget, setDragOverTarget] = useState<number | 'unfiled' | null>(null);
-    const fileInputRef = useRef<HTMLInputElement>(null);
-
-    const handleAddMagicFeedClick = () => {
-        const topic = prompt("What topic would you like to create a Magic Feed for?");
-        if (topic && topic.trim()) {
-            onAddMagicFeed(topic.trim());
-        }
-    };
-    
-    const handleImportClick = () => {
-        fileInputRef.current?.click();
-    };
-
-    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (file) {
-            onImportOpml(file);
-        }
-        event.target.value = '';
-    };
 
     const unfiledFeeds = feeds.filter(f => f.folderId === null);
     
@@ -310,9 +255,6 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                         <span className="text-lg font-bold text-zinc-900 dark:text-white">See More</span>
                     </div>
                     <div className="flex items-center">
-                         <button onClick={toggleTheme} className="p-2 rounded-full text-zinc-500 dark:text-zinc-400 hover:bg-gray-200 dark:hover:bg-zinc-700" aria-label="Toggle theme">
-                            {theme === 'light' ? <MoonIcon className="w-5 h-5" /> : <SunIcon className="w-5 h-5" />}
-                        </button>
                         <button onClick={onClose} className="p-2 -mr-2 rounded-full text-zinc-500 dark:text-zinc-400 hover:bg-gray-200 dark:hover:bg-zinc-700 md:hidden" aria-label="Close sidebar">
                             <XIcon className="w-6 h-6" />
                         </button>
@@ -327,13 +269,9 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                     <ListIcon className="w-5 h-5 flex-shrink-0" />
                     <span className="truncate font-medium">All Feeds</span>
                 </div>
-                <div onClick={() => onSelect({ type: 'bookmarks', id: 'bookmarks' })} className={`flex items-center space-x-3 px-3 py-2 rounded-md cursor-pointer ${selection.type === 'bookmarks' ? 'bg-gray-200 dark:bg-zinc-700/50 text-zinc-900 dark:text-white' : 'hover:bg-gray-200 dark:hover:bg-zinc-700/50 text-gray-600 dark:text-zinc-400'}`}>
+                <div onClick={() => onSelect({ type: 'bookmarks', id: 'bookmarks' })} className={`flex items-center space-x-3 px-3 py-2 rounded-md cursor-pointer mb-4 ${selection.type === 'bookmarks' ? 'bg-gray-200 dark:bg-zinc-700/50 text-zinc-900 dark:text-white' : 'hover:bg-gray-200 dark:hover:bg-zinc-700/50 text-gray-600 dark:text-zinc-400'}`}>
                     <BookmarkIcon className="w-5 h-5 flex-shrink-0" />
                     <span className="truncate font-medium">Read Later</span>
-                </div>
-                <div onClick={() => onSelect({ type: 'briefing', id: 'briefing' })} className={`flex items-center space-x-3 px-3 py-2 rounded-md cursor-pointer mb-4 ${selection.type === 'briefing' ? 'bg-gray-200 dark:bg-zinc-700/50 text-zinc-900 dark:text-white' : 'hover:bg-gray-200 dark:hover:bg-zinc-700/50 text-gray-600 dark:text-zinc-400'}`}>
-                    <NewspaperIcon className="w-5 h-5 flex-shrink-0" />
-                    <span className="truncate font-medium">Daily Briefing</span>
                 </div>
                 
                 <div className="px-3 mb-4 space-y-2">
@@ -341,29 +279,9 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                         <FolderIcon className="w-5 h-5" />
                         <span>New Folder</span>
                     </button>
-                    <button onClick={handleAddMagicFeedClick} className="w-full text-left text-sm text-gray-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white bg-gray-200/50 dark:bg-zinc-800/50 hover:bg-gray-200 dark:hover:bg-zinc-700/50 rounded-md py-2 px-3 flex items-center space-x-2">
-                        <WandIcon className="w-5 h-5 text-purple-500 dark:text-purple-400" />
-                        <span>New Magic Feed</span>
-                    </button>
-                    <hr className="border-gray-200 dark:border-zinc-800" />
-                    <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept=".opml,.xml" aria-hidden="true" />
-                    <button onClick={handleImportClick} className="w-full text-left text-sm text-gray-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white bg-gray-200/50 dark:bg-zinc-800/50 hover:bg-gray-200 dark:hover:bg-zinc-700/50 rounded-md py-2 px-3 flex items-center space-x-2">
-                        <CloudSyncIcon className="w-5 h-5" />
-                        <span>Import from OPML</span>
-                    </button>
-                    <button onClick={onExportOpml} className="w-full text-left text-sm text-gray-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white bg-gray-200/50 dark:bg-zinc-800/50 hover:bg-gray-200 dark:hover:bg-zinc-700/50 rounded-md py-2 px-3 flex items-center space-x-2">
-                        <CloudArrowDownIcon className="w-5 h-5" />
-                        <span>Export to OPML</span>
-                    </button>
                 </div>
 
                 <nav className="space-y-1">
-                    {magicFeeds.length > 0 && (
-                        <div className="mt-4">
-                            <h3 className="px-3 text-xs font-semibold text-gray-400 dark:text-zinc-500 uppercase tracking-wider mb-2">Magic Feeds</h3>
-                            {magicFeeds.map(mf => <MagicFeedItem key={mf.id} magicFeed={mf} selection={selection} onSelect={onSelect} onRemove={onRemoveMagicFeed} />)}
-                        </div>
-                    )}
                     {isAddingFolder && <NewFolderInput onAddFolder={onAddFolder} onCancel={() => setIsAddingFolder(false)} />}
                     {folders.map(folder => (
                         <FolderItem
@@ -390,6 +308,12 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                  )}
             </div>
             <div className="mt-auto pt-4 border-t border-gray-200 dark:border-zinc-800">
+                <div className="px-3 mb-2">
+                    <button onClick={onOpenSettings} className="w-full flex items-center gap-2 py-2 px-3 text-sm font-medium rounded-md text-gray-600 dark:text-zinc-400 hover:bg-gray-200 dark:hover:bg-zinc-700/50 hover:text-zinc-900 dark:hover:text-white">
+                        <SettingsIcon className="w-5 h-5" />
+                        <span>Settings</span>
+                    </button>
+                </div>
                 {isGuestMode ? (
                     <div className="px-3">
                         <div className="flex items-center gap-3 mb-2">

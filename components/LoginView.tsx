@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { SeymourIcon, GoogleIcon } from './icons';
 
@@ -5,16 +6,25 @@ interface LoginViewProps {
     onLogin: () => void;
     onGuestLogin: () => void;
     isApiReady: boolean;
-    isAiDisabled: boolean;
-    onResetAiCooldown: () => void;
+    isApiKeyMissing: boolean;
 }
 
-const LoginView: React.FC<LoginViewProps> = ({ onLogin, onGuestLogin, isApiReady, isAiDisabled, onResetAiCooldown }) => {
+const LoginView: React.FC<LoginViewProps> = ({ onLogin, onGuestLogin, isApiReady, isApiKeyMissing }) => {
     return (
         <div className="flex items-center justify-center h-screen bg-white dark:bg-zinc-900">
+             {isApiKeyMissing && (
+                <div className="absolute top-0 left-0 right-0 p-4 bg-red-100 dark:bg-red-900/30 border-b border-red-300 dark:border-red-500/30 text-center">
+                    <p className="text-sm text-red-800 dark:text-red-200">
+                        <strong>Configuration needed:</strong> Your Gemini API key is missing. AI features will not work.
+                    </p>
+                    <p className="text-xs text-red-700 dark:text-red-300 mt-1">
+                        Please create a <code>.env</code> file in the project's root directory and add your key: <code>API_KEY=YOUR_KEY_HERE</code>
+                    </p>
+                </div>
+            )}
             <div className="w-full max-w-sm mx-auto text-center">
                 <SeymourIcon className="w-24 h-24 mx-auto mb-4" />
-                <h1 className="text-3xl font-bold text-zinc-900 dark:text-white mb-2">Welcome to See More</h1>
+                <h1 className="text-3xl font-bold text-zinc-900 dark:text-white mb-2">See-More, Feed Me!</h1>
                 <p className="text-gray-500 dark:text-zinc-400 mb-8">Sign in with Google to sync feeds or continue as a guest.</p>
                 <div className="px-4">
                     <button
@@ -35,17 +45,6 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin, onGuestLogin, isApiReady
                     </button>
                     {!isApiReady && <p className="text-xs text-gray-400 dark:text-zinc-500 mt-4">Initializing...</p>}
                 </div>
-                {isAiDisabled && (
-                    <div className="mt-8 text-center">
-                        <p className="text-sm text-yellow-600 dark:text-yellow-400">AI features are temporarily disabled.</p>
-                        <button 
-                            onClick={onResetAiCooldown}
-                            className="mt-2 text-xs font-medium text-gray-500 dark:text-zinc-400 underline hover:text-lime-500"
-                        >
-                            Reset Cooldown
-                        </button>
-                    </div>
-                )}
             </div>
         </div>
     );
