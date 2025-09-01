@@ -1,30 +1,16 @@
-
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import type { Feed, Selection, ArticleView, WidgetSettings, ViewMode } from '../App';
-import { CORS_PROXY } from '../App';
-import { SparklesIcon, CheckCircleIcon, MenuIcon, BookmarkIcon, ViewColumnsIcon, ViewListIcon, ViewGridIcon, XIcon, SearchIcon, ArrowUturnLeftIcon, ChevronDownIcon, TagIcon, SettingsIcon, CloudIcon, SunIcon, ShareIcon, DotsHorizontalIcon, SeymourIcon, DayWeatherBackground, NightWeatherBackground, SunriseIcon, SunsetIcon } from './icons';
+import type { Feed, Selection, WidgetSettings, Article } from '../App';
+import { CORS_PROXY, FALLBACK_PROXY } from '../App';
+import { SeymourIcon, SearchIcon, SunIcon, SunriseIcon, SunsetIcon, PlusIcon, ArrowsRightLeftIcon, SettingsIcon, DotsHorizontalIcon, ArrowPathIcon, NewspaperIcon, RedditIcon, YoutubeIcon, BookOpenIcon } from './icons';
 import { teamLogos } from '../services/teamLogos';
 import { allTeamsMap } from '../services/sportsData';
+import type { SourceType } from './AddSource';
+import ReaderViewModal from './ReaderViewModal';
+import { fetchAndCacheArticleContent } from '../services/readerService';
 
-const sportsCache = new Map<string, { data: any; timestamp: number }>();
+const SPORTS_CACHE_KEY = 'sports_data_cache';
+const LAST_SPORTS_FETCH_KEY = 'last_sports_fetch_timestamp';
 
-
-const isCacheValid = (timestamp: number): boolean => {
-    const now = new Date();
-    const cacheDate = new Date(timestamp);
-    // Cache is valid for 6 hours
-    return (now.getTime() - cacheDate.getTime()) < 6 * 60 * 60 * 1000;
-};
-
-interface Article {
-    id: string;
-    title: string;
-    link: string;
-    source: string;
-    publishedDate: Date | null;
-    snippet: string;
-    imageUrl: string | null;
-}
 
 function timeAgo(date: Date | null): string {
     if (!date) return '';
@@ -36,233 +22,68 @@ function timeAgo(date: Date | null): string {
     if (hours < 24) return `${hours}h`;
     const days = Math.floor(hours / 24);
     if (days < 7) return `${days}d`;
-    
-    // For anything older than a week, show the date
     return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
-const parseRssXml = (xmlText: string, sourceTitle: string): Article[] => {
+const parseRssXml = (xmlText: string, sourceTitle: string, feedUrl: string): Article[] => {
     const parser = new DOMParser();
     const xml = parser.parseFromString(xmlText, "application/xml");
     const errorNode = xml.querySelector('parsererror');
-    if (errorNode) {
-        throw new Error(`Failed to parse RSS feed for ${sourceTitle}.`);
-    }
+    if (errorNode) throw new Error(`Failed to parse RSS feed for ${sourceTitle}.`);
+
+    const channelLink = xml.querySelector('channel > link');
+    const feedLink = xml.querySelector('feed > link[rel="alternate"], feed > link:not([rel])');
+    const siteLink = channelLink?.textContent?.trim() || (feedLink ? feedLink.getAttribute('href') : null) || feedUrl;
 
     const items = Array.from(xml.querySelectorAll('item, entry'));
     return items.map(item => {
         const title = item.querySelector('title')?.textContent || 'No title';
-        const link = item.querySelector('link')?.getAttribute('href') || item.querySelector('link')?.textContent || '';
+        const linkElem = item.querySelector('link');
+        const link = linkElem?.getAttribute('href') || linkElem?.textContent || '';
         const description = item.querySelector('description')?.textContent || item.querySelector('summary')?.textContent || '';
-        const snippet = description.replace(/<[^>]*>?/gm, '').substring(0, 200) + (description.length > 200 ? '...' : '');
+        const snippet = description.replace(/<[^>]*>?/gm, '').substring(0, 100) + (description.length > 100 ? '...' : '');
         const pubDateStr = item.querySelector('pubDate')?.textContent || item.querySelector('published')?.textContent || item.querySelector('updated')?.textContent;
         const publishedDate = pubDateStr ? new Date(pubDateStr) : null;
+        const guid = item.querySelector('guid')?.textContent || item.querySelector('id')?.textContent;
         
         let imageUrl: string | null = null;
-        
         const mediaContent = item.querySelector('media\\:content, content');
-        if (mediaContent && mediaContent.getAttribute('medium') === 'image') {
-            imageUrl = mediaContent.getAttribute('url');
-        }
-
+        if (mediaContent && mediaContent.getAttribute('medium') === 'image') imageUrl = mediaContent.getAttribute('url');
         if (!imageUrl) {
             const enclosure = item.querySelector('enclosure');
-            if (enclosure && enclosure.getAttribute('type')?.startsWith('image')) {
-                imageUrl = enclosure.getAttribute('url');
-            }
+            if (enclosure && enclosure.getAttribute('type')?.startsWith('image')) imageUrl = enclosure.getAttribute('url');
         }
-        
         if (!imageUrl) {
             const mediaThumbnail = item.querySelector('media\\:thumbnail, thumbnail');
-            if (mediaThumbnail) {
-                imageUrl = mediaThumbnail.getAttribute('url');
-            }
+            if (mediaThumbnail) imageUrl = mediaThumbnail.getAttribute('url');
         }
-
         if (!imageUrl) {
             const contentEncoded = item.querySelector('content\\:encoded, encoded')?.textContent;
             const contentToParse = contentEncoded || description;
-            const doc = new DOMParser().parseFromString(contentToParse, 'text/html');
-            const img = doc.querySelector('img');
-            if (img) {
-                imageUrl = img.getAttribute('src');
+            if (contentToParse) {
+                try {
+                    const doc = new DOMParser().parseFromString(contentToParse, 'text/html');
+                    const img = doc.querySelector('img');
+                    if (img) imageUrl = img.getAttribute('src');
+                } catch (e) {
+                    console.warn("Error parsing HTML content for image", e);
+                }
             }
         }
 
-        return {
-            id: link || `${title}-${pubDateStr}`,
-            title,
-            link,
-            snippet,
-            publishedDate,
-            source: sourceTitle,
-            imageUrl,
-        };
+        if (imageUrl) {
+            try {
+                imageUrl = new URL(imageUrl, siteLink).href;
+            } catch (e) {
+                console.warn(`Could not construct valid URL for image: "${imageUrl}" with base "${siteLink}"`);
+                imageUrl = null;
+            }
+        }
+        
+        const id = guid || link || `${title}-${pubDateStr}`;
+
+        return { id, title, link, snippet, publishedDate, source: sourceTitle, imageUrl };
     });
-};
-
-const ArticleItem: React.FC<{
-    article: Article,
-    isRead: boolean,
-    isBookmarked: boolean,
-    tags: Set<string>,
-    onMarkAsRead: (id: string) => void,
-    onMarkAsUnread: (id: string) => void,
-    onToggleBookmark: (id: string) => void,
-    onSetTags: (tags: Set<string>) => void,
-    view: ArticleView,
-    isFocused: boolean,
-    articleRef: (el: HTMLDivElement | null) => void,
-}> = ({ article, isRead, isBookmarked, tags, onMarkAsRead, onMarkAsUnread, onToggleBookmark, onSetTags, view, isFocused, articleRef }) => {
-    const [isEditingTags, setIsEditingTags] = useState(false);
-    const [tagInput, setTagInput] = useState('');
-    const tagInputRef = useRef<HTMLInputElement>(null);
-
-    useEffect(() => {
-        if (isEditingTags) {
-            tagInputRef.current?.focus();
-        }
-    }, [isEditingTags]);
-
-    const handleAddTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            const newTag = tagInput.trim().toLowerCase();
-            if (newTag && !tags.has(newTag)) {
-                onSetTags(new Set([...tags, newTag]));
-            }
-            setTagInput('');
-        }
-    };
-
-    const handleRemoveTag = (tagToRemove: string) => {
-        const newTags = new Set(tags);
-        newTags.delete(tagToRemove);
-        onSetTags(newTags);
-    };
-
-    const handleTagEditorBlur = () => {
-        const newTag = tagInput.trim().toLowerCase();
-        if (newTag && !tags.has(newTag)) {
-            onSetTags(new Set([...tags, newTag]));
-        }
-        setTagInput('');
-        setIsEditingTags(false);
-    };
-    
-    const handleMarkAsUnread = (e: React.MouseEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        onMarkAsUnread(article.id);
-    };
-
-    if (view === 'compact') {
-        return (
-             <div ref={articleRef} className={`flex items-start justify-between gap-4 py-3 border-b border-gray-200 dark:border-zinc-700/50 ${isRead ? 'opacity-60' : ''} ${isFocused ? 'bg-gray-100 dark:bg-zinc-800 rounded-md' : ''}`}>
-                <div className="flex items-center gap-3 flex-1 truncate">
-                    <a href={article.link} onClick={() => onMarkAsRead(article.id)} target="_blank" rel="noopener noreferrer" className="text-base font-medium text-zinc-800 dark:text-gray-100 hover:text-lime-500 dark:hover:text-lime-400 truncate">
-                        {article.title}
-                    </a>
-                </div>
-                <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
-                    <span className="w-24 truncate text-right">{article.source}</span>
-                    <span className="w-16 text-right">{timeAgo(article.publishedDate)}</span>
-                    {isRead && (
-                         <button onClick={handleMarkAsUnread} className="text-gray-400 hover:text-lime-500" aria-label="Mark as unread">
-                            <ArrowUturnLeftIcon className="w-5 h-5" />
-                        </button>
-                    )}
-                     <button onClick={() => onToggleBookmark(article.id)} className="text-gray-400 hover:text-lime-500" aria-label="Bookmark article">
-                        <BookmarkIcon className="w-5 h-5" solid={isBookmarked} />
-                    </button>
-                </div>
-            </div>
-        );
-    }
-
-    const isMagazine = view === 'magazine';
-    const cardClasses = `bg-gray-50 dark:bg-zinc-800/50 rounded-lg border border-gray-200 dark:border-zinc-700/50 hover:border-gray-300 dark:hover:border-zinc-600 transition-all duration-200 ${isRead ? 'opacity-60 hover:opacity-100' : ''} ${isFocused ? 'ring-2 ring-lime-500' : ''}`;
-    const layoutClasses = isMagazine ? 'flex flex-col' : 'flex flex-col md:flex-row md:items-start';
-    const imageWrapperClasses = isMagazine ? 'w-full' : 'w-full md:w-32 md:flex-shrink-0';
-    const imageClasses = isMagazine
-        ? "w-full h-48 object-cover rounded-t-lg bg-gray-200 dark:bg-zinc-700"
-        : "w-full h-40 object-cover rounded-t-lg md:h-20 md:w-32 md:rounded-l-lg md:rounded-t-none bg-gray-200 dark:bg-zinc-700";
-    const contentClasses = isMagazine ? 'p-4' : 'p-4 flex-1';
-
-    return (
-        <div className={cardClasses} ref={articleRef}>
-            <div className={layoutClasses}>
-                {article.imageUrl && (
-                    <div className={imageWrapperClasses}>
-                        <a href={article.link} onClick={() => onMarkAsRead(article.id)} target="_blank" rel="noopener noreferrer" aria-label={article.title}>
-                            <img src={article.imageUrl} alt="" className={imageClasses} loading="lazy" />
-                        </a>
-                    </div>
-                )}
-                <div className={contentClasses}>
-                    <div className="flex justify-between items-start mb-2 gap-4">
-                        <a href={article.link} onClick={() => onMarkAsRead(article.id)} target="_blank" rel="noopener noreferrer" className="text-lg font-medium text-zinc-800 dark:text-gray-100 hover:text-lime-500 dark:hover:text-lime-400">
-                            {article.title}
-                        </a>
-                        <div className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap pt-1">{timeAgo(article.publishedDate)}</div>
-                    </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">{article.snippet}</p>
-                    
-                    <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500">
-                            <span>{article.source}</span>
-                        </div>
-                        <div className="flex items-center space-x-4">
-                            {isRead && (
-                                <button onClick={handleMarkAsUnread} className="flex items-center space-x-1 text-xs text-gray-500 dark:text-zinc-400 hover:text-lime-500 dark:hover:text-lime-400 font-medium">
-                                    <ArrowUturnLeftIcon className="w-4 h-4" />
-                                    <span>Unread</span>
-                                </button>
-                            )}
-                            <button onClick={() => setIsEditingTags(!isEditingTags)} className="text-gray-400 hover:text-lime-500" aria-label="Add or edit tags">
-                                <TagIcon className="w-5 h-5" />
-                            </button>
-                             <button onClick={() => onToggleBookmark(article.id)} className="text-gray-400 hover:text-lime-500" aria-label="Bookmark article">
-                                <BookmarkIcon className="w-5 h-5" solid={isBookmarked} />
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {(tags.size > 0 || isEditingTags) && (
-                 <div className="border-t border-gray-200 dark:border-zinc-700/50">
-                    {(tags.size > 0 || isEditingTags) && (
-                        <div className="p-4">
-                            <div className="flex flex-wrap items-center gap-2">
-                                {Array.from(tags).map(tag => (
-                                    <span key={tag} className="inline-flex items-center gap-x-1.5 rounded-full bg-gray-200 px-2 py-1 text-xs font-medium text-gray-700 dark:bg-zinc-700 dark:text-zinc-300">
-                                        {tag}
-                                        {isEditingTags && (
-                                            <button onClick={() => handleRemoveTag(tag)} className="flex-shrink-0 h-4 w-4 rounded-full inline-flex items-center justify-center text-gray-500 hover:bg-gray-300 hover:text-gray-600 dark:text-zinc-400 dark:hover:bg-zinc-600 dark:hover:text-zinc-200 focus:outline-none" aria-label={`Remove ${tag} tag`}>
-                                                <XIcon className="h-3 w-3" />
-                                            </button>
-                                        )}
-                                    </span>
-                                ))}
-                                {isEditingTags && (
-                                    <input
-                                        ref={tagInputRef}
-                                        type="text"
-                                        value={tagInput}
-                                        onChange={(e) => setTagInput(e.target.value)}
-                                        onKeyDown={handleAddTag}
-                                        onBlur={handleTagEditorBlur}
-                                        placeholder="Add a tag..."
-                                        className="bg-transparent text-sm focus:outline-none p-1 flex-grow"
-                                    />
-                                )}
-                            </div>
-                        </div>
-                    )}
-                </div>
-            )}
-        </div>
-    );
 };
 
 const fetchWithTimeout = (resource: RequestInfo, options: RequestInit & { timeout?: number } = {}) => {
@@ -276,25 +97,14 @@ const fetchWithTimeout = (resource: RequestInfo, options: RequestInit & { timeou
 
 const getTeamLogo = (teamName: string): string | null => {
     if (!teamName) return null;
-    
-    // Direct match
-    if (teamLogos[teamName]) {
-        return teamLogos[teamName];
-    }
-    
-    // Match without "FC" or "F.C."
+    if (teamLogos[teamName]) return teamLogos[teamName];
     const simplifiedName = teamName.replace(/ F\.?C\.?$/, '').trim();
-    if (teamLogos[simplifiedName]) {
-        return teamLogos[simplifiedName];
-    }
-
+    if (teamLogos[simplifiedName]) return teamLogos[simplifiedName];
     return null;
 };
 
-
 interface MainContentProps {
     feedsToDisplay: Feed[];
-    title: string;
     selection: Selection;
     readArticleIds: Set<string>;
     bookmarkedArticleIds: Set<string>;
@@ -304,32 +114,31 @@ interface MainContentProps {
     onMarkMultipleAsRead: (articleIds: string[]) => void;
     onToggleBookmark: (articleId: string) => void;
     onSetArticleTags: (articleId: string, tags: Set<string>) => void;
-    onMenuClick: () => void;
     onSearch: (query: string) => void;
-    articleView: ArticleView;
-    setArticleView: (view: ArticleView) => void;
     allFeeds: Feed[];
     isApiKeyMissing: boolean;
     refreshKey: number;
+    onRefresh: () => void;
     widgetSettings: WidgetSettings;
     onOpenSettings: () => void;
-    viewMode: ViewMode;
+    onOpenAddSource: () => void;
+    onAddSource: (url: string, type: SourceType) => Promise<void>;
+    onOpenSidebar: () => void;
 }
 
 const MainContent: React.FC<MainContentProps> = (props) => {
-    const { feedsToDisplay, title, selection, readArticleIds, bookmarkedArticleIds, articleTags, onMarkAsRead, onMarkAsUnread, onMarkMultipleAsRead, onToggleBookmark, onSetArticleTags, onMenuClick, onSearch, articleView, setArticleView, allFeeds, isApiKeyMissing, refreshKey, widgetSettings, onOpenSettings, viewMode } = props;
+    const { feedsToDisplay, selection, readArticleIds, bookmarkedArticleIds, onMarkAsRead, onSearch, allFeeds, refreshKey, onRefresh, widgetSettings, onOpenSettings, onOpenAddSource, onAddSource, onOpenSidebar } = props;
     
     const [articles, setArticles] = useState<Article[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
-    const [focusedArticleIndex, setFocusedArticleIndex] = useState<number | null>(null);
-    const articleRefs = useRef<(HTMLDivElement | null)[]>([]);
-
+    
     const [sportsResults, setSportsResults] = useState<Map<string, any>>(new Map());
     const [isSportsLoading, setIsSportsLoading] = useState(false);
-    const [sportsApiFailed, setSportsApiFailed] = useState(false);
     
+    const [readerArticle, setReaderArticle] = useState<Article | null>(null);
+
     const handleSearchSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (searchQuery.trim()) onSearch(searchQuery.trim());
@@ -344,17 +153,31 @@ const MainContent: React.FC<MainContentProps> = (props) => {
 
             setLoading(true);
             setError(null);
-            setArticles([]);
-            
+
+            const fetchFeedWithFallback = async (feed: Feed) => {
+                const options = { timeout: 10000 };
+                try {
+                    const response = await fetchWithTimeout(`${CORS_PROXY}${feed.url}`, options);
+                    if (response.ok) return response;
+                    console.warn(`Primary proxy failed for ${feed.title} with status: ${response.status}`);
+                } catch(e) {
+                    console.warn(`Primary proxy fetch failed for ${feed.title}:`, e);
+                }
+                console.log(`Trying fallback proxy for ${feed.title}`);
+                return fetchWithTimeout(`${FALLBACK_PROXY}${encodeURIComponent(feed.url)}`, options);
+            };
+
+            const feedErrors: string[] = [];
             const promises = feeds.map(feed => 
-                fetchWithTimeout(`${CORS_PROXY}${encodeURIComponent(feed.url)}`, { timeout: 10000 })
+                fetchFeedWithFallback(feed)
                     .then(response => {
                         if (!response.ok) throw new Error(`HTTP error! status: ${response.status} for ${feed.title}`);
                         return response.text();
                     })
-                    .then(xmlText => parseRssXml(xmlText, feed.title))
+                    .then(xmlText => parseRssXml(xmlText, feed.title, feed.url))
                     .catch(err => {
                         console.warn(`Failed to fetch or parse feed ${feed.title}:`, err.message);
+                        feedErrors.push(feed.title);
                         return [];
                     })
             );
@@ -362,528 +185,489 @@ const MainContent: React.FC<MainContentProps> = (props) => {
             try {
                 const results = await Promise.all(promises);
                 const allArticles = results.flat();
+                
+                if (feedErrors.length > 0) {
+                    if (allArticles.length === 0) {
+                        setError(`Failed to load all feeds. This could be a network issue or a problem with the CORS proxy. Please check your connection and try again.`);
+                    } else {
+                         setError(`Could not load some feeds: ${feedErrors.join(', ')}.`);
+                    }
+                }
+
                 allArticles.sort((a, b) => (b.publishedDate?.getTime() || 0) - (a.publishedDate?.getTime() || 0));
-                
                 const uniqueArticles = Array.from(new Map(allArticles.map(a => [a.id, a])).values());
-                
                 setArticles(uniqueArticles);
             } catch (e) {
-                console.error('Error fetching RSS feeds:', e);
-                setError(e instanceof Error ? e.message : 'An unknown error occurred while fetching feeds.');
+                setError(e instanceof Error ? e.message : 'An unknown error occurred.');
             } finally {
                 setLoading(false);
             }
         };
 
-        const feedsForFetch = (selection.type === 'bookmarks' || selection.type === 'search' || selection.type === 'all') ? allFeeds : feedsToDisplay;
-        fetchRssFeeds(feedsForFetch);
+        fetchRssFeeds(feedsToDisplay);
 
-    }, [feedsToDisplay, allFeeds, selection, refreshKey]);
+    }, [feedsToDisplay, refreshKey]);
 
     useEffect(() => {
-        if (!widgetSettings.showSports || widgetSettings.sportsTeams.length === 0) {
-            setIsSportsLoading(false);
-            setSportsApiFailed(false);
-            return;
-        }
+        if (!widgetSettings.showSports || widgetSettings.sportsTeams.length === 0) return;
+
+        const needsFreshData = () => {
+            const lastFetch = localStorage.getItem(LAST_SPORTS_FETCH_KEY);
+            if (!lastFetch) return true;
+            return (Date.now() - parseInt(lastFetch, 10)) > 2 * 60 * 60 * 1000; // 2 hours
+        };
 
         const fetchAllSportsData = async () => {
             setIsSportsLoading(true);
-            setSportsApiFailed(false);
-            setSportsResults(new Map()); // Clear old results
-
             const fetchTeamData = async (teamCode: string): Promise<{ team: string; result: any; }> => {
-                const cachedEntry = sportsCache.get(teamCode);
-                if (cachedEntry && isCacheValid(cachedEntry.timestamp)) {
-                    return { team: teamCode, result: cachedEntry.data };
-                }
-                
                 const teamFullName = allTeamsMap.get(teamCode.toUpperCase()) || teamCode;
-
                 try {
                     const teamSearchRes = await fetchWithTimeout(`https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t=${encodeURIComponent(teamFullName)}`);
-                    if (!teamSearchRes.ok) throw new Error('Failed to search for team.');
                     const teamSearchData = await teamSearchRes.json();
                     const teamInfo = teamSearchData.teams?.[0];
-                    if (!teamInfo) throw new Error(`Team "${teamFullName}" not found.`);
+                    if (!teamInfo) throw new Error(`Team not found.`);
 
                     const lastEventsRes = await fetchWithTimeout(`https://www.thesportsdb.com/api/v1/json/3/eventslast.php?id=${teamInfo.idTeam}`);
-                    if (!lastEventsRes.ok) throw new Error('Failed to fetch last events.');
-                    
                     const lastEventsData = await lastEventsRes.json();
                     const lastMatch = lastEventsData.results?.[0];
                     if (!lastMatch) throw new Error('No last match data found.');
 
-                    const homeTeamLogo = getTeamLogo(lastMatch.strHomeTeam);
-                    const awayTeamLogo = getTeamLogo(lastMatch.strAwayTeam);
-                    
-                    const result = {
-                        teamFullName: teamInfo.strTeam,
-                        homeTeam: lastMatch.strHomeTeam,
-                        homeScore: lastMatch.intHomeScore,
-                        awayTeam: lastMatch.strAwayTeam,
-                        awayScore: lastMatch.intAwayScore,
-                        matchStatus: "Final",
-                        homeTeamLogo,
-                        awayTeamLogo
-                    };
-                    
-                    sportsCache.set(teamCode, { data: result, timestamp: Date.now() });
-                    return { team: teamCode, result };
-
+                    return { team: teamCode, result: { ...lastMatch, teamFullName: teamInfo.strTeam }};
                 } catch (error) {
-                    console.warn(`Error fetching data for ${teamCode}:`, error);
                     return { team: teamCode, result: { error: (error as Error).message } };
                 }
             };
             
-            try {
-                const promises = widgetSettings.sportsTeams.map(team => fetchTeamData(team));
-                const allResults = await Promise.all(promises);
-                const newResults = new Map<string, any>();
-                allResults.forEach(res => newResults.set(res.team, res.result));
-                setSportsResults(newResults);
-            } catch (e) {
-                 console.error("Sports API fetch failed globally.", e);
-                 setSportsApiFailed(true);
-            } finally {
-                 setIsSportsLoading(false);
-            }
+            const promises = widgetSettings.sportsTeams.map(team => fetchTeamData(team));
+            const allResults = await Promise.all(promises);
+            const newResults = new Map<string, any>();
+            allResults.forEach(res => newResults.set(res.team, res.result));
+            setSportsResults(newResults);
+            localStorage.setItem(SPORTS_CACHE_KEY, JSON.stringify(Array.from(newResults.entries())));
+            localStorage.setItem(LAST_SPORTS_FETCH_KEY, String(Date.now()));
+            setIsSportsLoading(false);
         };
 
-        fetchAllSportsData();
+        const cachedData = localStorage.getItem(SPORTS_CACHE_KEY);
+        if (cachedData) setSportsResults(new Map(JSON.parse(cachedData)));
+        if (needsFreshData()) fetchAllSportsData();
+
     }, [widgetSettings.showSports, widgetSettings.sportsTeams, refreshKey]);
-    
-    const handleMarkAllAsRead = () => {
-        onMarkMultipleAsRead(filteredArticles.map(a => a.id));
-    };
 
     const filteredArticles = useMemo(() => {
         let result = articles;
-        if (selection.type === 'bookmarks') {
-            result = result.filter(a => bookmarkedArticleIds.has(a.id));
-        } else if (selection.type === 'search' && selection.query) {
+        if (selection.type === 'bookmarks') result = result.filter(a => bookmarkedArticleIds.has(a.id));
+        else if (selection.type === 'search' && selection.query) {
              const filter = selection.query.toLowerCase();
              result = result.filter(a => a.title.toLowerCase().includes(filter) || a.snippet.toLowerCase().includes(filter));
         }
         return result;
     }, [articles, selection, bookmarkedArticleIds]);
     
-    const itemsToRender = filteredArticles;
-
     useEffect(() => {
-        setFocusedArticleIndex(null);
-        articleRefs.current = articleRefs.current.slice(0, itemsToRender.length);
-    }, [itemsToRender]);
+        if (filteredArticles.length === 0) {
+            return;
+        }
 
-    // Keyboard navigation
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (document.activeElement?.tagName === 'INPUT') return;
-
-            if (['j', 'k', 'o', 'm', 'b'].includes(e.key)) {
-                e.preventDefault();
-
-                if (e.key === 'j') {
-                    setFocusedArticleIndex(prev => {
-                        const newIndex = prev === null ? 0 : Math.min(prev + 1, itemsToRender.length - 1);
-                        articleRefs.current[newIndex]?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-                        return newIndex;
-                    });
-                } else if (e.key === 'k') {
-                    setFocusedArticleIndex(prev => {
-                        const newIndex = prev === null || prev === 0 ? 0 : prev - 1;
-                        articleRefs.current[newIndex]?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-                        return newIndex;
-                    });
-                } else if (focusedArticleIndex !== null) {
-                    const item = itemsToRender[focusedArticleIndex];
-                    if (!item) return;
-                    
-                    if (e.key === 'o') {
-                        window.open(item.link, '_blank', 'noopener,noreferrer');
-                        onMarkAsRead(item.id);
-                    } else if (e.key === 'm') {
-                        if (readArticleIds.has(item.id)) onMarkAsUnread(item.id); else onMarkAsRead(item.id);
-                    } else if (e.key === 'b') {
-                        onToggleBookmark(item.id);
-                    }
-                }
-            }
+        const preCache = (articlesToCache: Article[]) => {
+            articlesToCache.forEach(article => {
+                // Fire and forget, with silent error handling
+                fetchAndCacheArticleContent(article).catch(error => {
+                    console.warn(`Pre-caching silently failed for "${article.title}":`, error);
+                });
+            });
         };
 
-        document.addEventListener('keydown', handleKeyDown);
-        return () => document.removeEventListener('keydown', handleKeyDown);
-    }, [focusedArticleIndex, itemsToRender, onMarkAsRead, onMarkAsUnread, onToggleBookmark, readArticleIds]);
-    
-    const viewIcons = {
-        card: ViewColumnsIcon,
-        compact: ViewListIcon,
-        magazine: ViewGridIcon,
-    };
-    
-    return (
-        <main className="h-full flex flex-col bg-white dark:bg-zinc-950 overflow-y-auto">
-            <header className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-zinc-800 sticky top-0 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm z-20">
-                {/* Mobile Header */}
-                <div className={`flex items-center gap-2 ${viewMode === 'pc' ? 'md:hidden' : ''}`}>
-                    <button onClick={onMenuClick} className="p-2 -ml-2 rounded-full text-zinc-500 dark:text-zinc-400 hover:bg-gray-200 dark:hover:bg-zinc-700" aria-label="Open sidebar">
-                        <MenuIcon className="w-6 h-6" />
-                    </button>
-                    <div className="flex items-center space-x-2">
-                        <SeymourIcon className="w-7 h-7" />
-                        <span className="text-md font-bold text-zinc-900 dark:text-white">See More</span>
-                    </div>
-                </div>
+        // Cache top 5 immediately
+        const top5 = filteredArticles.slice(0, 5);
+        preCache(top5);
 
-                {/* Desktop Header */}
-                <div className={`hidden ${viewMode === 'pc' ? 'md:flex' : ''} items-center gap-2`}>
-                    <h1 className="text-xl font-bold text-zinc-900 dark:text-white truncate">{title}</h1>
+        // Cache next 10 after a delay
+        const timerId = setTimeout(() => {
+            const next10 = filteredArticles.slice(5, 15);
+            preCache(next10);
+        }, 60000); // 60 seconds
+
+        // Cleanup timeout on component unmount or when articles change
+        return () => {
+            clearTimeout(timerId);
+        };
+    }, [filteredArticles]);
+
+
+    const feedInfoMap = useMemo(() => {
+        return new Map(allFeeds.map(feed => [feed.title, { iconUrl: feed.iconUrl, sourceType: feed.sourceType }]));
+    }, [allFeeds]);
+
+    const latestArticle = filteredArticles.length > 0 ? filteredArticles[0] : null;
+
+    return (
+        <main className="flex-grow overflow-y-auto pb-24">
+            <Header onSearchSubmit={handleSearchSubmit} searchQuery={searchQuery} setSearchQuery={setSearchQuery} widgetSettings={widgetSettings} refreshKey={refreshKey} onOpenSidebar={onOpenSidebar}/>
+            <div className="px-4">
+                {latestArticle && <FeaturedStory article={latestArticle} onReadHere={() => setReaderArticle(latestArticle)} onMarkAsRead={() => onMarkAsRead(latestArticle.id)} />}
+                <ActionButtons onAdd={onOpenAddSource} onRefresh={onRefresh} onSettings={onOpenSettings} onManage={onOpenSidebar} />
+                <div className="my-4">
+                    <QuickAddSource onAddSource={onAddSource} />
                 </div>
-                <div className={`hidden ${viewMode === 'pc' ? 'md:flex' : ''} items-center space-x-2`}>
-                    <form onSubmit={handleSearchSubmit} className="relative">
-                        <input
-                            type="search"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="Search articles..."
-                            className="w-48 bg-gray-100 dark:bg-zinc-800 border-transparent rounded-md py-1.5 pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-lime-500 dark:text-zinc-200 dark:placeholder-zinc-400"
-                        />
-                        <div className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 dark:text-zinc-400">
-                            <SearchIcon className="w-4 h-4" />
-                        </div>
-                    </form>
-                    {filteredArticles.length > 0 && (
-                        <button onClick={handleMarkAllAsRead} className="flex items-center space-x-2 text-xs text-gray-500 dark:text-zinc-400 hover:text-lime-500 dark:hover:text-lime-400 font-medium">
-                            <CheckCircleIcon className="w-4 h-4" />
-                            <span>Mark All as Read</span>
-                        </button>
-                    )}
-                    <div className="flex items-center rounded-md bg-gray-100 dark:bg-zinc-800 p-0.5">
-                        {(['card', 'compact', 'magazine'] as ArticleView[]).map(view => {
-                            const Icon = viewIcons[view];
+                <div className="mt-2">
+                    <div className="flex justify-between items-center mb-4">
+                        <h2 className="font-bold text-lg text-white">Recent</h2>
+                        {sportsResults.size > 0 && <SportsCarousel results={sportsResults} isLoading={isSportsLoading} onTeamSelect={onSearch} />}
+                    </div>
+                    {loading && filteredArticles.length === 0 && <p>Loading articles...</p>}
+                    {error && <p className="text-red-400">{error}</p>}
+                    <div className="space-y-3">
+                        {filteredArticles.slice(1).map(article => {
+                            const feedInfo = feedInfoMap.get(article.source);
                             return (
-                                <button key={view} onClick={() => setArticleView(view)} className={`p-1.5 rounded-md transition-colors ${articleView === view ? 'bg-white dark:bg-zinc-700 text-lime-600 dark:text-lime-400' : 'text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-white'}`} aria-label={`Switch to ${view} view`}>
-                                    <Icon className="w-5 h-5" />
-                                </button>
-                            )
+                                <ArticleListItem 
+                                    key={article.id} 
+                                    article={article} 
+                                    onMarkAsRead={() => onMarkAsRead(article.id)}
+                                    onReadHere={() => setReaderArticle(article)}
+                                    isRead={readArticleIds.has(article.id)}
+                                    iconUrl={feedInfo?.iconUrl}
+                                    sourceType={feedInfo?.sourceType}
+                                />
+                            );
                         })}
                     </div>
                 </div>
-            </header>
-
-            <div className="sticky top-[72px] bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm z-10">
-                 <DiscoverWidgetCarousel 
-                    settings={widgetSettings}
-                    onCustomizeClick={onOpenSettings}
-                    sportsResults={sportsResults}
-                    isSportsLoading={isSportsLoading}
-                    sportsApiFailed={sportsApiFailed}
-                    refreshKey={refreshKey}
+            </div>
+             {readerArticle && (
+                <ReaderViewModal 
+                    article={readerArticle}
+                    onClose={() => setReaderArticle(null)}
+                    onMarkAsRead={onMarkAsRead}
                 />
-            </div>
-            
-            <div className="flex-1 p-4 md:p-6 lg:p-8">
-                {loading && !articles.length && (
-                    <div className="flex justify-center items-center h-full pt-10">
-                        <svg className="animate-spin h-8 w-8 text-lime-500 dark:text-lime-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                    </div>
-                )}
-                {error && <div className="text-center text-red-700 dark:text-red-400 mt-4 bg-red-100 dark:bg-red-900/20 p-4 rounded-md border border-red-300 dark:border-red-500/30">{error}</div>}
-                
-                {!loading && !error && itemsToRender.length === 0 && (
-                    <div className="text-center pt-10">
-                        <h2 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">No articles found</h2>
-                        <p className="text-gray-500 dark:text-zinc-400">There are no articles to display for this selection.</p>
-                    </div>
-                )}
-                <div className={`grid gap-4 ${articleView === 'magazine' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
-                    {itemsToRender.map((item, index) =>
-                        <ArticleItem
-                            key={item.id}
-                            article={item}
-                            isRead={readArticleIds.has(item.id)}
-                            isBookmarked={bookmarkedArticleIds.has(item.id)}
-                            tags={articleTags.get(item.id) || new Set()}
-                            onMarkAsRead={onMarkAsRead}
-                            onMarkAsUnread={onMarkAsUnread}
-                            onToggleBookmark={onToggleBookmark}
-                            onSetTags={(tags) => onSetArticleTags(item.id, tags)}
-                            view={articleView}
-                            isFocused={focusedArticleIndex === index}
-                            articleRef={el => (articleRefs.current[index] = el)}
-                        />
-                    )}
-                </div>
-            </div>
+            )}
         </main>
     );
 };
 
+const Header: React.FC<{onSearchSubmit: (e: React.FormEvent) => void; searchQuery: string; setSearchQuery: (q: string) => void; widgetSettings: WidgetSettings; refreshKey: number; onOpenSidebar: () => void}> = ({ onSearchSubmit, searchQuery, setSearchQuery, widgetSettings, refreshKey, onOpenSidebar }) => (
+    <header className="p-4 flex items-center justify-between">
+        <button onClick={onOpenSidebar} className="p-1 bg-zinc-800 rounded-lg md:hidden"><SeymourIcon className="w-7 h-7" /></button>
+        <form onSubmit={onSearchSubmit} className="relative flex-grow mx-4">
+            <SearchIcon className="w-5 h-5 text-zinc-500 absolute top-1/2 left-3 -translate-y-1/2" />
+            <input 
+                type="search" 
+                placeholder="Search" 
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="w-full bg-zinc-800/80 placeholder-zinc-500 text-white rounded-full py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+            />
+        </form>
+        {widgetSettings.showWeather && <WeatherDisplay location={widgetSettings.weatherLocation} refreshKey={refreshKey} />}
+    </header>
+);
 
-const DiscoverWidgetCarousel: React.FC<{
-    settings: WidgetSettings;
-    onCustomizeClick: () => void;
-    sportsResults: Map<string, any>;
-    isSportsLoading: boolean;
-    sportsApiFailed: boolean;
-    refreshKey: number;
-}> = ({ settings, onCustomizeClick, sportsResults, isSportsLoading, sportsApiFailed, refreshKey }) => {
-    return (
-        <div className="flex space-x-3 overflow-x-auto px-4 pb-4 scrollbar-hide flex-shrink-0">
-            {settings.showWeather && <WeatherWidget location={settings.weatherLocation} refreshKey={refreshKey} />}
-            {settings.showSports && settings.sportsTeams.map(team => 
-                <SportsWidget 
-                    key={team} 
-                    team={team}
-                    isLoading={isSportsLoading}
-                    apiFailed={sportsApiFailed}
-                    result={sportsResults.get(team)}
-                />
-            )}
-            <CustomizeWidget onClick={onCustomizeClick} />
-        </div>
-    );
-};
-
-interface WeatherData {
-    temperatureCelsius: number;
-    condition: string;
-    precipitationChance: number;
-    sunrise: string;
-    sunset: string;
-}
-
-const WeatherWidget: React.FC<{ location: string; refreshKey: number; }> = ({ location, refreshKey }) => {
-    const [weather, setWeather] = useState<WeatherData | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+const WeatherDisplay: React.FC<{ location: string, refreshKey: number }> = ({ location, refreshKey }) => {
+    const [weather, setWeather] = useState<{temp: number; sunrise: string; sunset: string} | null>(null);
 
     useEffect(() => {
+        const controller = new AbortController();
+
         const fetchWeather = async () => {
-            if (!location) {
-                setError("No location set.");
-                setIsLoading(false);
-                return;
-            }
-            setIsLoading(true);
-            setError(null);
+            if (!location) return;
             try {
-                // wttr.in is a simple, free API that doesn't require a key for basic JSON output.
-                const response = await fetchWithTimeout(`https://wttr.in/${encodeURIComponent(location)}?format=j1`, { timeout: 5000 });
-                if (!response.ok) {
-                    throw new Error(`Data not found.`);
-                }
+                const timeoutId = setTimeout(() => controller.abort(), 10000);
+                const response = await fetch(`https://wttr.in/${encodeURIComponent(location)}?format=j1`, { signal: controller.signal });
+                clearTimeout(timeoutId);
+                if (!response.ok) throw new Error(`Data not found.`);
                 const data = await response.json();
-                
-                if (!data.current_condition || !data.weather || !data.weather[0].astronomy) {
-                    throw new Error("Invalid data format.");
-                }
-
                 const current = data.current_condition[0];
-                const forecast = data.weather[0];
-                const astronomy = forecast.astronomy[0];
-
-                setWeather({
-                    temperatureCelsius: parseInt(current.temp_C, 10),
-                    condition: current.weatherDesc[0].value,
-                    precipitationChance: parseInt(forecast.hourly[0].chanceofrain, 10),
-                    sunrise: astronomy.sunrise,
-                    sunset: astronomy.sunset,
-                });
+                const astronomy = data.weather[0].astronomy[0];
+                setWeather({ temp: parseInt(current.temp_C, 10), sunrise: astronomy.sunrise, sunset: astronomy.sunset });
             } catch (e) {
-                console.error("Failed to fetch weather:", e);
-                setError(e instanceof Error ? e.message : "Could not fetch.");
-                setWeather(null);
-            } finally {
-                setIsLoading(false);
+                if ((e as Error).name !== 'AbortError') {
+                    console.error("Failed to fetch weather:", e);
+                }
             }
         };
 
         fetchWeather();
+        return () => controller.abort();
     }, [location, refreshKey]);
 
-    const isDayTime = useMemo(() => {
-        if (!weather?.sunrise || !weather?.sunset) return true; // Default to day
-        try {
-            const parseTimeString = (timeStr: string): Date => {
-                const now = new Date();
-                const [time, modifier] = timeStr.split(' ');
-                let [hours, minutes] = time.split(':').map(Number);
-                if (modifier.toUpperCase() === 'PM' && hours < 12) {
-                    hours += 12;
-                }
-                if (modifier.toUpperCase() === 'AM' && hours === 12) {
-                    hours = 0;
-                }
-                now.setHours(hours, minutes, 0, 0);
-                return now;
-            };
-            const now = new Date();
-            const sunriseTime = parseTimeString(weather.sunrise);
-            const sunsetTime = parseTimeString(weather.sunset);
-            return now >= sunriseTime && now < sunsetTime;
-        } catch (e) {
-            console.error("Failed to parse sunrise/sunset times", e);
-            return true;
-        }
-    }, [weather]);
-
-    const formatTo24Hour = (timeStr: string): string => {
+    const formatTime = (timeStr?: string) => {
         if (!timeStr) return '';
-        try {
-            const [time, modifier] = timeStr.split(' ');
-            if (!time || !modifier) return timeStr;
-
-            let [hours, minutes] = time.split(':');
-            let hoursNum = parseInt(hours, 10);
-
-            if (modifier.toUpperCase() === 'PM' && hoursNum < 12) {
-                hoursNum += 12;
-            }
-            if (modifier.toUpperCase() === 'AM' && hoursNum === 12) {
-                hoursNum = 0;
-            }
-
-            return `${String(hoursNum).padStart(2, '0')}:${minutes}`;
-        } catch (e) {
-            console.error("Failed to parse time string:", timeStr, e);
-            return timeStr.replace(/ (AM|PM)/i, '').trim();
-        }
-    };
-
-    const WeatherIcon = ({ condition }: { condition: string }) => {
-        const lowerCondition = condition ? condition.toLowerCase() : '';
-        if (lowerCondition.includes('sun') || lowerCondition.includes('clear')) return <SunIcon className="w-6 h-6 text-yellow-400" />;
-        if (lowerCondition.includes('cloud') || lowerCondition.includes('overcast')) return <CloudIcon className="w-6 h-6 text-gray-400" />;
-        return <CloudIcon className="w-6 h-6 text-gray-400" />;
-    };
-
-    if (isLoading) {
-        return (
-            <div className="flex items-center space-x-3">
-                <div className="flex-shrink-0 w-28 h-24 p-3 bg-zinc-100 dark:bg-zinc-800 rounded-2xl flex flex-col justify-center items-center animate-pulse border border-zinc-200 dark:border-zinc-700">
-                    <p className="text-sm text-zinc-500 dark:text-zinc-400">Loading...</p>
-                </div>
-                <div className="flex-shrink-0 w-24 h-24 p-3 bg-zinc-100 dark:bg-zinc-800 rounded-2xl animate-pulse border border-zinc-200 dark:border-zinc-700" />
-            </div>
-        );
+        return timeStr.replace(/(\d{1,2}:\d{2}) [AP]M/, '$1').trim();
     }
+
+    if (!weather) return <div className="flex items-center gap-2 text-sm w-28 h-8 justify-end" />;
     
-    if (error) {
-        return (
-            <div className="flex-shrink-0 w-40 h-24 p-3 bg-zinc-100 dark:bg-zinc-800 rounded-2xl flex flex-col justify-center items-center text-center border border-zinc-200 dark:border-zinc-700">
-                <p className="text-sm font-bold text-red-500 dark:text-red-400">Weather Error</p>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">{location}: {error}</p>
-            </div>
-        );
-    }
-
-    if (!weather) {
-        return null;
-    }
-
-    const textShadow = { textShadow: '1px 1px 2px rgba(0, 0, 0, 0.6)' };
-
     return (
-        <div className="flex-shrink-0 flex items-center space-x-3">
-            <div className="relative flex-shrink-0 w-28 h-24 p-3 rounded-2xl text-white flex flex-col justify-between overflow-hidden border border-zinc-200 dark:border-zinc-700">
-                 <div className="absolute inset-0 w-full h-full z-0">
-                    {isDayTime ? <DayWeatherBackground /> : <NightWeatherBackground />}
-                </div>
-                <div className="relative z-10">
-                    <p className="font-bold truncate" style={textShadow}>{location}</p>
-                    <p className="text-xs text-white/90" style={textShadow}>{weather.precipitationChance}% <span role="img" aria-label="rain">💧</span></p>
-                </div>
-                <div className="relative z-10 flex items-center justify-between mt-1">
-                    <p className="text-3xl font-bold" style={textShadow}>{weather.temperatureCelsius}°</p>
-                    <WeatherIcon condition={weather.condition} />
-                </div>
+        <div className="flex items-center gap-2 text-sm text-zinc-400">
+            <div className="flex flex-col items-center">
+                <SunIcon className="w-5 h-5 text-yellow-400" />
+                <span className="text-xs">{weather.temp}°C</span>
             </div>
+            <div className="flex flex-col items-center text-xs">
+                <SunriseIcon className="w-4 h-4" />
+                <span>{formatTime(weather.sunrise)}</span>
+            </div>
+            <div className="flex flex-col items-center text-xs">
+                <SunsetIcon className="w-4 h-4" />
+                <span>{formatTime(weather.sunset)}</span>
+            </div>
+        </div>
+    );
+};
+
+const ModernVectorFallback: React.FC = () => (
+    <div className="absolute inset-0 overflow-hidden bg-gradient-to-br from-zinc-800 to-zinc-900">
+        <svg className="absolute inset-0 w-full h-full text-white/5" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M-200 300 C-100 100, 100 500, 500 200 S 800 -100, 1200 200" stroke="currentColor" strokeWidth="2"/>
+            <path d="M-150 400 C-50 200, 150 600, 550 300 S 850 0, 1250 300" stroke="currentColor" strokeWidth="2"/>
+            <path d="M-100 500 C0 300, 200 700, 600 400 S 900 100, 1300 400" stroke="currentColor" strokeWidth="2"/>
+        </svg>
+    </div>
+);
+
+const FeaturedStory: React.FC<{article: Article; onReadHere: () => void; onMarkAsRead: () => void;}> = ({ article, onReadHere, onMarkAsRead }) => {
+    const [imageError, setImageError] = useState(false);
+    const hasImage = article.imageUrl && !imageError;
+
+    useEffect(() => {
+        setImageError(false);
+    }, [article.imageUrl]);
+    
+    return (
+        <div className="p-6 rounded-3xl text-white shadow-lg relative overflow-hidden h-48 flex flex-col justify-end bg-zinc-800">
+            {hasImage ? (
+                <>
+                    <img 
+                        src={`${CORS_PROXY}${encodeURIComponent(article.imageUrl)}`}
+                        alt={article.title}
+                        className="absolute inset-0 w-full h-full object-cover"
+                        onError={() => setImageError(true)}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+                </>
+            ) : (
+                <ModernVectorFallback />
+            )}
             
-            <div className="relative flex-shrink-0 w-24 h-24 p-2 rounded-2xl flex flex-col justify-around bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-white">
-                <div className="flex items-center space-x-2 w-full">
-                    <SunriseIcon className="w-5 h-5 text-yellow-500 dark:text-yellow-400 flex-shrink-0" />
-                    <span className="text-xs font-medium truncate">{formatTo24Hour(weather.sunrise)}</span>
-                </div>
-                <div className="flex items-center space-x-2 w-full">
-                    <SunsetIcon className="w-5 h-5 text-blue-500 dark:text-blue-300 flex-shrink-0" />
-                    <span className="text-xs font-medium truncate">{formatTo24Hour(weather.sunset)}</span>
+            <div className="relative z-10">
+                <p className="text-sm font-semibold opacity-80">{article.source}</p>
+                <h1 className="text-2xl font-bold my-1 line-clamp-2 leading-tight">{article.title}</h1>
+                 <div className="flex items-center gap-2 mt-2">
+                    <a href={article.link} target="_blank" rel="noopener noreferrer" onClick={onMarkAsRead} className="inline-block bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white font-semibold py-2 px-4 rounded-full text-sm transition-colors">
+                        Read Original
+                    </a>
+                    <button onClick={onReadHere} className="inline-flex items-center gap-2 bg-orange-600/80 hover:bg-orange-600/100 backdrop-blur-sm text-white font-semibold py-2 px-4 rounded-full text-sm transition-colors">
+                        <BookOpenIcon className="w-4 h-4" />
+                        <span>Read Here</span>
+                    </button>
                 </div>
             </div>
         </div>
     );
 };
 
-const SportsWidget: React.FC<{ 
-    team: string; 
-    isLoading: boolean;
-    apiFailed: boolean;
-    result: any;
-}> = ({ team, isLoading, apiFailed, result }) => {
-    
-    const TeamLogo = ({ logoUrl, name }: { logoUrl?: string, name: string }) => {
-        const [hasError, setHasError] = useState(!logoUrl);
-
-        useEffect(() => {
-            setHasError(!logoUrl);
-        }, [logoUrl]);
-
-        if (hasError || !logoUrl) {
-            const displayName = (name || '').trim().substring(0, 3).toUpperCase() || '???';
-            return <div className="w-8 h-8 rounded-full bg-zinc-300 dark:bg-zinc-600 flex items-center justify-center font-bold text-sm text-zinc-600 dark:text-zinc-300">{displayName}</div>;
-        }
-        return <img src={logoUrl} onError={() => setHasError(true)} alt={`${name} logo`} className="w-8 h-8 object-contain" />;
-    };
-
-    const renderFallback = () => (
-        <div className="flex flex-col justify-center items-center text-center h-full w-full p-2">
-            <p className="text-sm font-bold">{team.toUpperCase()}</p>
-            <p className="text-xs text-zinc-500 mt-1">Score unavailable</p>
+const ActionButtons: React.FC<{ onAdd: () => void; onRefresh: () => void; onSettings: () => void; onManage: () => void; }> = ({ onAdd, onRefresh, onSettings, onManage }) => {
+    const Button: React.FC<{icon: React.ReactNode; label: string; onClick?: () => void;}> = ({ icon, label, onClick }) => (
+        <button onClick={onClick} className="flex flex-col items-center gap-2 text-zinc-300 hover:text-white transition-colors">
+            <div className="w-12 h-12 bg-zinc-800 rounded-full flex items-center justify-center">{icon}</div>
+            <span className="text-xs font-semibold">{label}</span>
+        </button>
+    );
+    return (
+        <div className="flex justify-around items-center py-4">
+            <Button icon={<PlusIcon className="w-6 h-6" />} label="Add" onClick={onAdd} />
+            <Button icon={<ArrowPathIcon className="w-6 h-6" />} label="Refresh" onClick={onRefresh} />
+            <Button icon={<SettingsIcon className="w-6 h-6" />} label="Settings" onClick={onSettings} />
+            <Button icon={<ArrowsRightLeftIcon className="w-6 h-6" />} label="Manage" onClick={onManage} />
         </div>
     );
-    
-    const isErrorState = !isLoading && (apiFailed || (result && result.error) || !result);
+};
+
+const QuickAddSource: React.FC<{ onAddSource: (url: string, type: SourceType) => Promise<void> }> = ({ onAddSource }) => {
+    const [url, setUrl] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const trimmedUrl = url.trim();
+        if (!trimmedUrl) return;
+
+        let sourceType: SourceType | null = null;
+        if (trimmedUrl.includes('youtube.com') || trimmedUrl.includes('youtu.be')) {
+            sourceType = 'youtube';
+        } else if (trimmedUrl.includes('reddit.com')) {
+            sourceType = 'reddit';
+        }
+
+        if (!sourceType) {
+            setError('Please enter a valid YouTube or Reddit URL.');
+            setTimeout(() => setError(null), 5000);
+            return;
+        }
+
+        setIsLoading(true);
+        setError(null);
+        try {
+            await onAddSource(trimmedUrl, sourceType);
+            setUrl('');
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'An unknown error occurred.');
+            setTimeout(() => setError(null), 5000);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     return (
-        <a 
-            href={`https://www.google.com/search?q=${encodeURIComponent(result?.teamFullName || team)}+score`}
+        <div>
+            <form onSubmit={handleSubmit} className="relative">
+                <input
+                    type="url"
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                    placeholder="Paste YouTube or Reddit URL"
+                    disabled={isLoading}
+                    className="w-full bg-zinc-800 border border-zinc-700 placeholder-zinc-500 text-white rounded-lg py-2.5 pl-4 pr-28 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-70"
+                />
+                <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="absolute inset-y-0 right-0 flex items-center pr-2"
+                >
+                    <span className="bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded-md px-4 py-1.5 text-xs disabled:opacity-50 disabled:cursor-wait transition-colors">
+                        {isLoading ? 'Adding...' : 'Add Feed'}
+                    </span>
+                </button>
+            </form>
+            {error && <p className="text-red-400 text-xs mt-2 ml-1">{error}</p>}
+        </div>
+    );
+};
+
+
+const ArticleListItem: React.FC<{
+    article: Article;
+    onMarkAsRead: () => void;
+    onReadHere: () => void;
+    isRead: boolean;
+    iconUrl?: string;
+    sourceType?: SourceType;
+}> = ({ article, onMarkAsRead, onReadHere, isRead, iconUrl, sourceType }) => {
+    const [imageError, setImageError] = useState(!article.imageUrl);
+    const [iconError, setIconError] = useState(!iconUrl);
+
+    useEffect(() => {
+        setImageError(!article.imageUrl);
+    }, [article.imageUrl]);
+
+    useEffect(() => {
+        setIconError(!iconUrl);
+    }, [iconUrl]);
+
+    const FallbackDisplay = () => {
+        if (!iconError && iconUrl) {
+            return <img src={iconUrl} alt={`${article.source} logo`} className="w-8 h-8 rounded-md object-contain" onError={() => setIconError(true)} />;
+        }
+        if (sourceType === 'reddit') return <RedditIcon className="w-8 h-8 text-orange-500" />;
+        if (sourceType === 'youtube') return <YoutubeIcon className="w-8 h-8 text-red-500" />;
+        return <NewspaperIcon className="w-8 h-8 text-zinc-600" />;
+    };
+
+    const handleReadHereClick = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onReadHere();
+    };
+
+    return (
+        <a
+            href={article.link}
             target="_blank"
             rel="noopener noreferrer"
-            className="relative group flex-shrink-0 w-48 h-24 p-3 bg-zinc-200 dark:bg-zinc-800 rounded-2xl text-zinc-900 dark:text-zinc-100 flex flex-col justify-between items-center hover:bg-zinc-300/70 dark:hover:bg-zinc-700/70 transition-colors"
+            onClick={onMarkAsRead}
+            className={`flex items-stretch gap-4 bg-zinc-800/50 rounded-xl hover:bg-zinc-700/50 transition-colors overflow-hidden h-32 ${isRead ? 'opacity-50' : ''}`}
         >
-            <SearchIcon className={`absolute top-2 right-2 w-4 h-4 text-zinc-500 transition-opacity ${isErrorState ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} />
-            
-            {isLoading ? (
-                <div className="text-zinc-600 dark:text-zinc-400 text-sm m-auto animate-pulse">Loading...</div>
-            ) : isErrorState ? (
-                renderFallback()
+            <div className="flex-grow flex flex-col p-4 justify-between overflow-hidden">
+                <div>
+                    <p className="font-semibold text-white line-clamp-3 leading-tight">{article.title}</p>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-zinc-400">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                        {!iconError ? (
+                            <img src={iconUrl} alt="" className="w-4 h-4 rounded-sm flex-shrink-0" onError={() => setIconError(true)} />
+                        ) : (
+                            <NewspaperIcon className="w-4 h-4 text-zinc-500 flex-shrink-0" />
+                        )}
+                        <span className="truncate">{article.source}</span>
+                    </div>
+                    <span className="text-zinc-600 flex-shrink-0">&middot;</span>
+                    <span className="text-zinc-500 flex-shrink-0">{timeAgo(article.publishedDate)}</span>
+                    <span className="text-zinc-600 flex-shrink-0">&middot;</span>
+                    <button onClick={handleReadHereClick} className="flex items-center gap-1 text-zinc-400 hover:text-orange-400 transition-colors">
+                        <BookOpenIcon className="w-4 h-4" />
+                        <span>Read</span>
+                    </button>
+                </div>
+            </div>
+            {article.imageUrl && !imageError ? (
+                <div className="w-32 flex-shrink-0">
+                    <img
+                        src={`${CORS_PROXY}${encodeURIComponent(article.imageUrl)}`}
+                        alt=""
+                        aria-hidden="true"
+                        className="w-full h-full object-cover"
+                        onError={() => setImageError(true)}
+                    />
+                </div>
             ) : (
-                 <>
-                    <div className="flex justify-between items-start w-full">
-                        <p className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 truncate pr-2">{result.teamFullName || team.toUpperCase()}</p>
-                        <span className="text-[10px] bg-white/60 dark:bg-black/20 px-1.5 py-0.5 rounded-md font-semibold flex-shrink-0">{result.matchStatus}</span>
-                    </div>
-                    <div className="flex justify-around items-center w-full">
-                        <TeamLogo logoUrl={result.homeTeamLogo} name={result.homeTeam} />
-                        <span className="text-2xl font-bold">{result.homeScore} - {result.awayScore}</span>
-                        <TeamLogo logoUrl={result.awayTeamLogo} name={result.awayTeam} />
-                    </div>
-                    <div className="h-[12px]"></div>
-                </>
+                <div className="w-32 flex-shrink-0 bg-zinc-800/25 flex items-center justify-center">
+                    <FallbackDisplay />
+                </div>
             )}
         </a>
     );
 };
 
-const CustomizeWidget: React.FC<{ onClick: () => void }> = ({ onClick }) => (
-    <button onClick={onClick} className="flex-shrink-0 w-40 h-24 p-3 bg-zinc-800 dark:bg-zinc-800 rounded-2xl text-white flex flex-col items-center justify-center space-y-2 text-center hover:bg-zinc-700 transition-colors border border-dashed border-zinc-600 hover:border-lime-500">
-        <SettingsIcon className="w-6 h-6" />
-        <p className="text-sm font-semibold">Customize your space</p>
-    </button>
+
+const SportsCarousel: React.FC<{ results: Map<string, any>; isLoading: boolean; onTeamSelect: (teamName: string) => void; }> = ({ results, isLoading, onTeamSelect }) => (
+    <div className="flex gap-2 overflow-x-auto scrollbar-hide">
+        {Array.from(results.keys()).map(teamCode => (
+            <SportsCard key={teamCode} teamCode={teamCode} data={results.get(teamCode)} isLoading={isLoading} onSelect={onTeamSelect} />
+        ))}
+    </div>
 );
+
+const SportsCard: React.FC<{ teamCode: string; data: any; isLoading: boolean; onSelect: (teamName: string) => void; }> = ({ teamCode, data, isLoading, onSelect }) => {
+    if (isLoading) return <div className="w-28 h-12 bg-zinc-800 rounded-lg animate-pulse flex-shrink-0" />;
+    if (!data || data.error) return null;
+    
+    const TeamLogo = ({ name }: { name: string }) => {
+        const logoUrl = getTeamLogo(name);
+        if (!logoUrl) return <div className="w-4 h-4 rounded-full bg-zinc-600" />;
+        return <img src={logoUrl} alt={`${name} logo`} className="w-4 h-4 object-contain" />;
+    };
+
+    const handleSelect = () => {
+        if (data.teamFullName) {
+            onSelect(data.teamFullName);
+        }
+    };
+    
+    return (
+        <button
+            onClick={handleSelect}
+            className="p-2 bg-zinc-800 rounded-lg w-auto flex-shrink-0 flex items-center gap-2 text-xs hover:bg-zinc-700 transition-colors"
+        >
+            <TeamLogo name={data.strHomeTeam} />
+            <span className="font-bold text-white">{data.intHomeScore}</span>
+            <span>-</span>
+            <span className="font-bold text-white">{data.intAwayScore}</span>
+            <TeamLogo name={data.strAwayTeam} />
+        </button>
+    );
+};
+
 
 export default MainContent;

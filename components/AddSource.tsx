@@ -1,61 +1,86 @@
 import React, { useState } from 'react';
-import { RssIcon, PlusIcon, YoutubeIcon, GlobeAltIcon } from './icons';
+import { RssIcon, PlusIcon, YoutubeIcon, GlobeAltIcon, RedditIcon, ArrowPathIcon } from './icons';
 
-export type SourceType = 'rss' | 'youtube' | 'website';
+export type SourceType = 'rss' | 'youtube' | 'website' | 'reddit';
 
 interface AddSourceProps {
-    onAddSource: (url: string, type: SourceType) => void;
+    onAddSource: (url: string, type: SourceType) => Promise<void>;
+    onSuccess?: () => void;
 }
 
-const AddSource: React.FC<AddSourceProps> = ({ onAddSource }) => {
+const AddSource: React.FC<AddSourceProps> = ({ onAddSource, onSuccess }) => {
     const [activeTab, setActiveTab] = useState<SourceType>('rss');
     const [url, setUrl] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (url.trim()) {
-            onAddSource(url.trim(), activeTab);
+        const trimmedUrl = url.trim();
+        if (!trimmedUrl || isLoading) return;
+
+        setIsLoading(true);
+        setError(null);
+        try {
+            await onAddSource(trimmedUrl, activeTab);
             setUrl('');
+            onSuccess?.();
+        } catch (err) {
+            const message = err instanceof Error ? err.message : 'An unknown error occurred.';
+            setError(message);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setUrl(e.target.value);
+        if (error) {
+            setError(null); // Clear error on new input
         }
     };
 
     const placeholders: Record<SourceType, string> = {
         rss: "Add RSS feed URL",
         youtube: "Add YouTube channel URL",
-        website: "Add website URL to convert"
+        website: "Add website URL to convert",
+        reddit: "Add Reddit user or subreddit URL"
     };
 
     const TabButton: React.FC<{ type: SourceType, children: React.ReactNode }> = ({ type, children }) => (
         <button 
             type="button"
             onClick={() => setActiveTab(type)} 
-            className={`w-full py-1 text-xs rounded-md flex justify-center items-center gap-1.5 transition-colors duration-200 ${activeTab === type ? 'bg-white dark:bg-zinc-700 text-lime-600 dark:text-lime-400 font-semibold shadow-sm' : 'text-gray-500 dark:text-zinc-400 hover:bg-gray-200/50 dark:hover:bg-zinc-700/50'}`}
+            className={`w-full py-2 text-sm rounded-md flex justify-center items-center gap-1.5 transition-colors duration-200 ${activeTab === type ? 'bg-zinc-700 text-white font-semibold' : 'text-zinc-400 hover:bg-zinc-800/50'}`}
         >
             {children}
         </button>
     );
 
     return (
-        <div className="px-2 space-y-2 mb-4">
-            <div className="flex justify-around bg-gray-100 dark:bg-zinc-800 rounded-lg p-1">
-                <TabButton type="rss"><RssIcon className="w-4 h-4" /> RSS</TabButton>
-                <TabButton type="youtube"><YoutubeIcon className="w-4 h-4" /> YouTube</TabButton>
-                <TabButton type="website"><GlobeAltIcon className="w-4 h-4" /> Website</TabButton>
+        <div className="space-y-4">
+            <div className="flex justify-around bg-zinc-800 rounded-lg p-1">
+                <TabButton type="rss"><RssIcon className="w-5 h-5" /> RSS</TabButton>
+                <TabButton type="youtube"><YoutubeIcon className="w-5 h-5" /> YouTube</TabButton>
+                <TabButton type="reddit"><RedditIcon className="w-5 h-5" /> Reddit</TabButton>
+                <TabButton type="website"><GlobeAltIcon className="w-5 h-5" /> Website</TabButton>
             </div>
             <form onSubmit={handleSubmit}>
                 <div className="relative">
                     <input 
-                        key={activeTab} // Re-renders input to show placeholder correctly on tab change
+                        key={activeTab}
                         type="url" 
                         value={url} 
-                        onChange={(e) => setUrl(e.target.value)} 
+                        onChange={handleUrlChange}
                         placeholder={placeholders[activeTab]} 
                         required 
-                        className="w-full bg-white dark:bg-zinc-800 border border-gray-300 dark:border-zinc-700 rounded-md py-2 pl-3 pr-10 text-sm text-zinc-800 dark:text-zinc-300 placeholder-gray-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-lime-500 focus:border-lime-500" />
-                    <button type="submit" className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 dark:text-zinc-400 hover:text-lime-500 dark:hover:text-lime-400" aria-label="Add source">
-                        <PlusIcon className="w-5 h-5" />
+                        disabled={isLoading}
+                        className="w-full bg-zinc-800 border border-zinc-700 rounded-md py-2.5 pl-4 pr-12 text-sm text-zinc-300 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-70" />
+                    <button type="submit" disabled={isLoading} className="absolute inset-y-0 right-0 flex items-center pr-4 text-zinc-400 hover:text-orange-500 disabled:text-zinc-600 disabled:cursor-not-allowed" aria-label="Add source">
+                        {isLoading ? <ArrowPathIcon className="w-5 h-5 animate-spin" /> : <PlusIcon className="w-6 h-6" />}
                     </button>
                 </div>
+                 {error && <p className="text-red-400 text-xs mt-2 px-1">{error}</p>}
             </form>
         </div>
     );

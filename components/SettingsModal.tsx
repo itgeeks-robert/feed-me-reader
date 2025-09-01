@@ -1,8 +1,7 @@
-
-
 import React, { useState, useEffect, useRef } from 'react';
-import type { Settings, Theme, ArticleView, WidgetSettings, ViewMode } from '../App';
-import { XIcon, SunIcon, MoonIcon, CloudSyncIcon, CloudArrowDownIcon, ChevronDownIcon } from './icons';
+import type { Settings, Theme, ArticleView, WidgetSettings } from '../App';
+// FIX: Replace missing CloudSyncIcon with CloudArrowUpIcon and add ChevronDownIcon.
+import { XIcon, SunIcon, MoonIcon, CloudArrowUpIcon, CloudArrowDownIcon, ChevronDownIcon } from './icons';
 import { leagues } from '../services/sportsData';
 import { teamLogos } from '../services/teamLogos';
 
@@ -34,13 +33,24 @@ const TeamLogo: React.FC<{ name: string }> = ({ name }) => {
     return <img src={logoUrl} onError={() => setHasError(true)} alt={`${name} logo`} className="w-5 h-5 object-contain flex-shrink-0" />;
 };
 
+const hiddenInputStyle: React.CSSProperties = {
+    position: 'absolute',
+    width: '1px',
+    height: '1px',
+    padding: 0,
+    margin: -1,
+    overflow: 'hidden',
+    clip: 'rect(0, 0, 0, 0)',
+    whiteSpace: 'nowrap',
+    borderWidth: 0,
+};
+
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onUpdateSettings, onImportOpml, onExportOpml, onImportSettings, onExportSettings }) => {
     const [activeTab, setActiveTab] = useState<Tab>('General');
     const [localSettings, setLocalSettings] = useState({
         theme: settings.theme,
         articleView: settings.articleView,
-        viewMode: settings.viewMode,
         widgets: { ...settings.widgets }
     });
     const [openLeague, setOpenLeague] = useState<string | null>(leagues.length > 0 ? leagues[0].name : null);
@@ -54,7 +64,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
             setLocalSettings({
                 theme: settings.theme,
                 articleView: settings.articleView,
-                viewMode: settings.viewMode,
                 widgets: { ...settings.widgets }
             });
         }
@@ -129,13 +138,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                 <div className="flex items-center rounded-md bg-gray-100 dark:bg-zinc-800 p-0.5">
                                     <button onClick={() => setLocalSettings(s => ({...s, theme: 'light'}))} className={`p-1.5 rounded-md transition-colors ${localSettings.theme === 'light' ? 'bg-white dark:bg-zinc-700 text-lime-600 dark:text-lime-400' : 'text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-white'}`}><SunIcon className="w-5 h-5"/></button>
                                     <button onClick={() => setLocalSettings(s => ({...s, theme: 'dark'}))} className={`p-1.5 rounded-md transition-colors ${localSettings.theme === 'dark' ? 'bg-white dark:bg-zinc-700 text-lime-600 dark:text-lime-400' : 'text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-white'}`}><MoonIcon className="w-5 h-5"/></button>
-                                </div>
-                            </div>
-                             <div className="flex items-center justify-between">
-                                <label className="text-zinc-700 dark:text-zinc-300">Default View Mode</label>
-                                <div className="flex items-center rounded-md bg-gray-100 dark:bg-zinc-800 p-0.5">
-                                    <button onClick={() => setLocalSettings(s => ({...s, viewMode: 'mobile'}))} className={`px-3 py-1.5 text-sm rounded-md transition-colors ${localSettings.viewMode === 'mobile' ? 'bg-white dark:bg-zinc-700 text-lime-600 dark:text-lime-400' : 'text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-white'}`}>Mobile</button>
-                                    <button onClick={() => setLocalSettings(s => ({...s, viewMode: 'pc'}))} className={`px-3 py-1.5 text-sm rounded-md transition-colors ${localSettings.viewMode === 'pc' ? 'bg-white dark:bg-zinc-700 text-lime-600 dark:text-lime-400' : 'text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-white'}`}>PC</button>
                                 </div>
                             </div>
                             <div>
@@ -246,9 +248,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                 <h3 className="text-base font-semibold text-zinc-800 dark:text-zinc-200 mb-2">OPML</h3>
                                 <p className="text-sm text-gray-500 dark:text-zinc-400 mb-4">Manage your feeds by importing or exporting an OPML file. This only affects your list of feeds and folders.</p>
                                 <div className="flex space-x-3">
-                                    <input type="file" ref={opmlInputRef} onChange={(e) => handleFileChange(e, onImportOpml)} className="hidden" accept=".opml,.xml" aria-hidden="true" />
+                                    <input type="file" ref={opmlInputRef} onChange={(e) => handleFileChange(e, onImportOpml)} style={hiddenInputStyle} />
                                     <button onClick={() => opmlInputRef.current?.click()} className="w-full flex items-center justify-center gap-2 py-2 px-3 text-sm font-medium rounded-md text-zinc-700 dark:text-zinc-300 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700">
-                                        <CloudSyncIcon className="w-5 h-5" />
+                                        <CloudArrowUpIcon className="w-5 h-5" />
                                         <span>Import OPML</span>
                                     </button>
                                     <button onClick={onExportOpml} className="w-full flex items-center justify-center gap-2 py-2 px-3 text-sm font-medium rounded-md text-zinc-700 dark:text-zinc-300 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700">
@@ -264,9 +266,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                 <h3 className="text-base font-semibold text-zinc-800 dark:text-zinc-200 mb-2">Application Backup</h3>
                                 <p className="text-sm text-gray-500 dark:text-zinc-400 mb-4">Save or load all your feeds, folders, and preferences. This is a complete backup of your application settings.</p>
                                  <div className="flex space-x-3">
-                                    <input type="file" ref={settingsInputRef} onChange={(e) => handleFileChange(e, onImportSettings)} className="hidden" accept=".json" aria-hidden="true" />
+                                    <input type="file" ref={settingsInputRef} onChange={(e) => handleFileChange(e, onImportSettings)} style={hiddenInputStyle} />
                                     <button onClick={() => settingsInputRef.current?.click()} className="w-full flex items-center justify-center gap-2 py-2 px-3 text-sm font-medium rounded-md text-zinc-700 dark:text-zinc-300 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700">
-                                        <CloudSyncIcon className="w-5 h-5" />
+                                        <CloudArrowUpIcon className="w-5 h-5" />
                                         <span>Import Settings</span>
                                     </button>
                                     <button onClick={onExportSettings} className="w-full flex items-center justify-center gap-2 py-2 px-3 text-sm font-medium rounded-md text-zinc-700 dark:text-zinc-300 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700">
