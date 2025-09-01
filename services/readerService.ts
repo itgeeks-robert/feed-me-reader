@@ -1,18 +1,11 @@
+
 import type { Article } from '../App';
-import { CORS_PROXY, FALLBACK_PROXY } from '../App';
+import { resilientFetch } from '../App';
+import { get as cacheGet, set as cacheSet } from './cacheService';
 
 const CACHE_PREFIX = 'reader_view_cache_';
 
-const fetchWithTimeout = async (url: string, options: RequestInit & { timeout?: number } = {}) => {
-    const { timeout = 15000 } = options;
-    const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), timeout);
-    const response = await fetch(url, { ...options, signal: controller.signal });
-    clearTimeout(id);
-    return response;
-};
-
-const sanitizeHtml = (html: string, baseUrl: string): string => {
+const sanitizeAndEmbedImages = async (html: string, baseUrl: string): Promise<string> => {
     const doc = new DOMParser().parseFromString(html, 'text/html');
     
     doc.querySelectorAll('script, style, link, meta, iframe, frame, frameset').forEach(el => el.remove());
@@ -30,17 +23,43 @@ const sanitizeHtml = (html: string, baseUrl: string): string => {
                 el.setAttribute('rel', 'noopener noreferrer');
             } catch (e) { el.removeAttribute('href'); }
         }
-        if (el.tagName === 'IMG' && el.hasAttribute('src')) {
-            try {
-                const originalSrc = el.getAttribute('src')!;
-                const proxiedSrc = `${CORS_PROXY}${encodeURIComponent(new URL(originalSrc, baseUrl).href)}`;
-                el.setAttribute('src', proxiedSrc);
-            } catch (e) { el.remove(); }
+    });
+
+    const imagePromises = Array.from(doc.querySelectorAll('img[src]')).map(async (img) => {
+        try {
+            const originalSrc = img.getAttribute('src')!;
+            if (originalSrc.startsWith('data:')) return; // Don't re-process data URIs
+            
+            const absoluteUrl = new URL(originalSrc, baseUrl).href;
+            
+            const response = await resilientFetch(absoluteUrl);
+            const blob = await response.blob();
+            
+            if (blob.size > 10 * 1024 * 1024) { // 10MB limit for embedding
+                console.warn(`Image too large to embed: ${absoluteUrl}`);
+                img.remove();
+                return;
+            }
+
+            const dataUrl = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result as string);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+            img.setAttribute('src', dataUrl);
+
+        } catch (e) {
+            console.warn('Failed to embed image:', img.getAttribute('src'), e);
+            img.remove(); // Remove images that fail to load
         }
     });
+        
+    await Promise.all(imagePromises);
 
     return doc.body.innerHTML;
 };
+
 
 const parseArticleContent = (html: string): { title: string; content: string } => {
     const doc = new DOMParser().parseFromString(html, 'text/html');
@@ -93,31 +112,24 @@ const parseArticleContent = (html: string): { title: string; content: string } =
 export const fetchAndCacheArticleContent = async (article: Article): Promise<{ title: string; content: string }> => {
     const cacheKey = `${CACHE_PREFIX}${article.id}`;
     
-    const cachedData = sessionStorage.getItem(cacheKey);
+    const cachedData = await cacheGet<{ title: string; content: string }>(cacheKey);
     if (cachedData) {
-        return JSON.parse(cachedData);
+        return cachedData;
     }
 
-    let response: Response;
-    try {
-        response = await fetchWithTimeout(`${CORS_PROXY}${encodeURIComponent(article.link)}`);
-        if (!response.ok) throw new Error(`Primary proxy failed with status: ${response.status}`);
-    } catch (e) {
-        console.warn(`Primary proxy failed for "${article.title}", trying fallback.`);
-        response = await fetchWithTimeout(`${FALLBACK_PROXY}${encodeURIComponent(article.link)}`);
-    }
+    const response = await resilientFetch(article.link);
 
     if (!response.ok) throw new Error(`Failed to fetch article (last status: ${response.status})`);
 
     const html = await response.text();
     const parsed = parseArticleContent(html);
-    const sanitizedContent = sanitizeHtml(parsed.content, article.link);
+    const sanitizedContent = await sanitizeAndEmbedImages(parsed.content, article.link);
     const result = { title: parsed.title, content: sanitizedContent };
 
     try {
-        sessionStorage.setItem(cacheKey, JSON.stringify(result));
+        await cacheSet(cacheKey, result);
     } catch (error) {
-        console.error("Failed to write to sessionStorage:", error);
+        console.error("Failed to write to IndexedDB cache:", error);
     }
 
     return result;

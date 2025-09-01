@@ -1,6 +1,8 @@
+
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import type { Feed, Selection, WidgetSettings, Article } from '../App';
-import { CORS_PROXY, FALLBACK_PROXY } from '../App';
+import { PROXIES, resilientFetch } from '../App';
 import { SeymourIcon, SearchIcon, SunIcon, SunriseIcon, SunsetIcon, PlusIcon, ArrowsRightLeftIcon, SettingsIcon, DotsHorizontalIcon, ArrowPathIcon, NewspaperIcon, RedditIcon, YoutubeIcon, BookOpenIcon } from './icons';
 import { teamLogos } from '../services/teamLogos';
 import { allTeamsMap } from '../services/sportsData';
@@ -86,15 +88,6 @@ const parseRssXml = (xmlText: string, sourceTitle: string, feedUrl: string): Art
     });
 };
 
-const fetchWithTimeout = (resource: RequestInfo, options: RequestInit & { timeout?: number } = {}) => {
-  const { timeout = 8000 } = options;
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeout);
-  const promise = fetch(resource, { ...options, signal: controller.signal });
-  promise.finally(() => clearTimeout(id));
-  return promise;
-};
-
 const getTeamLogo = (teamName: string): string | null => {
     if (!teamName) return null;
     if (teamLogos[teamName]) return teamLogos[teamName];
@@ -154,22 +147,9 @@ const MainContent: React.FC<MainContentProps> = (props) => {
             setLoading(true);
             setError(null);
 
-            const fetchFeedWithFallback = async (feed: Feed) => {
-                const options = { timeout: 10000 };
-                try {
-                    const response = await fetchWithTimeout(`${CORS_PROXY}${feed.url}`, options);
-                    if (response.ok) return response;
-                    console.warn(`Primary proxy failed for ${feed.title} with status: ${response.status}`);
-                } catch(e) {
-                    console.warn(`Primary proxy fetch failed for ${feed.title}:`, e);
-                }
-                console.log(`Trying fallback proxy for ${feed.title}`);
-                return fetchWithTimeout(`${FALLBACK_PROXY}${encodeURIComponent(feed.url)}`, options);
-            };
-
             const feedErrors: string[] = [];
             const promises = feeds.map(feed => 
-                fetchFeedWithFallback(feed)
+                resilientFetch(feed.url, { timeout: 10000 })
                     .then(response => {
                         if (!response.ok) throw new Error(`HTTP error! status: ${response.status} for ${feed.title}`);
                         return response.text();
@@ -188,7 +168,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                 
                 if (feedErrors.length > 0) {
                     if (allArticles.length === 0) {
-                        setError(`Failed to load all feeds. This could be a network issue or a problem with the CORS proxy. Please check your connection and try again.`);
+                         setError(`Failed to load all feeds. This could be a temporary network issue, a problem with the CORS proxies, or a browser extension (like an ad-blocker) interfering with requests. Please check your connection and try again.`);
                     } else {
                          setError(`Could not load some feeds: ${feedErrors.join(', ')}.`);
                     }
@@ -222,12 +202,12 @@ const MainContent: React.FC<MainContentProps> = (props) => {
             const fetchTeamData = async (teamCode: string): Promise<{ team: string; result: any; }> => {
                 const teamFullName = allTeamsMap.get(teamCode.toUpperCase()) || teamCode;
                 try {
-                    const teamSearchRes = await fetchWithTimeout(`https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t=${encodeURIComponent(teamFullName)}`);
+                    const teamSearchRes = await resilientFetch(`https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t=${encodeURIComponent(teamFullName)}`);
                     const teamSearchData = await teamSearchRes.json();
                     const teamInfo = teamSearchData.teams?.[0];
                     if (!teamInfo) throw new Error(`Team not found.`);
 
-                    const lastEventsRes = await fetchWithTimeout(`https://www.thesportsdb.com/api/v1/json/3/eventslast.php?id=${teamInfo.idTeam}`);
+                    const lastEventsRes = await resilientFetch(`https://www.thesportsdb.com/api/v1/json/3/eventslast.php?id=${teamInfo.idTeam}`);
                     const lastEventsData = await lastEventsRes.json();
                     const lastMatch = lastEventsData.results?.[0];
                     if (!lastMatch) throw new Error('No last match data found.');
@@ -372,9 +352,7 @@ const WeatherDisplay: React.FC<{ location: string, refreshKey: number }> = ({ lo
         const fetchWeather = async () => {
             if (!location) return;
             try {
-                const timeoutId = setTimeout(() => controller.abort(), 10000);
-                const response = await fetch(`https://wttr.in/${encodeURIComponent(location)}?format=j1`, { signal: controller.signal });
-                clearTimeout(timeoutId);
+                const response = await resilientFetch(`https://wttr.in/${encodeURIComponent(location)}?format=j1`, { timeout: 10000 });
                 if (!response.ok) throw new Error(`Data not found.`);
                 const data = await response.json();
                 const current = data.current_condition[0];
@@ -427,22 +405,45 @@ const ModernVectorFallback: React.FC = () => (
 );
 
 const FeaturedStory: React.FC<{article: Article; onReadHere: () => void; onMarkAsRead: () => void;}> = ({ article, onReadHere, onMarkAsRead }) => {
-    const [imageError, setImageError] = useState(false);
-    const hasImage = article.imageUrl && !imageError;
+    const [proxyIndex, setProxyIndex] = useState(0);
+    const [imageSrc, setImageSrc] = useState('');
+    const [imageError, setImageError] = useState(!article.imageUrl);
 
     useEffect(() => {
-        setImageError(false);
+        if (article.imageUrl) {
+            setProxyIndex(0);
+            const proxy = PROXIES[0];
+            setImageSrc(`${proxy.url}${proxy.encode ? encodeURIComponent(article.imageUrl) : article.imageUrl}`);
+            setImageError(false);
+        } else {
+            setImageSrc('');
+            setImageError(true);
+        }
     }, [article.imageUrl]);
+    
+    const handleImageError = () => {
+        if (!article.imageUrl) return;
+        const nextIndex = proxyIndex + 1;
+        if (nextIndex < PROXIES.length) {
+            const nextProxy = PROXIES[nextIndex];
+            setImageSrc(`${nextProxy.url}${nextProxy.encode ? encodeURIComponent(article.imageUrl) : article.imageUrl}`);
+            setProxyIndex(nextIndex);
+        } else {
+            setImageError(true);
+        }
+    };
+
+    const hasImage = article.imageUrl && !imageError;
     
     return (
         <div className="p-6 rounded-3xl text-white shadow-lg relative overflow-hidden h-48 flex flex-col justify-end bg-zinc-800">
             {hasImage ? (
                 <>
                     <img 
-                        src={`${CORS_PROXY}${encodeURIComponent(article.imageUrl)}`}
+                        src={imageSrc}
                         alt={article.title}
                         className="absolute inset-0 w-full h-full object-cover"
-                        onError={() => setImageError(true)}
+                        onError={handleImageError}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
                 </>
@@ -555,12 +556,34 @@ const ArticleListItem: React.FC<{
     iconUrl?: string;
     sourceType?: SourceType;
 }> = ({ article, onMarkAsRead, onReadHere, isRead, iconUrl, sourceType }) => {
+    const [proxyIndex, setProxyIndex] = useState(0);
+    const [imageSrc, setImageSrc] = useState('');
     const [imageError, setImageError] = useState(!article.imageUrl);
     const [iconError, setIconError] = useState(!iconUrl);
 
     useEffect(() => {
-        setImageError(!article.imageUrl);
+        if (article.imageUrl) {
+            setProxyIndex(0);
+            const proxy = PROXIES[0];
+            setImageSrc(`${proxy.url}${proxy.encode ? encodeURIComponent(article.imageUrl) : article.imageUrl}`);
+            setImageError(false);
+        } else {
+            setImageSrc('');
+            setImageError(true);
+        }
     }, [article.imageUrl]);
+
+    const handleImageError = () => {
+        if (!article.imageUrl) return;
+        const nextIndex = proxyIndex + 1;
+        if (nextIndex < PROXIES.length) {
+            const nextProxy = PROXIES[nextIndex];
+            setImageSrc(`${nextProxy.url}${nextProxy.encode ? encodeURIComponent(article.imageUrl) : article.imageUrl}`);
+            setProxyIndex(nextIndex);
+        } else {
+            setImageError(true);
+        }
+    };
 
     useEffect(() => {
         setIconError(!iconUrl);
@@ -614,11 +637,11 @@ const ArticleListItem: React.FC<{
             {article.imageUrl && !imageError ? (
                 <div className="w-32 flex-shrink-0">
                     <img
-                        src={`${CORS_PROXY}${encodeURIComponent(article.imageUrl)}`}
+                        src={imageSrc}
                         alt=""
                         aria-hidden="true"
                         className="w-full h-full object-cover"
-                        onError={() => setImageError(true)}
+                        onError={handleImageError}
                     />
                 </div>
             ) : (

@@ -1,6 +1,8 @@
+
+
 import React, { useState, useEffect, useCallback } from 'react';
 import MainContent from './components/MainContent';
-import { type SourceType } from './components/AddSource';
+import type { SourceType } from './components/AddSource';
 import SettingsModal from './components/SettingsModal';
 import BottomNavBar from './components/BottomNavBar';
 import AddSourceModal from './components/AddSourceModal';
@@ -55,22 +57,59 @@ export interface Settings {
     widgets: WidgetSettings;
 }
 
-export const CORS_PROXY = 'https://corsproxy.io/?';
-export const FALLBACK_PROXY = 'https://cors-proxy.htmldriven.com/?url=';
+export interface Proxy {
+  url: string;
+  encode: boolean;
+}
 
-const fetchWithFallback = async (url: string, options: RequestInit = {}) => {
-    try {
-        const response = await fetch(`${CORS_PROXY}${url}`, options);
-        if (response.ok) {
-            return response;
-        }
-        console.warn(`Primary proxy failed for ${url} with status: ${response.status}`);
-    } catch (e) {
-        console.warn(`Primary proxy fetch failed for ${url}:`, e);
+export const PROXIES: Proxy[] = [
+  { url: 'https://api.allorigins.win/raw?url=', encode: true },
+  { url: 'https://cors.eu.org/', encode: false },
+  { url: 'https://corsproxy.io/?', encode: true }, // Corrected: was false
+  { url: 'https://thingproxy.freeboard.io/fetch/', encode: false },
+  { url: 'https://api.codetabs.com/v1/proxy/?quest=', encode: true },
+];
+
+const shuffleArray = <T,>(array: T[]): T[] => {
+    const newArray = [...array];
+    for (let i = newArray.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
     }
+    return newArray;
+};
+
+
+export const resilientFetch = async (url: string, options: RequestInit & { timeout?: number } = {}) => {
+  let lastError: Error | null = null;
+  const { timeout = 15000 } = options;
+  const shuffledProxies = shuffleArray(PROXIES);
+
+  for (const proxy of shuffledProxies) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+    const proxyUrl = `${proxy.url}${proxy.encode ? encodeURIComponent(url) : url}`;
     
-    console.log(`Trying fallback proxy for ${url}`);
-    return fetch(`${FALLBACK_PROXY}${encodeURIComponent(url)}`, options);
+    try {
+      const response = await fetch(proxyUrl, { ...options, signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (response.ok) {
+        return response;
+      }
+      const errorText = await response.text().catch(() => 'Could not read error response.');
+      lastError = new Error(`Proxy ${proxy.url} failed for ${url} with status: ${response.status}. Body: ${errorText.substring(0, 100)}`);
+      console.warn(lastError.message);
+    } catch (e) {
+      clearTimeout(timeoutId);
+      if ((e as Error).name === 'AbortError') {
+        lastError = new Error(`Proxy ${proxy.url} timed out for ${url}`);
+      } else {
+        lastError = e as Error;
+      }
+      console.warn(`Proxy ${proxy.url} fetch failed for ${url}:`, lastError);
+    }
+  }
+  throw lastError || new Error(`All proxies failed to fetch the resource: ${url}`);
 };
 
 const GUEST_USER_ID = 'guest';
@@ -88,20 +127,24 @@ const defaultFolders: Folder[] = [
 
 const defaultFeeds: Feed[] = [
     // News (folderId: 1)
-    { id: 1, url: 'https://feeds.bbci.co.uk/news/rss.xml', title: 'BBC News', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=bbc.co.uk', folderId: 1, sourceType: 'rss' },
+    { id: 1, url: 'https://feeds.bbci.co.uk/news/world/rss.xml', title: 'BBC World News', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=bbc.co.uk', folderId: 1, sourceType: 'rss' },
     { id: 2, url: 'https://www.theguardian.com/world/rss', title: 'The Guardian', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=theguardian.com', folderId: 1, sourceType: 'rss' },
     { id: 3, url: 'https://feeds.skynews.com/feeds/rss/world.xml', title: 'Sky News', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=news.sky.com', folderId: 1, sourceType: 'rss' },
     { id: 20, url: 'https://www.manchestereveningnews.co.uk/rss.xml', title: 'Manchester Evening News', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=manchestereveningnews.co.uk', folderId: 1, sourceType: 'rss' },
     
     // Tech (folderId: 2)
     { id: 4, url: 'https://www.wired.com/feed/rss', title: 'Wired', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=wired.com', folderId: 2, sourceType: 'rss' },
-    { id: 5, url: 'https://www.theverge.com/rss/index.xml', title: 'The Verge', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=theverge.com', folderId: 2, sourceType: 'rss' },
-    { id: 8, url: 'https://techcrunch.com/feed/', title: 'TechCrunch', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=techcrunch.com', folderId: 2, sourceType: 'rss' },
+    { id: 36, url: 'http://feeds.arstechnica.com/arstechnica/index', title: 'Ars Technica', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=arstechnica.com', folderId: 2, sourceType: 'rss' },
     
     // Sports (folderId: 3)
-    { id: 14, url: 'https://feeds.bbci.co.uk/sport/football/rss.xml', title: 'BBC Football', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=bbc.co.uk', folderId: 3, sourceType: 'rss' },
-    { id: 15, url: 'https://feeds.bbci.co.uk/sport/motorsport/rss.xml', title: 'BBC Motorsport', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=bbc.co.uk', folderId: 3, sourceType: 'rss' },
+    { id: 34, url: 'https://feeds.bbci.co.uk/sport/rss.xml', title: 'BBC Sport', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=bbc.co.uk', folderId: 3, sourceType: 'rss' },
+    { id: 15, url: 'http://feeds.feedburner.com/totalf1-recent', title: 'TotalF1', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=totalf1.com', folderId: 3, sourceType: 'rss' },
     { id: 17, url: 'https://www.skysports.com/rss/12040', title: 'Sky Sports', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=skysports.com', folderId: 3, sourceType: 'rss' },
+
+    // Reddit (unfiled)
+    { id: 22, url: 'https://www.reddit.com/r/TheCivilService/.rss', title: 'r/TheCivilService', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=reddit.com', folderId: null, sourceType: 'reddit' },
+    { id: 23, url: 'https://www.reddit.com/r/news/.rss', title: 'r/news', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=reddit.com', folderId: null, sourceType: 'reddit' },
+    { id: 24, url: 'https://www.reddit.com/r/technology/.rss', title: 'r/technology', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=reddit.com', folderId: null, sourceType: 'reddit' },
 ];
 
 const defaultWidgetSettings: WidgetSettings = {
@@ -224,34 +267,83 @@ const App: React.FC = () => {
 
         try {
             if (type === 'youtube') {
-                let channelId: string | null = null;
-                const channelUrlMatch = url.match(/youtube\.com\/channel\/([a-zA-Z0-9_-]+)/);
-
-                if (channelUrlMatch && channelUrlMatch[1]) {
-                    channelId = channelUrlMatch[1];
-                } else {
-                    let cleanUrl = url.split('?')[0];
-                    const response = await fetchWithFallback(cleanUrl);
-                    
-                    if (!response.ok) throw new Error('Could not fetch YouTube channel page.');
-                    
-                    const text = await response.text();
-                    const canonicalMatch = text.match(/<link rel="canonical" href="https:\/\/www.youtube.com\/channel\/([a-zA-Z0-9_-]+)"/);
-                    if (canonicalMatch && canonicalMatch[1]) {
-                        channelId = canonicalMatch[1];
+                // Fast path for playlist URLs
+                if (url.includes('/playlist?list=')) {
+                    const playlistIdMatch = url.match(/list=([a-zA-Z0-9_-]+)/);
+                    if (playlistIdMatch && playlistIdMatch[1]) {
+                        feedUrl = `https://www.youtube.com/feeds/videos.xml?playlist_id=${playlistIdMatch[1]}`;
                     } else {
-                        const jsonMatch = text.match(/"channelId":"([a-zA-Z0-9_-]+)"/);
-                        if (jsonMatch && jsonMatch[1]) {
-                            channelId = jsonMatch[1];
+                        throw new Error('Could not parse playlist ID from URL.');
+                    }
+                } else {
+                    // Handle channel, handle, user, and custom URLs
+                    let channelId: string | null = null;
+    
+                    // 1. Try to parse channel ID directly from URL (fastest)
+                    const channelIdMatch = url.match(/youtube\.com\/channel\/([a-zA-Z0-9_-]{24})/);
+                    if (channelIdMatch && channelIdMatch[1]) {
+                        channelId = channelIdMatch[1];
+                    } else {
+                        // 2. Use a lightweight API to resolve handle/username to channel ID
+                        const pathParts = new URL(url).pathname.split('/').filter(p => p);
+                        const identifier = pathParts.length > 0 ? pathParts[pathParts.length - 1] : null;
+    
+                        if (!identifier) {
+                            throw new Error('Could not find a channel identifier in the URL.');
+                        }
+                        
+                        let resolverApiUrl: string;
+                        // Check for @handle format first, as it's the most common now
+                        if (identifier.startsWith('@')) {
+                            resolverApiUrl = `https://yt.lemnoslife.com/channels?handle=${encodeURIComponent(identifier)}`;
+                        } else if (pathParts.includes('user')) {
+                            resolverApiUrl = `https://yt.lemnoslife.com/channels?username=${encodeURIComponent(identifier)}`;
+                        } else {
+                            // Fallback for custom URLs like /c/SomeName or just /SomeName
+                            resolverApiUrl = `https://yt.lemnoslife.com/channels?handle=@${encodeURIComponent(identifier)}`;
+                        }
+    
+                        try {
+                            const response = await resilientFetch(resolverApiUrl);
+                            if (!response.ok) throw new Error(`Resolver API failed with status ${response.status}`);
+                            const data = await response.json();
+                            if (data.items && data.items.length > 0 && data.items[0].id) {
+                                channelId = data.items[0].id;
+                            } else {
+                                throw new Error('Could not resolve channel ID from the API.');
+                            }
+                        } catch (apiError) {
+                            console.warn("YouTube resolver API failed, falling back to page scraping.", apiError);
+                            // 3. Fallback to the original, slow scraping method if the API fails
+                            let cleanUrl = url.split('?')[0];
+                            const response = await resilientFetch(cleanUrl);
+                            if (!response.ok) throw new Error('Could not fetch YouTube channel page.');
+                            const text = await response.text();
+                            const canonicalMatch = text.match(/<link rel="canonical" href="https:\/\/www.youtube.com\/channel\/([a-zA-Z0-9_-]+)"/);
+                            if (canonicalMatch && canonicalMatch[1]) {
+                                channelId = canonicalMatch[1];
+                            } else {
+                                const jsonMatch = text.match(/"channelId":"([a-zA-Z0-9_-]+)"/);
+                                if (jsonMatch && jsonMatch[1]) {
+                                    channelId = jsonMatch[1];
+                                }
+                            }
+    
+                            if (!channelId) {
+                                 throw new Error('Could not find a valid YouTube channel ID from both the API and page source.');
+                            }
                         }
                     }
+                    
+                    if (!channelId) {
+                         throw new Error('Could not find a valid YouTube channel ID from the provided URL.');
+                    }
+    
+                    // Every channel's uploads can be accessed via a playlist ID derived from its channel ID.
+                    // This is often more reliable than the channel_id feed URL.
+                    const uploadsPlaylistId = channelId.replace(/^UC/, 'UU');
+                    feedUrl = `https://www.youtube.com/feeds/videos.xml?playlist_id=${uploadsPlaylistId}`;
                 }
-
-                if (!channelId) {
-                    throw new Error('Could not find a valid YouTube channel ID from the provided URL.');
-                }
-                
-                feedUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
             } else if (type === 'website') {
                 feedUrl = `https://www.fivefilters.org/feed-creator/extract.php?url=${encodeURIComponent(url)}&format=xml`;
             } else if (type === 'reddit') {
@@ -272,7 +364,7 @@ const App: React.FC = () => {
                 throw new Error("This feed has already been added.");
             }
 
-            const response = await fetchWithFallback(feedUrl);
+            const response = await resilientFetch(feedUrl);
             if (!response.ok) throw new Error(`Network response was not ok (status: ${response.status}).`);
             const text = await response.text();
             const parser = new DOMParser();
