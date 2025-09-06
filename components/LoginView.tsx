@@ -33,7 +33,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin, onGuestLogin, isApiReady
             <div className="w-full max-w-sm mx-auto text-center">
                 <SeymourIcon className="w-24 h-24 mx-auto mb-4" />
                 <h1 className="text-3xl font-bold text-zinc-900 dark:text-white mb-2">See-More, Feed Me!</h1>
-                <p className="text-gray-500 dark:text-zinc-400 mb-8">Sign in with Google to sync feeds or continue as a guest.</p>
+                <p className="text-zinc-600 dark:text-zinc-400 mb-8">Sign in with Google to sync feeds or continue as a guest.</p>
                 <div className="px-4">
                     <button
                         type="button"
@@ -47,11 +47,11 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin, onGuestLogin, isApiReady
                     <button
                         type="button"
                         onClick={onGuestLogin}
-                        className="mt-4 text-sm font-medium text-gray-500 dark:text-zinc-400 hover:text-lime-500 dark:hover:text-lime-400"
+                        className="mt-4 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-lime-500 dark:hover:text-lime-400"
                     >
                         Continue as Guest
                     </button>
-                    {!isApiReady && <p className="text-xs text-gray-400 dark:text-zinc-500 mt-4">Initializing...</p>}
+                    {!isApiReady && <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-4">Initializing...</p>}
                 </div>
             </div>
         </div>

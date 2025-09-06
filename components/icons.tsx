@@ -1,3 +1,5 @@
+
+
 import React from 'react';
 
 export const SeymourIcon: React.FC<{ className?: string }> = ({ className }) => (
@@ -117,10 +119,12 @@ export const SettingsIcon: React.FC<{ className?: string }> = ({ className }) =>
 );
 
 export const SunIcon: React.FC<{ className?: string }> = ({ className }) => (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+    <svg className={className} fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path clipRule="evenodd" fillRule="evenodd" d="M12 16.5a4.5 4.5 0 100-9 4.5 4.5 0 000 9zM12 15a3 3 0 100-6 3 3 0 000 6z"></path>
+      <path d="M12 1.5a.75.75 0 01.75.75V4.5a.75.75 0 01-1.5 0V2.25A.75.75 0 0112 1.5zM12 19.5a.75.75 0 01.75.75v2.25a.75.75 0 01-1.5 0V20.25a.75.75 0 01.75-.75zM4.929 4.929a.75.75 0 011.06 0l1.591 1.591a.75.75 0 11-1.06 1.06L4.93 5.99a.75.75 0 010-1.06zM17.48 17.48a.75.75 0 011.06 0l1.591 1.591a.75.75 0 11-1.06 1.06l-1.591-1.59a.75.75 0 010-1.061zM1.5 12a.75.75 0 01.75-.75h2.25a.75.75 0 010 1.5H2.25A.75.75 0 011.5 12zM19.5 12a.75.75 0 01.75-.75h2.25a.75.75 0 010 1.5H20.25a.75.75 0 01-.75-.75zM5.99 19.071a.75.75 0 010-1.06l1.59-1.591a.75.75 0 011.061 1.06l-1.59 1.591a.75.75 0 01-1.06 0zM18.54 5.99a.75.75 0 010-1.06l1.59-1.591a.75.75 0 111.06 1.06l-1.59 1.591a.75.75 0 01-1.06 0z"></path>
     </svg>
 );
+
 
 export const DotsHorizontalIcon: React.FC<{ className?: string }> = ({ className }) => (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -135,8 +139,8 @@ export const CloudArrowDownIcon: React.FC<{ className?: string }> = ({ className
 );
 
 export const MoonIcon: React.FC<{ className?: string }> = ({ className }) => (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+    <svg className={className} fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M19.528 14.288a.75.75 0 00-.916.347 7.5 7.5 0 01-9.473-9.473.75.75 0 00.346-.916A9.001 9.001 0 003 12c0 4.97 4.03 9 9 9 4.103 0 7.584-2.755 8.653-6.528a.75.75 0 00-.125-.184z"></path>
     </svg>
 );
 
