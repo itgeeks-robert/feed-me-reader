@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { generateSudoku } from '../services/sudoku';
 import { BrainIcon, PencilIcon, ArrowPathIcon, LightBulbIcon, TrophyIcon, EraserIcon } from './icons';
 import type { SudokuStats, SudokuDifficulty as Difficulty, SudokuDifficultyStats } from '../src/App';
@@ -36,6 +36,15 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin }) => {
     const [mistakes, setMistakes] = useState(0);
     const [time, setTime] = useState(0);
     const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const [completedUnits, setCompletedUnits] = useState({ rows: new Set<number>(), cols: new Set<number>(), boxes: new Set<number>() });
+    const [animationTarget, setAnimationTarget] = useState<{ type: 'row' | 'col' | 'box', index: number } | null>(null);
+
+    useEffect(() => {
+        if (animationTarget) {
+            const timer = setTimeout(() => setAnimationTarget(null), 800); // Animation duration
+            return () => clearTimeout(timer);
+        }
+    }, [animationTarget]);
 
     const stringToGrid = (puzzleString: string): Grid =>
         Array.from({ length: 9 }, (_, r) =>
@@ -95,6 +104,8 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin }) => {
             setHistory([]);
             setMistakes(0);
             setTime(0);
+            setCompletedUnits({ rows: new Set(), cols: new Set(), boxes: new Set() });
+            setAnimationTarget(null);
             setGameState('PLAYING');
             startTimer();
         } catch (error) {
@@ -185,7 +196,42 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin }) => {
         }
         setGrid(newGrid);
 
+        const checkForCompletedUnits = (currentGrid: Grid, row: number, col: number) => {
+            const isRowDone = currentGrid[row].every(cell => cell.value !== null);
+            if (isRowDone && !completedUnits.rows.has(row)) {
+                setCompletedUnits(prev => ({ ...prev, rows: new Set(prev.rows).add(row) }));
+                setAnimationTarget({ type: 'row', index: row });
+                return;
+            }
+        
+            const isColDone = currentGrid.every(r => r[col].value !== null);
+            if (isColDone && !completedUnits.cols.has(col)) {
+                setCompletedUnits(prev => ({ ...prev, cols: new Set(prev.cols).add(col) }));
+                setAnimationTarget({ type: 'col', index: col });
+                return;
+            }
+        
+            const boxStartRow = Math.floor(row / 3) * 3;
+            const boxStartCol = Math.floor(col / 3) * 3;
+            const boxIndex = Math.floor(row / 3) * 3 + Math.floor(col / 3);
+            let isBoxDone = true;
+            for (let r = 0; r < 3; r++) {
+                for (let c = 0; c < 3; c++) {
+                    if (currentGrid[boxStartRow + r][boxStartCol + c].value === null) {
+                        isBoxDone = false;
+                        break;
+                    }
+                }
+                if (!isBoxDone) break;
+            }
+            if (isBoxDone && !completedUnits.boxes.has(boxIndex)) {
+                setCompletedUnits(prev => ({ ...prev, boxes: new Set(prev.boxes).add(boxIndex) }));
+                setAnimationTarget({ type: 'box', index: boxIndex });
+            }
+        };
+
         if (!isNotesMode && solution[row][col] === num) {
+             checkForCompletedUnits(newGrid, row, col);
              const isSolved = newGrid.every((r: Cell[]) => r.every((c: Cell) => c.value !== null));
              if (isSolved) {
                  stopTimer();
@@ -230,6 +276,38 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin }) => {
             onGameWin(difficulty, time, isDailyChallenge);
         }
     };
+
+    const numberUsageInfo = useMemo(() => {
+        if (!grid) return { inBox: new Set<number>(), count: new Map<number, number>() };
+        
+        const count = new Map<number, number>();
+        for(let r = 0; r < 9; r++) {
+            for(let c = 0; c < 9; c++) {
+                const val = grid[r][c].value;
+                if(val) {
+                    count.set(val, (count.get(val) || 0) + 1);
+                }
+            }
+        }
+    
+        if (!selectedCell) return { inBox: new Set<number>(), count };
+        
+        const { row, col } = selectedCell;
+        const boxStartRow = Math.floor(row / 3) * 3;
+        const boxStartCol = Math.floor(col / 3) * 3;
+        const inBox = new Set<number>();
+        
+        for (let r = 0; r < 3; r++) {
+            for (let c = 0; c < 3; c++) {
+                const cellValue = grid[boxStartRow + r][boxStartCol + c].value;
+                if (cellValue) {
+                    inBox.add(cellValue);
+                }
+            }
+        }
+    
+        return { inBox, count };
+    }, [selectedCell, grid]);
 
     const formatTime = (seconds: number) => {
         const mins = Math.floor(seconds / 60);
@@ -338,14 +416,21 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin }) => {
             const isRelated = selectedCell && !isSelected && (selectedCell.row === r || selectedCell.col === c || (Math.floor(selectedCell.row / 3) === Math.floor(r / 3) && Math.floor(selectedCell.col / 3) === Math.floor(c / 3)));
             const selectedValue = (selectedCell && grid && grid[selectedCell.row][selectedCell.col].value) ? grid[selectedCell.row][selectedCell.col].value : null;
             const isSameValue = cell.value !== null && selectedValue !== null && cell.value === selectedValue;
+            
+            const boxIndex = Math.floor(r / 3) * 3 + Math.floor(c / 3);
+            const isAnimating = 
+                (animationTarget?.type === 'row' && animationTarget.index === r) ||
+                (animationTarget?.type === 'col' && animationTarget.index === c) ||
+                (animationTarget?.type === 'box' && animationTarget.index === boxIndex);
 
             return [
-                'bg-white flex items-center justify-center aspect-square text-2xl md:text-3xl font-sans cursor-pointer transition-colors duration-100',
+                'bg-white flex items-center justify-center aspect-square text-2xl md:text-3xl font-sans cursor-pointer transition-colors duration-100 relative',
                 cell.isPrefilled ? 'font-medium text-slate-800' : 'font-medium text-blue-700',
                 isSelected ? '!bg-blue-300' : '',
                 isRelated ? 'bg-blue-100' : '',
                 isSameValue && !isSelected ? 'bg-blue-200' : '',
-                cell.isError ? '!bg-red-200 !text-red-700 font-bold' : ''
+                cell.isError ? '!bg-red-200 !text-red-700 font-bold' : '',
+                isAnimating ? 'animate-complete-flash' : ''
             ].join(' ');
         };
         
@@ -419,11 +504,21 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin }) => {
                         </div>
     
                         <div className="grid grid-cols-9 gap-1">
-                            {Array.from({length: 9}, (_, i) => i + 1).map(num => (
-                                <button key={num} onClick={() => handleNumberInput(num)} className="aspect-square bg-blue-50 text-blue-800 rounded-lg text-2xl font-semibold hover:bg-blue-100 active:bg-blue-200 transition-colors">
-                                    {num}
-                                </button>
-                            ))}
+                            {Array.from({length: 9}, (_, i) => i + 1).map(num => {
+                                const isUsedInBox = selectedCell ? numberUsageInfo.inBox.has(num) : false;
+                                const isFullyUsed = (numberUsageInfo.count.get(num) || 0) >= 9;
+                                const isDisabled = isFullyUsed || (selectedCell && isUsedInBox);
+                                return (
+                                    <button 
+                                        key={num} 
+                                        onClick={() => handleNumberInput(num)}
+                                        disabled={isFullyUsed}
+                                        className={`aspect-square bg-blue-50 text-blue-800 rounded-lg text-2xl font-semibold hover:bg-blue-100 active:bg-blue-200 transition-all duration-150 ${isDisabled ? 'opacity-30' : ''} ${isFullyUsed ? 'cursor-not-allowed' : ''}`}
+                                    >
+                                        {num}
+                                    </button>
+                                );
+                            })}
                         </div>
                         
                         <button onClick={() => setView('IDLE')} className="w-full py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors text-lg shadow-md">
