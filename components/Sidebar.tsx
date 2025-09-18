@@ -1,10 +1,9 @@
-import React, { useState, useRef } from 'react';
-// FIX: Corrected import path for App types
+import React, { useState } from 'react';
 import type { Feed, Folder, Selection } from '../src/App';
 import type { SourceType } from './AddSource';
 import AddSource from './AddSource';
 import {
-    SeymourIcon, ListIcon, PlusIcon, RssIcon, TrashIcon, FolderIcon, PencilIcon, ChevronDownIcon, ChevronRightIcon, XIcon, BookmarkIcon, SettingsIcon, RedditIcon, YoutubeIcon, GlobeAltIcon
+    SeymourIcon, ListIcon, PlusIcon, RssIcon, TrashIcon, FolderIcon, PencilIcon, ChevronDownIcon, ChevronRightIcon, XIcon, BookmarkIcon, SettingsIcon, RedditIcon, YoutubeIcon, GlobeAltIcon, BrainIcon
 } from './icons';
 
 interface SidebarProps {
@@ -40,13 +39,12 @@ const FeedIcon: React.FC<{ iconUrl: string; feedTitle: string; sourceType?: Sour
                 return <GlobeAltIcon className="w-5 h-5 flex-shrink-0 text-sky-500" />;
             case 'rss':
             default:
-                // Use color generation for default RSS feeds for a stable visual identifier.
                 const colors = [
-                    'text-red-500', 'text-orange-500', 'text-amber-500', 'text-yellow-500',
-                    'text-lime-500', 'text-green-500', 'text-emerald-500', 'text-teal-500',
-                    'text-cyan-500', 'text-sky-500', 'text-blue-500', 'text-indigo-500',
-                    'text-violet-500', 'text-purple-500', 'text-fuchsia-500', 'text-pink-500',
-                    'text-rose-500'
+                    'text-red-400', 'text-orange-400', 'text-amber-400', 'text-yellow-400',
+                    'text-lime-400', 'text-green-400', 'text-emerald-400', 'text-teal-400',
+                    'text-cyan-400', 'text-sky-400', 'text-blue-400', 'text-indigo-400',
+                    'text-violet-400', 'text-purple-400', 'text-fuchsia-400', 'text-pink-400',
+                    'text-rose-400'
                 ];
 
                 let hash = 0;
@@ -82,7 +80,7 @@ const NewFolderInput: React.FC<{ onAddFolder: (name: string) => void; onCancel: 
                 onBlur={onCancel}
                 placeholder="New folder name"
                 autoFocus
-                className="w-full bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-300 dark:border-zinc-700 rounded-md py-1 px-2 text-sm text-zinc-800 dark:text-zinc-300 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
+                className="w-full bg-zinc-100/50 dark:bg-zinc-800/50 border border-zinc-300 dark:border-zinc-700 rounded-md py-1 px-2 text-sm text-zinc-800 dark:text-zinc-200 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
             />
         </form>
     );
@@ -124,7 +122,7 @@ const FolderItem: React.FC<{
     };
     
     const isActive = selection.type === 'folder' && selection.id === folder.id;
-    const activeClasses = isActive ? 'bg-orange-500/10 dark:bg-zinc-700/50 text-orange-700 dark:text-white' : 'hover:bg-zinc-200/50 dark:hover:bg-zinc-700/50 text-zinc-600 dark:text-zinc-400';
+    const activeClasses = isActive ? 'bg-orange-500/20 text-orange-600 dark:text-white dark:bg-orange-500/30' : 'hover:bg-black/5 dark:hover:bg-white/5 text-zinc-600 dark:text-zinc-400';
     const dragTargetClasses = isDragTarget ? 'bg-orange-900/50 ring-1 ring-orange-500' : '';
 
     return (
@@ -135,10 +133,10 @@ const FolderItem: React.FC<{
                 onDragOver={e => e.preventDefault()}
                 onDragEnter={onDragEnter}
                 onDragLeave={onDragLeave}
-                className={`group flex items-center justify-between px-3 py-2 rounded-md cursor-pointer transition-colors duration-150 ${activeClasses} ${dragTargetClasses}`}
+                className={`group flex items-center justify-between pl-1 pr-3 py-2 rounded-lg cursor-pointer transition-colors duration-150 ${activeClasses} ${dragTargetClasses}`}
             >
-                <div className="flex items-center space-x-3 truncate">
-                    <button onClick={(e) => { e.stopPropagation(); setIsExpanded(!isExpanded);}} className="text-zinc-400 dark:text-zinc-500 hover:text-zinc-800 dark:hover:text-white">
+                <div className="flex items-center space-x-2 truncate">
+                    <button onClick={(e) => { e.stopPropagation(); setIsExpanded(!isExpanded);}} className="text-zinc-400 dark:text-zinc-500 hover:text-zinc-800 dark:hover:text-white p-1 rounded-md">
                         {isExpanded ? <ChevronDownIcon className="w-4 h-4" /> : <ChevronRightIcon className="w-4 h-4" />}
                     </button>
                     {isRenaming ? (
@@ -157,9 +155,9 @@ const FolderItem: React.FC<{
                         <span className="truncate font-medium">{folder.name}</span>
                     )}
                 </div>
-                <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                     <button onClick={(e) => { e.stopPropagation(); setIsRenaming(true); }} className="text-zinc-400 dark:text-zinc-500 hover:text-orange-500 dark:hover:text-orange-400" aria-label={`Rename ${folder.name}`}><PencilIcon className="w-4 h-4" /></button>
-                     <button onClick={(e) => { e.stopPropagation(); onDeleteFolder(folder.id); }} className="text-zinc-400 dark:text-zinc-500 hover:text-red-500 dark:hover:text-red-400" aria-label={`Delete ${folder.name}`}><TrashIcon className="w-4 h-4" /></button>
+                <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                     <button onClick={(e) => { e.stopPropagation(); setIsRenaming(true); }} className="p-1 rounded-md text-zinc-400 dark:text-zinc-500 hover:text-orange-500 dark:hover:text-orange-400" aria-label={`Rename ${folder.name}`}><PencilIcon className="w-4 h-4" /></button>
+                     <button onClick={(e) => { e.stopPropagation(); onDeleteFolder(folder.id); }} className="p-1 rounded-md text-zinc-400 dark:text-zinc-500 hover:text-red-500 dark:hover:text-red-400" aria-label={`Delete ${folder.name}`}><TrashIcon className="w-4 h-4" /></button>
                 </div>
             </div>
              {isExpanded && (
@@ -181,7 +179,7 @@ const FeedItem: React.FC<{
     onRemoveFeed: (id: number) => void;
 }> = ({ feed, selection, onSelect, onRemoveFeed }) => {
     const isActive = selection.type === 'feed' && selection.id === feed.id;
-    const activeClasses = isActive ? 'bg-orange-500/10 dark:bg-zinc-700/50 text-orange-700 dark:text-white' : 'hover:bg-zinc-200/50 dark:hover:bg-zinc-700/50 text-zinc-600 dark:text-zinc-400';
+    const activeClasses = isActive ? 'bg-orange-500/20 text-orange-600 dark:text-white dark:bg-orange-500/30' : 'hover:bg-black/5 dark:hover:bg-white/5 text-zinc-600 dark:text-zinc-300';
 
     const handleDragStart = (e: React.DragEvent) => {
         e.dataTransfer.setData('feedId', String(feed.id));
@@ -192,7 +190,7 @@ const FeedItem: React.FC<{
             draggable="true"
             onDragStart={handleDragStart}
             onClick={() => onSelect({ type: 'feed', id: feed.id })}
-            className={`group flex items-center justify-between pl-3 pr-2 py-2 rounded-md cursor-pointer transition-colors duration-150 ${activeClasses}`}
+            className={`group flex items-center justify-between pl-3 pr-2 py-2 rounded-lg cursor-pointer transition-colors duration-150 ${activeClasses}`}
         >
             <div className="flex items-center space-x-3 truncate">
                 <FeedIcon iconUrl={feed.iconUrl} feedTitle={feed.title} sourceType={feed.sourceType} />
@@ -200,7 +198,7 @@ const FeedItem: React.FC<{
             </div>
             <button
                 onClick={(e) => { e.stopPropagation(); onRemoveFeed(feed.id); }}
-                className="opacity-0 group-hover:opacity-100 text-zinc-400 dark:text-zinc-500 hover:text-red-500 dark:hover:text-red-400 transition-opacity"
+                className="opacity-0 group-hover:opacity-100 text-zinc-400 dark:text-zinc-500 hover:text-red-500 dark:hover:text-red-400 transition-opacity p-1 rounded-md"
                 aria-label={`Remove ${feed.title} feed`}
             >
                 <TrashIcon className="w-4 h-4" />
@@ -226,10 +224,10 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
     };
 
     const NavItem: React.FC<{sel: Selection, label: string, icon: React.ReactNode}> = ({sel, label, icon}) => {
-        const isActive = selection.type === sel.type;
-        const activeClasses = isActive ? 'bg-orange-500/10 dark:bg-zinc-700/50 text-orange-700 dark:text-white' : 'hover:bg-zinc-200/50 dark:hover:bg-zinc-700/50 text-zinc-600 dark:text-zinc-400';
+        const isActive = selection.type === sel.type && selection.id === sel.id;
+        const activeClasses = isActive ? 'bg-orange-500/20 text-orange-600 dark:text-white dark:bg-orange-500/30' : 'hover:bg-black/5 dark:hover:bg-white/5 text-zinc-600 dark:text-zinc-400';
         return (
-            <div onClick={() => onSelect(sel)} className={`flex items-center space-x-3 px-3 py-2 rounded-md cursor-pointer ${activeClasses}`}>
+            <div onClick={() => onSelect(sel)} className={`flex items-center space-x-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors duration-150 ${activeClasses}`}>
                 {icon}
                 <span className="truncate font-medium min-w-0">{label}</span>
             </div>
@@ -237,39 +235,36 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
     };
 
     return (
-        <aside className={`w-72 bg-zinc-50/80 dark:bg-zinc-900/70 backdrop-blur-lg border-r border-zinc-300/80 dark:border-zinc-700/50 flex-shrink-0 p-4 flex flex-col h-full overflow-y-auto fixed inset-y-0 left-0 z-40 transform transition-transform duration-300 ease-in-out md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-            <div>
+        <aside className={`fixed inset-y-0 left-0 z-40 w-72 bg-white/30 dark:bg-zinc-900/40 backdrop-blur-2xl border-r border-white/20 dark:border-white/10 flex flex-col h-full transform transition-transform duration-300 ease-in-out md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+            <div className="p-4 flex-shrink-0">
                 <div className="flex items-center justify-between space-x-2 mb-4 px-2">
                     <div className="flex items-center space-x-2">
                         <SeymourIcon className="w-8 h-8" />
-                        <span className="text-lg font-bold text-zinc-900 dark:text-white">See More</span>
+                        <span className="text-xl font-bold text-zinc-900 dark:text-white">See More</span>
                     </div>
-                    <div className="flex items-center">
-                        <button onClick={onClose} className="p-2 -mr-2 rounded-full text-zinc-500 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 md:hidden" aria-label="Close sidebar">
-                            <XIcon className="w-6 h-6" />
-                        </button>
-                    </div>
+                    <button onClick={onClose} className="p-2 -mr-2 rounded-full text-zinc-500 dark:text-zinc-400 hover:bg-black/10 dark:hover:bg-white/10 md:hidden" aria-label="Close sidebar">
+                        <XIcon className="w-6 h-6" />
+                    </button>
                 </div>
                 
                 <AddSource onAddSource={onAddSource} />
             </div>
             
-            <div className="flex-grow overflow-y-auto mt-4">
+            <div className="flex-grow overflow-y-auto mt-2 px-4 space-y-1.5">
                 <NavItem sel={{type: 'all', id: null}} label="All" icon={<ListIcon className="w-5 h-5 flex-shrink-0" />} />
                 <NavItem sel={{type: 'bookmarks', id: 'bookmarks'}} label="Saved" icon={<BookmarkIcon className="w-5 h-5 flex-shrink-0" />} />
+                <NavItem sel={{type: 'sudoku', id: null}} label="Sudoku" icon={<BrainIcon className="w-5 h-5 flex-shrink-0" />} />
                 <NavItem sel={{type: 'reddit', id: null}} label="Reddit" icon={<RedditIcon className="w-5 h-5 flex-shrink-0" />} />
-                <div className="mb-4">
-                    <NavItem sel={{type: 'youtube', id: null}} label="YouTube" icon={<YoutubeIcon className="w-5 h-5 flex-shrink-0" />} />
-                </div>
+                <NavItem sel={{type: 'youtube', id: null}} label="YouTube" icon={<YoutubeIcon className="w-5 h-5 flex-shrink-0" />} />
                 
-                <div className="px-3 mb-4 space-y-2">
-                    <button onClick={() => setIsAddingFolder(true)} className="w-full text-left text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white bg-zinc-200/50 dark:bg-zinc-800/50 hover:bg-zinc-300/50 dark:hover:bg-zinc-700/50 rounded-md py-2 px-3 flex items-center space-x-2">
+                <div className="pt-4 space-y-2">
+                    <button onClick={() => setIsAddingFolder(true)} className="w-full text-left text-sm text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg py-2.5 px-3 flex items-center space-x-2 transition-colors">
                         <FolderIcon className="w-5 h-5" />
                         <span>New Folder</span>
                     </button>
                 </div>
 
-                <nav className="space-y-1">
+                <nav className="space-y-1 pt-2">
                     {isAddingFolder && <NewFolderInput onAddFolder={onAddFolder} onCancel={() => setIsAddingFolder(false)} />}
                     {folders.map(folder => (
                         <FolderItem
@@ -280,12 +275,12 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                     ))}
                 </nav>
                  {unfiledFeeds.length > 0 && (
-                     <div className="mt-4">
+                     <div className="pt-4">
                          <div 
                             onDrop={handleUnfiledDrop} onDragOver={e => e.preventDefault()} onDragEnter={() => setDragOverTarget('unfiled')}
-                            onDragLeave={() => setDragOverTarget(null)} className={`px-3 py-2 rounded-md ${dragOverTarget === 'unfiled' ? 'bg-orange-900/50 ring-1 ring-orange-500' : ''}`}
+                            onDragLeave={() => setDragOverTarget(null)} className={`py-2 rounded-lg ${dragOverTarget === 'unfiled' ? 'bg-orange-900/50 ring-1 ring-orange-500' : ''}`}
                          >
-                             <h3 className="text-xs font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-2">Unfiled</h3>
+                             <h3 className="px-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2">Unfiled Feeds</h3>
                              <div className="space-y-1">
                                  {unfiledFeeds.map(feed => (
                                      <FeedItem key={feed.id} feed={feed} selection={selection} onSelect={onSelect} onRemoveFeed={onRemoveFeed} />
@@ -295,13 +290,11 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                      </div>
                  )}
             </div>
-            <div className="mt-auto pt-4 border-t border-zinc-200 dark:border-zinc-800">
-                <div className="px-3 mb-2">
-                    <button onClick={onOpenSettings} className="w-full flex items-center gap-2 py-2 px-3 text-sm font-medium rounded-md text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700/50 hover:text-zinc-900 dark:hover:text-white">
-                        <SettingsIcon className="w-5 h-5" />
-                        <span>Settings</span>
-                    </button>
-                </div>
+            <div className="p-4 mt-auto flex-shrink-0">
+                <button onClick={onOpenSettings} className="w-full flex items-center gap-3 py-2.5 px-3 text-sm font-medium rounded-lg text-zinc-600 dark:text-zinc-300 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 hover:text-zinc-900 dark:hover:text-white transition-colors">
+                    <SettingsIcon className="w-5 h-5" />
+                    <span>Settings</span>
+                </button>
             </div>
         </aside>
     );

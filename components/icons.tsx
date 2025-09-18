@@ -213,6 +213,12 @@ export const BookOpenIcon: React.FC<{ className?: string }> = ({ className }) =>
 
 
 // FIX: Add missing icons.
+// FIX: Add LightBulbIcon to be used for the hint functionality in the Sudoku game.
+export const LightBulbIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3c-3.866 0-7 3.134-7 7 0 2.834 1.666 5.26 4 6.342V19h6v-2.658c2.334-1.082 4-3.508 4-6.342 0-3.866-3.134-7-7-7z" />
+    </svg>
+);
 export const ListIcon: React.FC<{ className?: string }> = ({ className }) => (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
@@ -228,6 +234,12 @@ export const FolderIcon: React.FC<{ className?: string }> = ({ className }) => (
 export const PencilIcon: React.FC<{ className?: string }> = ({ className }) => (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z" />
+    </svg>
+);
+
+export const EraserIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9.75L14.25 12m0 0l2.25 2.25M14.25 12l2.25-2.25M14.25 12L12 14.25m-2.58 4.92l-6.375-6.375a1.125 1.125 0 010-1.59L9.42 4.83c.211-.211.498-.33.796-.33H19.5a2.25 2.25 0 012.25 2.25v10.5a2.25 2.25 0 01-2.25 2.25h-9.284c-.298 0-.585-.119-.796-.33z" />
     </svg>
 );
 
@@ -255,5 +267,12 @@ export const GoogleIcon: React.FC<{ className?: string }> = ({ className }) => (
 export const CloudArrowUpIcon: React.FC<{ className?: string }> = ({ className }) => (
     <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V9.75m0 0 3 3m-3-3-3 3M6.75 19.5a4.5 4.5 0 0 1-1.41-8.775 5.25 5.25 0 0 1 10.233-2.33 3 3 0 0 1 3.758 3.848A3.752 3.752 0 0 1 18 19.5H6.75Z" />
+    </svg>
+);
+
+export const BrainIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.038-.502.068-.75.094m-2.25 0c-.88.06-1.713.146-2.52.288C2.542 4.048 2 5.004 2 6.095v1.442c0 .67.203 1.29.568 1.815c.304.444.69.845 1.135 1.196c.446.351.942.655 1.48.887M9.75 3.104c.251.038.502.068.75.094m6-2.094c.88.06 1.713.146 2.52.288c1.127.2 1.968 1.157 1.968 2.249v1.442c0 .67-.203 1.29-.568 1.815a6.002 6.002 0 01-1.135 1.196c-.446.351-.942.655-1.48.887m-4.5-1.442v5.714a2.25 2.25 0 00.659 1.591L19.5 14.5M12 16.5v6" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5c-5.523 0-10-4.477-10-10s4.477-10 10-10 10 4.477 10 10c0 1.282-.244 2.508-.684 3.642A9.998 9.998 0 0112 16.5z" />
     </svg>
 );

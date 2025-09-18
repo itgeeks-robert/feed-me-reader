@@ -1,7 +1,3 @@
-
-
-
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import MainContent from '../components/MainContent';
 import type { SourceType } from '../components/AddSource';
@@ -9,8 +5,10 @@ import SettingsModal from '../components/SettingsModal';
 import AddSourceModal from '../components/AddSourceModal';
 import Sidebar from '../components/Sidebar';
 import { useSwipe } from '../hooks/useSwipe';
-import NavigationOverlay from '../components/NavigationOverlay';
-import { ListIcon, TrophyIcon, RedditIcon, YoutubeIcon, NewspaperIcon } from '../components/icons';
+import BottomNavBar from '../components/BottomNavBar';
+import { ListIcon, TrophyIcon, RedditIcon, YoutubeIcon, NewspaperIcon, BookmarkIcon, BrainIcon } from '../components/icons';
+import SudokuPage from '../components/SudokuPage';
+import { resilientFetch } from '../services/fetch';
 
 
 export interface Folder {
@@ -38,7 +36,7 @@ export interface Article {
 }
 
 export type Selection = {
-  type: 'all' | 'folder' | 'bookmarks' | 'search' | 'feed' | 'reddit' | 'youtube';
+  type: 'all' | 'folder' | 'bookmarks' | 'search' | 'feed' | 'reddit' | 'youtube' | 'sudoku';
   id: string | number | null;
   query?: string; // For search
 };
@@ -62,67 +60,30 @@ export interface Settings {
     widgets: WidgetSettings;
 }
 
-export interface Proxy {
-  url: string;
-  encode: boolean;
+export type SudokuDifficulty = 'Easy' | 'Medium' | 'Hard' | 'Expert';
+
+export type SudokuDifficultyStats = {
+  fastestTime: number | null;
+  gamesPlayed: number;
+  totalTimePlayed: number;
+};
+
+export interface SudokuStats {
+  dailyStreak: number;
+  lastDailyCompletionDate: string | null; // YYYY-MM-DD
+  totalWins: number;
+  easy: SudokuDifficultyStats;
+  medium: SudokuDifficultyStats;
+  hard: SudokuDifficultyStats;
+  expert: SudokuDifficultyStats;
 }
-
-export const PROXIES: Proxy[] = [
-  { url: 'https://api.allorigins.win/raw?url=', encode: true },
-  { url: 'https://cors.eu.org/', encode: false },
-  { url: 'https://corsproxy.io/?', encode: true }, // Corrected: was false
-  { url: 'https://thingproxy.freeboard.io/fetch/', encode: false },
-  { url: 'https://api.codetabs.com/v1/proxy/?quest=', encode: true },
-];
-
-const shuffleArray = <T,>(array: T[]): T[] => {
-    const newArray = [...array];
-    for (let i = newArray.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
-    }
-    return newArray;
-};
-
-
-export const resilientFetch = async (url: string, options: RequestInit & { timeout?: number } = {}) => {
-  let lastError: Error | null = null;
-  const { timeout = 15000 } = options;
-  const shuffledProxies = shuffleArray(PROXIES);
-
-  for (const proxy of shuffledProxies) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeout);
-    const proxyUrl = `${proxy.url}${proxy.encode ? encodeURIComponent(url) : url}`;
-    
-    try {
-      const response = await fetch(proxyUrl, { ...options, signal: controller.signal });
-      clearTimeout(timeoutId);
-      if (response.ok) {
-        return response;
-      }
-      const errorText = await response.text().catch(() => 'Could not read error response.');
-      lastError = new Error(`Proxy ${proxy.url} failed for ${url} with status: ${response.status}. Body: ${errorText.substring(0, 100)}`);
-      console.warn(lastError.message);
-    } catch (e) {
-      clearTimeout(timeoutId);
-      if ((e as Error).name === 'AbortError') {
-        lastError = new Error(`Proxy ${proxy.url} timed out for ${url}`);
-      } else {
-        lastError = e as Error;
-      }
-      console.warn(`Proxy ${proxy.url} fetch failed for ${url}:`, lastError);
-    }
-  }
-  throw lastError || new Error(`All proxies failed to fetch the resource: ${url}`);
-};
 
 const GUEST_USER_ID = 'guest';
 const READ_ARTICLES_KEY = `feedme_read_articles_${GUEST_USER_ID}`;
 const BOOKMARKED_ARTICLES_KEY = `feedme_bookmarked_articles_${GUEST_USER_ID}`;
 const ARTICLE_TAGS_KEY = `feedme_article_tags_${GUEST_USER_ID}`;
 const SETTINGS_KEY = `feedme_settings_${GUEST_USER_ID}`;
-
+const SUDOKU_STATS_KEY = `feedme_sudoku_stats_${GUEST_USER_ID}`;
 
 const defaultFolders: Folder[] = [
     { id: 1, name: 'News' },
@@ -160,6 +121,16 @@ const defaultWidgetSettings: WidgetSettings = {
     sportsTeams: ['MUN', 'FYL', 'BLA', 'MCI'],
 };
 
+const defaultSudokuStats: SudokuStats = {
+  dailyStreak: 0,
+  lastDailyCompletionDate: null,
+  totalWins: 0,
+  easy: { fastestTime: null, gamesPlayed: 0, totalTimePlayed: 0 },
+  medium: { fastestTime: null, gamesPlayed: 0, totalTimePlayed: 0 },
+  hard: { fastestTime: null, gamesPlayed: 0, totalTimePlayed: 0 },
+  expert: { fastestTime: null, gamesPlayed: 0, totalTimePlayed: 0 },
+};
+
 const App: React.FC = () => {
     const [theme, setTheme] = useState<Theme>('dark');
     const [articleView, setArticleView] = useState<ArticleView>('list');
@@ -167,13 +138,13 @@ const App: React.FC = () => {
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
     const [isAddSourceModalOpen, setIsAddSourceModalOpen] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    const [isNavOverlayOpen, setIsNavOverlayOpen] = useState(false);
     
     const [folders, setFolders] = useState<Folder[]>(defaultFolders);
     const [feeds, setFeeds] = useState<Feed[]>(defaultFeeds);
     const [readArticleIds, setReadArticleIds] = useState<Set<string>>(new Set());
     const [bookmarkedArticleIds, setBookmarkedArticleIds] = useState<Set<string>>(new Set());
     const [articleTags, setArticleTags] = useState<Map<string, Set<string>>>(new Map());
+    const [sudokuStats, setSudokuStats] = useState<SudokuStats>(defaultSudokuStats);
 
     const [lastRefresh, setLastRefresh] = useState(() => Date.now());
     
@@ -188,6 +159,8 @@ const App: React.FC = () => {
         const newsFolder = folders.find(f => f.name.toLowerCase() === 'news');
         return [
             { selection: { type: 'all' as const, id: null }, name: 'All Feeds', icon: <ListIcon className="w-6 h-6" /> },
+            { selection: { type: 'bookmarks' as const, id: 'bookmarks' }, name: 'Saved', icon: <BookmarkIcon className="w-6 h-6" /> },
+            { selection: { type: 'sudoku' as const, id: null }, name: 'Sudoku', icon: <BrainIcon className="w-6 h-6" /> },
             newsFolder ? { selection: { type: 'folder' as const, id: newsFolder.id }, name: 'News', icon: <NewspaperIcon className="w-6 h-6" /> } : null,
             sportFolder ? { selection: { type: 'folder' as const, id: sportFolder.id }, name: 'Sport', icon: <TrophyIcon className="w-6 h-6" /> } : null,
             { selection: { type: 'reddit' as const, id: null }, name: 'Reddit', icon: <RedditIcon className="w-6 h-6" /> },
@@ -207,8 +180,6 @@ const App: React.FC = () => {
         } else {
             setAnimationClass('animate-slide-in-from-left');
         }
-        // Update both the index and the selection in the same render cycle
-        // to prevent UI flicker with stale content.
         setCurrentPageIndex(newIndex);
         setSelection(mainPages[newIndex].selection);
     }, [currentPageIndex, mainPages]);
@@ -251,12 +222,17 @@ const App: React.FC = () => {
             } else {
                 setArticleTags(new Map());
             }
+
+            const savedSudokuStats = window.localStorage.getItem(SUDOKU_STATS_KEY);
+            setSudokuStats(savedSudokuStats ? JSON.parse(savedSudokuStats) : defaultSudokuStats);
+
         } catch (e) {
             console.error("Error loading data from localStorage", e);
             loadSettings({});
             setReadArticleIds(new Set());
             setBookmarkedArticleIds(new Set());
             setArticleTags(new Map());
+            setSudokuStats(defaultSudokuStats);
         }
     }, [loadSettings]);
     
@@ -304,6 +280,14 @@ const App: React.FC = () => {
     }, [feeds, folders, theme, articleView, widgetSettings]);
     
     useEffect(() => {
+        try {
+            window.localStorage.setItem(SUDOKU_STATS_KEY, JSON.stringify(sudokuStats));
+        } catch (error) {
+            console.error("Failed to save sudoku stats to localStorage", error);
+        }
+    }, [sudokuStats]);
+    
+    useEffect(() => {
         const root = document.documentElement;
         if (theme === 'light') {
             root.classList.remove('dark');
@@ -319,7 +303,6 @@ const App: React.FC = () => {
     };
 
     const handleSelectFromSidebar = (sel: Selection) => {
-        // Find if the selection corresponds to a main page
         const pageIndex = mainPages.findIndex(p => 
             p.selection.type === sel.type && p.selection.id === sel.id
         );
@@ -327,11 +310,8 @@ const App: React.FC = () => {
         if (pageIndex !== -1) {
             navigate(pageIndex);
         } else {
-            // It's a selection not on the main nav (e.g., a specific feed), just set it directly
             setAnimationClass('animate-fade-in');
             setSelection(sel);
-            // We might want to reset currentPageIndex here or handle it differently
-            // For now, let's just show the content without changing the main page index
         }
         setIsSidebarOpen(false);
     };
@@ -342,139 +322,58 @@ const App: React.FC = () => {
 
         try {
             if (type === 'youtube') {
-                // Fast path for playlist URLs
                 if (url.includes('/playlist?list=')) {
                     const playlistIdMatch = url.match(/list=([a-zA-Z0-9_-]+)/);
-                    if (playlistIdMatch && playlistIdMatch[1]) {
+                    if (playlistIdMatch?.[1]) {
                         feedUrl = `https://www.youtube.com/feeds/videos.xml?playlist_id=${playlistIdMatch[1]}`;
                     } else {
                         throw new Error('Could not parse playlist ID from URL.');
                     }
                 } else {
-                    // Handle channel, handle, user, and custom URLs
-                    let channelId: string | null = null;
-    
-                    // 1. Try to parse channel ID directly from URL (fastest)
                     const channelIdMatch = url.match(/youtube\.com\/channel\/([a-zA-Z0-9_-]{24})/);
-                    if (channelIdMatch && channelIdMatch[1]) {
-                        channelId = channelIdMatch[1];
-                    } else {
-                        // 2. Use a lightweight API to resolve handle/username to channel ID
-                        const pathParts = new URL(url).pathname.split('/').filter(p => p);
-                        const identifier = pathParts.length > 0 ? pathParts[pathParts.length - 1] : null;
-    
-                        if (!identifier) {
-                            throw new Error('Could not find a channel identifier in the URL.');
-                        }
-                        
-                        let resolverApiUrl: string;
-                        // Check for @handle format first, as it's the most common now
-                        if (identifier.startsWith('@')) {
-                            resolverApiUrl = `https://yt.lemnoslife.com/channels?handle=${encodeURIComponent(identifier)}`;
-                        } else if (pathParts.includes('user')) {
-                            resolverApiUrl = `https://yt.lemnoslife.com/channels?username=${encodeURIComponent(identifier)}`;
-                        } else {
-                            // Fallback for custom URLs like /c/SomeName or just /SomeName
-                            resolverApiUrl = `https://yt.lemnoslife.com/channels?handle=@${encodeURIComponent(identifier)}`;
-                        }
-    
-                        try {
-                            const response = await resilientFetch(resolverApiUrl);
-                            if (!response.ok) throw new Error(`Resolver API failed with status ${response.status}`);
-                            const data = await response.json();
-                            if (data.items && data.items.length > 0 && data.items[0].id) {
-                                channelId = data.items[0].id;
-                            } else {
-                                throw new Error('Could not resolve channel ID from the API.');
-                            }
-                        } catch (apiError) {
-                            console.warn("YouTube resolver API failed, falling back to page scraping.", apiError);
-                            // 3. Fallback to the original, slow scraping method if the API fails
-                            let cleanUrl = url.split('?')[0];
-                            const response = await resilientFetch(cleanUrl);
-                            if (!response.ok) throw new Error('Could not fetch YouTube channel page.');
-                            const text = await response.text();
-                            const canonicalMatch = text.match(/<link rel="canonical" href="https:\/\/www.youtube.com\/channel\/([a-zA-Z0-9_-]+)"/);
-                            if (canonicalMatch && canonicalMatch[1]) {
-                                channelId = canonicalMatch[1];
-                            } else {
-                                const jsonMatch = text.match(/"channelId":"([a-zA-Z0-9_-]+)"/);
-                                if (jsonMatch && jsonMatch[1]) {
-                                    channelId = jsonMatch[1];
-                                }
-                            }
-    
-                            if (!channelId) {
-                                 throw new Error('Could not find a valid YouTube channel ID from both the API and page source.');
-                            }
-                        }
-                    }
-                    
+                    let channelId = channelIdMatch?.[1];
                     if (!channelId) {
-                         throw new Error('Could not find a valid YouTube channel ID from the provided URL.');
+                       const response = await resilientFetch(url.split('?')[0]);
+                       const text = await response.text();
+                       const canonicalMatch = text.match(/<link rel="canonical" href="https:\/\/www.youtube.com\/channel\/([a-zA-Z0-9_-]+)"/);
+                       channelId = canonicalMatch?.[1] || text.match(/"channelId":"([a-zA-Z0-9_-]+)"/)?.[1] || null;
                     }
-    
-                    // Every channel's uploads can be accessed via a playlist ID derived from its channel ID.
-                    // This is often more reliable than the channel_id feed URL.
+                    if (!channelId) throw new Error('Could not find a valid YouTube channel ID.');
                     const uploadsPlaylistId = channelId.replace(/^UC/, 'UU');
                     feedUrl = `https://www.youtube.com/feeds/videos.xml?playlist_id=${uploadsPlaylistId}`;
                 }
             } else if (type === 'website') {
                 feedUrl = `https://www.fivefilters.org/feed-creator/extract.php?url=${encodeURIComponent(url)}&format=xml`;
             } else if (type === 'reddit') {
-                const redditUrl = url.trim();
+                const redditUrl = url.trim().replace(/\/$/, '');
                 const match = redditUrl.match(/reddit\.com\/(r\/[a-zA-Z0-9_]+|user\/[a-zA-Z0-9_-]+)/);
-                if (match && match[1]) {
-                    feedUrl = `https://www.reddit.com/${match[1]}/.rss`;
-                } else {
-                    let tempUrl = url.trim();
-                    if (tempUrl.endsWith('/')) {
-                        tempUrl = tempUrl.slice(0, -1);
-                    }
-                    feedUrl = `${tempUrl}/.rss`;
-                }
+                feedUrl = match ? `https://www.reddit.com/${match[1]}/.rss` : `${redditUrl}/.rss`;
             }
 
-            if (feeds.some(feed => feed.url === feedUrl)) {
-                throw new Error("This feed has already been added.");
-            }
+            if (feeds.some(feed => feed.url === feedUrl)) throw new Error("This feed has already been added.");
 
             const response = await resilientFetch(feedUrl);
-            if (!response.ok) throw new Error(`Network response was not ok (status: ${response.status}).`);
             const text = await response.text();
-            const parser = new DOMParser();
-            const xml = parser.parseFromString(text, "application/xml");
-            if (xml.querySelector('parsererror')) {
-                throw new Error('Failed to parse RSS feed. If this is a website URL, please use the "Website" tab.');
-            }
-            const feedTitle = xml.querySelector('channel > title')?.textContent || xml.querySelector('feed > title')?.textContent || new URL(originalUrl).hostname;
+            const xml = new DOMParser().parseFromString(text, "application/xml");
+            if (xml.querySelector('parsererror')) throw new Error('Failed to parse RSS feed.');
+            const feedTitle = xml.querySelector('channel > title, feed > title')?.textContent || new URL(originalUrl).hostname;
             const siteLink = xml.querySelector('channel > link')?.textContent || originalUrl;
-            const domainUrl = new URL(siteLink).hostname;
-            const iconUrl = `https://www.google.com/s2/favicons?sz=32&domain_url=${domainUrl}`;
+            const iconUrl = `https://www.google.com/s2/favicons?sz=32&domain_url=${new URL(siteLink).hostname}`;
             const newFeed: Feed = { id: Date.now(), title: feedTitle, url: feedUrl, iconUrl, folderId: null, sourceType: type };
             setFeeds(prevFeeds => [...prevFeeds, newFeed]);
-            navigate(0); // Go back to 'All Feeds'
+            navigate(0);
         } catch (error) {
             console.error("Failed to add source:", error);
-            if (error instanceof TypeError && error.message.toLowerCase().includes('failed to fetch')) {
-                 throw new Error('Connection failed. Please check your network or try again. A browser extension might also be blocking requests.');
-            }
             throw error;
         }
     };
 
     const handleMarkAsRead = (articleId: string) => {
-        setReadArticleIds(prev => {
-            if (prev.has(articleId)) return prev;
-            const newSet = new Set(prev);
-            newSet.add(articleId);
-            return newSet;
-        });
+        setReadArticleIds(prev => new Set(prev).add(articleId));
     };
     
     const handleMarkAsUnread = (articleId: string) => {
         setReadArticleIds(prev => {
-            if (!prev.has(articleId)) return prev;
             const newSet = new Set(prev);
             newSet.delete(articleId);
             return newSet;
@@ -482,21 +381,14 @@ const App: React.FC = () => {
     };
 
     const handleMarkMultipleAsRead = (articleIds: string[]) => {
-        setReadArticleIds(prev => {
-            const newSet = new Set(prev);
-            articleIds.forEach(id => newSet.add(id));
-            return newSet;
-        });
+        setReadArticleIds(prev => new Set([...prev, ...articleIds]));
     };
 
     const handleToggleBookmark = (articleId: string) => {
         setBookmarkedArticleIds(prev => {
             const newSet = new Set(prev);
-            if (newSet.has(articleId)) {
-                newSet.delete(articleId);
-            } else {
-                newSet.add(articleId);
-            }
+            if (newSet.has(articleId)) newSet.delete(articleId);
+            else newSet.add(articleId);
             return newSet;
         });
     };
@@ -504,14 +396,42 @@ const App: React.FC = () => {
     const handleSetArticleTags = (articleId: string, tags: Set<string>) => {
         setArticleTags(prev => {
             const newMap = new Map(prev);
-            if (tags.size === 0) {
-                newMap.delete(articleId);
-            } else {
-                newMap.set(articleId, tags);
-            }
+            if (tags.size === 0) newMap.delete(articleId);
+            else newMap.set(articleId, tags);
             return newMap;
         });
     };
+
+    const handleSudokuWin = useCallback((difficulty: SudokuDifficulty, time: number, isDaily: boolean) => {
+      setSudokuStats(prevStats => {
+        const newStats = JSON.parse(JSON.stringify(prevStats)) as SudokuStats;
+        newStats.totalWins += 1;
+
+        const difficultyKey = difficulty.toLowerCase() as keyof Omit<SudokuStats, 'dailyStreak' | 'lastDailyCompletionDate' | 'totalWins'>;
+        const diffStats = newStats[difficultyKey];
+        
+        diffStats.gamesPlayed += 1;
+        diffStats.totalTimePlayed += time;
+        if (diffStats.fastestTime === null || time < diffStats.fastestTime) {
+          diffStats.fastestTime = time;
+        }
+
+        if (isDaily) {
+          const today = new Date().toISOString().split('T')[0];
+          if (prevStats.lastDailyCompletionDate !== today) {
+            const yesterday = new Date(Date.now() - 864e5).toISOString().split('T')[0];
+            if (prevStats.lastDailyCompletionDate === yesterday) {
+              newStats.dailyStreak += 1;
+            } else {
+              newStats.dailyStreak = 1;
+            }
+            newStats.lastDailyCompletionDate = today;
+          }
+        }
+        
+        return newStats;
+      });
+    }, []);
 
     const handleExportOpml = () => {
         let opml = `<?xml version="1.0" encoding="UTF-8"?><opml version="2.0"><body>`;
@@ -526,7 +446,6 @@ const App: React.FC = () => {
             opml += `<outline type="rss" text="${feed.title}" title="${feed.title}" xmlUrl="${feed.url}" />`;
         });
         opml += `</body></opml>`;
-
         const blob = new Blob([opml], { type: 'application/xml' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -543,100 +462,75 @@ const App: React.FC = () => {
         reader.onload = (e) => {
             try {
                 const xmlText = e.target?.result as string;
-                const parser = new DOMParser();
-                const xml = parser.parseFromString(xmlText, "application/xml");
+                const xml = new DOMParser().parseFromString(xmlText, "application/xml");
                 if (xml.querySelector('parsererror')) throw new Error('Failed to parse OPML file.');
                 
-                const importedFolders: Folder[] = [...folders];
-                const importedFeeds: Feed[] = [...feeds];
-                
-                const body = xml.querySelector('body');
-                if (!body) throw new Error("Invalid OPML file: missing <body> tag.");
-
+                let importedFolders: Folder[] = [...folders];
+                let importedFeeds: Feed[] = [...feeds];
                 const existingFeedUrls = new Set(feeds.map(f => f.url));
 
-                body.querySelectorAll(':scope > outline').forEach(outline => {
+                xml.querySelectorAll('body > outline').forEach(outline => {
                     const isFolder = !outline.getAttribute('xmlUrl');
                     if (isFolder) {
-                        const folderName = outline.getAttribute('text') || outline.getAttribute('title');
-                        if (folderName) {
-                            let folder = importedFolders.find(f => f.name === folderName);
-                            if (!folder) {
-                                folder = { id: Date.now() + Math.random(), name: folderName };
-                                importedFolders.push(folder);
-                            }
-                            
-                            outline.querySelectorAll('outline').forEach(feedOutline => {
-                                const feedUrl = feedOutline.getAttribute('xmlUrl');
-                                if (feedUrl && !existingFeedUrls.has(feedUrl)) {
-                                    const feedTitle = feedOutline.getAttribute('text') || feedOutline.getAttribute('title') || new URL(feedUrl).hostname;
-                                    const iconUrl = `https://www.google.com/s2/favicons?sz=32&domain_url=${new URL(feedUrl).hostname}`;
-                                    importedFeeds.push({ id: Date.now() + Math.random(), title: feedTitle, url: feedUrl, iconUrl, folderId: folder.id, sourceType: 'rss' });
-                                    existingFeedUrls.add(feedUrl);
-                                }
-                            });
+                        const folderName = outline.getAttribute('text') || '';
+                        let folder = importedFolders.find(f => f.name === folderName);
+                        if (!folder) {
+                            folder = { id: Date.now() + Math.random(), name: folderName };
+                            importedFolders.push(folder);
                         }
-                    } else { // Unfiled feed
+                        outline.querySelectorAll('outline').forEach(feedOutline => {
+                            const feedUrl = feedOutline.getAttribute('xmlUrl');
+                            if (feedUrl && !existingFeedUrls.has(feedUrl)) {
+                                const feedTitle = feedOutline.getAttribute('text') || new URL(feedUrl).hostname;
+                                const iconUrl = `https://www.google.com/s2/favicons?sz=32&domain_url=${new URL(feedUrl).hostname}`;
+                                importedFeeds.push({ id: Date.now() + Math.random(), title: feedTitle, url: feedUrl, iconUrl, folderId: folder.id, sourceType: 'rss' });
+                                existingFeedUrls.add(feedUrl);
+                            }
+                        });
+                    } else {
                         const feedUrl = outline.getAttribute('xmlUrl');
                         if (feedUrl && !existingFeedUrls.has(feedUrl)) {
-                            const feedTitle = outline.getAttribute('text') || outline.getAttribute('title') || new URL(feedUrl).hostname;
+                            const feedTitle = outline.getAttribute('text') || new URL(feedUrl).hostname;
                             const iconUrl = `https://www.google.com/s2/favicons?sz=32&domain_url=${new URL(feedUrl).hostname}`;
                             importedFeeds.push({ id: Date.now() + Math.random(), title: feedTitle, url: feedUrl, iconUrl, folderId: null, sourceType: 'rss' });
                             existingFeedUrls.add(feedUrl);
                         }
                     }
                 });
-
                 setFolders(importedFolders);
                 setFeeds(importedFeeds);
                 alert('Feeds imported successfully!');
             } catch (error) {
-                console.error("Failed to import OPML:", error);
-                alert(`Could not import OPML file. It may be invalid. Error: ${error instanceof Error ? error.message : String(error)}`);
+                alert(`Could not import OPML file. Error: ${(error as Error).message}`);
             }
         };
         reader.readAsText(file);
     };
 
     const handleExportSettings = () => {
-        const settingsToExport: Settings = {
-            feeds,
-            folders,
-            theme,
-            articleView,
-            widgets: widgetSettings
-        };
-        const jsonString = JSON.stringify(settingsToExport, null, 2);
-        const blob = new Blob([jsonString], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
+        const settingsToExport: Settings = { feeds, folders, theme, articleView, widgets: widgetSettings };
+        const blob = new Blob([JSON.stringify(settingsToExport, null, 2)], { type: 'application/json' });
         const a = document.createElement('a');
-        a.href = url;
+        a.href = URL.createObjectURL(blob);
         a.download = 'seemore_backup.json';
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        URL.revokeObjectURL(a.href);
     };
 
     const handleImportSettings = (file: File) => {
-        if (!window.confirm('This will overwrite all your current feeds, folders, and preferences. Are you sure you want to continue?')) {
-            return;
-        }
+        if (!window.confirm('This will overwrite all current settings. Continue?')) return;
         const reader = new FileReader();
         reader.onload = (e) => {
             try {
-                const text = e.target?.result as string;
-                const importedSettings = JSON.parse(text) as Settings;
-                
-                if (importedSettings.feeds && importedSettings.folders && importedSettings.theme && importedSettings.articleView && importedSettings.widgets) {
+                const importedSettings = JSON.parse(e.target?.result as string) as Settings;
+                if (importedSettings.feeds && importedSettings.folders && importedSettings.theme) {
                     loadSettings(importedSettings);
                     alert('Settings imported successfully!');
-                } else {
-                    throw new Error('Invalid settings file format.');
-                }
+                } else throw new Error('Invalid settings file format.');
             } catch (error) {
-                 console.error("Failed to import settings:", error);
-                 alert(`Could not import settings file. It may be invalid. Error: ${error instanceof Error ? error.message : String(error)}`);
+                alert(`Could not import settings. Error: ${(error as Error).message}`);
             }
         };
         reader.readAsText(file);
@@ -653,8 +547,7 @@ const App: React.FC = () => {
     };
 
     const handleAddFolder = (name: string) => {
-        const newFolder: Folder = { id: Date.now(), name };
-        setFolders(prev => [...prev, newFolder]);
+        setFolders(prev => [...prev, { id: Date.now(), name }]);
     };
 
     const handleRenameFolder = (id: number, newName: string) => {
@@ -662,7 +555,7 @@ const App: React.FC = () => {
     };
 
     const handleDeleteFolder = (id: number) => {
-        if (window.confirm('Are you sure you want to delete this folder and unfile its feeds?')) {
+        if (window.confirm('Delete this folder and unfile its feeds?')) {
             setFolders(prev => prev.filter(f => f.id !== id));
             setFeeds(prev => prev.map(f => (f.folderId === id ? { ...f, folderId: null } : f)));
         }
@@ -672,51 +565,40 @@ const App: React.FC = () => {
         setFeeds(prev => prev.map(f => (f.id === feedId ? { ...f, folderId } : f)));
     };
     
-    let feedsToDisplay: Feed[] = [];
-    if (selection.type === 'all' || selection.type === 'search' || selection.type === 'bookmarks') {
-        feedsToDisplay = feeds;
-    } else if (selection.type === 'folder') {
-        feedsToDisplay = feeds.filter(f => f.folderId === selection.id);
-    } else if (selection.type === 'feed') {
-        const feed = feeds.find(f => f.id === selection.id);
-        feedsToDisplay = feed ? [feed] : [];
-    } else if (selection.type === 'reddit') {
-        feedsToDisplay = feeds.filter(f => f.sourceType === 'reddit');
-    } else if (selection.type === 'youtube') {
-        feedsToDisplay = feeds.filter(f => f.sourceType === 'youtube');
-    }
-
-    const currentSettings: Settings = {
-        feeds, folders, theme, articleView, widgets: widgetSettings
-    };
-
+    const feedsToDisplay = useMemo(() => {
+        switch (selection.type) {
+            case 'all':
+            case 'search':
+            case 'bookmarks':
+                return feeds;
+            case 'folder':
+                return feeds.filter(f => f.folderId === selection.id);
+            case 'feed':
+                return feeds.filter(f => f.id === selection.id);
+            case 'reddit':
+                return feeds.filter(f => f.sourceType === 'reddit');
+            case 'youtube':
+                return feeds.filter(f => f.sourceType === 'youtube');
+            default:
+                return [];
+        }
+    }, [feeds, selection]);
+    
     const pageTitle = useMemo(() => {
-        if (selection.type === 'search') {
-            return `Search: "${selection.query}"`;
-        }
-        if (selection.type === 'bookmarks') {
-            return 'Read Later';
-        }
+        if (selection.type === 'search') return `Search: "${selection.query}"`;
+        if (selection.type === 'bookmarks') return 'Saved Articles';
 
         const mainPage = mainPages.find(p => p.selection.type === selection.type && p.selection.id === selection.id);
-        if (mainPage) {
-            return mainPage.name;
-        }
+        if (mainPage) return mainPage.name;
 
-        if (selection.type === 'feed') {
-            const feed = feeds.find(f => f.id === selection.id);
-            return feed ? feed.title : 'Feed';
-        }
-        if (selection.type === 'folder') {
-            const folder = folders.find(f => f.id === selection.id);
-            return folder ? folder.name : 'Folder';
-        }
+        if (selection.type === 'feed') return feeds.find(f => f.id === selection.id)?.title || 'Feed';
+        if (selection.type === 'folder') return folders.find(f => f.id === selection.id)?.name || 'Folder';
         
-        return 'See More'; // Fallback
+        return 'See More';
     }, [selection, mainPages, feeds, folders]);
     
     return (
-        <div className="h-screen font-sans text-sm relative flex">
+        <div className="h-screen font-sans text-sm relative flex overflow-hidden">
             <Sidebar
                 feeds={feeds}
                 folders={folders}
@@ -732,50 +614,57 @@ const App: React.FC = () => {
                 onClose={() => setIsSidebarOpen(false)}
                 onOpenSettings={() => setIsSettingsModalOpen(true)}
             />
-            <div {...swipeHandlers} className="flex-1 flex flex-col min-w-0 md:ml-72 relative overflow-hidden">
-                <MainContent
-                    key={currentPageIndex}
-                    animationClass={animationClass}
-                    pageTitle={pageTitle}
-                    onSearch={(query: string) => setSelection({ type: 'search', id: null, query })}
-                    feedsToDisplay={feedsToDisplay}
-                    selection={selection}
-                    readArticleIds={readArticleIds}
-                    bookmarkedArticleIds={bookmarkedArticleIds}
-                    articleTags={articleTags}
-                    onMarkAsRead={handleMarkAsRead}
-                    onMarkAsUnread={handleMarkAsUnread}
-                    onMarkMultipleAsRead={handleMarkMultipleAsRead}
-                    onToggleBookmark={handleToggleBookmark}
-                    onSetArticleTags={handleSetArticleTags}
-                    allFeeds={feeds}
-                    isApiKeyMissing={isApiKeyMissing}
-                    refreshKey={lastRefresh}
-                    onRefresh={() => setLastRefresh(Date.now())}
-                    widgetSettings={widgetSettings}
-                    articleView={articleView}
-                    theme={theme}
-                    onToggleTheme={handleToggleTheme}
-                    onOpenSettings={() => setIsSettingsModalOpen(true)}
-                    onOpenAddSource={() => setIsAddSourceModalOpen(true)}
-                    onAddSource={handleAddSource}
-                    onOpenSidebar={() => setIsSidebarOpen(true)}
-                    onOpenNavOverlay={() => setIsNavOverlayOpen(true)}
-                />
+            <div {...swipeHandlers} className="flex-1 flex flex-col min-w-0 md:pl-72 relative">
+                {selection.type === 'sudoku' ? (
+                    <SudokuPage
+                        stats={sudokuStats}
+                        onGameWin={handleSudokuWin}
+                    />
+                ) : (
+                    <MainContent
+                        key={selection.type + String(selection.id)}
+                        animationClass={animationClass}
+                        pageTitle={pageTitle}
+                        onSearch={(query: string) => {
+                            setAnimationClass('animate-fade-in');
+                            setSelection({ type: 'search', id: null, query })
+                        }}
+                        feedsToDisplay={feedsToDisplay}
+                        selection={selection}
+                        readArticleIds={readArticleIds}
+                        bookmarkedArticleIds={bookmarkedArticleIds}
+                        articleTags={articleTags}
+                        onMarkAsRead={handleMarkAsRead}
+                        onMarkAsUnread={handleMarkAsUnread}
+                        onMarkMultipleAsRead={handleMarkMultipleAsRead}
+                        onToggleBookmark={handleToggleBookmark}
+                        onSetArticleTags={handleSetArticleTags}
+                        allFeeds={feeds}
+                        isApiKeyMissing={isApiKeyMissing}
+                        refreshKey={lastRefresh}
+                        onRefresh={() => setLastRefresh(Date.now())}
+                        widgetSettings={widgetSettings}
+                        articleView={articleView}
+                        theme={theme}
+                        onToggleTheme={handleToggleTheme}
+                        onOpenSettings={() => setIsSettingsModalOpen(true)}
+                        onOpenAddSource={() => setIsAddSourceModalOpen(true)}
+                        onAddSource={handleAddSource}
+                        onOpenSidebar={() => setIsSidebarOpen(true)}
+                    />
+                )}
             </div>
-            <NavigationOverlay
-                isOpen={isNavOverlayOpen}
-                onClose={() => setIsNavOverlayOpen(false)}
+             <BottomNavBar 
                 pages={mainPages}
                 currentPageIndex={currentPageIndex}
                 onNavigate={navigate}
-                onOpenSidebar={() => setIsSidebarOpen(true)}
-                onOpenSettings={() => setIsSettingsModalOpen(true)}
-            />
+                onAddSource={() => setIsAddSourceModalOpen(true)}
+                onRefresh={() => setLastRefresh(Date.now())}
+             />
             <SettingsModal
                 isOpen={isSettingsModalOpen}
                 onClose={() => setIsSettingsModalOpen(false)}
-                settings={currentSettings}
+                settings={{ feeds, folders, theme, articleView, widgets: widgetSettings }}
                 onUpdateSettings={handleUpdateSettings}
                 onImportOpml={handleImportOpml}
                 onExportOpml={handleExportOpml}

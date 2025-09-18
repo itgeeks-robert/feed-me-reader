@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-// FIX: Corrected import path for App types
 import type { Article } from '../src/App';
 import { XIcon, ArrowPathIcon } from './icons';
 import { fetchAndCacheArticleContent } from '../services/readerService';
@@ -42,9 +41,9 @@ const ReaderViewModal: React.FC<ReaderViewModalProps> = ({ article, onClose, onM
     }, [parsedContent]);
 
     return (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center" onClick={onClose} role="dialog" aria-modal="true">
-            <div className="bg-zinc-50/80 dark:bg-zinc-900/80 backdrop-blur-lg border border-zinc-300/50 dark:border-zinc-700/50 rounded-lg shadow-xl w-full max-w-3xl mx-4 max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
-                <header className="flex items-center justify-between p-4 border-b border-zinc-200 dark:border-zinc-800 flex-shrink-0">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose} role="dialog" aria-modal="true">
+            <div className="bg-white/50 dark:bg-zinc-900/60 backdrop-blur-2xl border border-white/20 dark:border-white/10 rounded-2xl shadow-xl w-full max-w-3xl max-h-full flex flex-col" onClick={e => e.stopPropagation()}>
+                <header className="flex items-center justify-between p-4 border-b border-black/10 dark:border-white/10 flex-shrink-0">
                     <div className="flex-grow min-w-0">
                         {isLoading ? (
                             <div className="h-6 bg-zinc-300 dark:bg-zinc-700 rounded w-3/4 animate-pulse"></div>
@@ -55,7 +54,7 @@ const ReaderViewModal: React.FC<ReaderViewModalProps> = ({ article, onClose, onM
                             {article.source}
                         </a>
                     </div>
-                    <button onClick={onClose} className="ml-4 p-2 rounded-full text-zinc-500 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 flex-shrink-0" aria-label="Close reader view">
+                    <button onClick={onClose} className="ml-4 p-2 rounded-full text-zinc-500 dark:text-zinc-400 hover:bg-black/10 dark:hover:bg-white/10 flex-shrink-0" aria-label="Close reader view">
                         <XIcon className="w-6 h-6" />
                     </button>
                 </header>

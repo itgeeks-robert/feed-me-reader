@@ -1,8 +1,6 @@
-
-
 // FIX: Corrected import path for App types and functions
 import type { Article } from '../src/App';
-import { resilientFetch } from '../src/App';
+import { resilientFetch } from './fetch';
 import { get as cacheGet, set as cacheSet } from './cacheService';
 
 const CACHE_PREFIX = 'reader_view_cache_';

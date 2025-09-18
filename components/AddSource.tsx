@@ -51,7 +51,7 @@ const AddSource: React.FC<AddSourceProps> = ({ onAddSource, onSuccess }) => {
         <button 
             type="button"
             onClick={() => setActiveTab(type)} 
-            className={`flex-1 min-w-0 py-2 text-sm rounded-md flex justify-center items-center gap-1.5 transition-colors duration-200 ${activeTab === type ? 'bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-white font-semibold' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50'}`}
+            className={`flex-1 min-w-0 py-2 text-sm rounded-md flex justify-center items-center gap-1.5 transition-colors duration-200 ${activeTab === type ? 'bg-black/10 dark:bg-white/10 text-zinc-900 dark:text-white font-semibold' : 'text-zinc-600 dark:text-zinc-400 hover:bg-black/5 dark:hover:bg-white/5'}`}
         >
             {children}
         </button>
@@ -59,7 +59,7 @@ const AddSource: React.FC<AddSourceProps> = ({ onAddSource, onSuccess }) => {
 
     return (
         <div className="space-y-4">
-            <div className="flex justify-around bg-zinc-100 dark:bg-zinc-800 rounded-lg p-1">
+            <div className="flex justify-around bg-black/5 dark:bg-white/5 rounded-lg p-1">
                 <TabButton type="rss"><RssIcon className="w-5 h-5" /> RSS</TabButton>
                 <TabButton type="youtube"><YoutubeIcon className="w-5 h-5" /> YT</TabButton>
                 <TabButton type="reddit"><RedditIcon className="w-5 h-5" /> Reddit</TabButton>
@@ -75,7 +75,7 @@ const AddSource: React.FC<AddSourceProps> = ({ onAddSource, onSuccess }) => {
                         placeholder={placeholders[activeTab]} 
                         required 
                         disabled={isLoading}
-                        className="w-full bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-md py-2.5 pl-4 pr-12 text-sm text-zinc-900 dark:text-white placeholder-zinc-600 dark:placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-70" />
+                        className="w-full bg-black/5 dark:bg-white/5 border border-zinc-300/50 dark:border-zinc-700/50 rounded-lg py-2.5 pl-4 pr-12 text-sm text-zinc-900 dark:text-white placeholder-zinc-600 dark:placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-70" />
                     <button type="submit" disabled={isLoading} className="absolute inset-y-0 right-0 flex items-center pr-4 text-zinc-400 hover:text-orange-500 disabled:text-zinc-500 dark:disabled:text-zinc-600 disabled:cursor-not-allowed" aria-label="Add source">
                         {isLoading ? <ArrowPathIcon className="w-5 h-5 animate-spin" /> : <PlusIcon className="w-6 h-6" />}
                     </button>
