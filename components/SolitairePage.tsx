@@ -33,15 +33,12 @@ const CardFace = ({ card }: { card: Card }) => {
     const rank = card.rank;
     const suit = card.suit;
 
-    // A container that defines a base font size relative to the card's width.
-    // This helps all text elements scale together.
     return (
         <div className="w-full h-full bg-white rounded-md relative text-[calc(var(--card-width)/6)]">
             
             {/* Corner Text (Top Left) */}
-            <div className={`absolute top-1 left-1 text-center leading-none ${color}`}>
-                <div className="font-bold text-[1.2em]">{rank}</div>
-                <div className="text-[1em]">{suit}</div>
+            <div className={`absolute top-1 left-1.5 font-bold text-[1.8em] leading-none ${color}`}>
+                {rank}
             </div>
 
             {/* Large Central Suit Logo */}
@@ -50,9 +47,8 @@ const CardFace = ({ card }: { card: Card }) => {
             </div>
 
             {/* Corner Text (Bottom Right) */}
-            <div className={`absolute bottom-1 right-1 text-center leading-none rotate-180 ${color}`}>
-                <div className="font-bold text-[1.2em]">{rank}</div>
-                <div className="text-[1em]">{suit}</div>
+             <div className={`absolute bottom-1 right-1.5 font-bold text-[1.8em] leading-none rotate-180 ${color}`}>
+                {rank}
             </div>
         </div>
     );
@@ -267,7 +263,10 @@ const SolitairePage: React.FC<SolitairePageProps> = ({ onBackToHub }) => {
   };
 
   return (
-    <div className="flex-grow flex flex-col p-2 bg-[#046307] bg-[url('data:image/svg+xml,%3Csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20width=%27100%27%20height=%27100%27%20viewBox=%270%200%20100%20100%27%3E%3Cfilter%20id=%27n%27%20x=%270%27%20y=%270%27%3E%3CfeTurbulence%20type=%27fractalNoise%27%20baseFrequency=%270.7%27%20numOctaves=%2710%27%20stitchTiles=%27stitch%27/%3E%3C/filter%3E%3Crect%20width=%27100%27%20height=%27100%27%20filter=%27url(%23n)%27%20opacity=%270.07%27/%3E%3C/svg%3E')] overflow-auto font-sans relative select-none">
+    <div 
+      className="flex-grow flex flex-col bg-zinc-900 overflow-auto font-sans relative select-none"
+      style={{ padding: 'var(--board-padding, 0.5rem)' }}
+    >
         {gamePhase === 'intro' ? 
             <IntroScreen onStart={startNewGame} onBackToHub={onBackToHub} /> : 
             <GameBoard 
@@ -288,7 +287,7 @@ const SolitairePage: React.FC<SolitairePageProps> = ({ onBackToHub }) => {
 
 const IntroScreen: React.FC<{ onStart: () => void; onBackToHub: () => void; }> = ({ onStart, onBackToHub }) => (
     <div className="absolute inset-0 flex flex-col items-center justify-center text-white/80 animate-fade-in">
-        <div className="relative text-center p-8 bg-[#046307]/80 backdrop-blur-md rounded-3xl shadow-2xl border border-yellow-300/20">
+        <div className="relative text-center p-8 bg-[#35654d]/80 backdrop-blur-md rounded-3xl shadow-2xl border border-yellow-300/20">
             <h1 className="text-5xl font-['Helvetica',_sans-serif] font-bold tracking-[0.2em] text-transparent bg-clip-text bg-gradient-to-br from-yellow-200 to-amber-400">SOLITAIRE</h1>
             <SeymourIcon className="w-24 h-24 mx-auto my-6 text-yellow-300/30" />
             <button
@@ -320,29 +319,29 @@ const GameBoard: React.FC<{
     return (
         <div className="relative z-10 w-full h-full">
             {/* Table Frame */}
-            <div className="absolute inset-[-2rem] rounded-[2.5rem] p-4 bg-[#65000b] shadow-2xl">
-                 <div className="w-full h-full rounded-[1.75rem] p-4 bg-gradient-to-br from-[#4a2e20] to-[#291a13] shadow-[0_0_20px_rgba(0,0,0,0.5)_inset]"></div>
+            <div className="absolute inset-[-2rem] rounded-[2.5rem] p-4 bg-[#4a2c2a] shadow-2xl">
+                 <div className="w-full h-full rounded-[1.75rem] p-4 bg-[#35654d] bg-[url('data:image/svg+xml,%3Csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20width=%27100%27%20height=%27100%27%20viewBox=%270%200%20100%20100%27%3E%3Cfilter%20id=%27n%27%20x=%270%27%20y=%270%27%3E%3CfeTurbulence%20type=%27fractalNoise%27%20baseFrequency=%270.7%27%20numOctaves=%2710%27%20stitchTiles=%27stitch%27/%3E%3C/filter%3E%3Crect%20width=%27100%27%20height=%27100%27%20filter=%27url(%23n)%27%20opacity=%270.07%27/%3E%3C/svg%3E')] shadow-[0_0_20px_rgba(0,0,0,0.5)_inset]"></div>
             </div>
 
             {/* Main Board */}
-            <div className="relative w-full h-full max-w-7xl mx-auto p-4">
+            <div className="relative w-full h-full max-w-7xl mx-auto">
                  {/* Gold-leaf Outlines */}
                 <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
-                    <div className="absolute grid grid-cols-7 gap-4 w-full top-0">
+                    <div className="absolute grid grid-cols-7 w-full top-0" style={{ gap: 'var(--board-gap)' }}>
                         {Array.from({length: 2}).map((_, i) => <div key={i} className="aspect-[2/3] border border-[#bfa65a]/50 rounded-lg shadow-[0_0_2px_1px_rgba(191,166,90,0.2)_inset]"></div>)}
                         <div className="col-start-4 col-span-4">
-                            <div className="grid grid-cols-4 gap-4">
+                            <div className="grid grid-cols-4" style={{ gap: 'var(--board-gap)' }}>
                                 {Array.from({length: 4}).map((_, i) => <div key={i} className="aspect-[2/3] border border-[#bfa65a]/50 rounded-lg shadow-[0_0_2px_1px_rgba(191,166,90,0.2)_inset]"></div>)}
                             </div>
                         </div>
                     </div>
-                    <div className="absolute grid grid-cols-7 gap-4 w-full top-[calc(var(--card-aspect-ratio)_*_var(--card-width)_+_1rem)]">
+                    <div className="absolute grid grid-cols-7 w-full" style={{ top: `calc(var(--card-height) + var(--board-gap) + 6 * var(--tableau-overlap))`, gap: 'var(--board-gap)' }}>
                          {Array.from({length: 7}).map((_, i) => <div key={i} className="aspect-[2/3] border border-[#bfa65a]/50 rounded-lg shadow-[0_0_2px_1px_rgba(191,166,90,0.2)_inset]"></div>)}
                     </div>
                 </div>
 
                 {/* Top Row: Stock, Waste, Foundations */}
-                <div className="absolute top-0 left-0 w-full grid grid-cols-7 gap-4">
+                <div className="absolute top-0 left-0 w-full grid grid-cols-7" style={{ gap: 'var(--board-gap)' }}>
                     <div onClick={onDraw}>
                         {gameState.stock.length > 0 ? <Card card={{...gameState.stock[0], isFaceUp: false}} /> : <EmptyPile />}
                     </div>
@@ -351,7 +350,7 @@ const GameBoard: React.FC<{
                     </div>
 
                     <div className="col-start-4 col-span-4">
-                        <div className="grid grid-cols-4 gap-4">
+                        <div className="grid grid-cols-4" style={{ gap: 'var(--board-gap)' }}>
                         {gameState.foundations.map((pile, i) => (
                             <div key={i}>
                                 {pile.length > 0 ? <Card card={pile[pile.length - 1]} isSelected={selectedInfo?.type === 'foundation' && selectedInfo.pileIndex === i} onClick={() => onCardClick('foundation', i, pile.length - 1)} /> : <EmptyPile onClick={() => onEmptyPileClick('foundation', i)} />}
@@ -362,10 +361,10 @@ const GameBoard: React.FC<{
                 </div>
 
                 {/* Tableau */}
-                <div className="absolute w-full top-[calc(var(--card-aspect-ratio)_*_var(--card-width)_+_1rem)]">
-                     <div className="grid grid-cols-7 gap-4">
+                <div className="absolute w-full" style={{ top: `calc(var(--card-height) + var(--board-gap) + 6 * var(--tableau-overlap))` }}>
+                     <div className="grid grid-cols-7" style={{ gap: 'var(--board-gap)' }}>
                         {gameState.tableau.map((pile, i) => (
-                            <div key={i} className="relative h-[calc(var(--card-aspect-ratio)_*_var(--card-width)_*_2.5)]" onClick={pile.length === 0 ? () => onEmptyPileClick('tableau', i) : undefined}>
+                            <div key={i} className="relative h-[calc(var(--card-height)_*_2.5)]" onClick={pile.length === 0 ? () => onEmptyPileClick('tableau', i) : undefined}>
                                 {pile.map((card, j) => (
                                     <div key={card.id} className="absolute transition-all duration-150" style={{ top: `calc(${j} * var(--tableau-overlap))` }}>
                                         <Card card={card} isSelected={selectedInfo?.type === 'tableau' && selectedInfo.pileIndex === i && selectedInfo.cardIndex <= j} onClick={() => onCardClick('tableau', i, j)} isDealing={gamePhase === 'dealing'} dealIndex={i * 7 + j}/>
@@ -383,7 +382,7 @@ const GameBoard: React.FC<{
             {/* Win Screen */}
             {gamePhase === 'won' && (
                 <div className="absolute inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
-                    <div className="bg-[#046307]/80 backdrop-blur-lg border border-yellow-300/40 rounded-2xl shadow-2xl w-full max-w-sm p-8 text-center text-white">
+                    <div className="bg-[#35654d]/80 backdrop-blur-lg border border-yellow-300/40 rounded-2xl shadow-2xl w-full max-w-sm p-8 text-center text-white">
                         <h2 className="text-4xl font-['Helvetica',_sans-serif] font-bold text-transparent bg-clip-text bg-gradient-to-br from-yellow-200 to-amber-400">Congratulations!</h2>
                          <button onClick={onStart} className="mt-6 w-full bg-gradient-to-b from-yellow-400 to-amber-600 text-zinc-900 font-bold py-3 rounded-lg shadow-lg hover:from-yellow-300 hover:to-amber-500 transition-colors">
                             Play Again
@@ -422,7 +421,9 @@ const EmptyPile: React.FC<{ onClick?: () => void; }> = ({ onClick }) => (
 const SolitaireStyles = () => (
     <style>{`
         :root {
-            --card-width: min(calc((100vw - 6rem) / 7), 6rem);
+            --board-gap: clamp(0.25rem, 1.5vw, 1rem);
+            --board-padding: clamp(0.25rem, 2vw, 1rem);
+            --card-width: min(calc((100vw - 6 * var(--board-gap) - 2 * var(--board-padding)) / 7.2), 6rem);
             --card-aspect-ratio: 1.4;
             --card-height: calc(var(--card-width) * var(--card-aspect-ratio));
             --tableau-overlap: calc(var(--card-height) / 5);
