@@ -324,10 +324,10 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onBackToHub }
     );
 
     const IdleView = () => (
-        <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-xl w-full max-w-sm p-8 text-center animate-fade-in">
+        <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-8 text-center animate-fade-in">
           <BrainIcon className="w-16 h-16 mx-auto text-blue-500 mb-4" />
-          <h2 className="text-3xl font-bold text-slate-800 dark:text-white">Sudoku</h2>
-          <p className="text-slate-500 dark:text-zinc-400 mt-2 mb-6">A game of logic and concentration.</p>
+          <h2 className="text-3xl font-bold text-slate-800">Sudoku</h2>
+          <p className="text-slate-500 mt-2 mb-6">A game of logic and concentration.</p>
           <div className="space-y-3">
             <button onClick={() => startNewGame('Medium', true)} className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition-colors text-lg">
               Daily Challenge
@@ -339,7 +339,7 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onBackToHub }
             </div>
             <div className="grid grid-cols-2 gap-3">
               {(['Easy', 'Medium', 'Hard', 'Expert'] as Difficulty[]).map(d => (
-                <button key={d} onClick={() => startNewGame(d)} className="w-full bg-slate-100 dark:bg-zinc-700 hover:bg-slate-200 dark:hover:bg-zinc-600 text-slate-700 dark:text-zinc-200 font-semibold py-3 rounded-lg transition-colors">
+                <button key={d} onClick={() => startNewGame(d)} className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-3 rounded-lg transition-colors">
                   {d}
                 </button>
               ))}
@@ -356,9 +356,9 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onBackToHub }
 
     const StatsView = () => {
         const StatCard: React.FC<{ title: string; children: React.ReactNode; className?: string }> = ({ title, children }) => (
-          <div className={`bg-white dark:bg-zinc-800 rounded-xl p-4 shadow-sm`}>
-            <h3 className="text-sm font-medium text-slate-500 dark:text-zinc-400 mb-2">{title}</h3>
-            <div className="text-slate-800 dark:text-white">{children}</div>
+          <div className={`bg-white rounded-xl p-4 shadow-sm`}>
+            <h3 className="text-sm font-medium text-slate-500 mb-2">{title}</h3>
+            <div className="text-slate-800">{children}</div>
           </div>
         );
       
@@ -368,10 +368,10 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onBackToHub }
         };
       
         return (
-          <div className="w-full max-w-2xl mx-auto p-4 animate-fade-in text-zinc-900 dark:text-white">
+          <div className="w-full max-w-2xl mx-auto p-4 animate-fade-in text-slate-900">
             <header className="flex items-center justify-between mb-6">
               <h2 className="text-3xl font-bold">Statistics</h2>
-              <button onClick={() => setView(grid ? 'PLAYING' : 'IDLE')} className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-zinc-200 bg-slate-100 dark:bg-zinc-700 border border-slate-200 dark:border-zinc-600 rounded-lg hover:bg-slate-200 dark:hover:bg-zinc-600">
+              <button onClick={() => setView(grid ? 'PLAYING' : 'IDLE')} className="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 border border-slate-200 rounded-lg hover:bg-slate-200">
                 Back
               </button>
             </header>
@@ -381,18 +381,18 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onBackToHub }
               <StatCard title="Games Played"><p className="text-4xl font-bold">{stats.easy.gamesPlayed + stats.medium.gamesPlayed + stats.hard.gamesPlayed + stats.expert.gamesPlayed}</p></StatCard>
             </div>
       
-            <div className="bg-white dark:bg-zinc-800 rounded-xl p-4 shadow-sm">
+            <div className="bg-white rounded-xl p-4 shadow-sm">
               <h3 className="text-lg font-semibold mb-3">Performance by Difficulty</h3>
               <div className="space-y-2">
                 {Object.entries(stats).filter(([key]) => ['easy', 'medium', 'hard', 'expert'].includes(key)).map(([key, value]) => {
                   const diffStats = value as SudokuDifficultyStats;
                   const avgTime = diffStats.gamesPlayed > 0 ? diffStats.totalTimePlayed / diffStats.gamesPlayed : null;
                   return (
-                    <div key={key} className="grid grid-cols-4 items-center gap-4 text-sm p-2 rounded-md hover:bg-slate-50 dark:hover:bg-zinc-700/50">
-                      <p className="font-semibold capitalize text-slate-700 dark:text-zinc-300">{key}</p>
-                      <div><span className="text-slate-500 dark:text-zinc-400">Best:</span> {formatStatTime(diffStats.fastestTime)}</div>
-                      <div><span className="text-slate-500 dark:text-zinc-400">Avg:</span> {avgTime !== null ? formatStatTime(Math.round(avgTime)) : '–'}</div>
-                      <div><span className="text-slate-500 dark:text-zinc-400">Played:</span> {diffStats.gamesPlayed}</div>
+                    <div key={key} className="grid grid-cols-4 items-center gap-4 text-sm p-2 rounded-md hover:bg-slate-50">
+                      <p className="font-semibold capitalize text-slate-700">{key}</p>
+                      <div><span className="text-slate-500">Best:</span> {formatStatTime(diffStats.fastestTime)}</div>
+                      <div><span className="text-slate-500">Avg:</span> {avgTime !== null ? formatStatTime(Math.round(avgTime)) : '–'}</div>
+                      <div><span className="text-slate-500">Played:</span> {diffStats.gamesPlayed}</div>
                     </div>
                   );
                 })}
@@ -403,9 +403,9 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onBackToHub }
     };
 
     const renderErrorView = () => (
-         <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-xl w-full max-w-sm p-8 text-center">
+         <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-8 text-center">
             <h2 className="text-2xl font-bold text-red-600">Error</h2>
-            <p className="text-slate-500 dark:text-zinc-400 mt-2 mb-6">{errorMessage || 'Could not load puzzle.'}</p>
+            <p className="text-slate-500 mt-2 mb-6">{errorMessage || 'Could not load puzzle.'}</p>
             <button onClick={() => startNewGame(difficulty)} className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition-colors">
                 Try Again
             </button>
@@ -429,34 +429,30 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onBackToHub }
             
             const boxRow = Math.floor(r / 3);
             const boxCol = Math.floor(c / 3);
-            const isAltBox = (boxRow + boxCol) % 2 === 0;
+            const isAltBox = (boxRow + boxCol) % 2 === 1;
 
-            // Background color priority: Error > Selected > SameValue > Related > AltBox > Default
             let bgClass = '';
             if (cell.isError) {
-                bgClass = '!bg-red-200 dark:!bg-red-900/50';
+                bgClass = '!bg-red-200';
             } else if (isSelected) {
-                bgClass = '!bg-blue-200 dark:!bg-blue-700';
+                bgClass = '!bg-blue-200';
             } else if (isSameValue) {
-                bgClass = 'bg-blue-200 dark:bg-blue-800/70';
+                bgClass = 'bg-blue-100';
             } else if (isRelated) {
-                bgClass = 'bg-blue-100 dark:bg-blue-900/50';
+                bgClass = 'bg-slate-100';
             } else if (isAltBox) {
-                bgClass = 'bg-blue-50 dark:bg-zinc-800/60';
+                bgClass = 'bg-slate-50';
             } else {
-                bgClass = 'bg-white dark:bg-zinc-800';
+                bgClass = 'bg-white';
             }
 
-            // Text color logic
             let textClass;
             if (cell.isError) {
-                textClass = '!text-red-700 dark:!text-red-400 font-bold';
-            } else if (isSameValue) {
-                textClass = 'font-bold text-blue-800 dark:text-blue-300';
+                textClass = '!text-red-700 font-bold';
             } else if (cell.isPrefilled) {
-                textClass = 'font-medium text-slate-800 dark:text-zinc-200';
+                textClass = 'font-medium text-slate-800';
             } else {
-                textClass = 'font-medium text-blue-700 dark:text-blue-400';
+                textClass = 'font-medium text-blue-600';
             }
             
             return [
@@ -471,7 +467,7 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onBackToHub }
             if (cell.value) return cell.value;
             if (cell.notes.size > 0) {
                 return (
-                    <div className="grid grid-cols-3 text-[9px] md:text-[11px] font-normal text-slate-600 dark:text-zinc-400 w-full h-full p-px leading-none">
+                    <div className="grid grid-cols-3 text-[9px] md:text-[11px] font-normal text-slate-500 w-full h-full p-px leading-none">
                         {Array.from({length: 9}, (_, i) => i + 1).map(note => (
                             <div key={note} className="flex items-center justify-center">
                                 {cell.notes.has(note) ? note : ''}
@@ -486,17 +482,17 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onBackToHub }
         return (
             <div className="w-full max-w-7xl mx-auto animate-fade-in p-0 sm:p-2 h-full flex flex-col">
                  <header className="flex-shrink-0 flex justify-between items-center mb-2 sm:mb-4 px-2">
-                    <div className="text-base sm:text-lg font-bold text-slate-700 dark:text-zinc-300">
-                        Difficulty: <span className="text-blue-600 dark:text-blue-400">{isDailyChallenge ? "Daily" : difficulty}</span>
+                    <div className="text-base sm:text-lg font-bold text-slate-700">
+                        Difficulty: <span className="text-blue-600">{isDailyChallenge ? "Daily" : difficulty}</span>
                     </div>
-                    <button onClick={() => setView('STATS')} className="px-3 py-1.5 text-xs font-semibold rounded-full bg-slate-200 dark:bg-zinc-700 border border-slate-300 dark:border-zinc-600 text-slate-600 dark:text-zinc-300 hover:bg-slate-300 dark:hover:bg-zinc-600 transition-colors">
+                    <button onClick={() => setView('STATS')} className="px-3 py-1.5 text-xs font-semibold rounded-full bg-slate-200 border border-slate-300 text-slate-600 hover:bg-slate-300 transition-colors">
                         Stats
                     </button>
                 </header>
     
                 <div className="flex-grow grid grid-cols-1 lg:grid-cols-2 gap-4 items-center">
                     <div className="w-full max-w-xl mx-auto aspect-square">
-                        <div className="grid grid-cols-9 grid-rows-9 gap-px bg-slate-400 dark:bg-zinc-600 p-1 rounded-md border-2 border-slate-500 dark:border-zinc-500 shadow-md">
+                        <div className="grid grid-cols-9 grid-rows-9 gap-px bg-slate-300 p-1 rounded-md border-2 border-slate-400 shadow-md">
                             {grid.map((row, r) =>
                                 row.map((cell, c) => (
                                     <div
@@ -504,8 +500,8 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onBackToHub }
                                         onClick={() => handleCellClick(r, c)}
                                         className={`
                                             ${cellClasses(r, c, cell)}
-                                            ${(c === 2 || c === 5) ? 'border-r-2 border-slate-500 dark:border-zinc-500' : ''}
-                                            ${(r === 2 || r === 5) ? 'border-b-2 border-slate-500 dark:border-zinc-500' : ''}
+                                            ${(c === 2 || c === 5) ? 'border-r-2 border-slate-400' : ''}
+                                            ${(r === 2 || r === 5) ? 'border-b-2 border-slate-400' : ''}
                                         `}
                                     >
                                         {renderCellContent(cell)}
@@ -516,24 +512,24 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onBackToHub }
                     </div>
     
                     <div className="w-full max-w-sm mx-auto flex flex-col gap-2 sm:gap-3">
-                         <div className="flex justify-around p-2 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700">
+                         <div className="flex justify-around p-2 rounded-xl bg-slate-100 border border-slate-200">
                              <div className="text-center">
-                                 <div className="text-sm text-slate-500 dark:text-zinc-400">Mistakes</div>
-                                 <div className="text-2xl font-bold text-slate-700 dark:text-zinc-200">{mistakes}/{MISTAKE_LIMIT}</div>
+                                 <div className="text-sm text-slate-500">Mistakes</div>
+                                 <div className="text-2xl font-bold text-slate-700">{mistakes}/{MISTAKE_LIMIT}</div>
                              </div>
                              <div className="text-center">
-                                 <div className="text-sm text-slate-500 dark:text-zinc-400">Time</div>
-                                 <div className="text-2xl font-bold text-slate-700 dark:text-zinc-200">{formatTime(time)}</div>
+                                 <div className="text-sm text-slate-500">Time</div>
+                                 <div className="text-2xl font-bold text-slate-700">{formatTime(time)}</div>
                              </div>
                         </div>
                         
                         <div className="grid grid-cols-4 gap-2 sm:gap-3">
-                            <button onClick={handleUndo} className="h-14 bg-white dark:bg-zinc-700 rounded-full flex items-center justify-center text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-600 transition-colors shadow-sm border border-slate-200 dark:border-zinc-600" aria-label="Undo"><ArrowPathIcon className="w-7 h-7 -scale-x-100" /></button>
-                            <button onClick={handleErase} className="h-14 bg-white dark:bg-zinc-700 rounded-full flex items-center justify-center text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-600 transition-colors shadow-sm border border-slate-200 dark:border-zinc-600" aria-label="Erase"><EraserIcon className="w-7 h-7" /></button>
-                            <button onClick={() => setIsNotesMode(!isNotesMode)} className={`h-14 rounded-full flex items-center justify-center relative transition-colors shadow-sm border ${isNotesMode ? 'bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-700' : 'bg-white dark:bg-zinc-700 text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-600 border-slate-200 dark:border-zinc-600'}`} aria-label="Toggle Notes">
+                            <button onClick={handleUndo} className="h-14 bg-slate-100 rounded-full flex items-center justify-center text-slate-600 hover:bg-slate-200 transition-colors shadow-sm border border-slate-200" aria-label="Undo"><ArrowPathIcon className="w-7 h-7 -scale-x-100" /></button>
+                            <button onClick={handleErase} className="h-14 bg-slate-100 rounded-full flex items-center justify-center text-slate-600 hover:bg-slate-200 transition-colors shadow-sm border border-slate-200" aria-label="Erase"><EraserIcon className="w-7 h-7" /></button>
+                            <button onClick={() => setIsNotesMode(!isNotesMode)} className={`h-14 rounded-full flex items-center justify-center relative transition-colors shadow-sm border ${isNotesMode ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border-slate-200'}`} aria-label="Toggle Notes">
                                  <PencilIcon className="w-7 h-7" />
                             </button>
-                            <button onClick={handleHint} className="h-14 bg-white dark:bg-zinc-700 rounded-full flex items-center justify-center text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-600 transition-colors shadow-sm border border-slate-200 dark:border-zinc-600" aria-label="Hint"><LightBulbIcon className="w-7 h-7" /></button>
+                            <button onClick={handleHint} className="h-14 bg-slate-100 rounded-full flex items-center justify-center text-slate-600 hover:bg-slate-200 transition-colors shadow-sm border border-slate-200" aria-label="Hint"><LightBulbIcon className="w-7 h-7" /></button>
                         </div>
     
                         <div className="grid grid-cols-9 gap-1">
@@ -546,7 +542,7 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onBackToHub }
                                         key={num} 
                                         onClick={() => handleNumberInput(num)}
                                         disabled={isFullyUsed}
-                                        className={`aspect-square bg-blue-50 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 rounded-lg text-2xl font-semibold hover:bg-blue-100 dark:hover:bg-blue-800/80 active:bg-blue-200 transition-all duration-150 ${isDisabled ? 'opacity-30' : ''} ${isFullyUsed ? 'cursor-not-allowed' : ''}`}
+                                        className={`aspect-square bg-white text-blue-700 rounded-lg text-3xl font-semibold hover:bg-blue-50 active:bg-blue-100 transition-all duration-150 border border-slate-200 ${isDisabled ? 'opacity-30' : ''} ${isFullyUsed ? 'cursor-not-allowed' : ''}`}
                                     >
                                         {num}
                                     </button>
@@ -581,16 +577,16 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onBackToHub }
     }
 
     return (
-        <main className="flex-grow overflow-y-auto bg-slate-100 dark:bg-zinc-900 p-2 flex flex-col items-center justify-center">
+        <main className="flex-grow overflow-y-auto bg-slate-100 p-2 flex flex-col items-center justify-center">
             {renderContent()}
             {(gameState === 'WON' || gameState === 'LOST') && (
                 <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white/90 dark:bg-zinc-800/90 backdrop-blur-xl border border-slate-200 dark:border-zinc-700 rounded-2xl shadow-xl w-full max-w-sm p-8 text-center" onClick={e => e.stopPropagation()}>
-                        <h2 className="text-3xl font-bold text-slate-800 dark:text-white">
+                    <div className="bg-white/90 backdrop-blur-xl border border-slate-200 rounded-2xl shadow-xl w-full max-w-sm p-8 text-center" onClick={e => e.stopPropagation()}>
+                        <h2 className="text-3xl font-bold text-slate-800">
                             {gameState === 'WON' ? 'Puzzle Solved!' : 'Game Over'}
                         </h2>
-                        <p className="text-slate-500 dark:text-zinc-400 mt-2">Difficulty: {isDailyChallenge ? "Daily" : difficulty}</p>
-                        <p className="text-slate-500 dark:text-zinc-400">Time: {formatTime(time)}</p>
+                        <p className="text-slate-500 mt-2">Difficulty: {isDailyChallenge ? "Daily" : difficulty}</p>
+                        <p className="text-slate-500">Time: {formatTime(time)}</p>
                         <button onClick={() => {
                             if (gameState === 'WON' && isDailyChallenge) {
                                 setView('STATS');
@@ -601,7 +597,7 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onBackToHub }
                         }} className="mt-6 w-full bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition-colors">
                             {gameState === 'WON' ? (isDailyChallenge ? 'View Stats' : 'Play Again') : 'Try Again'}
                         </button>
-                        <button onClick={() => { setGameState('IDLE'); setView('IDLE'); stopTimer(); }} className="mt-3 w-full text-sm text-slate-500 dark:text-zinc-400 font-medium hover:text-blue-500 dark:hover:text-blue-400">
+                        <button onClick={() => { setGameState('IDLE'); setView('IDLE'); stopTimer(); }} className="mt-3 w-full text-sm text-slate-500 font-medium hover:text-blue-500">
                             Back to Menu
                         </button>
                     </div>

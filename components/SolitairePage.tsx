@@ -454,7 +454,7 @@ const GameInfo: React.FC<{ time: number; moves: number; score: number }> = ({ ti
 };
 
 const ControlsBar: React.FC<{onNewGame: () => void; onUndo: () => void}> = ({ onNewGame, onUndo }) => (
-    <div className="absolute bottom-0 left-0 right-0 flex justify-center items-center p-2 z-20">
+    <div className="absolute bottom-24 md:bottom-2 left-0 right-0 flex justify-center items-center p-2 z-20">
         <div className="flex items-center gap-4 bg-black/20 backdrop-blur-sm p-2 rounded-full border border-white/10">
             <button onClick={onNewGame} className="px-4 py-1 text-sm font-semibold text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-colors">New Game</button>
             <button onClick={onUndo} className="px-4 py-1 text-sm font-semibold text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-colors">Undo</button>
