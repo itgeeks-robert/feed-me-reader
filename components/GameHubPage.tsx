@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import SudokuPage from './SudokuPage';
 import MinesweeperPage from './MinesweeperPage';
 import SolitairePage from './SolitairePage';
-import type { SudokuStats, SudokuDifficulty, SolitaireStats } from '../src/App';
+import type { SudokuStats, SudokuDifficulty, SolitaireStats, SolitaireSettings } from '../src/App';
 import { BrainIcon, FireIcon, CubeTransparentIcon } from './icons';
 
 interface GameHubPageProps {
@@ -11,9 +11,19 @@ interface GameHubPageProps {
   solitaireStats: SolitaireStats;
   onSolitaireWin: (time: number, moves: number) => void;
   onSolitaireStart: () => void;
+  solitaireSettings: SolitaireSettings;
+  onUpdateSolitaireSettings: (settings: SolitaireSettings) => void;
+  isApiKeyMissing: boolean;
 }
 
-const GameHubPage: React.FC<GameHubPageProps> = ({ sudokuStats, onSudokuWin, solitaireStats, onSolitaireWin, onSolitaireStart }) => {
+const GameHubPage: React.FC<GameHubPageProps> = (props) => {
+  const { 
+    sudokuStats, onSudokuWin, 
+    solitaireStats, onSolitaireWin, onSolitaireStart,
+    solitaireSettings, onUpdateSolitaireSettings,
+    isApiKeyMissing
+  } = props;
+
   const [activeGame, setActiveGame] = useState<'menu' | 'sudoku' | 'minesweeper' | 'solitaire'>('menu');
 
   const GameCard: React.FC<{ title: string; description: string; icon: React.ReactNode; onClick: () => void; }> = ({ title, description, icon, onClick }) => (
@@ -40,7 +50,17 @@ const GameHubPage: React.FC<GameHubPageProps> = ({ sudokuStats, onSudokuWin, sol
       case 'minesweeper':
         return <MinesweeperPage onBackToHub={() => setActiveGame('menu')} />;
       case 'solitaire':
-        return <SolitairePage onBackToHub={() => setActiveGame('menu')} stats={solitaireStats} onGameWin={onSolitaireWin} onGameStart={onSolitaireStart} />;
+        return (
+          <SolitairePage 
+            onBackToHub={() => setActiveGame('menu')} 
+            stats={solitaireStats} 
+            onGameWin={onSolitaireWin} 
+            onGameStart={onSolitaireStart}
+            settings={solitaireSettings}
+            onUpdateSettings={onUpdateSolitaireSettings}
+            isApiKeyMissing={isApiKeyMissing}
+          />
+        );
       case 'menu':
       default:
         return (

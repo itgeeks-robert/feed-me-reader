@@ -89,6 +89,14 @@ export interface SolitaireStats {
   lastGameWasWin: boolean;
 }
 
+export interface SolitaireSettings {
+  drawCount: 1 | 3;
+  theme: {
+    cardBack: string; // base64
+    background: string; // base64
+  } | null;
+}
+
 
 const GUEST_USER_ID = 'guest';
 const READ_ARTICLES_KEY = `feedme_read_articles_${GUEST_USER_ID}`;
@@ -101,6 +109,8 @@ const ARTICLE_VIEW_KEY = `feedme_article_view_${GUEST_USER_ID}`;
 const WIDGET_SETTINGS_KEY = `feedme_widget_settings_${GUEST_USER_ID}`;
 const SUDOKU_STATS_KEY = `feedme_sudoku_stats_${GUEST_USER_ID}`;
 const SOLITAIRE_STATS_KEY = `feedme_solitaire_stats_${GUEST_USER_ID}`;
+const SOLITAIRE_SETTINGS_KEY = `feedme_solitaire_settings_${GUEST_USER_ID}`;
+const SELECTION_KEY = `feedme_selection_${GUEST_USER_ID}`;
 
 
 const defaultFolders: Folder[] = [
@@ -159,6 +169,11 @@ const defaultSolitaireStats: SolitaireStats = {
   lastGameWasWin: false,
 };
 
+const defaultSolitaireSettings: SolitaireSettings = {
+  drawCount: 1,
+  theme: null,
+};
+
 
 const App: React.FC = () => {
     const [theme, setTheme] = useLocalStorage<Theme>(THEME_KEY, 'dark');
@@ -171,6 +186,8 @@ const App: React.FC = () => {
     const [articleTags, setArticleTags] = useLocalStorage<Map<string, Set<string>>>(ARTICLE_TAGS_KEY, () => new Map());
     const [sudokuStats, setSudokuStats] = useLocalStorage<SudokuStats>(SUDOKU_STATS_KEY, defaultSudokuStats);
     const [solitaireStats, setSolitaireStats] = useLocalStorage<SolitaireStats>(SOLITAIRE_STATS_KEY, defaultSolitaireStats);
+    const [solitaireSettings, setSolitaireSettings] = useLocalStorage<SolitaireSettings>(SOLITAIRE_SETTINGS_KEY, defaultSolitaireSettings);
+    const [selection, setSelection] = useLocalStorage<Selection>(SELECTION_KEY, { type: 'all', id: null });
 
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
     const [isAddSourceModalOpen, setIsAddSourceModalOpen] = useState(false);
@@ -180,8 +197,6 @@ const App: React.FC = () => {
     
     const isApiKeyMissing = !process.env.API_KEY;
 
-    // New Navigation State
-    const [currentPageIndex, setCurrentPageIndex] = useState(0);
     const [animationClass, setAnimationClass] = useState('animate-fade-in');
 
     const mainPages = useMemo(() => {
@@ -198,25 +213,27 @@ const App: React.FC = () => {
         ].filter((page): page is NonNullable<typeof page> => !!page);
     }, [folders]);
     
-    const [selection, setSelection] = useState<Selection>(mainPages[currentPageIndex].selection);
+    const currentPageIndex = useMemo(() => mainPages.findIndex(p => 
+        p.selection.type === selection.type && p.selection.id === selection.id
+    ), [mainPages, selection]);
 
     const navigate = useCallback((newIndex: number) => {
-        if (newIndex === currentPageIndex || newIndex < 0 || newIndex >= mainPages.length) {
+        const oldIndex = currentPageIndex;
+        if (newIndex === oldIndex || newIndex < 0 || newIndex >= mainPages.length) {
             return;
         }
 
-        if (newIndex > currentPageIndex) {
+        if (newIndex > oldIndex) {
             setAnimationClass('animate-slide-in-from-right');
         } else {
             setAnimationClass('animate-slide-in-from-left');
         }
-        setCurrentPageIndex(newIndex);
         setSelection(mainPages[newIndex].selection);
-    }, [currentPageIndex, mainPages]);
+    }, [currentPageIndex, mainPages, setSelection]);
 
     const swipeHandlers = useSwipe({
         onSwipeLeft: () => {
-            if (currentPageIndex < mainPages.length - 1) {
+            if (currentPageIndex > -1 && currentPageIndex < mainPages.length - 1) {
                 navigate(currentPageIndex + 1);
             }
         },
@@ -251,13 +268,7 @@ const App: React.FC = () => {
     };
 
     const handleSelectFromSidebar = (sel: Selection) => {
-        const pageIndex = mainPages.findIndex(p => 
-            p.selection.type === sel.type && p.selection.id === sel.id
-        );
-
-        if (pageIndex !== -1) {
-            navigate(pageIndex);
-        } else {
+        if (JSON.stringify(sel) !== JSON.stringify(selection)) {
             setAnimationClass('animate-fade-in');
             setSelection(sel);
         }
@@ -609,6 +620,9 @@ const App: React.FC = () => {
                         solitaireStats={solitaireStats}
                         onSolitaireWin={handleSolitaireWin}
                         onSolitaireStart={handleSolitaireStart}
+                        solitaireSettings={solitaireSettings}
+                        onUpdateSolitaireSettings={setSolitaireSettings}
+                        isApiKeyMissing={isApiKeyMissing}
                     />
                 ) : (
                     <MainContent
