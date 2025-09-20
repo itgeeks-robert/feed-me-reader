@@ -1,88 +1,16 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import type { Feed, Selection, WidgetSettings, Article, ArticleView, Theme } from '../src/App';
-import { resilientFetch, PROXIES } from '../services/fetch';
 import type { SourceType } from './AddSource';
-import { MenuIcon, SearchIcon, SunIcon, SunriseIcon, SunsetIcon, PlusIcon, ArrowsRightLeftIcon, SettingsIcon, ArrowPathIcon, NewspaperIcon, RedditIcon, YoutubeIcon, BookOpenIcon, MoonIcon } from './icons';
+import { MenuIcon, SearchIcon, SunIcon, SunriseIcon, SunsetIcon, MoonIcon, BookOpenIcon } from './icons';
 import { teamLogos } from '../services/teamLogos';
-import { allTeamsMap } from '../services/sportsData';
 import ReaderViewModal from './ReaderViewModal';
 import { fetchAndCacheArticleContent } from '../services/readerService';
-
-const SPORTS_CACHE_KEY = 'sports_data_cache';
-const LAST_SPORTS_FETCH_KEY = 'last_sports_fetch_timestamp';
-
-
-function timeAgo(date: Date | null): string {
-    if (!date) return '';
-    const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
-    if (seconds < 60) return `${seconds}s`;
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes}m`;
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours}h`;
-    const days = Math.floor(hours / 24);
-    if (days < 7) return `${days}d`;
-    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-}
-
-const parseRssXml = (xmlText: string, sourceTitle: string, feedUrl: string): Article[] => {
-    const parser = new DOMParser();
-    const xml = parser.parseFromString(xmlText, "application/xml");
-    const errorNode = xml.querySelector('parsererror');
-    if (errorNode) throw new Error(`Failed to parse RSS feed for ${sourceTitle}.`);
-
-    const channelLink = xml.querySelector('channel > link');
-    const feedLink = xml.querySelector('feed > link[rel="alternate"], feed > link:not([rel])');
-    const siteLink = channelLink?.textContent?.trim() || (feedLink ? feedLink.getAttribute('href') : null) || feedUrl;
-
-    const items = Array.from(xml.querySelectorAll('item, entry'));
-    return items.map(item => {
-        const title = item.querySelector('title')?.textContent || 'No title';
-        const linkElem = item.querySelector('link');
-        const link = linkElem?.getAttribute('href') || linkElem?.textContent || '';
-        const description = item.querySelector('description')?.textContent || item.querySelector('summary')?.textContent || '';
-        const snippet = description.replace(/<[^>]*>?/gm, '').substring(0, 100) + (description.length > 100 ? '...' : '');
-        const pubDateStr = item.querySelector('pubDate')?.textContent || item.querySelector('published')?.textContent || item.querySelector('updated')?.textContent;
-        const publishedDate = pubDateStr ? new Date(pubDateStr) : null;
-        const guid = item.querySelector('guid')?.textContent || item.querySelector('id')?.textContent;
-        
-        let imageUrl: string | null = null;
-        const mediaContent = item.querySelector('media\\:content, content');
-        if (mediaContent && mediaContent.getAttribute('medium') === 'image') imageUrl = mediaContent.getAttribute('url');
-        if (!imageUrl) {
-            const enclosure = item.querySelector('enclosure');
-            if (enclosure && enclosure.getAttribute('type')?.startsWith('image')) imageUrl = enclosure.getAttribute('url');
-        }
-        if (!imageUrl) {
-            const mediaThumbnail = item.querySelector('media\\:thumbnail, thumbnail');
-            if (mediaThumbnail) imageUrl = mediaThumbnail.getAttribute('url');
-        }
-        if (!imageUrl) {
-            const contentEncoded = item.querySelector('content\\:encoded, encoded')?.textContent;
-            const contentToParse = contentEncoded || description;
-            if (contentToParse) {
-                try {
-                    const doc = new DOMParser().parseFromString(contentToParse, 'text/html');
-                    const img = doc.querySelector('img');
-                    if (img) imageUrl = img.getAttribute('src');
-                } catch (e) { console.warn("Error parsing HTML content for image", e); }
-            }
-        }
-
-        if (imageUrl) {
-            try {
-                imageUrl = new URL(imageUrl, siteLink).href;
-            } catch (e) {
-                console.warn(`Could not construct valid URL for image: "${imageUrl}" with base "${siteLink}"`);
-                imageUrl = null;
-            }
-        }
-        
-        const id = guid || link || `${title}-${pubDateStr}`;
-
-        return { id, title, link, snippet, publishedDate, source: sourceTitle, imageUrl };
-    });
-};
+import { resilientFetch } from '../services/fetch';
+import { parseRssXml } from '../services/rssParser';
+import { fetchAllSportsData, getCachedSportsData, needsFreshSportsData } from '../services/sportsService';
+import FeaturedStory from './articles/FeaturedStory';
+import ArticleListItem from './articles/ArticleListItem';
+import MagazineArticleListItem from './articles/MagazineArticleListItem';
 
 const getTeamLogo = (teamName: string): string | null => {
     if (!teamName) return null;
@@ -123,7 +51,7 @@ interface MainContentProps {
 const ARTICLES_PER_PAGE = 15;
 
 const MainContent: React.FC<MainContentProps> = (props) => {
-    const { feedsToDisplay, selection, readArticleIds, bookmarkedArticleIds, onMarkAsRead, onSearch, allFeeds, refreshKey, onRefresh, widgetSettings, onOpenSettings, onOpenAddSource, onAddSource, onOpenSidebar, articleView, theme, onToggleTheme, animationClass, pageTitle } = props;
+    const { feedsToDisplay, selection, readArticleIds, bookmarkedArticleIds, onMarkAsRead, onSearch, allFeeds, refreshKey, widgetSettings, onOpenSidebar, articleView, theme, onToggleTheme, animationClass, pageTitle } = props;
     
     const [articles, setArticles] = useState<Article[]>([]);
     const [loading, setLoading] = useState(false);
@@ -189,57 +117,25 @@ const MainContent: React.FC<MainContentProps> = (props) => {
     useEffect(() => {
         if (!widgetSettings.showSports || widgetSettings.sportsTeams.length === 0) return;
 
-        const needsFreshData = () => {
-            const lastFetch = localStorage.getItem(LAST_SPORTS_FETCH_KEY);
-            return !lastFetch || (Date.now() - parseInt(lastFetch, 10)) > 2 * 60 * 60 * 1000;
-        };
-
-        const fetchAllSportsData = async () => {
+        const fetchSports = async () => {
             setIsSportsLoading(true);
-            const fetchTeamData = async (teamCode: string): Promise<{ team: string; result: any; }> => {
-                const teamFullName = allTeamsMap.get(teamCode.toUpperCase()) || teamCode;
-                try {
-                    const teamSearchRes = await resilientFetch(`https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t=${encodeURIComponent(teamFullName)}`);
-                    const teamSearchData = await teamSearchRes.json();
-                    const teamInfo = teamSearchData.teams?.[0];
-                    if (!teamInfo) throw new Error(`Team not found.`);
-
-                    const lastEventsRes = await resilientFetch(`https://www.thesportsdb.com/api/v1/json/3/eventslast.php?id=${teamInfo.idTeam}`);
-                    const lastEventsData = await lastEventsRes.json();
-                    
-                    const completedEvents = (lastEventsData.results || []).filter((event: any) =>
-                        event.strStatus === "Match Finished" || (event.intHomeScore !== null && event.intAwayScore !== null)
-                    );
-
-                    completedEvents.sort((a: any, b: any) => new Date(`${b.dateEvent}T${b.strTime || '00:00'}`).getTime() - new Date(`${a.dateEvent}T${a.strTime || '00:00'}`).getTime());
-                    const lastMatch = completedEvents[0];
-                    
-                    if (!lastMatch) throw new Error('No last match data found.');
-
-                    return { team: teamCode, result: { ...lastMatch, teamFullName: teamInfo.strTeam }};
-                } catch (error) {
-                    return { team: teamCode, result: { error: (error as Error).message } };
-                }
-            };
-            
-            const promises = widgetSettings.sportsTeams.map(fetchTeamData);
-            const allResults = await Promise.all(promises);
-            const newResults = new Map<string, any>(allResults.map(res => [res.team, res.result]));
-            setSportsResults(newResults);
-            localStorage.setItem(SPORTS_CACHE_KEY, JSON.stringify(Array.from(newResults.entries())));
-            localStorage.setItem(LAST_SPORTS_FETCH_KEY, String(Date.now()));
+            const results = await fetchAllSportsData(widgetSettings.sportsTeams);
+            setSportsResults(results);
             setIsSportsLoading(false);
         };
 
-        const cachedData = localStorage.getItem(SPORTS_CACHE_KEY);
+        const cachedData = getCachedSportsData();
         if (cachedData) {
-            setSportsResults(new Map(JSON.parse(cachedData)));
+            setSportsResults(cachedData);
         }
+
         if (isInitialMount.current) {
             isInitialMount.current = false;
-            if (needsFreshData() || !cachedData) fetchAllSportsData();
+            if (needsFreshSportsData() || !cachedData) {
+                fetchSports();
+            }
         } else {
-            fetchAllSportsData();
+            fetchSports();
         }
     }, [widgetSettings.showSports, widgetSettings.sportsTeams, refreshKey]);
 
@@ -424,44 +320,6 @@ const WeatherDisplay: React.FC<{ location: string, refreshKey: number }> = ({ lo
     );
 };
 
-const ModernVectorFallback: React.FC = () => (
-    <div className="absolute inset-0 overflow-hidden opacity-50">
-         <div className="absolute -top-1/2 -left-1/2 w-[200%] h-[200%] bg-gradient-to-br from-indigo-500/30 via-purple-500/30 to-pink-500/30 animate-[spin_20s_linear_infinite]" />
-    </div>
-);
-
-const FeaturedStory: React.FC<{article: Article; onReadHere: () => void; onMarkAsRead: () => void; isRead: boolean;}> = ({ article, onReadHere, onMarkAsRead, isRead }) => {
-    const [imageSrc, setImageSrc] = useState(article.imageUrl ? `${PROXIES[0].url}${PROXIES[0].encode ? encodeURIComponent(article.imageUrl) : article.imageUrl}` : '');
-    const [imageError, setImageError] = useState(!article.imageUrl);
-
-    const hasImage = article.imageUrl && !imageError;
-    
-    return (
-        <div className={`p-6 rounded-3xl text-white shadow-lg relative overflow-hidden h-56 flex flex-col justify-end transition-opacity duration-300 ${isRead ? 'opacity-60 saturate-50' : ''}`}>
-            {hasImage ? (
-                <>
-                    <img src={imageSrc} alt="" className="absolute inset-0 w-full h-full object-cover" onError={() => setImageError(true)} />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-                </>
-            ) : ( <ModernVectorFallback /> )}
-            
-            <div className="relative z-10">
-                <p className="text-sm font-semibold opacity-80">{article.source}</p>
-                <h1 className="text-2xl font-bold my-1 line-clamp-2 leading-tight">{article.title}</h1>
-                 <div className="flex items-center gap-2 mt-3">
-                    <a href={article.link} target="_blank" rel="noopener noreferrer" onClick={onMarkAsRead} className="inline-block bg-white/20 hover:bg-white/30 backdrop-blur-sm font-semibold py-2 px-4 rounded-full text-sm transition-colors">
-                        Read Original
-                    </a>
-                    <button onClick={onReadHere} className="inline-flex items-center gap-2 bg-orange-600/80 hover:bg-orange-600 backdrop-blur-sm font-semibold py-2 px-4 rounded-full text-sm transition-colors">
-                        <BookOpenIcon className="w-4 h-4" />
-                        <span>Read Here</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-};
-
 const UnreadFilterToggle: React.FC<{ checked: boolean; onChange: (checked: boolean) => void; }> = ({ checked, onChange }) => (
     <label htmlFor="unread-toggle" className="flex items-center cursor-pointer group">
         <div className="relative">
@@ -474,47 +332,6 @@ const UnreadFilterToggle: React.FC<{ checked: boolean; onChange: (checked: boole
         </div>
     </label>
 );
-
-const ArticleListItem: React.FC<{ article: Article; onMarkAsRead: () => void; onReadHere: () => void; isRead: boolean; iconUrl?: string; sourceType?: SourceType; }> = ({ article, onMarkAsRead, onReadHere, isRead, iconUrl, sourceType }) => {
-    const [imageSrc, setImageSrc] = useState(article.imageUrl ? `${PROXIES[0].url}${article.imageUrl}` : '');
-    const [imageError, setImageError] = useState(!article.imageUrl);
-
-    const FallbackDisplay = () => {
-        if (sourceType === 'reddit') return <RedditIcon className="w-8 h-8 text-orange-500" />;
-        if (sourceType === 'youtube') return <YoutubeIcon className="w-8 h-8 text-red-500" />;
-        return <NewspaperIcon className="w-8 h-8 text-zinc-400 dark:text-zinc-500" />;
-    };
-
-    return (
-        <a href={article.link} target="_blank" rel="noopener noreferrer" onClick={onMarkAsRead}
-            className={`flex items-stretch gap-4 bg-white/30 dark:bg-zinc-900/40 backdrop-blur-2xl border border-white/20 dark:border-white/10 rounded-2xl hover:border-white/50 dark:hover:border-white/20 hover:shadow-xl transition-all duration-200 overflow-hidden h-32 ${isRead ? 'opacity-50 saturate-50' : ''}`}
-        >
-            <div className="flex-grow flex flex-col p-4 justify-between overflow-hidden">
-                <div>
-                    <p className="font-semibold text-zinc-900 dark:text-white line-clamp-3 leading-tight">{article.title}</p>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                        {iconUrl && <img src={iconUrl} alt="" className="w-4 h-4 rounded-sm flex-shrink-0" />}
-                        <span className="truncate">{article.source}</span>
-                    </div>
-                    <span className="opacity-50 flex-shrink-0">&middot;</span>
-                    <span className="flex-shrink-0">{timeAgo(article.publishedDate)}</span>
-                    <span className="opacity-50 flex-shrink-0">&middot;</span>
-                    <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onReadHere(); }} className="flex items-center gap-1 hover:text-orange-500 dark:hover:text-orange-400 transition-colors">
-                        <BookOpenIcon className="w-4 h-4" />
-                        <span>Read</span>
-                    </button>
-                </div>
-            </div>
-            {article.imageUrl && !imageError ? (
-                <div className="w-32 flex-shrink-0"><img src={imageSrc} alt="" className="w-full h-full object-cover" onError={() => setImageError(true)} /></div>
-            ) : (
-                <div className="w-32 flex-shrink-0 bg-black/5 dark:bg-white/5 flex items-center justify-center"><FallbackDisplay /></div>
-            )}
-        </a>
-    );
-};
 
 const SportsCarousel: React.FC<{ results: Map<string, any>; isLoading: boolean; onTeamSelect: (teamName: string) => void; }> = ({ results, isLoading, onTeamSelect }) => (
     <div className="flex gap-2 overflow-x-auto scrollbar-hide -mr-4 pr-4">
@@ -543,38 +360,6 @@ const SportsCard: React.FC<{ teamCode: string; data: any; isLoading: boolean; on
             <span className="font-bold text-lg text-zinc-900 dark:text-white">{data.intAwayScore}</span>
             <TeamLogo name={data.strAwayTeam} />
         </button>
-    );
-};
-
-const MagazineArticleListItem: React.FC<{ article: Article; onMarkAsRead: () => void; onReadHere: () => void; isRead: boolean; }> = ({ article, onMarkAsRead, onReadHere, isRead }) => {
-    const [imageSrc, setImageSrc] = useState(article.imageUrl ? `${PROXIES[0].url}${article.imageUrl}` : '');
-    const [imageError, setImageError] = useState(!article.imageUrl);
-
-    return (
-        <a href={article.link} target="_blank" rel="noopener noreferrer" onClick={onMarkAsRead}
-            className={`flex flex-col bg-white/30 dark:bg-zinc-900/40 backdrop-blur-2xl border border-white/20 dark:border-white/10 rounded-2xl hover:border-white/50 dark:hover:border-white/20 hover:shadow-xl transition-all duration-200 overflow-hidden group ${isRead ? 'opacity-50 saturate-50' : ''}`}
-        >
-            <div className="aspect-video w-full overflow-hidden">
-                {article.imageUrl && !imageError ? (
-                    <img src={imageSrc} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" onError={() => setImageError(true)} />
-                ) : (
-                     <div className="w-full h-full bg-black/5 dark:bg-white/5 flex items-center justify-center"><NewspaperIcon className="w-10 h-10 text-zinc-400 dark:text-zinc-500" /></div>
-                )}
-            </div>
-            <div className="p-4 flex flex-col flex-grow justify-between">
-                <div>
-                    <p className="font-semibold text-zinc-900 dark:text-white line-clamp-3 leading-tight mb-2">{article.title}</p>
-                </div>
-                 <div className="flex items-center justify-between text-xs text-zinc-600 dark:text-zinc-400 mt-auto">
-                     <span className="truncate pr-2">{article.source}</span>
-                     <span className="flex-shrink-0">{timeAgo(article.publishedDate)}</span>
-                </div>
-                <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onReadHere(); }} className="mt-3 w-full flex items-center justify-center gap-2 text-sm text-zinc-700 dark:text-zinc-300 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg py-2 transition-colors">
-                    <BookOpenIcon className="w-4 h-4" />
-                    <span>Read Here</span>
-                </button>
-            </div>
-        </a>
     );
 };
 

@@ -113,7 +113,7 @@ export const ArrowPathIcon: React.FC<{ className?: string }> = ({ className }) =
 
 export const SettingsIcon: React.FC<{ className?: string }> = ({ className }) => (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066 2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
     </svg>
 );
@@ -211,9 +211,6 @@ export const BookOpenIcon: React.FC<{ className?: string }> = ({ className }) =>
     </svg>
 );
 
-
-// FIX: Add missing icons.
-// FIX: Add LightBulbIcon to be used for the hint functionality in the Sudoku game.
 export const LightBulbIcon: React.FC<{ className?: string }> = ({ className }) => (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3c-3.866 0-7 3.134-7 7 0 2.834 1.666 5.26 4 6.342V19h6v-2.658c2.334-1.082 4-3.508 4-6.342 0-3.866-3.134-7-7-7z" />
@@ -274,5 +271,24 @@ export const BrainIcon: React.FC<{ className?: string }> = ({ className }) => (
     <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.038-.502.068-.75.094m-2.25 0c-.88.06-1.713.146-2.52.288C2.542 4.048 2 5.004 2 6.095v1.442c0 .67.203 1.29.568 1.815c.304.444.69.845 1.135 1.196c.446.351.942.655 1.48.887M9.75 3.104c.251.038.502.068.75.094m6-2.094c.88.06 1.713.146 2.52.288c1.127.2 1.968 1.157 1.968 2.249v1.442c0 .67-.203 1.29-.568 1.815a6.002 6.002 0 01-1.135 1.196c-.446.351-.942.655-1.48.887m-4.5-1.442v5.714a2.25 2.25 0 00.659 1.591L19.5 14.5M12 16.5v6" />
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5c-5.523 0-10-4.477-10-10s4.477-10 10-10 10 4.477 10 10c0 1.282-.244 2.508-.684 3.642A9.998 9.998 0 0112 16.5z" />
+    </svg>
+);
+
+export const CubeTransparentIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9.75l-9-5.25M12 12l9 5.25" />
+    </svg>
+);
+
+export const FlagIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3 3v1.5M3 21v-6m0 0l2.77-.693a9 9 0 016.208.682l.108.054a9 9 0 006.086.71l3.114-.732a48.524 48.524 0 01-.005-10.499l-3.11.732a9 9 0 01-6.085-.711l-.108-.054a9 9 0 00-6.208-.682L3 4.5M3 15V4.5" />
+    </svg>
+);
+
+export const FireIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 18a3.75 3.75 0 00.495-7.467 5.99 5.99 0 00-1.925 3.546 5.974 5.974 0 01-2.133-1.001A3.75 3.75 0 0012 18z" />
     </svg>
 );

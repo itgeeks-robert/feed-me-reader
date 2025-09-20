@@ -6,9 +6,10 @@ import AddSourceModal from '../components/AddSourceModal';
 import Sidebar from '../components/Sidebar';
 import { useSwipe } from '../hooks/useSwipe';
 import BottomNavBar from '../components/BottomNavBar';
-import { ListIcon, TrophyIcon, RedditIcon, YoutubeIcon, NewspaperIcon, BookmarkIcon, BrainIcon } from '../components/icons';
-import SudokuPage from '../components/SudokuPage';
+import { ListIcon, TrophyIcon, RedditIcon, YoutubeIcon, NewspaperIcon, BookmarkIcon, CubeTransparentIcon } from '../components/icons';
+import GameHubPage from '../components/GameHubPage';
 import { resilientFetch } from '../services/fetch';
+import { useLocalStorage } from '../hooks/useLocalStorage';
 
 
 export interface Folder {
@@ -36,7 +37,7 @@ export interface Article {
 }
 
 export type Selection = {
-  type: 'all' | 'folder' | 'bookmarks' | 'search' | 'feed' | 'reddit' | 'youtube' | 'sudoku';
+  type: 'all' | 'folder' | 'bookmarks' | 'search' | 'feed' | 'reddit' | 'youtube' | 'game_hub';
   id: string | number | null;
   query?: string; // For search
 };
@@ -82,7 +83,11 @@ const GUEST_USER_ID = 'guest';
 const READ_ARTICLES_KEY = `feedme_read_articles_${GUEST_USER_ID}`;
 const BOOKMARKED_ARTICLES_KEY = `feedme_bookmarked_articles_${GUEST_USER_ID}`;
 const ARTICLE_TAGS_KEY = `feedme_article_tags_${GUEST_USER_ID}`;
-const SETTINGS_KEY = `feedme_settings_${GUEST_USER_ID}`;
+const FEEDS_KEY = `feedme_feeds_${GUEST_USER_ID}`;
+const FOLDERS_KEY = `feedme_folders_${GUEST_USER_ID}`;
+const THEME_KEY = `feedme_theme_${GUEST_USER_ID}`;
+const ARTICLE_VIEW_KEY = `feedme_article_view_${GUEST_USER_ID}`;
+const WIDGET_SETTINGS_KEY = `feedme_widget_settings_${GUEST_USER_ID}`;
 const SUDOKU_STATS_KEY = `feedme_sudoku_stats_${GUEST_USER_ID}`;
 
 const defaultFolders: Folder[] = [
@@ -132,20 +137,20 @@ const defaultSudokuStats: SudokuStats = {
 };
 
 const App: React.FC = () => {
-    const [theme, setTheme] = useState<Theme>('dark');
-    const [articleView, setArticleView] = useState<ArticleView>('list');
-    const [widgetSettings, setWidgetSettings] = useState<WidgetSettings>(defaultWidgetSettings);
+    const [theme, setTheme] = useLocalStorage<Theme>(THEME_KEY, 'dark');
+    const [articleView, setArticleView] = useLocalStorage<ArticleView>(ARTICLE_VIEW_KEY, 'list');
+    const [widgetSettings, setWidgetSettings] = useLocalStorage<WidgetSettings>(WIDGET_SETTINGS_KEY, defaultWidgetSettings);
+    const [folders, setFolders] = useLocalStorage<Folder[]>(FOLDERS_KEY, defaultFolders);
+    const [feeds, setFeeds] = useLocalStorage<Feed[]>(FEEDS_KEY, defaultFeeds);
+    const [readArticleIds, setReadArticleIds] = useLocalStorage<Set<string>>(READ_ARTICLES_KEY, () => new Set());
+    const [bookmarkedArticleIds, setBookmarkedArticleIds] = useLocalStorage<Set<string>>(BOOKMARKED_ARTICLES_KEY, () => new Set());
+    const [articleTags, setArticleTags] = useLocalStorage<Map<string, Set<string>>>(ARTICLE_TAGS_KEY, () => new Map());
+    const [sudokuStats, setSudokuStats] = useLocalStorage<SudokuStats>(SUDOKU_STATS_KEY, defaultSudokuStats);
+
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
     const [isAddSourceModalOpen, setIsAddSourceModalOpen] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     
-    const [folders, setFolders] = useState<Folder[]>(defaultFolders);
-    const [feeds, setFeeds] = useState<Feed[]>(defaultFeeds);
-    const [readArticleIds, setReadArticleIds] = useState<Set<string>>(new Set());
-    const [bookmarkedArticleIds, setBookmarkedArticleIds] = useState<Set<string>>(new Set());
-    const [articleTags, setArticleTags] = useState<Map<string, Set<string>>>(new Map());
-    const [sudokuStats, setSudokuStats] = useState<SudokuStats>(defaultSudokuStats);
-
     const [lastRefresh, setLastRefresh] = useState(() => Date.now());
     
     const isApiKeyMissing = !process.env.API_KEY;
@@ -160,7 +165,7 @@ const App: React.FC = () => {
         return [
             { selection: { type: 'all' as const, id: null }, name: 'All Feeds', icon: <ListIcon className="w-6 h-6" /> },
             { selection: { type: 'bookmarks' as const, id: 'bookmarks' }, name: 'Saved', icon: <BookmarkIcon className="w-6 h-6" /> },
-            { selection: { type: 'sudoku' as const, id: null }, name: 'Sudoku', icon: <BrainIcon className="w-6 h-6" /> },
+            { selection: { type: 'game_hub' as const, id: null }, name: 'Game Hub', icon: <CubeTransparentIcon className="w-6 h-6" /> },
             newsFolder ? { selection: { type: 'folder' as const, id: newsFolder.id }, name: 'News', icon: <NewspaperIcon className="w-6 h-6" /> } : null,
             sportFolder ? { selection: { type: 'folder' as const, id: sportFolder.id }, name: 'Sport', icon: <TrophyIcon className="w-6 h-6" /> } : null,
             { selection: { type: 'reddit' as const, id: null }, name: 'Reddit', icon: <RedditIcon className="w-6 h-6" /> },
@@ -197,49 +202,6 @@ const App: React.FC = () => {
         },
     });
 
-    const loadSettings = useCallback((settings: Partial<Settings>) => {
-        setFeeds(settings.feeds || defaultFeeds);
-        setFolders(settings.folders || defaultFolders);
-        setTheme(settings.theme || 'dark');
-        setArticleView(settings.articleView || 'list');
-        setWidgetSettings(settings.widgets || defaultWidgetSettings);
-    }, []);
-
-    const loadLocalData = useCallback(() => {
-        try {
-            const storedSettings = window.localStorage.getItem(SETTINGS_KEY);
-            const settings = storedSettings ? JSON.parse(storedSettings) : {};
-            loadSettings(settings);
-
-            const savedReadArticles = window.localStorage.getItem(READ_ARTICLES_KEY);
-            setReadArticleIds(savedReadArticles ? new Set(JSON.parse(savedReadArticles)) : new Set());
-            const savedBookmarks = window.localStorage.getItem(BOOKMARKED_ARTICLES_KEY);
-            setBookmarkedArticleIds(savedBookmarks ? new Set(JSON.parse(savedBookmarks)) : new Set());
-            const savedTags = window.localStorage.getItem(ARTICLE_TAGS_KEY);
-            if (savedTags) {
-                const parsedTags = JSON.parse(savedTags) as [string, string[]][];
-                setArticleTags(new Map(parsedTags.map(([id, tags]) => [id, new Set(tags)])));
-            } else {
-                setArticleTags(new Map());
-            }
-
-            const savedSudokuStats = window.localStorage.getItem(SUDOKU_STATS_KEY);
-            setSudokuStats(savedSudokuStats ? JSON.parse(savedSudokuStats) : defaultSudokuStats);
-
-        } catch (e) {
-            console.error("Error loading data from localStorage", e);
-            loadSettings({});
-            setReadArticleIds(new Set());
-            setBookmarkedArticleIds(new Set());
-            setArticleTags(new Map());
-            setSudokuStats(defaultSudokuStats);
-        }
-    }, [loadSettings]);
-    
-    useEffect(() => {
-        loadLocalData();
-    }, [loadLocalData]);
-    
     useEffect(() => {
         const feedInterval = setInterval(() => {
             setLastRefresh(Date.now());
@@ -248,45 +210,6 @@ const App: React.FC = () => {
         return () => clearInterval(feedInterval);
     }, []);
 
-    useEffect(() => {
-        try {
-            window.localStorage.setItem(READ_ARTICLES_KEY, JSON.stringify(Array.from(readArticleIds)));
-        } catch (error) { console.error("Failed to save read articles to localStorage", error); }
-    }, [readArticleIds]);
-
-    useEffect(() => {
-        try {
-            window.localStorage.setItem(BOOKMARKED_ARTICLES_KEY, JSON.stringify(Array.from(bookmarkedArticleIds)));
-        } catch (error) { console.error("Failed to save bookmarks to localStorage", error); }
-    }, [bookmarkedArticleIds]);
-
-    useEffect(() => {
-        try {
-            const tagsToSave = Array.from(articleTags.entries()).map(([id, tags]) => [id, Array.from(tags)]);
-            const filteredTagsToSave = tagsToSave.filter(([, tags]) => tags.length > 0);
-            window.localStorage.setItem(ARTICLE_TAGS_KEY, JSON.stringify(filteredTagsToSave));
-        } catch (error) {
-            console.error("Failed to save article tags to localStorage", error);
-        }
-    }, [articleTags]);
-    
-    useEffect(() => {
-        try {
-            const settings: Settings = { feeds, folders, theme, articleView, widgets: widgetSettings };
-            window.localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-        } catch (error) {
-            console.error("Failed to save settings to localStorage", error);
-        }
-    }, [feeds, folders, theme, articleView, widgetSettings]);
-    
-    useEffect(() => {
-        try {
-            window.localStorage.setItem(SUDOKU_STATS_KEY, JSON.stringify(sudokuStats));
-        } catch (error) {
-            console.error("Failed to save sudoku stats to localStorage", error);
-        }
-    }, [sudokuStats]);
-    
     useEffect(() => {
         const root = document.documentElement;
         if (theme === 'light') {
@@ -431,7 +354,7 @@ const App: React.FC = () => {
         
         return newStats;
       });
-    }, []);
+    }, [setSudokuStats]);
 
     const handleExportOpml = () => {
         let opml = `<?xml version="1.0" encoding="UTF-8"?><opml version="2.0"><body>`;
@@ -506,7 +429,7 @@ const App: React.FC = () => {
         };
         reader.readAsText(file);
     };
-
+    
     const handleExportSettings = () => {
         const settingsToExport: Settings = { feeds, folders, theme, articleView, widgets: widgetSettings };
         const blob = new Blob([JSON.stringify(settingsToExport, null, 2)], { type: 'application/json' });
@@ -526,7 +449,11 @@ const App: React.FC = () => {
             try {
                 const importedSettings = JSON.parse(e.target?.result as string) as Settings;
                 if (importedSettings.feeds && importedSettings.folders && importedSettings.theme) {
-                    loadSettings(importedSettings);
+                    setFeeds(importedSettings.feeds);
+                    setFolders(importedSettings.folders);
+                    setTheme(importedSettings.theme);
+                    setArticleView(importedSettings.articleView);
+                    setWidgetSettings(importedSettings.widgets);
                     alert('Settings imported successfully!');
                 } else throw new Error('Invalid settings file format.');
             } catch (error) {
@@ -587,6 +514,7 @@ const App: React.FC = () => {
     const pageTitle = useMemo(() => {
         if (selection.type === 'search') return `Search: "${selection.query}"`;
         if (selection.type === 'bookmarks') return 'Saved Articles';
+        if (selection.type === 'game_hub') return 'Game Hub';
 
         const mainPage = mainPages.find(p => p.selection.type === selection.type && p.selection.id === selection.id);
         if (mainPage) return mainPage.name;
@@ -615,10 +543,10 @@ const App: React.FC = () => {
                 onOpenSettings={() => setIsSettingsModalOpen(true)}
             />
             <div {...swipeHandlers} className="flex-1 flex flex-col min-w-0 md:pl-72 relative">
-                {selection.type === 'sudoku' ? (
-                    <SudokuPage
-                        stats={sudokuStats}
-                        onGameWin={handleSudokuWin}
+                {selection.type === 'game_hub' ? (
+                    <GameHubPage
+                        sudokuStats={sudokuStats}
+                        onSudokuWin={handleSudokuWin}
                     />
                 ) : (
                     <MainContent

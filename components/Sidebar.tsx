@@ -3,7 +3,7 @@ import type { Feed, Folder, Selection } from '../src/App';
 import type { SourceType } from './AddSource';
 import AddSource from './AddSource';
 import {
-    SeymourIcon, ListIcon, PlusIcon, RssIcon, TrashIcon, FolderIcon, PencilIcon, ChevronDownIcon, ChevronRightIcon, XIcon, BookmarkIcon, SettingsIcon, RedditIcon, YoutubeIcon, GlobeAltIcon, BrainIcon
+    SeymourIcon, ListIcon, PlusIcon, RssIcon, TrashIcon, FolderIcon, PencilIcon, ChevronDownIcon, ChevronRightIcon, XIcon, BookmarkIcon, SettingsIcon, RedditIcon, YoutubeIcon, GlobeAltIcon, CubeTransparentIcon
 } from './icons';
 
 interface SidebarProps {
@@ -253,7 +253,7 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
             <div className="flex-grow overflow-y-auto mt-2 px-4 space-y-1.5">
                 <NavItem sel={{type: 'all', id: null}} label="All" icon={<ListIcon className="w-5 h-5 flex-shrink-0" />} />
                 <NavItem sel={{type: 'bookmarks', id: 'bookmarks'}} label="Saved" icon={<BookmarkIcon className="w-5 h-5 flex-shrink-0" />} />
-                <NavItem sel={{type: 'sudoku', id: null}} label="Sudoku" icon={<BrainIcon className="w-5 h-5 flex-shrink-0" />} />
+                <NavItem sel={{type: 'game_hub', id: null}} label="Game Hub" icon={<CubeTransparentIcon className="w-5 h-5 flex-shrink-0" />} />
                 <NavItem sel={{type: 'reddit', id: null}} label="Reddit" icon={<RedditIcon className="w-5 h-5 flex-shrink-0" />} />
                 <NavItem sel={{type: 'youtube', id: null}} label="YouTube" icon={<YoutubeIcon className="w-5 h-5 flex-shrink-0" />} />
                 
