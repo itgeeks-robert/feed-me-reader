@@ -2,15 +2,18 @@ import React, { useState } from 'react';
 import SudokuPage from './SudokuPage';
 import MinesweeperPage from './MinesweeperPage';
 import SolitairePage from './SolitairePage';
-import type { SudokuStats, SudokuDifficulty } from '../src/App';
+import type { SudokuStats, SudokuDifficulty, SolitaireStats } from '../src/App';
 import { BrainIcon, FireIcon, CubeTransparentIcon } from './icons';
 
 interface GameHubPageProps {
   sudokuStats: SudokuStats;
   onSudokuWin: (difficulty: SudokuDifficulty, time: number, isDaily: boolean) => void;
+  solitaireStats: SolitaireStats;
+  onSolitaireWin: (time: number, moves: number) => void;
+  onSolitaireStart: () => void;
 }
 
-const GameHubPage: React.FC<GameHubPageProps> = ({ sudokuStats, onSudokuWin }) => {
+const GameHubPage: React.FC<GameHubPageProps> = ({ sudokuStats, onSudokuWin, solitaireStats, onSolitaireWin, onSolitaireStart }) => {
   const [activeGame, setActiveGame] = useState<'menu' | 'sudoku' | 'minesweeper' | 'solitaire'>('menu');
 
   const GameCard: React.FC<{ title: string; description: string; icon: React.ReactNode; onClick: () => void; }> = ({ title, description, icon, onClick }) => (
@@ -37,7 +40,7 @@ const GameHubPage: React.FC<GameHubPageProps> = ({ sudokuStats, onSudokuWin }) =
       case 'minesweeper':
         return <MinesweeperPage onBackToHub={() => setActiveGame('menu')} />;
       case 'solitaire':
-        return <SolitairePage onBackToHub={() => setActiveGame('menu')} />;
+        return <SolitairePage onBackToHub={() => setActiveGame('menu')} stats={solitaireStats} onGameWin={onSolitaireWin} onGameStart={onSolitaireStart} />;
       case 'menu':
       default:
         return (

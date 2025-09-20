@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { SeymourIcon } from './icons';
+import type { SolitaireStats } from '../src/App';
 
 const SUITS = ['♥', '♦', '♠', '♣'];
 const RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
@@ -8,6 +9,7 @@ interface Card {
   id: string;
   suit: string;
   rank: string;
+  value: number;
   isFaceUp: boolean;
 }
 
@@ -18,10 +20,15 @@ interface GameState {
   waste: Pile;
   foundations: Pile[];
   tableau: Pile[];
+  moves: number;
+  score: number;
 }
 
 interface SolitairePageProps {
   onBackToHub: () => void;
+  stats: SolitaireStats;
+  onGameWin: (time: number, moves: number) => void;
+  onGameStart: () => void;
 }
 
 type GamePhase = 'intro' | 'dealing' | 'playing' | 'won';
@@ -56,11 +63,11 @@ const CardFace = ({ card }: { card: Card }) => {
 
 
 // --- SolitairePage Component ---
-const SolitairePage: React.FC<SolitairePageProps> = ({ onBackToHub }) => {
+const SolitairePage: React.FC<SolitairePageProps> = ({ onBackToHub, stats, onGameWin, onGameStart }) => {
   const [gamePhase, setGamePhase] = useState<GamePhase>('intro');
   const [gameState, setGameState] = useState<GameState | null>(null);
+  const [history, setHistory] = useState<GameState[]>([]);
   const [time, setTime] = useState(0);
-  const [moves, setMoves] = useState(0);
   const timerRef = useRef<number | null>(null);
   const [selectedInfo, setSelectedInfo] = useState<{ type: string; pileIndex: number; cardIndex: number; } | null>(null);
 
@@ -75,10 +82,26 @@ const SolitairePage: React.FC<SolitairePageProps> = ({ onBackToHub }) => {
       timerRef.current = null;
     }
   }, []);
+  
+  const checkWinCondition = useCallback((state: GameState) => {
+    const won = state.foundations.every(p => p.length === 13);
+    if (won && gamePhase !== 'won') {
+      setGamePhase('won');
+      stopTimer();
+      onGameWin(time, state.moves);
+    }
+  }, [gamePhase, onGameWin, stopTimer, time]);
+
+  const pushHistoryAndSetState = useCallback((newState: GameState) => {
+      if (gameState) setHistory(h => [...h, gameState]);
+      setGameState(newState);
+      checkWinCondition(newState);
+  }, [gameState, checkWinCondition]);
 
   const startNewGame = useCallback(() => {
+    onGameStart();
     stopTimer();
-    const deck = SUITS.flatMap(suit => RANKS.map((rank, i) => ({ id: `${rank}-${suit}`, suit, rank, isFaceUp: false })));
+    const deck = SUITS.flatMap(suit => RANKS.map((rank, i) => ({ id: `${rank}-${suit}`, suit, rank, value: i + 1, isFaceUp: false })));
     for (let i = deck.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [deck[i], deck[j]] = [deck[j], deck[i]];
@@ -94,16 +117,17 @@ const SolitairePage: React.FC<SolitairePageProps> = ({ onBackToHub }) => {
       stock: deck,
       waste: [],
       foundations: [[], [], [], []],
-      tableau: Array.from({ length: 7 }, () => []), // Start empty for animation
+      tableau: Array.from({ length: 7 }, () => []),
+      moves: 0,
+      score: 0,
     };
     
     setGameState(newGameState);
+    setHistory([]);
     setTime(0);
-    setMoves(0);
     setSelectedInfo(null);
     setGamePhase('dealing');
     
-    // Animate dealing
     let cardDealIndex = 0;
     const dealInterval = setInterval(() => {
       setGameState(current => {
@@ -121,7 +145,7 @@ const SolitairePage: React.FC<SolitairePageProps> = ({ onBackToHub }) => {
       });
 
       cardDealIndex++;
-      if (cardDealIndex >= 28) { // 1+2+3+4+5+6+7 cards
+      if (cardDealIndex >= 28) {
         clearInterval(dealInterval);
         setTimeout(() => {
             setGameState(gs => ({...gs!, tableau: finalTableau}));
@@ -131,61 +155,64 @@ const SolitairePage: React.FC<SolitairePageProps> = ({ onBackToHub }) => {
       }
     }, 50);
 
-  }, [stopTimer, startTimer]);
+  }, [stopTimer, startTimer, onGameStart]);
 
 
   useEffect(() => {
     return () => stopTimer();
   }, [stopTimer]);
   
-  const checkWinCondition = (state: GameState) => {
-    const won = state.foundations.every(p => p.length === 13);
-    if (won) {
-      setGamePhase('won');
-      stopTimer();
-    }
-  };
-  
-  const handleMove = (newState: GameState) => {
-    setMoves(m => m + 1);
-    checkWinCondition(newState);
-    setGameState(newState);
-  };
-
-  const getCardColor = (suit: string) => (suit === '♥' || suit === '♦') ? 'red' : 'black';
-  const getRankValue = (rank: string) => RANKS.indexOf(rank);
-
-  const canPlaceOnTableau = (cardToMove: Card, destinationPile: Pile) => {
-    if (destinationPile.length === 0) return getRankValue(cardToMove.rank) === 12; // King on empty
+  const canPlaceOnTableau = (cardToMove: Card, destinationPile: Pile): boolean => {
+    if (!cardToMove || typeof cardToMove.value === 'undefined') return false;
+    if (destinationPile.length === 0) return cardToMove.value === 13; // King
     const topCard = destinationPile[destinationPile.length - 1];
     if (!topCard.isFaceUp) return false;
-    return getCardColor(topCard.suit) !== getCardColor(cardToMove.suit) && getRankValue(topCard.rank) === getRankValue(cardToMove.rank) + 1;
+    const isMovingCardRed = cardToMove.suit === '♥' || cardToMove.suit === '♦';
+    const isTopCardRed = topCard.suit === '♥' || topCard.suit === '♦';
+    if (isMovingCardRed === isTopCardRed) return false;
+    return cardToMove.value === topCard.value - 1;
   };
 
   const canPlaceOnFoundation = (cardToMove: Card, destinationPile: Pile) => {
-    if (destinationPile.length === 0) return getRankValue(cardToMove.rank) === 0; // Ace on empty
+    if (!cardToMove) return false;
+    if (destinationPile.length === 0) return cardToMove.value === 1; // Ace
     const topCard = destinationPile[destinationPile.length - 1];
-    return topCard.suit === cardToMove.suit && getRankValue(topCard.rank) + 1 === getRankValue(cardToMove.rank);
+    if (cardToMove.suit !== topCard.suit) return false;
+    return cardToMove.value === topCard.value + 1;
   };
   
   const moveCards = (from: { type: string; pileIndex: number; cardIndex: number; }, to: { type: string; pileIndex: number; }) => {
     if (!gameState) return;
     const newState = JSON.parse(JSON.stringify(gameState)) as GameState;
     let sourcePile: Pile;
+
     if(from.type === 'tableau') sourcePile = newState.tableau[from.pileIndex];
     else if (from.type === 'waste') sourcePile = newState.waste;
     else if (from.type === 'foundation') sourcePile = newState.foundations[from.pileIndex];
     else return;
 
     const cardsToMove = sourcePile.splice(from.cardIndex);
-    if(from.type === 'tableau' && sourcePile.length > 0) {
-        sourcePile[sourcePile.length - 1].isFaceUp = true;
+    newState.moves++;
+
+    // Scoring
+    if (to.type === 'foundation') {
+        if (from.type === 'tableau' || from.type === 'waste') newState.score += 10;
+    } else if (to.type === 'tableau') {
+        if (from.type === 'waste') newState.score += 5;
+        if (from.type === 'foundation') newState.score -= 15;
     }
+    
+    if (from.type === 'tableau' && sourcePile.length > 0 && !sourcePile[sourcePile.length-1].isFaceUp) {
+        sourcePile[sourcePile.length-1].isFaceUp = true;
+        newState.score += 5;
+    }
+    if (newState.score < 0) newState.score = 0;
+
 
     if(to.type === 'tableau') newState.tableau[to.pileIndex].push(...cardsToMove);
     else newState.foundations[to.pileIndex].push(...cardsToMove);
     
-    handleMove(newState);
+    pushHistoryAndSetState(newState);
     setSelectedInfo(null);
   };
   
@@ -202,7 +229,6 @@ const SolitairePage: React.FC<SolitairePageProps> = ({ onBackToHub }) => {
     const clickedCard = getClickedCard();
     if (!clickedCard || !clickedCard.isFaceUp) return;
 
-    // Auto-move to foundation if possible
     const isTopCard = (type === 'waste' && cardIndex === gameState.waste.length - 1) || (type === 'tableau' && cardIndex === gameState.tableau[pileIndex].length - 1);
     if (isTopCard) {
         for (let i = 0; i < 4; i++) {
@@ -213,13 +239,13 @@ const SolitairePage: React.FC<SolitairePageProps> = ({ onBackToHub }) => {
         }
     }
     
-    if (selectedInfo) { // A card is already selected, try to move it
+    if (selectedInfo) {
       const { type: fromType, pileIndex: fromPileIndex, cardIndex: fromCardIndex } = selectedInfo;
       const sourcePile = fromType === 'tableau' ? gameState.tableau[fromPileIndex] : fromType === 'waste' ? gameState.waste : gameState.foundations[fromPileIndex];
       const cardToMove = sourcePile[fromCardIndex];
       const isStack = sourcePile.length - fromCardIndex > 1;
 
-      if (type === 'tableau' && pileIndex === fromPileIndex) { // Clicked on same pile
+      if (type === fromType && pileIndex === fromPileIndex) {
         setSelectedInfo(null); return;
       }
 
@@ -228,9 +254,9 @@ const SolitairePage: React.FC<SolitairePageProps> = ({ onBackToHub }) => {
       } else if (type === 'foundation' && !isStack && canPlaceOnFoundation(cardToMove, gameState.foundations[pileIndex])) {
         moveCards(selectedInfo, { type: 'foundation', pileIndex });
       } else {
-        setSelectedInfo(null); // Invalid move, deselect
+        setSelectedInfo(null);
       }
-    } else { // No card selected, so select this one
+    } else {
       setSelectedInfo({ type, pileIndex, cardIndex });
     }
   };
@@ -238,29 +264,51 @@ const SolitairePage: React.FC<SolitairePageProps> = ({ onBackToHub }) => {
   const handleEmptyPileClick = (type: string, pileIndex: number) => {
     if (gamePhase !== 'playing' || !selectedInfo || !gameState) return;
     const { type: fromType, pileIndex: fromPileIndex, cardIndex: fromCardIndex } = selectedInfo;
-    const sourcePile = fromType === 'tableau' ? gameState.tableau[fromPileIndex] : gameState.waste;
-    const cardToMove = sourcePile[fromCardIndex];
 
+    let sourcePile: Pile | undefined;
+    if (fromType === 'tableau') sourcePile = gameState.tableau[fromPileIndex];
+    else if (fromType === 'waste') sourcePile = gameState.waste;
+    else if (fromType === 'foundation') sourcePile = gameState.foundations[fromPileIndex];
+
+    if (!sourcePile) {
+      setSelectedInfo(null);
+      return;
+    }
+
+    const cardToMove = sourcePile[fromCardIndex];
+    
     if (type === 'tableau' && canPlaceOnTableau(cardToMove, [])) {
       moveCards(selectedInfo, { type, pileIndex });
     } else if (type === 'foundation' && sourcePile.length - fromCardIndex === 1 && canPlaceOnFoundation(cardToMove, [])) {
       moveCards(selectedInfo, { type, pileIndex });
+    } else {
+      setSelectedInfo(null);
     }
   };
   
   const handleDrawFromStock = () => {
     if (gamePhase !== 'playing' || !gameState) return;
     const newState = JSON.parse(JSON.stringify(gameState));
+    newState.moves++;
     if (newState.stock.length > 0) {
         const drawnCard = newState.stock.pop();
         drawnCard.isFaceUp = true;
         newState.waste.push(drawnCard);
     } else {
+        newState.score = Math.max(0, newState.score - 20);
         newState.stock = newState.waste.reverse().map((c: Card) => ({...c, isFaceUp: false}));
         newState.waste = [];
     }
-    handleMove(newState);
+    pushHistoryAndSetState(newState);
   };
+  
+  const handleUndo = useCallback(() => {
+    if (history.length === 0) return;
+    const newHistory = [...history];
+    const prevState = newHistory.pop();
+    setHistory(newHistory);
+    setGameState(prevState!);
+  }, [history]);
 
   return (
     <div 
@@ -268,15 +316,17 @@ const SolitairePage: React.FC<SolitairePageProps> = ({ onBackToHub }) => {
       style={{ padding: 'var(--board-padding, 0.5rem)' }}
     >
         {gamePhase === 'intro' ? 
-            <IntroScreen onStart={startNewGame} onBackToHub={onBackToHub} /> : 
+            <IntroScreen onStart={startNewGame} onBackToHub={onBackToHub} stats={stats} /> : 
             <GameBoard 
                 gamePhase={gamePhase}
                 gameState={gameState}
                 selectedInfo={selectedInfo}
+                time={time}
                 onDraw={handleDrawFromStock}
                 onCardClick={handleCardClick}
                 onEmptyPileClick={handleEmptyPileClick}
-                onStart={startNewGame}
+                onNewGame={startNewGame}
+                onUndo={handleUndo}
             />
         }
     </div>
@@ -285,47 +335,95 @@ const SolitairePage: React.FC<SolitairePageProps> = ({ onBackToHub }) => {
 
 // --- Child Components ---
 
-const IntroScreen: React.FC<{ onStart: () => void; onBackToHub: () => void; }> = ({ onStart, onBackToHub }) => (
-    <div className="absolute inset-0 flex flex-col items-center justify-center text-white/80 animate-fade-in">
-        <div className="relative text-center p-8 bg-[#35654d]/80 backdrop-blur-md rounded-3xl shadow-2xl border border-yellow-300/20">
-            <h1 className="text-5xl font-['Helvetica',_sans-serif] font-bold tracking-[0.2em] text-transparent bg-clip-text bg-gradient-to-br from-yellow-200 to-amber-400">SOLITAIRE</h1>
-            <SeymourIcon className="w-24 h-24 mx-auto my-6 text-yellow-300/30" />
-            <button
-                onClick={onStart}
-                className="w-full bg-gradient-to-b from-yellow-400 to-amber-600 text-zinc-900 font-bold py-3 px-8 rounded-lg shadow-lg text-xl tracking-wide hover:from-yellow-300 hover:to-amber-500 transition-all duration-300 transform hover:scale-105"
-            >
-                Start Game
-            </button>
-             <button onClick={onBackToHub} className="mt-4 text-sm font-medium text-yellow-200/60 hover:text-white">
-                Back to Hub
-            </button>
+const IntroScreen: React.FC<{ onStart: () => void; onBackToHub: () => void; stats: SolitaireStats }> = ({ onStart, onBackToHub, stats }) => {
+    const formatTime = (seconds: number | null) => {
+        if (seconds === null) return '-';
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    };
+
+    const StatItem: React.FC<{label: string, value: string | number}> = ({ label, value }) => (
+        <div className="text-center">
+            <div className="text-xs text-yellow-200/60 uppercase tracking-wider">{label}</div>
+            <div className="text-2xl font-bold text-white">{value}</div>
+        </div>
+    );
+
+    return (
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-white/80 animate-fade-in">
+            <div className="relative text-center p-8 bg-[#35654d]/80 backdrop-blur-md rounded-3xl shadow-2xl border border-yellow-300/20 w-full max-w-md">
+                <h1 className="text-5xl font-['Helvetica',_sans-serif] font-bold tracking-[0.2em] text-transparent bg-clip-text bg-gradient-to-br from-yellow-200 to-amber-400">SOLITAIRE</h1>
+                <div className="my-6 grid grid-cols-3 gap-4 border-y border-yellow-300/20 py-4">
+                    <StatItem label="Wins" value={stats.gamesWon} />
+                    <StatItem label="Best Time" value={formatTime(stats.fastestTime)} />
+                    <StatItem label="Streak" value={stats.currentStreak} />
+                </div>
+                <button
+                    onClick={onStart}
+                    className="w-full bg-gradient-to-b from-yellow-400 to-amber-600 text-zinc-900 font-bold py-3 px-8 rounded-lg shadow-lg text-xl tracking-wide hover:from-yellow-300 hover:to-amber-500 transition-all duration-300 transform hover:scale-105"
+                >
+                    Start Game
+                </button>
+                <button onClick={onBackToHub} className="mt-4 text-sm font-medium text-yellow-200/60 hover:text-white">
+                    Back to Hub
+                </button>
+            </div>
+        </div>
+    );
+};
+
+const GameInfo: React.FC<{ time: number; moves: number; score: number }> = ({ time, moves, score }) => {
+    const formatTime = (seconds: number) => `${Math.floor(seconds / 60)}`.padStart(2, '0') + ':' + `${seconds % 60}`.padStart(2, '0');
+    return (
+        <div 
+            className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-2 select-none pointer-events-none"
+            style={{ top: `calc(var(--card-height) + (var(--board-gap) / 2) + 4 * var(--tableau-overlap))` }}
+        >
+            <h1 className="text-3xl font-sans font-thin tracking-[0.3em] text-yellow-200/60 uppercase">
+                Solitaire
+            </h1>
+            <div className="flex items-center justify-between w-full max-w-xs font-['Helvetica',_sans_serif] text-base md:text-lg text-yellow-200/70">
+                <div className="text-center flex-1"><span className="text-xs opacity-70 block">Score</span> {score}</div>
+                <div className="text-center flex-1"><span className="text-xs opacity-70 block">Time</span> {formatTime(time)}</div>
+                <div className="text-center flex-1"><span className="text-xs opacity-70 block">Moves</span> {moves}</div>
+            </div>
+        </div>
+    );
+};
+
+const ControlsBar: React.FC<{onNewGame: () => void; onUndo: () => void}> = ({ onNewGame, onUndo }) => (
+    <div className="absolute bottom-0 left-0 right-0 flex justify-center items-center p-2 z-20">
+        <div className="flex items-center gap-4 bg-black/20 backdrop-blur-sm p-2 rounded-full border border-white/10">
+            <button onClick={onNewGame} className="px-4 py-1 text-sm font-semibold text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-colors">New Game</button>
+            <button onClick={onUndo} className="px-4 py-1 text-sm font-semibold text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-colors">Undo</button>
         </div>
     </div>
 );
+
 
 const GameBoard: React.FC<{
     gamePhase: GamePhase;
     gameState: GameState | null;
     selectedInfo: any;
+    time: number;
     onDraw: () => void;
     onCardClick: (type: string, pIdx: number, cIdx: number) => void;
     onEmptyPileClick: (type: string, pIdx: number) => void;
-    onStart: () => void;
+    onNewGame: () => void;
+    onUndo: () => void;
 }> = (props) => {
-    const { gamePhase, gameState, selectedInfo, onDraw, onCardClick, onEmptyPileClick, onStart } = props;
+    const { gamePhase, gameState, selectedInfo, time, onDraw, onCardClick, onEmptyPileClick, onNewGame, onUndo } = props;
     
     if (!gameState) return null;
 
     return (
         <div className="relative z-10 w-full h-full">
-            {/* Table Frame */}
             <div className="absolute inset-[-2rem] rounded-[2.5rem] p-4 bg-[#4a2c2a] shadow-2xl">
                  <div className="w-full h-full rounded-[1.75rem] p-4 bg-[#35654d] bg-[url('data:image/svg+xml,%3Csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20width=%27100%27%20height=%27100%27%20viewBox=%270%200%20100%20100%27%3E%3Cfilter%20id=%27n%27%20x=%270%27%20y=%270%27%3E%3CfeTurbulence%20type=%27fractalNoise%27%20baseFrequency=%270.7%27%20numOctaves=%2710%27%20stitchTiles=%27stitch%27/%3E%3C/filter%3E%3Crect%20width=%27100%27%20height=%27100%27%20filter=%27url(%23n)%27%20opacity=%270.07%27/%3E%3C/svg%3E')] shadow-[0_0_20px_rgba(0,0,0,0.5)_inset]"></div>
             </div>
 
-            {/* Main Board */}
             <div className="relative w-full h-full max-w-7xl mx-auto">
-                 {/* Gold-leaf Outlines */}
                 <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
                     <div className="absolute grid grid-cols-7 w-full top-0" style={{ gap: 'var(--board-gap)' }}>
                         {Array.from({length: 2}).map((_, i) => <div key={i} className="aspect-[2/3] border border-[#bfa65a]/50 rounded-lg shadow-[0_0_2px_1px_rgba(191,166,90,0.2)_inset]"></div>)}
@@ -335,12 +433,11 @@ const GameBoard: React.FC<{
                             </div>
                         </div>
                     </div>
-                    <div className="absolute grid grid-cols-7 w-full" style={{ top: `calc(var(--card-height) + var(--board-gap) + 6 * var(--tableau-overlap))`, gap: 'var(--board-gap)' }}>
+                    <div className="absolute grid grid-cols-7 w-full" style={{ top: `calc(var(--card-height) + var(--board-gap) + 8 * var(--tableau-overlap))` }}>
                          {Array.from({length: 7}).map((_, i) => <div key={i} className="aspect-[2/3] border border-[#bfa65a]/50 rounded-lg shadow-[0_0_2px_1px_rgba(191,166,90,0.2)_inset]"></div>)}
                     </div>
                 </div>
 
-                {/* Top Row: Stock, Waste, Foundations */}
                 <div className="absolute top-0 left-0 w-full grid grid-cols-7" style={{ gap: 'var(--board-gap)' }}>
                     <div onClick={onDraw}>
                         {gameState.stock.length > 0 ? <Card card={{...gameState.stock[0], isFaceUp: false}} /> : <EmptyPile />}
@@ -360,8 +457,7 @@ const GameBoard: React.FC<{
                     </div>
                 </div>
 
-                {/* Tableau */}
-                <div className="absolute w-full" style={{ top: `calc(var(--card-height) + var(--board-gap) + 6 * var(--tableau-overlap))` }}>
+                <div className="absolute w-full" style={{ top: `calc(var(--card-height) + var(--board-gap) + 8 * var(--tableau-overlap))` }}>
                      <div className="grid grid-cols-7" style={{ gap: 'var(--board-gap)' }}>
                         {gameState.tableau.map((pile, i) => (
                             <div key={i} className="relative h-[calc(var(--card-height)_*_2.5)]" onClick={pile.length === 0 ? () => onEmptyPileClick('tableau', i) : undefined}>
@@ -374,22 +470,20 @@ const GameBoard: React.FC<{
                         ))}
                     </div>
                 </div>
-                <div className="absolute bottom-[2rem] left-1/2 -translate-x-1/2 text-2xl font-['Helvetica',_sans-serif] tracking-[0.3em] text-gray-200/80 select-none pointer-events-none">
-                    SOLITAIRE
-                </div>
+                <GameInfo time={time} moves={gameState.moves} score={gameState.score} />
             </div>
 
-            {/* Win Screen */}
             {gamePhase === 'won' && (
                 <div className="absolute inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
                     <div className="bg-[#35654d]/80 backdrop-blur-lg border border-yellow-300/40 rounded-2xl shadow-2xl w-full max-w-sm p-8 text-center text-white">
-                        <h2 className="text-4xl font-['Helvetica',_sans-serif] font-bold text-transparent bg-clip-text bg-gradient-to-br from-yellow-200 to-amber-400">Congratulations!</h2>
-                         <button onClick={onStart} className="mt-6 w-full bg-gradient-to-b from-yellow-400 to-amber-600 text-zinc-900 font-bold py-3 rounded-lg shadow-lg hover:from-yellow-300 hover:to-amber-500 transition-colors">
+                        <h2 className="text-4xl font-['Helvetica',_sans_serif] font-bold text-transparent bg-clip-text bg-gradient-to-br from-yellow-200 to-amber-400">Congratulations!</h2>
+                         <button onClick={onNewGame} className="mt-6 w-full bg-gradient-to-b from-yellow-400 to-amber-600 text-zinc-900 font-bold py-3 rounded-lg shadow-lg hover:from-yellow-300 hover:to-amber-500 transition-colors">
                             Play Again
                         </button>
                     </div>
                 </div>
             )}
+            <ControlsBar onNewGame={onNewGame} onUndo={onUndo} />
         </div>
     );
 };
@@ -417,7 +511,6 @@ const EmptyPile: React.FC<{ onClick?: () => void; }> = ({ onClick }) => (
     <div className="card-container" onClick={onClick}></div>
 );
 
-// Add CSS for layout and animations
 const SolitaireStyles = () => (
     <style>{`
         :root {
@@ -449,7 +542,6 @@ const SolitaireStyles = () => (
     `}</style>
 );
 
-// Inject styles into the component
 const SolitairePageWithStyles: React.FC<SolitairePageProps> = (props) => (
   <>
     <SolitaireStyles />

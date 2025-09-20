@@ -79,6 +79,17 @@ export interface SudokuStats {
   expert: SudokuDifficultyStats;
 }
 
+export interface SolitaireStats {
+  gamesPlayed: number;
+  gamesWon: number;
+  fastestTime: number | null;
+  lowestMoves: number | null;
+  currentStreak: number;
+  maxStreak: number;
+  lastGameWasWin: boolean;
+}
+
+
 const GUEST_USER_ID = 'guest';
 const READ_ARTICLES_KEY = `feedme_read_articles_${GUEST_USER_ID}`;
 const BOOKMARKED_ARTICLES_KEY = `feedme_bookmarked_articles_${GUEST_USER_ID}`;
@@ -89,6 +100,8 @@ const THEME_KEY = `feedme_theme_${GUEST_USER_ID}`;
 const ARTICLE_VIEW_KEY = `feedme_article_view_${GUEST_USER_ID}`;
 const WIDGET_SETTINGS_KEY = `feedme_widget_settings_${GUEST_USER_ID}`;
 const SUDOKU_STATS_KEY = `feedme_sudoku_stats_${GUEST_USER_ID}`;
+const SOLITAIRE_STATS_KEY = `feedme_solitaire_stats_${GUEST_USER_ID}`;
+
 
 const defaultFolders: Folder[] = [
     { id: 1, name: 'News' },
@@ -136,6 +149,17 @@ const defaultSudokuStats: SudokuStats = {
   expert: { fastestTime: null, gamesPlayed: 0, totalTimePlayed: 0 },
 };
 
+const defaultSolitaireStats: SolitaireStats = {
+  gamesPlayed: 0,
+  gamesWon: 0,
+  fastestTime: null,
+  lowestMoves: null,
+  currentStreak: 0,
+  maxStreak: 0,
+  lastGameWasWin: false,
+};
+
+
 const App: React.FC = () => {
     const [theme, setTheme] = useLocalStorage<Theme>(THEME_KEY, 'dark');
     const [articleView, setArticleView] = useLocalStorage<ArticleView>(ARTICLE_VIEW_KEY, 'list');
@@ -146,6 +170,7 @@ const App: React.FC = () => {
     const [bookmarkedArticleIds, setBookmarkedArticleIds] = useLocalStorage<Set<string>>(BOOKMARKED_ARTICLES_KEY, () => new Set());
     const [articleTags, setArticleTags] = useLocalStorage<Map<string, Set<string>>>(ARTICLE_TAGS_KEY, () => new Map());
     const [sudokuStats, setSudokuStats] = useLocalStorage<SudokuStats>(SUDOKU_STATS_KEY, defaultSudokuStats);
+    const [solitaireStats, setSolitaireStats] = useLocalStorage<SolitaireStats>(SOLITAIRE_STATS_KEY, defaultSolitaireStats);
 
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
     const [isAddSourceModalOpen, setIsAddSourceModalOpen] = useState(false);
@@ -356,6 +381,40 @@ const App: React.FC = () => {
       });
     }, [setSudokuStats]);
 
+    const handleSolitaireWin = useCallback((time: number, moves: number) => {
+      setSolitaireStats(prev => {
+        if (prev.lastGameWasWin) return prev; 
+        
+        const newStats: SolitaireStats = { ...prev };
+        newStats.gamesWon += 1;
+        newStats.currentStreak += 1;
+        if (newStats.currentStreak > newStats.maxStreak) {
+          newStats.maxStreak = newStats.currentStreak;
+        }
+        if (newStats.fastestTime === null || time < newStats.fastestTime) {
+          newStats.fastestTime = time;
+        }
+        if (newStats.lowestMoves === null || moves < newStats.lowestMoves) {
+          newStats.lowestMoves = moves;
+        }
+        newStats.lastGameWasWin = true;
+        return newStats;
+      });
+    }, [setSolitaireStats]);
+
+    const handleSolitaireStart = useCallback(() => {
+        setSolitaireStats(prev => {
+            const newStats = {...prev};
+            if (!prev.lastGameWasWin) {
+                newStats.currentStreak = 0;
+            }
+            newStats.gamesPlayed += 1;
+            newStats.lastGameWasWin = false;
+            return newStats;
+        });
+    }, [setSolitaireStats]);
+
+
     const handleExportOpml = () => {
         let opml = `<?xml version="1.0" encoding="UTF-8"?><opml version="2.0"><body>`;
         folders.forEach(folder => {
@@ -547,6 +606,9 @@ const App: React.FC = () => {
                     <GameHubPage
                         sudokuStats={sudokuStats}
                         onSudokuWin={handleSudokuWin}
+                        solitaireStats={solitaireStats}
+                        onSolitaireWin={handleSolitaireWin}
+                        onSolitaireStart={handleSolitaireStart}
                     />
                 ) : (
                     <MainContent
