@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import MainContent from '../components/MainContent';
 import type { SourceType } from '../components/AddSource';
@@ -689,13 +690,15 @@ const App: React.FC = () => {
                     />
                 )}
             </div>
-             <BottomNavBar 
-                pages={mainPages}
-                currentPageIndex={currentPageIndex}
-                onNavigate={navigate}
-                onAddSource={() => setIsAddSourceModalOpen(true)}
-                onRefresh={() => setLastRefresh(Date.now())}
-             />
+            {selection.type !== 'game_hub' && (
+                 <BottomNavBar 
+                    pages={mainPages}
+                    currentPageIndex={currentPageIndex}
+                    onNavigate={navigate}
+                    onAddSource={() => setIsAddSourceModalOpen(true)}
+                    onRefresh={() => setLastRefresh(Date.now())}
+                 />
+            )}
             <SettingsModal
                 isOpen={isSettingsModalOpen}
                 onClose={() => setIsSettingsModalOpen(false)}

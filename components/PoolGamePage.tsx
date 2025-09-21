@@ -1,4 +1,5 @@
 
+
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 
 // --- Helper Classes and Types ---
@@ -37,7 +38,6 @@ interface Ball {
 const BALL_RADIUS_RATIO = 0.02; // relative to table width
 const POCKET_RADIUS_RATIO = 0.035;
 const TABLE_INSET_RATIO = 0.05;
-const CUSHION_WIDTH_RATIO = 0.02;
 
 const BALL_COLORS: { [key: number]: string } = {
     0: '#ffffff', 1: '#fdd835', 2: '#1e88e5', 3: '#d81b60', 4: '#5e35b1',
@@ -51,13 +51,16 @@ const TopIndicatorBar: React.FC<{ humanPotted: Ball[], aiPotted: Ball[], humanTy
     const isHumanSolids = humanType === 'solid';
     const humanBalls = humanType ? (isHumanSolids ? [1,2,3,4,5,6,7] : [9,10,11,12,13,14,15]) : [];
     const aiBalls = humanType ? (isHumanSolids ? [9,10,11,12,13,14,15] : [1,2,3,4,5,6,7]) : [];
-    const humanPottedNums = new Set(humanPotted.map(b => b.num));
-    const aiPottedNums = new Set(aiPotted.map(b => b.num));
+    
+    const humanBallsOnTable = humanBalls.filter(num => !humanPotted.some(b => b.num === num));
+    const aiBallsOnTable = aiBalls.filter(num => !aiPotted.some(b => b.num === num));
+    const humanCanWin = humanBallsOnTable.length === 0 && humanType !== null;
+    const aiCanWin = aiBallsOnTable.length === 0 && humanType !== null;
 
-    const BallIcon: React.FC<{ num: number, isPotted: boolean }> = ({ num, isPotted }) => {
+    const BallIcon: React.FC<{ num: number, isPotted: boolean, canWin?: boolean }> = ({ num, isPotted, canWin }) => {
         const ball = { num, color: BALL_COLORS[num], type: num > 8 ? 'stripe' as BallType : 'solid' as BallType };
         return (
-            <div className={`w-5 h-5 rounded-full relative transition-all duration-300 ${isPotted ? 'opacity-30 scale-90' : 'opacity-100'}`} style={{ backgroundColor: ball.color }}>
+            <div className={`w-5 h-5 rounded-full relative transition-all duration-300 ${isPotted ? 'opacity-30 scale-90' : 'opacity-100'} ${canWin ? 'ring-2 ring-yellow-300 shadow-lg' : ''}`} style={{ backgroundColor: ball.color }}>
                 {ball.type === 'stripe' && <div className="absolute top-1/4 left-0 w-full h-1/2 bg-white" />}
                 <div className="absolute inset-0 rounded-full" style={{ background: 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.6), rgba(255,255,255,0) 70%)' }} />
             </div>
@@ -70,14 +73,14 @@ const TopIndicatorBar: React.FC<{ humanPotted: Ball[], aiPotted: Ball[], humanTy
                 <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-indigo-600 border-2 border-white/50 flex-shrink-0"></div>
                     <div className="flex flex-wrap gap-1 w-auto sm:w-44">
-                        {humanBalls.map(num => <BallIcon key={num} num={num} isPotted={humanPottedNums.has(num)} />)}
+                        {humanBalls.map(num => <BallIcon key={num} num={num} isPotted={!humanBallsOnTable.includes(num)} />)}
                     </div>
                 </div>
-                <div className="px-2 flex-shrink-0"><BallIcon num={8} isPotted={false} /></div>
+                <div className="px-2 flex-shrink-0"><BallIcon num={8} isPotted={false} canWin={humanCanWin || aiCanWin} /></div>
                 <div className="flex items-center gap-2 flex-row-reverse">
                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-red-400 to-pink-600 border-2 border-white/50 flex-shrink-0"></div>
                      <div className="flex flex-wrap-reverse gap-1 w-auto sm:w-44 justify-end">
-                        {aiBalls.map(num => <BallIcon key={num} num={num} isPotted={aiPottedNums.has(num)} />)}
+                        {aiBalls.map(num => <BallIcon key={num} num={num} isPotted={!aiBallsOnTable.includes(num)} />)}
                     </div>
                 </div>
             </div>
@@ -101,10 +104,10 @@ const SpinControl: React.FC<{ spin: Vector2, setSpin: (s: Vector2) => void }> = 
     
     return (
         <div ref={controlRef} onMouseDown={handleInteraction} onTouchStart={handleInteraction} onMouseMove={(e) => e.buttons === 1 && handleInteraction(e)} onTouchMove={handleInteraction}
-            className="w-24 h-24 bg-black/30 backdrop-blur-sm rounded-full border-2 border-white/20 flex items-center justify-center cursor-pointer">
-            <div className="w-20 h-20 bg-white rounded-full relative shadow-inner">
+            className="w-20 h-20 bg-black/30 backdrop-blur-sm rounded-full border-2 border-white/20 flex items-center justify-center cursor-pointer">
+            <div className="w-16 h-16 bg-white rounded-full relative shadow-inner">
                 <div className="absolute w-4 h-4 bg-red-500 rounded-full border-2 border-white shadow-md"
-                    style={{ left: `calc(50% - 0.5rem + ${spin.x * 2.25}rem)`, top: `calc(50% - 0.5rem + ${spin.y * 2.25}rem)` }}
+                    style={{ left: `calc(50% - 0.5rem + ${spin.x * 1.5}rem)`, top: `calc(50% - 0.5rem + ${spin.y * 1.5}rem)` }}
                 />
             </div>
         </div>
@@ -125,7 +128,7 @@ const PowerMeter: React.FC<{ power: number, setPower: (p: number) => void }> = (
 
     return (
         <div ref={meterRef} onMouseDown={handleInteraction} onTouchStart={handleInteraction} onMouseMove={(e) => e.buttons === 1 && handleInteraction(e)} onTouchMove={handleInteraction}
-            className="w-56 h-6 bg-black/30 backdrop-blur-sm rounded-full border-2 border-white/20 p-1 cursor-pointer">
+            className="w-48 h-6 bg-black/30 backdrop-blur-sm rounded-full border-2 border-white/20 p-1 cursor-pointer">
             <div className="w-full h-full bg-cyan-400/20 rounded-full relative overflow-hidden">
                 <div className="absolute left-0 h-full bg-gradient-to-r from-cyan-400 to-cyan-200 rounded-full transition-all duration-100" style={{ width: `${power * 100}%` }} />
             </div>
@@ -134,7 +137,7 @@ const PowerMeter: React.FC<{ power: number, setPower: (p: number) => void }> = (
 };
 
 const ShootButton: React.FC<{ onClick: () => void, disabled?: boolean }> = ({ onClick, disabled }) => (
-    <button onClick={onClick} disabled={disabled} className="w-20 h-20 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-full border-2 border-white/50 shadow-lg text-white font-bold text-base uppercase tracking-wider disabled:opacity-50 disabled:animate-none active:scale-95 transition-transform">
+    <button onClick={onClick} disabled={disabled} className="w-16 h-16 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-full border-2 border-white/50 shadow-lg text-white font-bold text-sm uppercase tracking-wider disabled:opacity-50 disabled:animate-none active:scale-95 transition-transform">
         SHOOT
     </button>
 );
@@ -157,12 +160,55 @@ const PoolGamePage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) =>
         pottedThisTurn: [] as Ball[],
     });
     
-    const [, setTick] = useState(0);
+    const [tick, setTick] = useState(0);
     const forceUpdate = useCallback(() => setTick(t => t + 1), []);
     
     const [power, setPower] = useState(0.8);
     const [spin, setSpin] = useState(new Vector2(0, 0));
     const shotAnimationProgress = useRef(1);
+
+    const setupGame = useCallback(() => {
+        const canvas = canvasRef.current; if (!canvas) return;
+        const { width, height } = canvas.getBoundingClientRect();
+        const BALL_RADIUS = width * BALL_RADIUS_RATIO;
+        const POCKET_RADIUS = width * POCKET_RADIUS_RATIO;
+        const TABLE_INSET = width * TABLE_INSET_RATIO;
+        const pocketInset = TABLE_INSET * 0.9;
+        game.current.pockets = [
+            new Vector2(pocketInset, pocketInset), new Vector2(width / 2, pocketInset * 0.8), new Vector2(width - pocketInset, pocketInset),
+            new Vector2(pocketInset, height - pocketInset), new Vector2(width / 2, height - pocketInset * 0.8), new Vector2(width - pocketInset, height - pocketInset)
+        ];
+
+        const balls: Ball[] = [];
+        const headSpot = new Vector2(width * 0.75, height / 2);
+        const rackOrder = [1, 14, 2, 8, 15, 3, 13, 4, 7, 12, 5, 11, 6, 10, 9];
+        let rackIndex = 0;
+        for (let i = 0; i < 5; i++) {
+            for (let j = 0; j <= i; j++) {
+                const num = rackOrder[rackIndex++];
+                balls.push({
+                    pos: new Vector2(headSpot.x + i * BALL_RADIUS * 1.732, headSpot.y + j * BALL_RADIUS * 2 - i * BALL_RADIUS),
+                    vel: new Vector2(), num, color: BALL_COLORS[num], type: num < 8 ? 'solid' : (num > 8 ? 'stripe' : undefined),
+                    radius: BALL_RADIUS, mass: 1, inPocket: false,
+                });
+            }
+        }
+        balls.push({
+            pos: new Vector2(width * 0.25, height / 2), vel: new Vector2(), num: 0,
+            color: '#ffffff', radius: BALL_RADIUS, mass: 1.1, inPocket: false
+        });
+        
+        game.current.balls = balls;
+        game.current.humanPotted = [];
+        game.current.aiPotted = [];
+        game.current.phase = 'playing';
+        game.current.ballsMoving = false;
+        game.current.turn = 'human';
+        game.current.humanPlayerBallType = null;
+        game.current.aiPlayerBallType = null;
+        game.current.winner = null;
+        forceUpdate();
+    }, [forceUpdate]);
 
     const handleShoot = useCallback(() => {
         if (game.current.ballsMoving || game.current.turn !== 'human') return;
@@ -178,59 +224,111 @@ const PoolGamePage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) =>
             forceUpdate();
         }
     }, [power, forceUpdate]);
+    
+    const findBestAiShot = useCallback((): { aimDir: Vector2; power: number } | null => {
+        const { balls, pockets, aiPlayerBallType } = game.current;
+        const cueBall = balls.find(b => b.num === 0);
+        if (!cueBall || cueBall.inPocket) return null;
+
+        let targetBallNums: number[] = [];
+        const isTableOpen = !aiPlayerBallType;
+        if (isTableOpen) {
+            targetBallNums = [1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15];
+        } else {
+            const aiBalls = aiPlayerBallType === 'solid' ? [1, 2, 3, 4, 5, 6, 7] : [9, 10, 11, 12, 13, 14, 15];
+            const aiBallsOnTable = balls.filter(b => aiBalls.includes(b.num) && !b.inPocket);
+            targetBallNums = aiBallsOnTable.length > 0 ? aiBallsOnTable.map(b => b.num) : [8];
+        }
+        
+        const targetBalls = balls.filter(b => targetBallNums.includes(b.num) && !b.inPocket);
+        const potentialShots = [];
+
+        for (const targetBall of targetBalls) {
+            for (const pocket of pockets) {
+                const targetToPocket = pocket.subtract(targetBall.pos);
+                const shotDistance = targetToPocket.length();
+                const collisionPoint = targetBall.pos.subtract(targetToPocket.normalize().multiply(2 * targetBall.radius));
+                const aimDir = collisionPoint.subtract(cueBall.pos).normalize();
+                
+                let isObstructed = false;
+                const obstructingBalls = balls.filter(b => b.num !== 0 && b.num !== targetBall.num && !b.inPocket);
+                
+                const cuePathLength = collisionPoint.subtract(cueBall.pos).length();
+                for (const otherBall of obstructingBalls) {
+                    const d = otherBall.pos.subtract(cueBall.pos);
+                    const t = d.dot(aimDir);
+                    if (t > 0 && t < cuePathLength) {
+                        const closestPoint = cueBall.pos.add(aimDir.multiply(t));
+                        if (closestPoint.subtract(otherBall.pos).length() < 2 * targetBall.radius) {
+                            isObstructed = true; break;
+                        }
+                    }
+                }
+                if (isObstructed) continue;
+
+                const targetPathDir = targetToPocket.normalize();
+                for (const otherBall of obstructingBalls) {
+                    const d = otherBall.pos.subtract(targetBall.pos);
+                    const t = d.dot(targetPathDir);
+                    if (t > 0 && t < shotDistance) {
+                        const closestPoint = targetBall.pos.add(targetPathDir.multiply(t));
+                        if (closestPoint.subtract(otherBall.pos).length() < 2 * targetBall.radius) {
+                           isObstructed = true; break;
+                        }
+                    }
+                }
+                if (isObstructed) continue;
+
+                potentialShots.push({ aimDir, power: 0.8, score: 1 / shotDistance });
+            }
+        }
+
+        if (potentialShots.length > 0) {
+            potentialShots.sort((a, b) => b.score - a.score);
+            return potentialShots[0];
+        }
+        
+        if (targetBalls.length > 0) {
+            const closestTarget = targetBalls.sort((a, b) => a.pos.subtract(cueBall.pos).length() - b.pos.subtract(cueBall.pos).length())[0];
+            return { aimDir: closestTarget.pos.subtract(cueBall.pos).normalize(), power: 0.3 };
+        }
+
+        return null;
+    }, []);
+
+    useEffect(() => {
+        if (game.current.turn === 'ai' && !game.current.ballsMoving) {
+            const thinkingTimeout = setTimeout(() => {
+                const shot = findBestAiShot();
+                if (shot) {
+                    game.current.aimDir = shot.aimDir;
+                    const cueBall = game.current.balls.find(b => b.num === 0);
+                    if (cueBall) {
+                        const maxPower = 20;
+                        cueBall.vel = game.current.aimDir.multiply(shot.power * maxPower);
+                        game.current.pottedThisTurn = [];
+                        game.current.ballsMoving = true;
+                        forceUpdate();
+                    }
+                } else {
+                    console.log("AI cannot find a shot.");
+                    game.current.turn = 'human';
+                    forceUpdate();
+                }
+            }, 1500);
+            return () => clearTimeout(thinkingTimeout);
+        }
+    }, [tick, findBestAiShot, forceUpdate]);
 
     useEffect(() => {
         const canvas = canvasRef.current; if (!canvas) return;
         const ctx = canvas.getContext('2d'); if (!ctx) return;
-
-        const setupGame = () => {
-            const { width, height } = canvas.getBoundingClientRect();
-            const BALL_RADIUS = width * BALL_RADIUS_RATIO;
-            const POCKET_RADIUS = width * POCKET_RADIUS_RATIO;
-            const TABLE_INSET = width * TABLE_INSET_RATIO;
-            const pocketInset = TABLE_INSET * 0.9;
-            game.current.pockets = [
-                new Vector2(pocketInset, pocketInset), new Vector2(width / 2, pocketInset * 0.8), new Vector2(width - pocketInset, pocketInset),
-                new Vector2(pocketInset, height - pocketInset), new Vector2(width / 2, height - pocketInset * 0.8), new Vector2(width - pocketInset, height - pocketInset)
-            ];
-
-            const balls: Ball[] = [];
-            const headSpot = new Vector2(width * 0.75, height / 2);
-            const rackOrder = [1, 14, 2, 8, 15, 3, 13, 4, 7, 12, 5, 11, 6, 10, 9];
-            let rackIndex = 0;
-            for (let i = 0; i < 5; i++) {
-                for (let j = 0; j <= i; j++) {
-                    const num = rackOrder[rackIndex++];
-                    balls.push({
-                        pos: new Vector2(headSpot.x + i * BALL_RADIUS * 1.732, headSpot.y + j * BALL_RADIUS * 2 - i * BALL_RADIUS),
-                        vel: new Vector2(), num, color: BALL_COLORS[num], type: num < 8 ? 'solid' : (num > 8 ? 'stripe' : undefined),
-                        radius: BALL_RADIUS, mass: 1, inPocket: false,
-                    });
-                }
-            }
-            balls.push({
-                pos: new Vector2(width * 0.25, height / 2), vel: new Vector2(), num: 0,
-                color: '#ffffff', radius: BALL_RADIUS, mass: 1.1, inPocket: false
-            });
-            
-            game.current.balls = balls;
-            game.current.humanPotted = [];
-            game.current.aiPotted = [];
-            game.current.phase = 'playing';
-            game.current.ballsMoving = false;
-            game.current.turn = 'human';
-            game.current.humanPlayerBallType = null;
-            game.current.aiPlayerBallType = null;
-            game.current.winner = null;
-            forceUpdate();
-        };
 
         const draw = () => {
             const { width, height } = ctx.canvas.getBoundingClientRect();
             const BALL_RADIUS = width * BALL_RADIUS_RATIO;
             const POCKET_RADIUS = width * POCKET_RADIUS_RATIO;
             const TABLE_INSET = width * TABLE_INSET_RATIO;
-            const CUSHION_WIDTH = width * CUSHION_WIDTH_RATIO;
             const lightSource = new Vector2(width * 0.6, height * 0.4);
 
             ctx.clearRect(0, 0, width, height);
@@ -276,7 +374,7 @@ const PoolGamePage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) =>
 
             const cueBall = balls.find(b => b.num === 0);
             const isAnimatingCue = shotAnimationProgress.current < 1;
-            const shouldShowAiming = cueBall && game.current.turn === 'human' && !game.current.ballsMoving && !isAnimatingCue;
+            const shouldShowAiming = cueBall && !cueBall.inPocket && game.current.turn === 'human' && !game.current.ballsMoving && !isAnimatingCue;
             
             if (shouldShowAiming) {
                 const aimDir = game.current.aimDir;
@@ -301,7 +399,7 @@ const PoolGamePage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) =>
                 ctx.restore();
             }
 
-            if ((shouldShowAiming || isAnimatingCue) && cueBall) {
+            if ((shouldShowAiming || isAnimatingCue) && cueBall && !cueBall.inPocket) {
                 const aimDir = game.current.aimDir;
                 let cueRetract;
                 if (isAnimatingCue) {
@@ -326,9 +424,74 @@ const PoolGamePage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) =>
             }
         };
 
+        const handleTurnEnd = () => {
+            const { pottedThisTurn, turn } = game.current;
+            const pottedCueBall = pottedThisTurn.some(b => b.num === 0);
+            const potted8Ball = pottedThisTurn.some(b => b.num === 8);
+            const pottedStripes = pottedThisTurn.filter(b => b.type === 'stripe');
+            const pottedSolids = pottedThisTurn.filter(b => b.type === 'solid');
+
+            let foul = pottedCueBall;
+            let turnContinues = false;
+
+            if (potted8Ball) {
+                const playerBallType = turn === 'human' ? game.current.humanPlayerBallType : game.current.aiPlayerBallType;
+                const playerBalls = game.current.balls.filter(b => b.type === playerBallType && !b.inPocket);
+                if (playerBalls.length === 0) {
+                    game.current.winner = turn;
+                } else {
+                    game.current.winner = turn === 'human' ? 'ai' : 'human';
+                }
+                game.current.phase = 'gameOver';
+                forceUpdate();
+                return;
+            }
+
+            if (!game.current.humanPlayerBallType && (pottedSolids.length > 0 || pottedStripes.length > 0)) {
+                const firstPotted = pottedThisTurn.find(b => b.type === 'solid' || b.type === 'stripe');
+                if (firstPotted) {
+                    if (turn === 'human') {
+                        game.current.humanPlayerBallType = firstPotted.type;
+                        game.current.aiPlayerBallType = firstPotted.type === 'solid' ? 'stripe' : 'solid';
+                    } else {
+                        game.current.aiPlayerBallType = firstPotted.type;
+                        game.current.humanPlayerBallType = firstPotted.type === 'solid' ? 'stripe' : 'solid';
+                    }
+                }
+            }
+            
+            const playerBallType = turn === 'human' ? game.current.humanPlayerBallType : game.current.aiPlayerBallType;
+            const successfulPot = pottedThisTurn.some(b => b.type === playerBallType);
+
+            if (successfulPot && !foul) {
+                turnContinues = true;
+            }
+            
+            if (!turnContinues) {
+                game.current.turn = turn === 'human' ? 'ai' : 'human';
+            }
+
+            if (pottedCueBall) {
+                const cueBall = game.current.balls.find(b => b.num === 0);
+                if (cueBall) {
+                    cueBall.inPocket = false;
+                    cueBall.pos = new Vector2(canvas.getBoundingClientRect().width * 0.25, canvas.getBoundingClientRect().height / 2);
+                    cueBall.vel = new Vector2();
+                }
+            }
+
+            pottedThisTurn.forEach(pottedBall => {
+                if(pottedBall.type === game.current.humanPlayerBallType) game.current.humanPotted.push(pottedBall);
+                if(pottedBall.type === game.current.aiPlayerBallType) game.current.aiPotted.push(pottedBall);
+            });
+
+            forceUpdate();
+        };
+
         const update = () => {
             const { balls, pockets } = game.current;
             const { width, height } = canvas.getBoundingClientRect();
+            const POCKET_RADIUS = width * POCKET_RADIUS_RATIO;
             const TABLE_INSET = width * TABLE_INSET_RATIO;
             const left = TABLE_INSET; const right = width - TABLE_INSET;
             const top = TABLE_INSET; const bottom = height - TABLE_INSET;
@@ -360,6 +523,10 @@ const PoolGamePage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) =>
                         const distVec = b1.pos.subtract(b2.pos);
                         const dist = distVec.length();
                         if (dist < b1.radius + b2.radius) {
+                            const overlap = (b1.radius + b2.radius - dist) / 2;
+                            b1.pos = b1.pos.add(distVec.normalize().multiply(overlap));
+                            b2.pos = b2.pos.subtract(distVec.normalize().multiply(overlap));
+                            
                             const normal = distVec.normalize();
                             const tangent = new Vector2(-normal.y, normal.x);
                             const v1n = b1.vel.dot(normal); const v1t = b1.vel.dot(tangent);
@@ -376,7 +543,7 @@ const PoolGamePage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) =>
             balls.forEach(b => {
                 if (b.inPocket) return;
                 pockets.forEach(p => {
-                    if (b.pos.subtract(p).length() < b.radius + POCKET_RADIUS_RATIO * width * 0.5) {
+                    if (b.pos.subtract(p).length() < POCKET_RADIUS) {
                         b.inPocket = true; b.vel = new Vector2();
                         newPottedBalls.push(b);
                     }
@@ -387,18 +554,6 @@ const PoolGamePage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) =>
             return { ballsStillMoving, newPottedBalls };
         };
         
-        const handleTurnEnd = () => {
-            const eightBallPotted = game.current.pottedThisTurn.find(b => b.num === 8);
-            if (eightBallPotted) {
-                game.current.phase = 'gameOver';
-                game.current.winner = game.current.turn;
-                setTimeout(setupGame, 5000);
-            } else {
-                 game.current.turn = game.current.turn === 'human' ? 'ai' : 'human';
-            }
-            forceUpdate();
-        };
-
         let animationFrameId: number;
         const renderLoop = () => {
             if (shotAnimationProgress.current < 1) shotAnimationProgress.current += 0.08;
@@ -406,9 +561,6 @@ const PoolGamePage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) =>
                 const { ballsStillMoving, newPottedBalls } = update();
                 if (newPottedBalls.length > 0) {
                     game.current.pottedThisTurn.push(...newPottedBalls);
-                    if(game.current.turn === 'human') game.current.humanPotted.push(...newPottedBalls);
-                    else game.current.aiPotted.push(...newPottedBalls);
-                    forceUpdate();
                 }
                 if (!ballsStillMoving) {
                     game.current.ballsMoving = false;
@@ -441,7 +593,7 @@ const PoolGamePage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) =>
         const onAim = (e: MouseEvent | TouchEvent) => {
             if (game.current.turn !== 'human' || game.current.ballsMoving || shotAnimationProgress.current < 1) return;
             const cueBall = game.current.balls.find(b => b.num === 0);
-            if (!cueBall) return;
+            if (!cueBall || cueBall.inPocket) return;
             const pos = getEventPos(e);
             const newDir = pos.subtract(cueBall.pos).normalize();
             if(newDir.length() > 0) game.current.aimDir = newDir;
@@ -457,7 +609,7 @@ const PoolGamePage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) =>
             canvas.removeEventListener('mousemove', onAim);
             canvas.removeEventListener('touchmove', onAim);
         };
-    }, [forceUpdate]);
+    }, [forceUpdate, findBestAiShot, setupGame]);
 
     return (
         <div className="w-full h-full bg-black flex flex-col relative font-sans text-white overflow-hidden">
@@ -465,16 +617,23 @@ const PoolGamePage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) =>
             <main className="flex-grow relative w-full h-full min-h-0">
                 <canvas ref={canvasRef} className="w-full h-full" />
             </main>
-            <div className="absolute inset-0 z-20 pointer-events-none">
-                <div className="absolute bottom-5 left-5 pointer-events-auto">
-                    <SpinControl spin={spin} setSpin={setSpin} />
-                </div>
-                <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 pointer-events-auto">
+             <div className="absolute bottom-4 left-0 right-0 z-20 flex justify-between items-end px-4 pointer-events-none">
+                <div className="pointer-events-auto"><SpinControl spin={spin} setSpin={setSpin} /></div>
+                <div className="flex flex-col items-center gap-2 pointer-events-auto">
                     <PowerMeter power={power} setPower={setPower} />
-                    <ShootButton onClick={handleShoot} disabled={game.current.ballsMoving} />
+                    <ShootButton onClick={handleShoot} disabled={game.current.ballsMoving || game.current.turn !== 'human'} />
                 </div>
             </div>
             <button onClick={onBackToHub} className="absolute top-5 right-5 z-30 bg-black/30 backdrop-blur-sm p-2 rounded-full text-sm">Back to Hub</button>
+            {game.current.winner && (
+                <div className="absolute inset-0 bg-black/60 backdrop-blur-sm z-40 flex items-center justify-center">
+                    <div className="text-center p-8 bg-black/50 rounded-xl">
+                        <h2 className="text-4xl font-bold mb-4">{game.current.winner === 'human' ? 'You Win!' : 'AI Wins!'}</h2>
+                        {/* Fix: Call setupGame directly. It was previously out of scope. */}
+                        <button onClick={setupGame} className="px-6 py-2 bg-cyan-500 text-white font-semibold rounded-lg">Play Again</button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

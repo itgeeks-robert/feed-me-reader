@@ -344,11 +344,10 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onBackToHub }
                 </button>
               ))}
             </div>
-            <div className="pt-4 flex justify-between">
+            <div className="pt-4 text-center">
                 <button onClick={() => setView('STATS')} className="text-sm font-medium text-slate-500 hover:text-blue-500 inline-flex items-center gap-2">
                     <TrophyIcon className="w-4 h-4" /> View Statistics
                 </button>
-                <button onClick={onBackToHub} className="text-sm font-medium text-slate-500 hover:text-blue-500">Back to Hub</button>
             </div>
           </div>
         </div>
@@ -372,7 +371,7 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onBackToHub }
             <header className="flex items-center justify-between mb-6">
               <h2 className="text-3xl font-bold">Statistics</h2>
               <button onClick={() => setView(grid ? 'PLAYING' : 'IDLE')} className="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 border border-slate-200 rounded-lg hover:bg-slate-200">
-                Back
+                Back to Game
               </button>
             </header>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
@@ -577,7 +576,10 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onBackToHub }
     }
 
     return (
-        <main className="flex-grow overflow-y-auto bg-slate-100 p-2 flex flex-col items-center justify-center">
+        <main className="flex-grow overflow-y-auto bg-slate-100 p-2 flex flex-col items-center justify-center relative">
+            <button onClick={onBackToHub} className="absolute top-4 right-4 px-3 py-1.5 text-xs font-semibold rounded-full bg-slate-200 border border-slate-300 text-slate-600 hover:bg-slate-300 transition-colors z-10">
+                Back to Hub
+            </button>
             {renderContent()}
             {(gameState === 'WON' || gameState === 'LOST') && (
                 <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">

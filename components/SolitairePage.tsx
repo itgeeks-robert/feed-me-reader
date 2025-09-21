@@ -345,19 +345,24 @@ const SolitairePage: React.FC<SolitairePageProps> = (props) => {
               onUpdateSettings={onUpdateSettings}
               onCustomize={() => setIsThemeModalOpen(true)}
             /> : 
-            <GameBoard 
-                gamePhase={gamePhase}
-                gameState={gameState}
-                selectedInfo={selectedInfo}
-                time={time}
-                onDraw={handleDrawFromStock}
-                onCardClick={handleCardClick}
-                onCardDoubleClick={handleCardDoubleClick}
-                onEmptyPileClick={handleEmptyPileClick}
-                onNewGame={startNewGame}
-                onUndo={handleUndo}
-                settings={settings}
-            />
+            <>
+                <button onClick={onBackToHub} className="absolute top-4 right-4 z-30 bg-black/30 backdrop-blur-sm px-3 py-1.5 rounded-full text-sm text-white/80 hover:text-white hover:bg-black/50 transition-colors">
+                    Back to Hub
+                </button>
+                <GameBoard 
+                    gamePhase={gamePhase}
+                    gameState={gameState}
+                    selectedInfo={selectedInfo}
+                    time={time}
+                    onDraw={handleDrawFromStock}
+                    onCardClick={handleCardClick}
+                    onCardDoubleClick={handleCardDoubleClick}
+                    onEmptyPileClick={handleEmptyPileClick}
+                    onNewGame={startNewGame}
+                    onUndo={handleUndo}
+                    settings={settings}
+                />
+            </>
         }
         {isThemeModalOpen && 
           <CustomizeThemeModal
