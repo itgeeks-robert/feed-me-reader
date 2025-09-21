@@ -1,9 +1,11 @@
+
 import React, { useState } from 'react';
 import SudokuPage from './SudokuPage';
 import MinesweeperPage from './MinesweeperPage';
 import SolitairePage from './SolitairePage';
+import PoolGamePage from './PoolGamePage';
 import type { SudokuStats, SudokuDifficulty, SolitaireStats, SolitaireSettings } from '../src/App';
-import { BrainIcon, FireIcon, CubeTransparentIcon } from './icons';
+import { BrainIcon, FireIcon, CubeTransparentIcon, CubeIcon } from './icons';
 
 interface GameHubPageProps {
   sudokuStats: SudokuStats;
@@ -24,7 +26,7 @@ const GameHubPage: React.FC<GameHubPageProps> = (props) => {
     isApiKeyMissing
   } = props;
 
-  const [activeGame, setActiveGame] = useState<'menu' | 'sudoku' | 'minesweeper' | 'solitaire'>('menu');
+  const [activeGame, setActiveGame] = useState<'menu' | 'sudoku' | 'minesweeper' | 'solitaire' | 'pool'>('menu');
 
   const GameCard: React.FC<{ title: string; description: string; icon: React.ReactNode; onClick: () => void; }> = ({ title, description, icon, onClick }) => (
     <button
@@ -61,6 +63,8 @@ const GameHubPage: React.FC<GameHubPageProps> = (props) => {
             isApiKeyMissing={isApiKeyMissing}
           />
         );
+      case 'pool':
+        return <PoolGamePage onBackToHub={() => setActiveGame('menu')} />;
       case 'menu':
       default:
         return (
@@ -71,6 +75,7 @@ const GameHubPage: React.FC<GameHubPageProps> = (props) => {
               <GameCard title="Sudoku" description="A classic logic puzzle." icon={<BrainIcon className="w-8 h-8" />} onClick={() => setActiveGame('sudoku')} />
               <GameCard title="Minesweeper" description="Don't step on the mines." icon={<FireIcon className="w-8 h-8" />} onClick={() => setActiveGame('minesweeper')} />
               <GameCard title="Solitaire" description="The timeless card game." icon={<CubeTransparentIcon className="w-8 h-8" />} onClick={() => setActiveGame('solitaire')} />
+              <GameCard title="8-Ball Pool" description="A realistic pool simulation." icon={<CubeIcon className="w-8 h-8" />} onClick={() => setActiveGame('pool')} />
             </div>
           </div>
         );

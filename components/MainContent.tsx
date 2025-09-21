@@ -48,7 +48,7 @@ interface MainContentProps {
     pageTitle: string;
 }
 
-const ARTICLES_PER_PAGE = 15;
+const ARTICLES_PER_PAGE = 10;
 
 const MainContent: React.FC<MainContentProps> = (props) => {
     const { feedsToDisplay, selection, readArticleIds, bookmarkedArticleIds, onMarkAsRead, onSearch, allFeeds, refreshKey, widgetSettings, onOpenSidebar, articleView, theme, onToggleTheme, animationClass, pageTitle } = props;

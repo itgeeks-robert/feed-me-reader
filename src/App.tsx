@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import MainContent from '../components/MainContent';
 import type { SourceType } from '../components/AddSource';
@@ -194,8 +195,29 @@ const App: React.FC = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     
     const [lastRefresh, setLastRefresh] = useState(() => Date.now());
+    const [gameHubResetKey, setGameHubResetKey] = useState(0);
     
     const isApiKeyMissing = !process.env.API_KEY;
+
+    // This effect runs once on mount to validate the persisted selection from localStorage.
+    // If the selected folder or feed no longer exists, it resets to the 'all' view to prevent a crash.
+    useEffect(() => {
+        const validateSelection = () => {
+            if (selection.type === 'folder' && !folders.some(f => f.id === selection.id)) {
+                return false;
+            }
+            if (selection.type === 'feed' && !feeds.some(f => f.id === selection.id)) {
+                return false;
+            }
+            return true;
+        };
+
+        if (!validateSelection()) {
+            console.warn('Persisted selection from localStorage is invalid. Resetting to default.');
+            setSelection({ type: 'all', id: null });
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Empty dependency array ensures this runs only once on mount.
 
     const [animationClass, setAnimationClass] = useState('animate-fade-in');
 
@@ -228,8 +250,13 @@ const App: React.FC = () => {
         } else {
             setAnimationClass('animate-slide-in-from-left');
         }
-        setSelection(mainPages[newIndex].selection);
-    }, [currentPageIndex, mainPages, setSelection]);
+
+        const newSelection = mainPages[newIndex].selection;
+        if (newSelection.type === 'game_hub' && selection.type === 'game_hub') {
+            setGameHubResetKey(k => k + 1);
+        }
+        setSelection(newSelection);
+    }, [currentPageIndex, mainPages, setSelection, selection]);
 
     const swipeHandlers = useSwipe({
         onSwipeLeft: () => {
@@ -268,6 +295,9 @@ const App: React.FC = () => {
     };
 
     const handleSelectFromSidebar = (sel: Selection) => {
+        if (sel.type === 'game_hub' && selection.type === 'game_hub') {
+            setGameHubResetKey(k => k + 1);
+        }
         if (JSON.stringify(sel) !== JSON.stringify(selection)) {
             setAnimationClass('animate-fade-in');
             setSelection(sel);
@@ -615,6 +645,7 @@ const App: React.FC = () => {
             <div {...swipeHandlers} className="flex-1 flex flex-col min-w-0 md:pl-72 relative">
                 {selection.type === 'game_hub' ? (
                     <GameHubPage
+                        key={gameHubResetKey}
                         sudokuStats={sudokuStats}
                         onSudokuWin={handleSudokuWin}
                         solitaireStats={solitaireStats}
