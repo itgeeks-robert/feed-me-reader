@@ -200,8 +200,8 @@ const App: React.FC = () => {
     
     const isApiKeyMissing = !process.env.API_KEY;
 
-    // This effect runs once on mount to validate the persisted selection from localStorage.
-    // If the selected folder or feed no longer exists, it resets to the 'all' view to prevent a crash.
+    // This effect runs on mount and whenever selection/data changes to validate the persisted selection.
+    // If the selected folder or feed no longer exists, it resets to the 'all' view to prevent a crash or inconsistent state.
     useEffect(() => {
         const validateSelection = () => {
             if (selection.type === 'folder' && !folders.some(f => f.id === selection.id)) {
@@ -217,8 +217,7 @@ const App: React.FC = () => {
             console.warn('Persisted selection from localStorage is invalid. Resetting to default.');
             setSelection({ type: 'all', id: null });
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []); // Empty dependency array ensures this runs only once on mount.
+    }, [selection, folders, feeds, setSelection]);
 
     const [animationClass, setAnimationClass] = useState('animate-fade-in');
 

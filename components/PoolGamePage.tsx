@@ -323,54 +323,151 @@ const PoolGamePage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) =>
     useEffect(() => {
         const canvas = canvasRef.current; if (!canvas) return;
         const ctx = canvas.getContext('2d'); if (!ctx) return;
+        let feltPattern: CanvasPattern | null = null;
+        
+        const createFeltPattern = () => {
+            const patternCanvas = document.createElement('canvas');
+            const patternCtx = patternCanvas.getContext('2d');
+            if (!patternCtx) return;
+            const size = 32;
+            patternCanvas.width = size;
+            patternCanvas.height = size;
+            
+            patternCtx.fillStyle = '#067f40';
+            patternCtx.fillRect(0, 0, size, size);
+            patternCtx.globalAlpha = 0.05;
+            for(let i=0; i < size * 2; i++) {
+                patternCtx.fillStyle = `rgba(0,0,0,${Math.random() * 0.5})`;
+                patternCtx.fillRect(Math.random() * size, Math.random() * size, 1, 1);
+                 patternCtx.fillStyle = `rgba(255,255,255,${Math.random() * 0.5})`;
+                patternCtx.fillRect(Math.random() * size, Math.random() * size, 1, 1);
+            }
+            feltPattern = ctx.createPattern(patternCanvas, 'repeat');
+        };
+        createFeltPattern();
+        
+        const drawBall = (ball: Ball) => {
+             // 1. Drop Shadow
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(ball.pos.x, ball.pos.y, ball.radius, 0, 2 * Math.PI);
+            ctx.fillStyle = 'black';
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+            ctx.shadowBlur = ball.radius * 0.6;
+            ctx.shadowOffsetX = ball.radius * 0.2;
+            ctx.shadowOffsetY = ball.radius * 0.3;
+            ctx.fill();
+            ctx.restore();
+
+            // 2. Main ball color and shading for 3D effect
+            ctx.beginPath();
+            ctx.arc(ball.pos.x, ball.pos.y, ball.radius, 0, 2 * Math.PI);
+            const darken = (hex: string, amount: number) => {
+                let r = parseInt(hex.slice(1, 3), 16); let g = parseInt(hex.slice(3, 5), 16); let b = parseInt(hex.slice(5, 7), 16);
+                r = Math.max(0, r - amount); g = Math.max(0, g - amount); b = Math.max(0, b - amount);
+                return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+            };
+            const gradient = ctx.createRadialGradient(
+                ball.pos.x - ball.radius * 0.2, ball.pos.y - ball.radius * 0.3, ball.radius * 0.1,
+                ball.pos.x, ball.pos.y, ball.radius
+            );
+            gradient.addColorStop(0, ball.color);
+            gradient.addColorStop(1, darken(ball.color, 80));
+            ctx.fillStyle = gradient;
+            ctx.fill();
+
+            // Stripe
+            if (ball.type === 'stripe') {
+                ctx.save();
+                ctx.clip();
+                ctx.fillStyle = '#f5f5f5';
+                ctx.fillRect(ball.pos.x - ball.radius, ball.pos.y - ball.radius * 0.45, ball.radius * 2, ball.radius * 0.9);
+                ctx.restore();
+            }
+
+            // Number
+            if (ball.num > 0) {
+                const circleRadius = ball.radius * 0.6;
+                ctx.beginPath();
+                ctx.arc(ball.pos.x, ball.pos.y, circleRadius, 0, 2 * Math.PI);
+                ctx.fillStyle = '#f5f5f5';
+                ctx.fill();
+                ctx.fillStyle = '#212121';
+                ctx.font = `bold ${ball.radius * (ball.num >= 10 ? 0.7 : 0.8)}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(String(ball.num), ball.pos.x, ball.pos.y + 1);
+            }
+
+            // 3. Glossy Highlight
+            const highlightPos = new Vector2(ball.pos.x - ball.radius * 0.35, ball.pos.y - ball.radius * 0.35);
+            const highlight = ctx.createRadialGradient(highlightPos.x, highlightPos.y, 0, highlightPos.x, highlightPos.y, ball.radius * 0.7);
+            highlight.addColorStop(0, 'rgba(255,255,255,0.8)');
+            highlight.addColorStop(0.3, 'rgba(255,255,255,0.4)');
+            highlight.addColorStop(1, 'rgba(255,255,255,0)');
+            ctx.fillStyle = highlight;
+            ctx.beginPath();
+            ctx.arc(ball.pos.x, ball.pos.y, ball.radius, 0, 2 * Math.PI);
+            ctx.fill();
+        };
 
         const draw = () => {
             const { width, height } = ctx.canvas.getBoundingClientRect();
             const BALL_RADIUS = width * BALL_RADIUS_RATIO;
             const POCKET_RADIUS = width * POCKET_RADIUS_RATIO;
             const TABLE_INSET = width * TABLE_INSET_RATIO;
-            const lightSource = new Vector2(width * 0.6, height * 0.4);
 
             ctx.clearRect(0, 0, width, height);
             ctx.fillStyle = '#1a1a1a'; ctx.fillRect(0, 0, width, height);
 
+            // Rails
             ctx.save();
-            ctx.shadowColor = 'rgba(0,0,0,0.8)'; ctx.shadowBlur = 40; ctx.shadowOffsetY = 20;
+            ctx.shadowColor = 'rgba(0,0,0,0.8)'; ctx.shadowBlur = 30; ctx.shadowOffsetY = 15;
             const woodGradient = ctx.createLinearGradient(0, 0, width, height);
             woodGradient.addColorStop(0, '#4a2c2a'); woodGradient.addColorStop(1, '#2d1a1a');
             ctx.fillStyle = woodGradient;
-            ctx.fillRect(TABLE_INSET / 2, TABLE_INSET / 2, width - TABLE_INSET, height - TABLE_INSET);
+            ctx.fillRect(TABLE_INSET / 4, TABLE_INSET / 4, width - TABLE_INSET / 2, height - TABLE_INSET / 2);
+            ctx.restore();
+
+            // Inner beveled edge of rails
+            const railWidth = TABLE_INSET * 0.75;
+            ctx.save();
+            const railGradient = ctx.createLinearGradient(0, 0, railWidth, railWidth);
+            railGradient.addColorStop(0, '#8c6d4f');
+            railGradient.addColorStop(0.5, '#6f4e37');
+            railGradient.addColorStop(1, '#4a2c2a');
+            ctx.strokeStyle = railGradient; ctx.lineWidth = railWidth;
+            ctx.strokeRect(railWidth / 2, railWidth / 2, width - railWidth, height - railWidth);
+            ctx.restore();
+
+            // Inner shadow from rail onto felt
+            ctx.save();
+            ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 15; ctx.shadowOffsetX = 5; ctx.shadowOffsetY = 5;
+            ctx.strokeStyle = '#045f30'; ctx.lineWidth = 1;
+            ctx.strokeRect(TABLE_INSET, TABLE_INSET, width - 2 * TABLE_INSET, height - 2 * TABLE_INSET);
             ctx.restore();
             
-            const feltGradient = ctx.createRadialGradient(width/2, height/2, 0, width/2, height/2, width/1.5);
-            feltGradient.addColorStop(0, '#0a9a5a'); feltGradient.addColorStop(1, '#067f40');
-            ctx.fillStyle = feltGradient;
+            // Felt
+            ctx.fillStyle = feltPattern || '#0a9a5a';
+            ctx.fillRect(TABLE_INSET, TABLE_INSET, width - 2 * TABLE_INSET, height - 2 * TABLE_INSET);
+            const feltLighting = ctx.createRadialGradient(width/2, height/2, 0, width/2, height/2, width/1.5);
+            feltLighting.addColorStop(0, 'rgba(255,255,255,0.15)');
+            feltLighting.addColorStop(1, 'rgba(0,0,0,0.25)');
+            ctx.fillStyle = feltLighting;
             ctx.fillRect(TABLE_INSET, TABLE_INSET, width - 2 * TABLE_INSET, height - 2 * TABLE_INSET);
             
+            // Pockets
             game.current.pockets.forEach(p => {
-                ctx.fillStyle = 'black';
-                ctx.beginPath(); ctx.arc(p.x, p.y, POCKET_RADIUS, 0, 2 * Math.PI); ctx.fill();
+                const pocketGradient = ctx.createRadialGradient(p.x, p.y, POCKET_RADIUS * 0.2, p.x, p.y, POCKET_RADIUS);
+                pocketGradient.addColorStop(0, '#111');
+                pocketGradient.addColorStop(1, 'black');
+                ctx.fillStyle = pocketGradient;
+                ctx.beginPath(); ctx.arc(p.x, p.y, POCKET_RADIUS * 1.1, 0, 2 * Math.PI); ctx.fill();
             });
 
+            // Balls
             const { balls } = game.current;
-            balls.filter(b => !b.inPocket).forEach(ball => {
-                ctx.beginPath(); ctx.arc(ball.pos.x, ball.pos.y, BALL_RADIUS, 0, 2 * Math.PI);
-                ctx.fillStyle = ball.color; ctx.fill();
-                
-                if (ball.type === 'stripe') {
-                    ctx.fillStyle = '#f5f5f5';
-                    ctx.save();
-                    ctx.beginPath(); ctx.arc(ball.pos.x, ball.pos.y, BALL_RADIUS, 0, 2 * Math.PI); ctx.clip();
-                    ctx.fillRect(ball.pos.x - BALL_RADIUS, ball.pos.y - BALL_RADIUS * 0.5, BALL_RADIUS * 2, BALL_RADIUS);
-                    ctx.restore();
-                }
-                
-                const highlightPos = ball.pos.subtract(lightSource).normalize().multiply(-BALL_RADIUS * 0.4).add(ball.pos);
-                const highlight = ctx.createRadialGradient(highlightPos.x, highlightPos.y, 0, highlightPos.x, highlightPos.y, BALL_RADIUS * 0.7);
-                highlight.addColorStop(0, 'rgba(255,255,255,0.8)'); highlight.addColorStop(0.5, 'rgba(255,255,255,0)');
-                ctx.fillStyle = highlight;
-                ctx.beginPath(); ctx.arc(ball.pos.x, ball.pos.y, BALL_RADIUS, 0, 2 * Math.PI); ctx.fill();
-            });
+            balls.filter(b => !b.inPocket).forEach(drawBall);
 
             const cueBall = balls.find(b => b.num === 0);
             const isAnimatingCue = shotAnimationProgress.current < 1;

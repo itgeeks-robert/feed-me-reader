@@ -82,7 +82,15 @@ const MainContent: React.FC<MainContentProps> = (props) => {
             setError(null);
 
             const feedErrors: string[] = [];
-            const promises = feeds.map(feed => 
+            const validFeeds = feeds.filter(feed => {
+                if (!feed || !feed.url) {
+                    console.warn('Skipping invalid feed object from storage:', feed);
+                    return false;
+                }
+                return true;
+            });
+
+            const promises = validFeeds.map(feed => 
                 resilientFetch(feed.url, { timeout: 10000 })
                     .then(response => response.text())
                     .then(xmlText => parseRssXml(xmlText, feed.title, feed.url))
