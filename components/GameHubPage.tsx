@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import SudokuPage from './SudokuPage';
 import MinesweeperPage from './MinesweeperPage';
@@ -16,6 +17,7 @@ interface GameHubPageProps {
   solitaireSettings: SolitaireSettings;
   onUpdateSolitaireSettings: (settings: SolitaireSettings) => void;
   isApiKeyMissing: boolean;
+  onReturnToFeeds: () => void;
 }
 
 const GameHubPage: React.FC<GameHubPageProps> = (props) => {
@@ -23,7 +25,8 @@ const GameHubPage: React.FC<GameHubPageProps> = (props) => {
     sudokuStats, onSudokuWin, 
     solitaireStats, onSolitaireWin, onSolitaireStart,
     solitaireSettings, onUpdateSolitaireSettings,
-    isApiKeyMissing
+    isApiKeyMissing,
+    onReturnToFeeds
   } = props;
 
   const [activeGame, setActiveGame] = useState<'menu' | 'sudoku' | 'minesweeper' | 'solitaire' | 'pool'>('menu');
@@ -77,6 +80,13 @@ const GameHubPage: React.FC<GameHubPageProps> = (props) => {
               <GameCard title="Solitaire" description="The timeless card game." icon={<CubeTransparentIcon className="w-8 h-8" />} onClick={() => setActiveGame('solitaire')} />
               <GameCard title="8-Ball Pool" description="A realistic pool simulation." icon={<CubeIcon className="w-8 h-8" />} onClick={() => setActiveGame('pool')} />
             </div>
+             <button 
+                onClick={onReturnToFeeds}
+                className="mt-8 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-orange-500 dark:hover:text-orange-400 inline-flex items-center gap-2 transition-colors"
+            >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                Return to All Feeds
+            </button>
           </div>
         );
     }

@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import React, { useRef } from 'react';
 
 interface SwipeInput {
   onSwipeLeft: () => void;
@@ -37,6 +37,7 @@ export const useSwipe = ({ onSwipeLeft, onSwipeRight }: SwipeInput) => {
         // though modern browsers often handle this well.
         // For explicit control, you might call e.preventDefault() here,
         // but be cautious as it can block intended vertical scrolling.
+        e.preventDefault();
     }
     
     touchEnd.current = currentX;

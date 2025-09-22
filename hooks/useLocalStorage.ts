@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, Dispatch, SetStateAction } from 'react';
 
 const reviver = (key: string, value: any) => {
     if (typeof value === 'object' && value !== null) {
@@ -22,18 +22,27 @@ const replacer = (key: string, value: any) => {
     return value;
 };
 
-export function useLocalStorage<T>(key: string, initialValue: T | (() => T)): [T, React.Dispatch<React.SetStateAction<T>>] {
+// FIX: Change React.Dispatch<React.SetStateAction<T>> to Dispatch<SetStateAction<T>>
+export function useLocalStorage<T>(key: string, initialValue: T | (() => T)): [T, Dispatch<SetStateAction<T>>] {
     const [storedValue, setStoredValue] = useState<T>(() => {
+        const resolvedInitialValue = initialValue instanceof Function ? initialValue() : initialValue;
         try {
             const item = window.localStorage.getItem(key);
-            return item ? JSON.parse(item, reviver) : (initialValue instanceof Function ? initialValue() : initialValue);
+            if (item === null) {
+                return resolvedInitialValue;
+            }
+            const parsed = JSON.parse(item, reviver);
+            // Ensure that if localStorage has `null` we don't return it,
+            // as this will crash the app when properties are accessed.
+            return parsed !== null ? parsed : resolvedInitialValue;
         } catch (error) {
             console.warn(`Error reading localStorage key "${key}":`, error);
-            return initialValue instanceof Function ? initialValue() : initialValue;
+            return resolvedInitialValue;
         }
     });
 
-    const setValue: React.Dispatch<React.SetStateAction<T>> = value => {
+    // FIX: Change React.Dispatch<React.SetStateAction<T>> to Dispatch<SetStateAction<T>>
+    const setValue: Dispatch<SetStateAction<T>> = value => {
         try {
             const valueToStore = value instanceof Function ? value(storedValue) : value;
             setStoredValue(valueToStore);

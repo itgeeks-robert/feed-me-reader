@@ -1,5 +1,3 @@
-
-
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 
 // --- Helper Classes and Types ---
@@ -104,33 +102,44 @@ const SpinControl: React.FC<{ spin: Vector2, setSpin: (s: Vector2) => void }> = 
     
     return (
         <div ref={controlRef} onMouseDown={handleInteraction} onTouchStart={handleInteraction} onMouseMove={(e) => e.buttons === 1 && handleInteraction(e)} onTouchMove={handleInteraction}
-            className="w-20 h-20 bg-black/30 backdrop-blur-sm rounded-full border-2 border-white/20 flex items-center justify-center cursor-pointer">
-            <div className="w-16 h-16 bg-white rounded-full relative shadow-inner">
-                <div className="absolute w-4 h-4 bg-red-500 rounded-full border-2 border-white shadow-md"
-                    style={{ left: `calc(50% - 0.5rem + ${spin.x * 1.5}rem)`, top: `calc(50% - 0.5rem + ${spin.y * 1.5}rem)` }}
+            className="w-14 h-14 bg-black/30 backdrop-blur-sm rounded-full border-2 border-white/20 flex items-center justify-center cursor-pointer">
+            <div className="w-12 h-12 bg-white rounded-full relative shadow-inner">
+                <div className="absolute w-3 h-3 bg-red-500 rounded-full border-2 border-white shadow-md"
+                    style={{ left: `calc(50% - 0.375rem + ${spin.x * 1.125}rem)`, top: `calc(50% - 0.375rem + ${spin.y * 1.125}rem)` }}
                 />
             </div>
         </div>
     );
 };
 
-const PowerMeter: React.FC<{ power: number, setPower: (p: number) => void }> = ({ power, setPower }) => {
+const PowerMeter: React.FC<{ power: number, setPower: (p: number) => void, orientation?: 'horizontal' | 'vertical' }> = ({ power, setPower, orientation = 'horizontal' }) => {
     const meterRef = useRef<HTMLDivElement>(null);
     const handleInteraction = (e: React.MouseEvent | React.TouchEvent) => {
         if (!meterRef.current) return;
         e.preventDefault();
         const rect = meterRef.current.getBoundingClientRect();
         const touch = 'touches' in e ? e.touches[0] : e;
-        const x = touch.clientX - rect.left;
-        const newPower = x / rect.width;
+        let newPower;
+        if (orientation === 'vertical') {
+            const y = touch.clientY - rect.top;
+            newPower = 1 - (y / rect.height); // Invert because top is 0
+        } else {
+            const x = touch.clientX - rect.left;
+            newPower = x / rect.width;
+        }
         setPower(Math.max(0, Math.min(1, newPower)));
     };
 
+    const isVertical = orientation === 'vertical';
+
     return (
         <div ref={meterRef} onMouseDown={handleInteraction} onTouchStart={handleInteraction} onMouseMove={(e) => e.buttons === 1 && handleInteraction(e)} onTouchMove={handleInteraction}
-            className="w-48 h-6 bg-black/30 backdrop-blur-sm rounded-full border-2 border-white/20 p-1 cursor-pointer">
-            <div className="w-full h-full bg-cyan-400/20 rounded-full relative overflow-hidden">
-                <div className="absolute left-0 h-full bg-gradient-to-r from-cyan-400 to-cyan-200 rounded-full transition-all duration-100" style={{ width: `${power * 100}%` }} />
+            className={`bg-black/30 backdrop-blur-sm rounded-full border-2 border-white/20 p-1 cursor-pointer ${isVertical ? 'w-6 h-48' : 'w-48 h-6'}`}>
+            <div className={`w-full h-full bg-cyan-400/20 rounded-full relative overflow-hidden`}>
+                <div 
+                    className={`absolute rounded-full transition-all duration-100 ${isVertical ? 'bottom-0 w-full bg-gradient-to-t' : 'left-0 h-full bg-gradient-to-r'} from-cyan-400 to-cyan-200`} 
+                    style={isVertical ? { height: `${power * 100}%` } : { width: `${power * 100}%` }} 
+                />
             </div>
         </div>
     );
@@ -711,22 +720,30 @@ const PoolGamePage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) =>
     return (
         <div className="w-full h-full bg-black flex flex-col relative font-sans text-white overflow-hidden">
             <TopIndicatorBar humanPotted={game.current.humanPotted} aiPotted={game.current.aiPotted} humanType={game.current.humanPlayerBallType} />
-            <main className="flex-grow relative w-full h-full min-h-0">
-                <canvas ref={canvasRef} className="w-full h-full" />
+            
+            <main className="flex-grow relative w-full h-full min-h-0 grid place-items-center p-2">
+                <div className="relative aspect-[2/1] max-w-full max-h-full portrait:w-full landscape:h-full">
+                    <canvas ref={canvasRef} className="absolute top-0 left-0 w-full h-full" />
+                </div>
             </main>
-             <div className="absolute bottom-4 left-0 right-0 z-20 flex justify-between items-end px-4 pointer-events-none">
-                <div className="pointer-events-auto"><SpinControl spin={spin} setSpin={setSpin} /></div>
-                <div className="flex flex-col items-center gap-2 pointer-events-auto">
-                    <PowerMeter power={power} setPower={setPower} />
-                    <ShootButton onClick={handleShoot} disabled={game.current.ballsMoving || game.current.turn !== 'human'} />
+
+            {/* Unified Controls for both Portrait and Landscape */}
+            <div className="absolute inset-y-0 right-0 z-20 pointer-events-none p-4 
+                          flex items-center justify-end">
+                <div className="pointer-events-auto flex items-center gap-4">
+                    <div className="flex flex-col items-center gap-2">
+                        <ShootButton onClick={handleShoot} disabled={game.current.ballsMoving || game.current.turn !== 'human'} />
+                        <SpinControl spin={spin} setSpin={setSpin} />
+                    </div>
+                    <PowerMeter power={power} setPower={setPower} orientation="vertical" />
                 </div>
             </div>
+            
             <button onClick={onBackToHub} className="absolute top-5 right-5 z-30 bg-black/30 backdrop-blur-sm p-2 rounded-full text-sm">Back to Hub</button>
             {game.current.winner && (
                 <div className="absolute inset-0 bg-black/60 backdrop-blur-sm z-40 flex items-center justify-center">
                     <div className="text-center p-8 bg-black/50 rounded-xl">
                         <h2 className="text-4xl font-bold mb-4">{game.current.winner === 'human' ? 'You Win!' : 'AI Wins!'}</h2>
-                        {/* Fix: Call setupGame directly. It was previously out of scope. */}
                         <button onClick={setupGame} className="px-6 py-2 bg-cyan-500 text-white font-semibold rounded-lg">Play Again</button>
                     </div>
                 </div>

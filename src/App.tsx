@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import MainContent from '../components/MainContent';
 import type { SourceType } from '../components/AddSource';
@@ -148,7 +146,7 @@ const defaultWidgetSettings: WidgetSettings = {
     showSports: true,
     showFinance: false,
     weatherLocation: 'Kirkham',
-    sportsTeams: ['MUN', 'FYL', 'BLA', 'MCI'],
+    sportsTeams: ['MUN', 'BLA', 'MCI'],
 };
 
 const defaultSudokuStats: SudokuStats = {
@@ -304,6 +302,11 @@ const App: React.FC = () => {
         }
         setIsSidebarOpen(false);
     };
+
+    const handleReturnToFeeds = useCallback(() => {
+        setAnimationClass('animate-fade-in');
+        setSelection({ type: 'all', id: null });
+    }, [setSelection]);
 
     const handleAddSource = async (url: string, type: SourceType) => {
         let feedUrl = url;
@@ -654,6 +657,7 @@ const App: React.FC = () => {
                         solitaireSettings={solitaireSettings}
                         onUpdateSolitaireSettings={setSolitaireSettings}
                         isApiKeyMissing={isApiKeyMissing}
+                        onReturnToFeeds={handleReturnToFeeds}
                     />
                 ) : (
                     <MainContent
