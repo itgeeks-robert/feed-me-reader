@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import type { Feed, Folder, Selection } from '../src/App';
 import type { SourceType } from './AddSource';
 import AddSource from './AddSource';
+import { Disclosure, DisclosureButton, DisclosurePanel } from './Disclosure';
 import {
     SeymourIcon, ListIcon, PlusIcon, RssIcon, TrashIcon, FolderIcon, PencilIcon, ChevronDownIcon, ChevronRightIcon, XIcon, BookmarkIcon, SettingsIcon, RedditIcon, YoutubeIcon, GlobeAltIcon, CubeTransparentIcon
 } from './icons';
@@ -101,7 +102,6 @@ const FolderItem: React.FC<{
 }> = ({ folder, feeds, selection, onSelect, onRenameFolder, onDeleteFolder, onRemoveFeed, onMoveFeedToFolder, isDragTarget, onDragEnter, onDragLeave }) => {
     const [isRenaming, setIsRenaming] = useState(false);
     const [newName, setNewName] = useState(folder.name);
-    const [isExpanded, setIsExpanded] = useState(true);
 
     const handleRenameSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -126,48 +126,50 @@ const FolderItem: React.FC<{
     const dragTargetClasses = isDragTarget ? 'bg-orange-900/50 ring-1 ring-orange-500' : '';
 
     return (
-        <div>
-            <div
-                onClick={() => onSelect({ type: 'folder', id: folder.id })}
-                onDrop={handleDrop}
-                onDragOver={e => e.preventDefault()}
-                onDragEnter={onDragEnter}
-                onDragLeave={onDragLeave}
-                className={`group flex items-center justify-between pl-1 pr-3 py-2 rounded-lg cursor-pointer transition-colors duration-150 ${activeClasses} ${dragTargetClasses}`}
-            >
-                <div className="flex items-center space-x-2 truncate">
-                    <button onClick={(e) => { e.stopPropagation(); setIsExpanded(!isExpanded);}} className="text-zinc-400 dark:text-zinc-500 hover:text-zinc-800 dark:hover:text-white p-1 rounded-md">
-                        {isExpanded ? <ChevronDownIcon className="w-4 h-4" /> : <ChevronRightIcon className="w-4 h-4" />}
-                    </button>
-                    {isRenaming ? (
-                        <form onSubmit={handleRenameSubmit} className="flex-1">
-                            <input
-                                type="text"
-                                value={newName}
-                                onChange={(e) => setNewName(e.target.value)}
-                                onBlur={() => setIsRenaming(false)}
-                                autoFocus
-                                onClick={(e) => e.stopPropagation()}
-                                className="w-full bg-zinc-100 dark:bg-zinc-800 border-none rounded py-0 px-1 text-sm text-zinc-800 dark:text-zinc-300 focus:outline-none focus:ring-1 focus:ring-orange-500"
-                            />
-                        </form>
-                    ) : (
-                        <span className="truncate font-medium">{folder.name}</span>
-                    )}
+        <Disclosure defaultOpen={true}>
+            <div>
+                <div
+                    onClick={() => onSelect({ type: 'folder', id: folder.id })}
+                    onDrop={handleDrop}
+                    onDragOver={e => e.preventDefault()}
+                    onDragEnter={onDragEnter}
+                    onDragLeave={onDragLeave}
+                    className={`group flex items-center justify-between pl-1 pr-3 py-2 rounded-lg cursor-pointer transition-colors duration-150 ${activeClasses} ${dragTargetClasses}`}
+                >
+                    <div className="flex items-center space-x-2 truncate">
+                        <DisclosureButton className="text-zinc-400 dark:text-zinc-500 hover:text-zinc-800 dark:hover:text-white p-1 rounded-md">
+                            {({ open }) => open ? <ChevronDownIcon className="w-4 h-4" /> : <ChevronRightIcon className="w-4 h-4" />}
+                        </DisclosureButton>
+                        {isRenaming ? (
+                            <form onSubmit={handleRenameSubmit} className="flex-1">
+                                <input
+                                    type="text"
+                                    value={newName}
+                                    onChange={(e) => setNewName(e.target.value)}
+                                    onBlur={() => setIsRenaming(false)}
+                                    autoFocus
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="w-full bg-zinc-100 dark:bg-zinc-800 border-none rounded py-0 px-1 text-sm text-zinc-800 dark:text-zinc-300 focus:outline-none focus:ring-1 focus:ring-orange-500"
+                                />
+                            </form>
+                        ) : (
+                            <span className="truncate font-medium">{folder.name}</span>
+                        )}
+                    </div>
+                    <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                         <button onClick={(e) => { e.stopPropagation(); setIsRenaming(true); }} className="p-1 rounded-md text-zinc-400 dark:text-zinc-500 hover:text-orange-500 dark:hover:text-orange-400" aria-label={`Rename ${folder.name}`}><PencilIcon className="w-4 h-4" /></button>
+                         <button onClick={(e) => { e.stopPropagation(); onDeleteFolder(folder.id); }} className="p-1 rounded-md text-zinc-400 dark:text-zinc-500 hover:text-red-500 dark:hover:text-red-400" aria-label={`Delete ${folder.name}`}><TrashIcon className="w-4 h-4" /></button>
+                    </div>
                 </div>
-                <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                     <button onClick={(e) => { e.stopPropagation(); setIsRenaming(true); }} className="p-1 rounded-md text-zinc-400 dark:text-zinc-500 hover:text-orange-500 dark:hover:text-orange-400" aria-label={`Rename ${folder.name}`}><PencilIcon className="w-4 h-4" /></button>
-                     <button onClick={(e) => { e.stopPropagation(); onDeleteFolder(folder.id); }} className="p-1 rounded-md text-zinc-400 dark:text-zinc-500 hover:text-red-500 dark:hover:text-red-400" aria-label={`Delete ${folder.name}`}><TrashIcon className="w-4 h-4" /></button>
-                </div>
+                 <DisclosurePanel>
+                    <div className="pl-6 pt-1 space-y-1">
+                        {feeds.map(feed => (
+                            <FeedItem key={feed.id} feed={feed} selection={selection} onSelect={onSelect} onRemoveFeed={onRemoveFeed} />
+                        ))}
+                    </div>
+                </DisclosurePanel>
             </div>
-             {isExpanded && (
-                <div className="pl-6 pt-1 space-y-1">
-                    {feeds.map(feed => (
-                        <FeedItem key={feed.id} feed={feed} selection={selection} onSelect={onSelect} onRemoveFeed={onRemoveFeed} />
-                    ))}
-                </div>
-            )}
-        </div>
+        </Disclosure>
     );
 };
 
