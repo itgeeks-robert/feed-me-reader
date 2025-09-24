@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import type { Article } from '../../src/App';
 import { BookOpenIcon } from '../icons';
-import { PROXIES } from '../../services/fetch';
+import ImageWithProxy from '../ImageWithProxy';
 
 const ModernVectorFallback: React.FC = () => (
     <div className="absolute inset-0 overflow-hidden opacity-50">
@@ -10,19 +10,17 @@ const ModernVectorFallback: React.FC = () => (
 );
 
 const FeaturedStory: React.FC<{article: Article; onReadHere: () => void; onMarkAsRead: () => void; isRead: boolean;}> = ({ article, onReadHere, onMarkAsRead, isRead }) => {
-    const [imageSrc, setImageSrc] = useState(article.imageUrl ? `${PROXIES[0].url}${PROXIES[0].encode ? encodeURIComponent(article.imageUrl) : article.imageUrl}` : '');
-    const [imageError, setImageError] = useState(!article.imageUrl);
-
-    const hasImage = article.imageUrl && !imageError;
-    
     return (
         <div className={`p-6 rounded-3xl text-white shadow-lg relative overflow-hidden h-56 flex flex-col justify-end transition-opacity duration-300 ${isRead ? 'opacity-60 saturate-50' : ''}`}>
-            {hasImage ? (
-                <>
-                    <img src={imageSrc} alt="" className="absolute inset-0 w-full h-full object-cover" onError={() => setImageError(true)} />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-                </>
-            ) : ( <ModernVectorFallback /> )}
+            <ImageWithProxy
+                src={article.imageUrl}
+                alt=""
+                className="absolute inset-0 w-full h-full object-cover"
+                wrapperClassName="absolute inset-0"
+                fallback={<ModernVectorFallback />}
+            >
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+            </ImageWithProxy>
             
             <div className="relative z-10">
                 <p className="text-sm font-semibold opacity-80">{article.source}</p>

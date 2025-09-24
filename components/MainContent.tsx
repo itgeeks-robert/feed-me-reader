@@ -189,7 +189,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
     return (
         <main className={`flex-grow overflow-y-auto ${animationClass}`}>
             <Header onSearchSubmit={handleSearchSubmit} searchQuery={searchQuery} setSearchQuery={setSearchQuery} widgetSettings={widgetSettings} refreshKey={refreshKey} onOpenSidebar={onOpenSidebar} theme={theme} onToggleTheme={onToggleTheme} />
-            <div className="px-4 md:px-6 lg:px-8 pt-24 pb-40">
+            <div className="px-4 md:px-6 lg:px-8 pt-36 md:pt-24 pb-40">
                  <h1 className="text-4xl font-bold text-zinc-900 dark:text-white px-2 pb-6 truncate">{pageTitle}</h1>
                 {latestArticle && <FeaturedStory article={latestArticle} onReadHere={() => setReaderArticle(latestArticle)} onMarkAsRead={() => onMarkAsRead(latestArticle.id)} isRead={readArticleIds.has(latestArticle.id)} />}
                 

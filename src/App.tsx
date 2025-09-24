@@ -4,8 +4,7 @@ import type { SourceType } from '../components/AddSource';
 import SettingsModal from '../components/SettingsModal';
 import AddSourceModal from '../components/AddSourceModal';
 import Sidebar from '../components/Sidebar';
-import { useSwipe } from '../hooks/useSwipe';
-import BottomNavBar from '../components/BottomNavBar';
+import TopNavBar from '../components/TopNavBar';
 import { ListIcon, TrophyIcon, RedditIcon, YoutubeIcon, NewspaperIcon, BookmarkIcon, CubeTransparentIcon } from '../components/icons';
 import GameHubPage from '../components/GameHubPage';
 import { resilientFetch } from '../services/fetch';
@@ -128,11 +127,11 @@ const defaultFeeds: Feed[] = [
     
     // Tech (folderId: 2)
     { id: 4, url: 'https://www.wired.com/feed/rss', title: 'Wired', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=wired.com', folderId: 2, sourceType: 'rss' },
-    { id: 36, url: 'http://feeds.arstechnica.com/arstechnica/index', title: 'Ars Technica', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=arstechnica.com', folderId: 2, sourceType: 'rss' },
+    { id: 36, url: 'https://feeds.arstechnica.com/arstechnica/index', title: 'Ars Technica', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=arstechnica.com', folderId: 2, sourceType: 'rss' },
     
     // Sports (folderId: 3)
     { id: 34, url: 'https://feeds.bbci.co.uk/sport/rss.xml', title: 'BBC Sport', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=bbc.co.uk', folderId: 3, sourceType: 'rss' },
-    { id: 15, url: 'http://feeds.feedburner.com/totalf1-recent', title: 'TotalF1', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=totalf1.com', folderId: 3, sourceType: 'rss' },
+    { id: 15, url: 'https://www.motorsport.com/f1/rss/news/', title: 'Motorsport.com F1', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=motorsport.com', folderId: 3, sourceType: 'rss' },
     { id: 17, url: 'https://www.skysports.com/rss/12040', title: 'Sky Sports', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=skysports.com', folderId: 3, sourceType: 'rss' },
 
     // Reddit (unfiled)
@@ -255,19 +254,6 @@ const App: React.FC = () => {
         }
         setSelection(newSelection);
     }, [currentPageIndex, mainPages, setSelection, selection]);
-
-    const swipeHandlers = useSwipe({
-        onSwipeLeft: () => {
-            if (currentPageIndex > -1 && currentPageIndex < mainPages.length - 1) {
-                navigate(currentPageIndex + 1);
-            }
-        },
-        onSwipeRight: () => {
-            if (currentPageIndex > 0) {
-                navigate(currentPageIndex - 1);
-            }
-        },
-    });
 
     useEffect(() => {
         const feedInterval = setInterval(() => {
@@ -645,7 +631,7 @@ const App: React.FC = () => {
                 onClose={() => setIsSidebarOpen(false)}
                 onOpenSettings={() => setIsSettingsModalOpen(true)}
             />
-            <div {...swipeHandlers} className="flex-1 flex flex-col min-w-0 md:pl-72 relative">
+            <div className="flex-1 flex flex-col min-w-0 md:pl-72 relative">
                 {selection.type === 'game_hub' ? (
                     <GameHubPage
                         key={gameHubResetKey}
@@ -694,12 +680,10 @@ const App: React.FC = () => {
                 )}
             </div>
             {selection.type !== 'game_hub' && (
-                 <BottomNavBar 
+                 <TopNavBar 
                     pages={mainPages}
                     currentPageIndex={currentPageIndex}
                     onNavigate={navigate}
-                    onAddSource={() => setIsAddSourceModalOpen(true)}
-                    onRefresh={() => setLastRefresh(Date.now())}
                  />
             )}
             <SettingsModal

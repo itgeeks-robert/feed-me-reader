@@ -1,14 +1,11 @@
-import React, { useState } from 'react';
+import React from 'react';
 import type { Article } from '../../src/App';
 import type { SourceType } from '../AddSource';
 import { RedditIcon, YoutubeIcon, NewspaperIcon, BookOpenIcon } from '../icons';
-import { PROXIES } from '../../services/fetch';
+import ImageWithProxy from '../ImageWithProxy';
 import { timeAgo } from '../../services/utils';
 
 const ArticleListItem: React.FC<{ article: Article; onMarkAsRead: () => void; onReadHere: () => void; isRead: boolean; iconUrl?: string; sourceType?: SourceType; }> = ({ article, onMarkAsRead, onReadHere, isRead, iconUrl, sourceType }) => {
-    const [imageSrc, setImageSrc] = useState(article.imageUrl ? `${PROXIES[0].url}${article.imageUrl}` : '');
-    const [imageError, setImageError] = useState(!article.imageUrl);
-
     const FallbackDisplay = () => {
         if (sourceType === 'reddit') return <RedditIcon className="w-8 h-8 text-orange-500" />;
         if (sourceType === 'youtube') return <YoutubeIcon className="w-8 h-8 text-red-500" />;
@@ -37,11 +34,17 @@ const ArticleListItem: React.FC<{ article: Article; onMarkAsRead: () => void; on
                     </button>
                 </div>
             </div>
-            {article.imageUrl && !imageError ? (
-                <div className="w-32 flex-shrink-0"><img src={imageSrc} alt="" className="w-full h-full object-cover" onError={() => setImageError(true)} /></div>
-            ) : (
-                <div className="w-32 flex-shrink-0 bg-black/5 dark:bg-white/5 flex items-center justify-center"><FallbackDisplay /></div>
-            )}
+            <ImageWithProxy
+                src={article.imageUrl}
+                alt=""
+                className="w-full h-full object-cover"
+                wrapperClassName="w-32 flex-shrink-0"
+                fallback={
+                    <div className="w-full h-full bg-black/5 dark:bg-white/5 flex items-center justify-center">
+                        <FallbackDisplay />
+                    </div>
+                }
+            />
         </a>
     );
 };

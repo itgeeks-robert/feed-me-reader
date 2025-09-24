@@ -22,26 +22,29 @@ const replacer = (key: string, value: any) => {
     return value;
 };
 
-// FIX: Change React.Dispatch<React.SetStateAction<T>> to Dispatch<SetStateAction<T>>
 export function useLocalStorage<T>(key: string, initialValue: T | (() => T)): [T, Dispatch<SetStateAction<T>>] {
     const [storedValue, setStoredValue] = useState<T>(() => {
         const resolvedInitialValue = initialValue instanceof Function ? initialValue() : initialValue;
         try {
             const item = window.localStorage.getItem(key);
+            // If no item exists, return the initial value.
             if (item === null) {
                 return resolvedInitialValue;
             }
             const parsed = JSON.parse(item, reviver);
-            // Ensure that if localStorage has `null` we don't return it,
-            // as this will crash the app when properties are accessed.
-            return parsed !== null ? parsed : resolvedInitialValue;
+            // CRITICAL FIX: If the stored value is null or undefined (e.g., from an old state
+            // or if localStorage contains the string "null" or "undefined"),
+            // fall back to the initial value to prevent app-wide crashes.
+            if (parsed === null || typeof parsed === 'undefined') {
+                return resolvedInitialValue;
+            }
+            return parsed;
         } catch (error) {
             console.warn(`Error reading localStorage key "${key}":`, error);
             return resolvedInitialValue;
         }
     });
 
-    // FIX: Change React.Dispatch<React.SetStateAction<T>> to Dispatch<SetStateAction<T>>
     const setValue: Dispatch<SetStateAction<T>> = value => {
         try {
             const valueToStore = value instanceof Function ? value(storedValue) : value;
