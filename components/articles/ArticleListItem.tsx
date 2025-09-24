@@ -1,17 +1,12 @@
 import React from 'react';
 import type { Article } from '../../src/App';
 import type { SourceType } from '../AddSource';
-import { RedditIcon, YoutubeIcon, NewspaperIcon, BookOpenIcon } from '../icons';
+import { BookOpenIcon } from '../icons';
 import ImageWithProxy from '../ImageWithProxy';
 import { timeAgo } from '../../services/utils';
+import { SmartFeedIcon } from '../SmartFeedIcon';
 
 const ArticleListItem: React.FC<{ article: Article; onMarkAsRead: () => void; onReadHere: () => void; isRead: boolean; iconUrl?: string; sourceType?: SourceType; }> = ({ article, onMarkAsRead, onReadHere, isRead, iconUrl, sourceType }) => {
-    const FallbackDisplay = () => {
-        if (sourceType === 'reddit') return <RedditIcon className="w-8 h-8 text-orange-500" />;
-        if (sourceType === 'youtube') return <YoutubeIcon className="w-8 h-8 text-red-500" />;
-        return <NewspaperIcon className="w-8 h-8 text-zinc-400 dark:text-zinc-500" />;
-    };
-
     return (
         <a href={article.link} target="_blank" rel="noopener noreferrer" onClick={onMarkAsRead}
             className={`flex items-stretch gap-4 bg-white/30 dark:bg-zinc-900/40 backdrop-blur-2xl border border-white/20 dark:border-white/10 rounded-2xl hover:border-white/50 dark:hover:border-white/20 hover:shadow-xl transition-all duration-200 overflow-hidden h-32 ${isRead ? 'opacity-50 saturate-50' : ''}`}
@@ -40,9 +35,12 @@ const ArticleListItem: React.FC<{ article: Article; onMarkAsRead: () => void; on
                 className="w-full h-full object-cover"
                 wrapperClassName="w-32 flex-shrink-0"
                 fallback={
-                    <div className="w-full h-full bg-black/5 dark:bg-white/5 flex items-center justify-center">
-                        <FallbackDisplay />
-                    </div>
+                    <SmartFeedIcon
+                        iconUrl={iconUrl || ''}
+                        feedTitle={article.source}
+                        sourceType={sourceType}
+                        className="w-full h-full text-5xl"
+                    />
                 }
             />
         </a>

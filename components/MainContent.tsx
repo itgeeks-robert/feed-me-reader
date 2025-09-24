@@ -220,7 +220,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                             };
 
                             if (articleView === 'featured') return <FeaturedStory {...commonProps} />;
-                            if (articleView === 'grid') return <MagazineArticleListItem {...commonProps} />;
+                            if (articleView === 'grid') return <MagazineArticleListItem {...commonProps} sourceType={feedInfo?.sourceType} iconUrl={feedInfo?.iconUrl} />;
                             return <ArticleListItem {...commonProps} iconUrl={feedInfo?.iconUrl} sourceType={feedInfo?.sourceType} />;
                         })}
                     </div>

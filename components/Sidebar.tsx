@@ -6,6 +6,7 @@ import { Disclosure, DisclosureButton, DisclosurePanel } from './Disclosure';
 import {
     SeymourIcon, ListIcon, PlusIcon, RssIcon, TrashIcon, FolderIcon, PencilIcon, ChevronDownIcon, ChevronRightIcon, XIcon, BookmarkIcon, SettingsIcon, RedditIcon, YoutubeIcon, GlobeAltIcon, CubeTransparentIcon
 } from './icons';
+import { SmartFeedIcon } from './SmartFeedIcon';
 
 interface SidebarProps {
     feeds: Feed[];
@@ -22,44 +23,6 @@ interface SidebarProps {
     onClose: () => void;
     onOpenSettings: () => void;
 }
-
-const FeedIcon: React.FC<{ iconUrl: string; feedTitle: string; sourceType?: SourceType }> = ({ iconUrl, feedTitle, sourceType }) => {
-    const [hasError, setHasError] = useState(false);
-
-    if (hasError || !iconUrl) {
-        if (!feedTitle) {
-            return <RssIcon className="w-5 h-5 flex-shrink-0 text-zinc-400" />;
-        }
-
-        switch (sourceType) {
-            case 'reddit':
-                return <RedditIcon className="w-5 h-5 flex-shrink-0 text-orange-500" />;
-            case 'youtube':
-                return <YoutubeIcon className="w-5 h-5 flex-shrink-0 text-red-600" />;
-            case 'website':
-                return <GlobeAltIcon className="w-5 h-5 flex-shrink-0 text-sky-500" />;
-            case 'rss':
-            default:
-                const colors = [
-                    'text-red-400', 'text-orange-400', 'text-amber-400', 'text-yellow-400',
-                    'text-lime-400', 'text-green-400', 'text-emerald-400', 'text-teal-400',
-                    'text-cyan-400', 'text-sky-400', 'text-blue-400', 'text-indigo-400',
-                    'text-violet-400', 'text-purple-400', 'text-fuchsia-400', 'text-pink-400',
-                    'text-rose-400'
-                ];
-
-                let hash = 0;
-                for (let i = 0; i < feedTitle.length; i++) {
-                    hash = feedTitle.charCodeAt(i) + ((hash << 5) - hash);
-                }
-                const colorClass = colors[Math.abs(hash) % colors.length];
-
-                return <RssIcon className={`w-5 h-5 flex-shrink-0 ${colorClass}`} />;
-        }
-    }
-
-    return <img src={iconUrl} alt={`${feedTitle} icon`} className="w-5 h-5 flex-shrink-0 rounded-sm" onError={() => setHasError(true)} aria-hidden="true" />;
-};
 
 const NewFolderInput: React.FC<{ onAddFolder: (name: string) => void; onCancel: () => void; }> = ({ onAddFolder, onCancel }) => {
     const [name, setName] = useState('');
@@ -195,7 +158,7 @@ const FeedItem: React.FC<{
             className={`group flex items-center justify-between pl-3 pr-2 py-2 rounded-lg cursor-pointer transition-colors duration-150 ${activeClasses}`}
         >
             <div className="flex items-center space-x-3 truncate">
-                <FeedIcon iconUrl={feed.iconUrl} feedTitle={feed.title} sourceType={feed.sourceType} />
+                <SmartFeedIcon iconUrl={feed.iconUrl} feedTitle={feed.title} sourceType={feed.sourceType} className="w-5 h-5 text-xs rounded-sm" />
                 <span className="truncate">{feed.title}</span>
             </div>
             <button
