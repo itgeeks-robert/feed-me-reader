@@ -18,6 +18,12 @@ interface MinesweeperPageProps {
   onReturnToFeeds: () => void;
 }
 
+const settings: Record<Difficulty, { rows: number; cols: number; mines: number }> = {
+    Easy: { rows: 9, cols: 9, mines: 10 },
+    Medium: { rows: 16, cols: 16, mines: 40 },
+    Hard: { rows: 16, cols: 30, mines: 99 },
+};
+
 const MinesweeperPage: React.FC<MinesweeperPageProps> = ({ onBackToHub, onReturnToFeeds }) => {
   const [difficulty, setDifficulty] = useState<Difficulty>('Easy');
   const [grid, setGrid] = useState<Grid | null>(null);
@@ -28,12 +34,6 @@ const MinesweeperPage: React.FC<MinesweeperPageProps> = ({ onBackToHub, onReturn
   const [detonatedMine, setDetonatedMine] = useState<{ row: number; col: number } | null>(null);
   const timerRef = useRef<number | null>(null);
 
-  const settings: Record<Difficulty, { rows: number; cols: number; mines: number }> = {
-    Easy: { rows: 9, cols: 9, mines: 10 },
-    Medium: { rows: 16, cols: 16, mines: 40 },
-    Hard: { rows: 16, cols: 30, mines: 99 },
-  };
-  
   useEffect(() => {
       setFlagsLeft(settings[difficulty].mines);
   }, [difficulty]);
@@ -93,7 +93,7 @@ const MinesweeperPage: React.FC<MinesweeperPageProps> = ({ onBackToHub, onReturn
       }
     }
     return newGrid;
-  }, [difficulty, settings]);
+  }, [difficulty]);
 
   const changeDifficulty = (diff: Difficulty) => {
     setDifficulty(diff);
@@ -131,7 +131,7 @@ const MinesweeperPage: React.FC<MinesweeperPageProps> = ({ onBackToHub, onReturn
     };
     reveal(row, col);
     return newGrid;
-  }, [difficulty, settings]);
+  }, [difficulty]);
 
   const checkWinCondition = (currentGrid: Grid): boolean => {
     const { rows, cols } = settings[difficulty];
@@ -363,7 +363,7 @@ const MinesweeperPage: React.FC<MinesweeperPageProps> = ({ onBackToHub, onReturn
                 ))}
             </div>
       </div>
-      <div className="flex items-center justify-center gap-4 mt-4">
+      <div className="flex items-center justify-center gap-4 mt-4 z-10">
         <button onClick={onBackToHub} className="px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 border-2 bg-black/30 text-cyan-300 border-cyan-400/20 hover:bg-cyan-400/20 hover:text-cyan-200">
             Back to Game Hub
         </button>

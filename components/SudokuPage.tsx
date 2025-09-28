@@ -21,9 +21,10 @@ interface SudokuPageProps {
   stats: SudokuStats;
   onGameWin: (difficulty: Difficulty, time: number, isDaily: boolean) => void;
   onBackToHub: () => void;
+  onReturnToFeeds: () => void;
 }
 
-const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onBackToHub }) => {
+const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onBackToHub, onReturnToFeeds }) => {
     const [view, setView] = useState<'IDLE' | 'PLAYING' | 'STATS'>('IDLE');
     const [gameState, setGameState] = useState<GameState>('IDLE');
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -577,9 +578,14 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onBackToHub }
 
     return (
         <main className="flex-grow overflow-y-auto bg-slate-100 p-2 flex flex-col items-center justify-center relative">
-            <button onClick={onBackToHub} className="absolute top-4 right-4 px-3 py-1.5 text-xs font-semibold rounded-full bg-slate-200 border border-slate-300 text-slate-600 hover:bg-slate-300 transition-colors z-10">
-                Back to Hub
-            </button>
+            <div className="absolute top-4 right-4 z-10 flex flex-col items-end gap-2">
+                <button onClick={onBackToHub} className="px-3 py-1.5 text-xs font-semibold rounded-full bg-slate-200 border border-slate-300 text-slate-600 hover:bg-slate-300 transition-colors">
+                    Back to Hub
+                </button>
+                <button onClick={onReturnToFeeds} className="px-3 py-1.5 text-xs font-semibold rounded-full bg-slate-200 border border-slate-300 text-slate-600 hover:bg-slate-300 transition-colors">
+                    Back to Feeds
+                </button>
+            </div>
             {renderContent()}
             {(gameState === 'WON' || gameState === 'LOST') && (
                 <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">

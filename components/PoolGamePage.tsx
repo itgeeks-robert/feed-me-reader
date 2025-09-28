@@ -152,7 +152,7 @@ const ShootButton: React.FC<{ onClick: () => void, disabled?: boolean }> = ({ on
 );
 
 // --- Main PoolGamePage Component ---
-const PoolGamePage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => {
+const PoolGamePage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () => void; }> = ({ onBackToHub, onReturnToFeeds }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const game = useRef({
         balls: [] as Ball[],
@@ -738,8 +738,16 @@ const PoolGamePage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) =>
                     <PowerMeter power={power} setPower={setPower} orientation="vertical" />
                 </div>
             </div>
+
+            <div className="absolute top-4 left-4 z-30 flex flex-col gap-2">
+                <button onClick={onBackToHub} className="bg-black/30 backdrop-blur-sm px-3 py-1.5 rounded-full text-sm text-white/80 hover:text-white hover:bg-black/50 transition-colors">
+                    Back to Hub
+                </button>
+                <button onClick={onReturnToFeeds} className="bg-black/30 backdrop-blur-sm px-3 py-1.5 rounded-full text-sm text-white/80 hover:text-white hover:bg-black/50 transition-colors">
+                    Back to Feeds
+                </button>
+            </div>
             
-            <button onClick={onBackToHub} className="absolute top-5 right-5 z-30 bg-black/30 backdrop-blur-sm p-2 rounded-full text-sm">Back to Hub</button>
             {game.current.winner && (
                 <div className="absolute inset-0 bg-black/60 backdrop-blur-sm z-40 flex items-center justify-center">
                     <div className="text-center p-8 bg-black/50 rounded-xl">

@@ -27,6 +27,7 @@ interface GameState {
 
 interface SolitairePageProps {
   onBackToHub: () => void;
+  onReturnToFeeds: () => void;
   stats: SolitaireStats;
   onGameWin: (time: number, moves: number) => void;
   onGameStart: () => void;
@@ -68,7 +69,7 @@ const CardFace = ({ card }: { card: Card }) => {
 
 // --- SolitairePage Component ---
 const SolitairePage: React.FC<SolitairePageProps> = (props) => {
-  const { onBackToHub, stats, onGameWin, onGameStart, settings, onUpdateSettings, isApiKeyMissing } = props;
+  const { onBackToHub, onReturnToFeeds, stats, onGameWin, onGameStart, settings, onUpdateSettings, isApiKeyMissing } = props;
   const [gamePhase, setGamePhase] = useState<GamePhase>('intro');
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [history, setHistory] = useState<GameState[]>([]);
@@ -340,15 +341,21 @@ const SolitairePage: React.FC<SolitairePageProps> = (props) => {
             <IntroScreen 
               onStart={startNewGame} 
               onBackToHub={onBackToHub} 
+              onReturnToFeeds={onReturnToFeeds}
               stats={stats}
               settings={settings}
               onUpdateSettings={onUpdateSettings}
               onCustomize={() => setIsThemeModalOpen(true)}
             /> : 
             <>
-                <button onClick={onBackToHub} className="absolute top-4 right-4 z-30 bg-black/30 backdrop-blur-sm px-3 py-1.5 rounded-full text-sm text-white/80 hover:text-white hover:bg-black/50 transition-colors">
-                    Back to Hub
-                </button>
+                 <div className="absolute top-4 right-4 z-30 flex flex-col gap-2 items-end">
+                    <button onClick={onBackToHub} className="bg-black/30 backdrop-blur-sm px-3 py-1.5 rounded-full text-sm text-white/80 hover:text-white hover:bg-black/50 transition-colors">
+                        Back to Hub
+                    </button>
+                    <button onClick={onReturnToFeeds} className="bg-black/30 backdrop-blur-sm px-3 py-1.5 rounded-full text-sm text-white/80 hover:text-white hover:bg-black/50 transition-colors">
+                        Back to Feeds
+                    </button>
+                </div>
                 <GameBoard 
                     gamePhase={gamePhase}
                     gameState={gameState}
@@ -383,11 +390,12 @@ const SolitairePage: React.FC<SolitairePageProps> = (props) => {
 const IntroScreen: React.FC<{ 
   onStart: () => void; 
   onBackToHub: () => void; 
+  onReturnToFeeds: () => void;
   stats: SolitaireStats;
   settings: SolitaireSettings;
   onUpdateSettings: (settings: SolitaireSettings) => void;
   onCustomize: () => void;
-}> = ({ onStart, onBackToHub, stats, settings, onUpdateSettings, onCustomize }) => {
+}> = ({ onStart, onBackToHub, onReturnToFeeds, stats, settings, onUpdateSettings, onCustomize }) => {
     const formatTime = (seconds: number | null) => {
         if (seconds === null) return '-';
         const mins = Math.floor(seconds / 60);
@@ -431,9 +439,15 @@ const IntroScreen: React.FC<{
                         Customize
                     </button>
                 </div>
-                <button onClick={onBackToHub} className="mt-4 text-sm font-medium text-yellow-200/60 hover:text-white">
-                    Back to Hub
-                </button>
+                <div className="mt-4 flex justify-center items-center gap-4">
+                    <button onClick={onBackToHub} className="text-sm font-medium text-yellow-200/60 hover:text-white">
+                        Back to Hub
+                    </button>
+                    <span className="text-yellow-200/30">|</span>
+                     <button onClick={onReturnToFeeds} className="text-sm font-medium text-yellow-200/60 hover:text-white">
+                        Back to Feeds
+                    </button>
+                </div>
             </div>
         </div>
     );
@@ -490,7 +504,7 @@ const GameBoard: React.FC<{
     return (
         <div className="relative z-10 w-full h-full">
             <div className="absolute inset-[-2rem] rounded-[2.5rem] p-4 bg-[#4a2c2a] shadow-2xl">
-                 <div className="w-full h-full rounded-[1.75rem] p-4 bg-[#35654d] bg-[url('data:image/svg+xml,%3Csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20width=%27100%27%20height=%27100%27%20viewBox=%270%200%20100%20100%27%3E%3Cfilter%20id=%27n%27%20x=%270%27%20y=%270%27%3E%3CfeTurbulence%20type=%27fractalNoise%27%20baseFrequency=%270.7%27%20numOctaves=%2710%27%20stitchTiles=%27stitch%27/%3E%3C/filter%3E%3Crect%20width=%27100%27%20height=%27100%27%20filter=%27url(%23n)%27%20opacity=%270.07%27/%3E%3C/svg%3E')] shadow-[0_0_20px_rgba(0,0,0,0.5)_inset]"></div>
+                 <div className="w-full h-full rounded-[1.75rem] p-4 bg-[#35654d] bg-[url('data:image/svg+xml,%3Csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20width=%27100%27%20height=%27100%27%20viewBox=%270%200%20100%20100%27%3E%3Cfilter%20id=%27n%27%20x=%270%27%20y=%270%27%3E%3CfeTurbulence%20type=%27fractalNoise%27%20baseFrequency=%270.7%27%20numOctaves=%2710%27%20stitchTiles=%27stitch%27/%3E%3Crect%20width=%27100%27%20height=%27100%27%20filter=%27url(%23n)%27%20opacity=%270.07%27/%3E%3C/svg%3E')] shadow-[0_0_20px_rgba(0,0,0,0.5)_inset]"></div>
             </div>
 
             <div className="relative w-full h-full max-w-7xl mx-auto">
