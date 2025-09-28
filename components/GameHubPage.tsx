@@ -103,13 +103,14 @@ const GameHubPage: React.FC<GameHubPageProps> = (props) => {
   const renderContent = () => {
     switch (activeGame) {
       case 'sudoku':
-        return <SudokuPage stats={sudokuStats} onGameWin={onSudokuWin} onBackToHub={() => setActiveGame('menu')} />;
+        return <SudokuPage stats={sudokuStats} onGameWin={onSudokuWin} onBackToHub={() => setActiveGame('menu')} onReturnToFeeds={onReturnToFeeds} />;
       case 'minesweeper':
         return <MinesweeperPage onBackToHub={() => setActiveGame('menu')} onReturnToFeeds={onReturnToFeeds} />;
       case 'solitaire':
         return (
           <SolitairePage 
             onBackToHub={() => setActiveGame('menu')} 
+            onReturnToFeeds={onReturnToFeeds}
             stats={solitaireStats} 
             onGameWin={onSolitaireWin} 
             onGameStart={onSolitaireStart}
@@ -119,12 +120,12 @@ const GameHubPage: React.FC<GameHubPageProps> = (props) => {
           />
         );
       case 'pool':
-        return <PoolGamePage onBackToHub={() => setActiveGame('menu')} />;
+        return <PoolGamePage onBackToHub={() => setActiveGame('menu')} onReturnToFeeds={onReturnToFeeds} />;
       case 'menu':
       default:
         return (
           <div className="flex-grow flex flex-col w-full p-4 md:p-8">
-            <header className="flex items-center gap-4 mb-8">
+            <header className="relative z-10 flex items-center gap-4 mb-8">
               <button 
                   onClick={onReturnToFeeds}
                   className="p-2.5 rounded-full text-zinc-400 bg-black/10 dark:bg-white/5 hover:bg-black/20 dark:hover:bg-white/10 transition-colors"

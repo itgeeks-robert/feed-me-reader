@@ -3,6 +3,7 @@ import type { Settings, Theme, ArticleView, WidgetSettings } from '../src/App';
 import { XIcon, SunIcon, MoonIcon, CloudArrowUpIcon, CloudArrowDownIcon, ChevronDownIcon } from './icons';
 import { leagues } from '../services/sportsData';
 import { teamLogos } from '../services/teamLogos';
+import ImageWithProxy from './ImageWithProxy';
 
 interface SettingsModalProps {
     isOpen: boolean;
@@ -19,15 +20,21 @@ type Tab = 'General' | 'Data' | 'Widgets';
 
 const TeamLogo: React.FC<{ name: string }> = ({ name }) => {
     const logoUrl = teamLogos[name];
-    const [hasError, setHasError] = useState(!logoUrl);
-
-    useEffect(() => { setHasError(!logoUrl); }, [logoUrl]);
-
-    if (hasError) {
-        const displayName = (name || '').trim().substring(0, 3).toUpperCase() || '???';
-        return <div className="w-5 h-5 rounded-full bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center font-bold text-xs text-zinc-500 dark:text-gray-400 flex-shrink-0">{displayName}</div>;
-    }
-    return <img src={logoUrl} onError={() => setHasError(true)} alt={`${name} logo`} className="w-5 h-5 object-contain flex-shrink-0" />;
+    const displayName = (name || '').trim().substring(0, 3).toUpperCase() || '???';
+    
+    return (
+        <ImageWithProxy
+            src={logoUrl}
+            alt={`${name} logo`}
+            className="w-full h-full object-contain"
+            wrapperClassName="w-5 h-5 flex-shrink-0"
+            fallback={
+                <div className="w-5 h-5 rounded-full bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center font-bold text-xs text-zinc-500 dark:text-gray-400 flex-shrink-0">
+                    {displayName}
+                </div>
+            }
+        />
+    );
 };
 
 const hiddenInputStyle: React.CSSProperties = { display: 'none' };

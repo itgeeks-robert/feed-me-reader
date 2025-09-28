@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import type { Feed, Selection, WidgetSettings, Article, ArticleView, Theme } from '../src/App';
 import type { SourceType } from './AddSource';
 import { MenuIcon, SearchIcon, SunIcon, SunriseIcon, SunsetIcon, MoonIcon, BookOpenIcon } from './icons';
-import { teamLogos } from '../services/teamLogos';
 import ReaderViewModal from './ReaderViewModal';
 import { fetchAndCacheArticleContent } from '../services/readerService';
 import { resilientFetch } from '../services/fetch';
@@ -11,14 +10,8 @@ import { fetchAllSportsData, getCachedSportsData, needsFreshSportsData } from '.
 import FeaturedStory from './articles/FeaturedStory';
 import ArticleListItem from './articles/ArticleListItem';
 import MagazineArticleListItem from './articles/MagazineArticleListItem';
-
-const getTeamLogo = (teamName: string): string | null => {
-    if (!teamName) return null;
-    if (teamLogos[teamName]) return teamLogos[teamName];
-    const simplifiedName = teamName.replace(/ F\.?C\.?$/, '').trim();
-    if (teamLogos[simplifiedName]) return teamLogos[simplifiedName];
-    return null;
-};
+import ImageWithProxy from './ImageWithProxy';
+import { teamLogos } from '../services/teamLogos';
 
 interface MainContentProps {
     feedsToDisplay: Feed[];
@@ -344,29 +337,37 @@ const UnreadFilterToggle: React.FC<{ checked: boolean; onChange: (checked: boole
 const SportsCarousel: React.FC<{ results: Map<string, any>; isLoading: boolean; onTeamSelect: (teamName: string) => void; }> = ({ results, isLoading, onTeamSelect }) => (
     <div className="flex gap-2 overflow-x-auto scrollbar-hide -mr-4 pr-4">
         {Array.from(results.keys()).map(teamCode => (
-            <SportsCard key={teamCode} teamCode={teamCode} data={results.get(teamCode)} isLoading={isLoading} onSelect={onTeamSelect} />
+            <SportsCard key={teamCode} data={results.get(teamCode)} isLoading={isLoading} onSelect={onTeamSelect} />
         ))}
     </div>
 );
 
-const SportsCard: React.FC<{ teamCode: string; data: any; isLoading: boolean; onSelect: (teamName: string) => void; }> = ({ teamCode, data, isLoading, onSelect }) => {
+const TeamLogo = ({ name }: { name: string }) => {
+    const badgeUrl = teamLogos[name] || null;
+    return (
+        <ImageWithProxy
+            src={badgeUrl}
+            alt={`${name} logo`}
+            className="w-full h-full object-contain"
+            wrapperClassName="w-5 h-5"
+            fallback={<div className="w-5 h-5 rounded-full bg-zinc-300 dark:bg-zinc-600" />}
+        />
+    );
+};
+
+const SportsCard: React.FC<{ data: any; isLoading: boolean; onSelect: (teamName: string) => void; }> = ({ data, isLoading, onSelect }) => {
     if (isLoading) return <div className="w-32 h-10 bg-black/5 dark:bg-white/5 rounded-full animate-pulse flex-shrink-0" />;
-    if (!data || data.error) return null;
-    
-    const TeamLogo = ({ name }: { name: string }) => {
-        const logoUrl = getTeamLogo(name);
-        return logoUrl ? <img src={logoUrl} alt={`${name} logo`} className="w-5 h-5 object-contain" /> : <div className="w-5 h-5 rounded-full bg-zinc-300 dark:bg-zinc-600" />;
-    };
+    if (!data || !data.success || data.error) return null;
     
     return (
         <button onClick={() => onSelect(data.teamFullName)}
             className="p-2 pl-3 bg-white/30 dark:bg-zinc-900/40 backdrop-blur-2xl border border-white/20 dark:border-white/10 rounded-full w-auto flex-shrink-0 flex items-center gap-2 text-xs hover:border-white/40 dark:hover:border-white/20 transition-colors shadow-md"
         >
-            <TeamLogo name={data.strHomeTeam} />
-            <span className="font-bold text-lg text-zinc-900 dark:text-white">{data.intHomeScore}</span>
+            <TeamLogo name={data.homeTeam} />
+            <span className="font-bold text-lg text-zinc-900 dark:text-white">{data.homeScore}</span>
             <span className="opacity-50">-</span>
-            <span className="font-bold text-lg text-zinc-900 dark:text-white">{data.intAwayScore}</span>
-            <TeamLogo name={data.strAwayTeam} />
+            <span className="font-bold text-lg text-zinc-900 dark:text-white">{data.awayScore}</span>
+            <TeamLogo name={data.awayTeam} />
         </button>
     );
 };

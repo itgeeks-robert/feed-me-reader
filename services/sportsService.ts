@@ -23,72 +23,87 @@ export const getCachedSportsData = (): Map<string, any> | null => {
     return null;
 };
 
-export const fetchAllSportsData = async (teams: string[]): Promise<Map<string, any>> => {
-    const fetchTeamData = async (teamCode: string): Promise<{ team: string; result: any; }> => {
-        const teamFullName = allTeamsMap.get(teamCode.toUpperCase()) || teamCode;
-        try {
-            // Step 1: Find the team's unique, official ID.
-            const teamSearchResponse = await resilientFetch(`https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t=${encodeURIComponent(teamFullName)}`);
-            if (!teamSearchResponse.ok) throw new Error(`Team search API failed for ${teamFullName}`);
-            const teamSearchData = await teamSearchResponse.json();
-            const teamId = teamSearchData?.teams?.[0]?.idTeam;
-    
-            if (!teamId) {
-                throw new Error(`Could not find a valid team ID for ${teamFullName}`);
-            }
-    
-            // Step 2: Fetch the team's last 5 events.
-            const lastEventsResponse = await resilientFetch(`https://www.thesportsdb.com/api/v1/json/3/eventslast.php?id=${teamId}`);
-            if (!lastEventsResponse.ok) throw new Error(`Last events API failed for ${teamFullName}`);
-            const lastEventsData = await lastEventsResponse.json();
-            const lastEvents = lastEventsData?.results;
-    
-            if (!lastEvents || !Array.isArray(lastEvents) || lastEvents.length === 0) {
-                throw new Error(`No recent events found for ${teamFullName}`);
-            }
+// This function replaces your existing, flawed score fetching logic.
+// It finds the latest match and adapts the result for away games.
+async function fetchLatestMatchDataAndAdaptForAwayGame(teamFullName: string) {
+    try {
+        // --- Step 1: Get the primary team's unique ID ---
+        const teamSearchRes = await resilientFetch(`https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t=${encodeURIComponent(teamFullName)}`);
+        const teamSearchData = await teamSearchRes.json();
+        const primaryTeam = teamSearchData?.teams?.[0];
 
-            // --- REVISED LOGIC ---
-            const latestEvent = lastEvents[0];
-
-            // Case 1: The most recent event is officially finished. Use it.
-            if (latestEvent.strStatus === "Match Finished") {
-                return { team: teamCode, result: { ...latestEvent, teamFullName } };
-            }
-
-            // Case 2: The most recent event is not finished. Check its time.
-            // Append 'Z' to ensure the date is parsed as UTC/GMT, as per API docs.
-            const kickOffTime = new Date(`${latestEvent.dateEvent}T${latestEvent.strTime}Z`);
-            
-            if (isNaN(kickOffTime.getTime())) {
-                throw new Error(`Invalid date/time for latest event for ${teamFullName}.`);
-            }
-            
-            const estimatedEndTime = new Date(kickOffTime.getTime() + 120 * 60 * 1000); // Add 120 mins
-            const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000);
-
-            // Case 2a: Game ended > 4 hours ago, but API is delayed. Show a pending result.
-            if (estimatedEndTime < fourHoursAgo) {
-                return {
-                    team: teamCode,
-                    result: {
-                        ...latestEvent,
-                        teamFullName,
-                        intHomeScore: '-',
-                        intAwayScore: '-',
-                        isPending: true
-                    }
-                };
-            }
-            
-            // Case 2b: Game is in the < 4 hour grace period. Show nothing.
-            throw new Error(`Latest match for ${teamFullName} is in the grace period; score is not yet confirmed.`);
-    
-        } catch (error) {
-            console.error(`Error fetching data for ${teamFullName}:`, error);
-            return { team: teamCode, result: { error: (error as Error).message } };
+        if (!primaryTeam || !primaryTeam.idTeam) {
+            throw new Error(`Could not find team ID for ${teamFullName}`);
         }
+        const primaryTeamId = primaryTeam.idTeam;
+
+        // --- Step 2: Get the last 5 events for the team using their ID ---
+        const lastEventsRes = await resilientFetch(`https://www.thesportsdb.com/api/v1/json/3/eventslast.php?id=${primaryTeamId}`);
+        const lastEventsData = await lastEventsRes.json();
+        const lastEvents = lastEventsData?.results;
+
+        if (!lastEvents || lastEvents.length === 0) {
+            throw new Error(`No recent events found for ${teamFullName}`);
+        }
+
+        // --- Step 3: Find the most recent "Finished" match AND the absolute most recent event ---
+        const mostRecentFinishedMatch = lastEvents.find((event: any) => event.strStatus === "Match Finished");
+        const absoluteMostRecentEvent = lastEvents[0]; // The API list is pre-sorted
+
+        let matchToDisplay = mostRecentFinishedMatch;
+        let isPendingResult = false;
+
+        // --- Step 4: Handle API data lag for recent, unfinished games ---
+        // If the latest "Finished" match isn't the absolute latest event, the API is delayed.
+        if (absoluteMostRecentEvent && (!mostRecentFinishedMatch || absoluteMostRecentEvent.idEvent !== mostRecentFinishedMatch.idEvent)) {
+            const kickOffTime = new Date(`${absoluteMostRecentEvent.dateEvent}T${absoluteMostRecentEvent.strTime}`);
+            // Check if the game started within the last 48 hours.
+            const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
+
+            if (kickOffTime > fortyEightHoursAgo) {
+                // The latest match is recent but its score is delayed. Show it as pending.
+                matchToDisplay = absoluteMostRecentEvent;
+                isPendingResult = true;
+            }
+        }
+
+        // If we still don't have a match to show, then none were found.
+        if (!matchToDisplay) {
+            throw new Error(`No recent completed or pending matches found for ${teamFullName}`);
+        }
+
+        // --- Step 5: Determine if it's an away game ---
+        const isAwayGame = matchToDisplay.idAwayTeam === primaryTeamId;
+
+        // --- Step 6: Return a clean, structured result for the UI to use ---
+        return {
+            success: true,
+            matchDate: matchToDisplay.dateEvent,
+            homeTeam: matchToDisplay.strHomeTeam,
+            homeScore: isPendingResult ? '-' : matchToDisplay.intHomeScore,
+            awayTeam: matchToDisplay.strAwayTeam,
+            awayScore: isPendingResult ? '-' : matchToDisplay.intAwayScore,
+            wasAwayGameForPrimaryTeam: isAwayGame,
+            isPending: isPendingResult,
+            teamFullName: teamFullName // Pass original name for the UI's onClick handler
+        };
+
+    } catch (error) {
+        console.error(`Failed to fetch match data for ${teamFullName}:`, error);
+        return { success: false, error: (error as Error).message };
+    }
+}
+
+export const fetchAllSportsData = async (teams: string[]): Promise<Map<string, any>> => {
+    const fetchTeamData = async (teamCode: string) => {
+        const teamFullName = allTeamsMap.get(teamCode.toUpperCase());
+        if (!teamFullName) {
+            return { team: teamCode, result: { error: `Unknown team code: ${teamCode}` } };
+        }
+        const result = await fetchLatestMatchDataAndAdaptForAwayGame(teamFullName);
+        return { team: teamCode, result };
     };
-    
+
     const promises = teams.map(fetchTeamData);
     const allResults = await Promise.all(promises);
     const newResults = new Map<string, any>(allResults.map(res => [res.team, res.result]));
