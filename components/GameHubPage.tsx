@@ -1,12 +1,13 @@
 
-
 import React, { useState } from 'react';
 import SudokuPage from './SudokuPage';
 import MinesweeperPage from './MinesweeperPage';
 import SolitairePage from './SolitairePage';
 import PoolGamePage from './PoolGamePage';
+import TetrisPage from './TetrisPage';
+import MarioPage from './MarioPage';
 import type { SudokuStats, SudokuDifficulty, SolitaireStats, SolitaireSettings } from '../src/App';
-import { BrainIcon, FireIcon, CubeTransparentIcon, CubeIcon, ChevronLeftIcon } from './icons';
+import { BrainIcon, FireIcon, CubeTransparentIcon, CubeIcon, ChevronLeftIcon, TetrisTBlockIcon, MushroomIcon } from './icons';
 
 interface GameHubPageProps {
   sudokuStats: SudokuStats;
@@ -29,7 +30,7 @@ const GameHubPage: React.FC<GameHubPageProps> = (props) => {
     onReturnToFeeds
   } = props;
 
-  const [activeGame, setActiveGame] = useState<'menu' | 'sudoku' | 'minesweeper' | 'solitaire' | 'pool'>('menu');
+  const [activeGame, setActiveGame] = useState<'menu' | 'sudoku' | 'minesweeper' | 'solitaire' | 'pool' | 'tetris' | 'mario'>('menu');
   
   const games = [
     { 
@@ -77,6 +78,28 @@ const GameHubPage: React.FC<GameHubPageProps> = (props) => {
         glowColor: 'rgba(6, 182, 212, 0.5)'
       }
     },
+     { 
+      key: 'tetris',
+      title: "Tetris", 
+      description: "The classic block-stacking puzzle.", 
+      icon: <TetrisTBlockIcon className="w-10 h-10" />, 
+      onClick: () => setActiveGame('tetris'),
+      style: {
+        background: 'radial-gradient(circle at 100% 100%, rgba(217, 70, 239, 0.2), rgba(217, 70, 239, 0) 50%), radial-gradient(circle at 0% 0%, rgba(147, 51, 234, 0.2), rgba(147, 51, 234, 0) 50%)',
+        glowColor: 'rgba(192, 132, 252, 0.5)'
+      }
+    },
+    { 
+      key: 'mario',
+      title: "Super Mario Bros", 
+      description: "The 1985 NES classic.", 
+      icon: <MushroomIcon className="w-10 h-10" />, 
+      onClick: () => setActiveGame('mario'),
+      style: {
+        background: 'radial-gradient(circle at 100% 100%, rgba(220, 38, 38, 0.2), rgba(220, 38, 38, 0) 50%), radial-gradient(circle at 0% 0%, rgba(37, 99, 235, 0.2), rgba(37, 99, 235, 0) 50%)',
+        glowColor: 'rgba(239, 68, 68, 0.5)'
+      }
+    },
   ];
 
   const GameCard: React.FC<{ title: string; description: string; icon: React.ReactNode; onClick: () => void; style: any; animationDelay: string; }> = ({ title, description, icon, onClick, style, animationDelay }) => (
@@ -121,6 +144,10 @@ const GameHubPage: React.FC<GameHubPageProps> = (props) => {
         );
       case 'pool':
         return <PoolGamePage onBackToHub={() => setActiveGame('menu')} onReturnToFeeds={onReturnToFeeds} />;
+      case 'tetris':
+        return <TetrisPage onBackToHub={() => setActiveGame('menu')} onReturnToFeeds={onReturnToFeeds} />;
+      case 'mario':
+        return <MarioPage onBackToHub={() => setActiveGame('menu')} onReturnToFeeds={onReturnToFeeds} />;
       case 'menu':
       default:
         return (
@@ -137,7 +164,7 @@ const GameHubPage: React.FC<GameHubPageProps> = (props) => {
                   <p className="text-zinc-600 dark:text-zinc-400">Choose a game to play.</p>
               </div>
             </header>
-            <div className="flex-grow w-full max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="flex-grow w-full max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {games.map((game, index) => (
                 <GameCard 
                   key={game.key}

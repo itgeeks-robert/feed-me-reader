@@ -4,7 +4,9 @@ import type { Selection } from '../src/App';
 interface NavPage {
     selection: Selection;
     name: string;
-    icon: React.ReactNode;
+    // FIX: Use a more specific type for the icon to ensure it's a React element that accepts a className.
+    // This resolves the type inference issue with React.cloneElement.
+    icon: React.ReactElement<{ className?: string }>;
 }
 
 interface TopNavBarProps {
@@ -30,7 +32,8 @@ const TopNavBar: React.FC<TopNavBarProps> = ({ pages, currentPageIndex, onNaviga
                             }`}
                             aria-label={page.name}
                         >
-                            {React.cloneElement(page.icon as React.ReactElement, { className: "w-7 h-7" })}
+                            {/* FIX: Removed the type cast, as the updated interface provides enough type information to resolve the error. */}
+                            {React.cloneElement(page.icon, { className: "w-7 h-7" })}
                             <span
                                 className={`absolute bottom-1.5 left-1/2 -translate-x-1/2 h-1 w-8 rounded-full bg-orange-500 transition-transform duration-300 ease-in-out ${
                                     currentPageIndex === index ? 'scale-x-100' : 'scale-x-0'

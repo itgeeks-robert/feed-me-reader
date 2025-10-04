@@ -1,5 +1,4 @@
 
-
 import React from 'react';
 
 export const SeymourIcon: React.FC<{ className?: string }> = ({ className }) => (
@@ -304,5 +303,23 @@ export const FireIcon: React.FC<{ className?: string }> = ({ className }) => (
     <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z" />
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 18a3.75 3.75 0 00.495-7.467 5.99 5.99 0 00-1.925 3.546 5.974 5.974 0 01-2.133-1.001A3.75 3.75 0 0012 18z" />
+    </svg>
+);
+
+export const TetrisTBlockIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg className={className} viewBox="0 0 30 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+        <path d="M10 0 h10 v10 h10 v10 h-10 v-10 h-10 v10 H0 v-10 h10z" />
+    </svg>
+);
+
+export const MushroomIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg className={className} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M85 50C85 36.1929 73.8071 25 60 25H40C26.1929 25 15 36.1929 15 50V55H85V50Z" fill="#E53935"/>
+        <circle cx="30" cy="40" r="7" fill="white"/>
+        <circle cx="50" cy="35" r="8" fill="white"/>
+        <circle cx="70" cy="40" r="7" fill="white"/>
+        <rect x="30" y="55" width="40" height="30" rx="5" fill="#F5DEB3"/>
+        <circle cx="42" cy="70" r="4" fill="black"/>
+        <circle cx="58" cy="70" r="4" fill="black"/>
     </svg>
 );

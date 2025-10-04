@@ -342,11 +342,12 @@ const SportsCarousel: React.FC<{ results: Map<string, any>; isLoading: boolean; 
     </div>
 );
 
-const TeamLogo = ({ name }: { name: string }) => {
-    const badgeUrl = teamLogos[name] || null;
+const TeamLogo = ({ name, badgeUrl }: { name: string; badgeUrl: string | null }) => {
+    // Prioritize the URL from the API. Fallback to the static map.
+    const finalBadgeUrl = badgeUrl || teamLogos[name] || null;
     return (
         <ImageWithProxy
-            src={badgeUrl}
+            src={finalBadgeUrl}
             alt={`${name} logo`}
             className="w-full h-full object-contain"
             wrapperClassName="w-5 h-5"
@@ -363,11 +364,11 @@ const SportsCard: React.FC<{ data: any; isLoading: boolean; onSelect: (teamName:
         <button onClick={() => onSelect(data.teamFullName)}
             className="p-2 pl-3 bg-white/30 dark:bg-zinc-900/40 backdrop-blur-2xl border border-white/20 dark:border-white/10 rounded-full w-auto flex-shrink-0 flex items-center gap-2 text-xs hover:border-white/40 dark:hover:border-white/20 transition-colors shadow-md"
         >
-            <TeamLogo name={data.homeTeam} />
+            <TeamLogo name={data.homeTeam} badgeUrl={data.homeTeamBadge} />
             <span className="font-bold text-lg text-zinc-900 dark:text-white">{data.homeScore}</span>
             <span className="opacity-50">-</span>
             <span className="font-bold text-lg text-zinc-900 dark:text-white">{data.awayScore}</span>
-            <TeamLogo name={data.awayTeam} />
+            <TeamLogo name={data.awayTeam} badgeUrl={data.awayTeamBadge} />
         </button>
     );
 };

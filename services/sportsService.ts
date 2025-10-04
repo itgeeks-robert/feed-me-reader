@@ -27,7 +27,7 @@ export const getCachedSportsData = (): Map<string, any> | null => {
 // It finds the latest match and adapts the result for away games.
 async function fetchLatestMatchDataAndAdaptForAwayGame(teamFullName: string) {
     try {
-        // --- Step 1: Get the primary team's unique ID ---
+        // --- Step 1: Get the primary team's unique ID and badge ---
         const teamSearchRes = await resilientFetch(`https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t=${encodeURIComponent(teamFullName)}`);
         const teamSearchData = await teamSearchRes.json();
         const primaryTeam = teamSearchData?.teams?.[0];
@@ -36,6 +36,7 @@ async function fetchLatestMatchDataAndAdaptForAwayGame(teamFullName: string) {
             throw new Error(`Could not find team ID for ${teamFullName}`);
         }
         const primaryTeamId = primaryTeam.idTeam;
+        const primaryTeamBadge = primaryTeam.strTeamBadge;
 
         // --- Step 2: Get the last 5 events for the team using their ID ---
         const lastEventsRes = await resilientFetch(`https://www.thesportsdb.com/api/v1/json/3/eventslast.php?id=${primaryTeamId}`);
@@ -54,35 +55,47 @@ async function fetchLatestMatchDataAndAdaptForAwayGame(teamFullName: string) {
         let isPendingResult = false;
 
         // --- Step 4: Handle API data lag for recent, unfinished games ---
-        // If the latest "Finished" match isn't the absolute latest event, the API is delayed.
         if (absoluteMostRecentEvent && (!mostRecentFinishedMatch || absoluteMostRecentEvent.idEvent !== mostRecentFinishedMatch.idEvent)) {
             const kickOffTime = new Date(`${absoluteMostRecentEvent.dateEvent}T${absoluteMostRecentEvent.strTime}`);
-            // Check if the game started within the last 48 hours.
             const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
 
             if (kickOffTime > fortyEightHoursAgo) {
-                // The latest match is recent but its score is delayed. Show it as pending.
                 matchToDisplay = absoluteMostRecentEvent;
                 isPendingResult = true;
             }
         }
 
-        // If we still don't have a match to show, then none were found.
         if (!matchToDisplay) {
             throw new Error(`No recent completed or pending matches found for ${teamFullName}`);
         }
+        
+        // --- Step 5: Get opponent team's badge ---
+        const opponentTeamId = matchToDisplay.idHomeTeam === primaryTeamId 
+            ? matchToDisplay.idAwayTeam 
+            : matchToDisplay.idHomeTeam;
 
-        // --- Step 5: Determine if it's an away game ---
+        let opponentTeamBadge = null;
+        try {
+            const opponentTeamRes = await resilientFetch(`https://www.thesportsdb.com/api/v1/json/3/lookupteam.php?id=${opponentTeamId}`);
+            const opponentTeamData = await opponentTeamRes.json();
+            opponentTeamBadge = opponentTeamData?.teams?.[0]?.strTeamBadge || null;
+        } catch (e) {
+            console.warn(`Could not fetch opponent (${opponentTeamId}) badge`, e);
+        }
+
+        // --- Step 6: Determine if it's an away game ---
         const isAwayGame = matchToDisplay.idAwayTeam === primaryTeamId;
 
-        // --- Step 6: Return a clean, structured result for the UI to use ---
+        // --- Step 7: Return a clean, structured result for the UI to use ---
         return {
             success: true,
             matchDate: matchToDisplay.dateEvent,
             homeTeam: matchToDisplay.strHomeTeam,
             homeScore: isPendingResult ? '-' : matchToDisplay.intHomeScore,
+            homeTeamBadge: isAwayGame ? opponentTeamBadge : primaryTeamBadge,
             awayTeam: matchToDisplay.strAwayTeam,
             awayScore: isPendingResult ? '-' : matchToDisplay.intAwayScore,
+            awayTeamBadge: isAwayGame ? primaryTeamBadge : opponentTeamBadge,
             wasAwayGameForPrimaryTeam: isAwayGame,
             isPending: isPendingResult,
             teamFullName: teamFullName // Pass original name for the UI's onClick handler
