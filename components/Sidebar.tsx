@@ -4,7 +4,7 @@ import type { SourceType } from './AddSource';
 import AddSource from './AddSource';
 import { Disclosure, DisclosureButton, DisclosurePanel } from './Disclosure';
 import {
-    SeymourIcon, ListIcon, PlusIcon, RssIcon, TrashIcon, FolderIcon, PencilIcon, ChevronDownIcon, ChevronRightIcon, XIcon, BookmarkIcon, SettingsIcon, RedditIcon, YoutubeIcon, GlobeAltIcon, CubeTransparentIcon
+    SeymourIcon, ListIcon, PlusIcon, RssIcon, TrashIcon, FolderIcon, PencilIcon, ChevronDownIcon, ChevronRightIcon, XIcon, BookmarkIcon, SettingsIcon, RedditIcon, YoutubeIcon, GlobeAltIcon, ControllerIcon
 } from './icons';
 import { SmartFeedIcon } from './SmartFeedIcon';
 
@@ -216,9 +216,9 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
             </div>
             
             <div className="flex-grow overflow-y-auto mt-2 px-4 space-y-1.5">
-                <NavItem sel={{type: 'all', id: null}} label="All" icon={<ListIcon className="w-5 h-5 flex-shrink-0" />} />
+                <NavItem sel={{type: 'game_hub', id: null}} label="Chrono Echoes" icon={<ControllerIcon className="w-5 h-5 flex-shrink-0" />} />
+                <NavItem sel={{type: 'all', id: null}} label="All Feeds" icon={<ListIcon className="w-5 h-5 flex-shrink-0" />} />
                 <NavItem sel={{type: 'bookmarks', id: 'bookmarks'}} label="Saved" icon={<BookmarkIcon className="w-5 h-5 flex-shrink-0" />} />
-                <NavItem sel={{type: 'game_hub', id: null}} label="Game Hub" icon={<CubeTransparentIcon className="w-5 h-5 flex-shrink-0" />} />
                 <NavItem sel={{type: 'reddit', id: null}} label="Reddit" icon={<RedditIcon className="w-5 h-5 flex-shrink-0" />} />
                 <NavItem sel={{type: 'youtube', id: null}} label="YouTube" icon={<YoutubeIcon className="w-5 h-5 flex-shrink-0" />} />
                 

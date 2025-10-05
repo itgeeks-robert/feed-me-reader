@@ -130,9 +130,9 @@ const TetrisPage: React.FC<TetrisPageProps> = ({ onBackToHub, onReturnToFeeds })
                 <button onClick={onReturnToFeeds} className="px-3 py-1.5 text-xs font-semibold rounded-full bg-black/30 border border-white/10 text-zinc-300 hover:bg-black/50 transition-colors">Feeds</button>
             </div>
 
-            <div className="w-full flex-grow flex flex-col landscape:flex-row items-center justify-center gap-2 md:gap-4 p-2 relative z-10 overflow-hidden">
+            <div className="w-full flex-grow flex flex-col items-center justify-center gap-2 md:gap-4 p-2 relative z-10 overflow-hidden">
                 {/* Left Panel (Landscape) */}
-                <div className="hidden landscape:flex flex-col gap-2 md:gap-4 w-20 md:w-32">
+                <div className="hidden flex-col gap-2 md:gap-4 w-20 md:w-32">
                     <div className="bg-black/40 border border-zinc-700 p-2 rounded-lg text-center">
                         <p className="text-xs text-zinc-400 uppercase tracking-widest">Hold</p>
                         <canvas ref={holdRef} className="mx-auto mt-1"></canvas>
@@ -144,13 +144,13 @@ const TetrisPage: React.FC<TetrisPageProps> = ({ onBackToHub, onReturnToFeeds })
                 </div>
 
                 {/* Game Canvas */}
-                <div className="relative w-full h-full max-w-[50vh] landscape:max-w-full aspect-[1/2]">
+                <div className="relative w-full h-full max-w-[50vh] aspect-[1/2]">
                     <div className="absolute -inset-1 rounded-lg bg-[var(--glow-color)] blur opacity-40"></div>
                     <canvas ref={canvasRef} className="relative bg-black rounded-lg border-2 border-zinc-700 shadow-2xl w-full h-full" style={{boxShadow: '0 0 20px var(--glow-color)'}}></canvas>
                 </div>
 
                 {/* Right Panel */}
-                <div className="flex flex-row landscape:flex-col justify-between w-full max-w-[50vh] landscape:w-20 md:landscape:w-32 gap-2 md:gap-4 mt-2 landscape:mt-0">
+                <div className="flex flex-row justify-between w-full max-w-[50vh] gap-2 md:gap-4 mt-2">
                      <div className="bg-black/40 border border-zinc-700 p-2 rounded-lg text-center flex-1">
                         <p className="text-xs text-zinc-400 uppercase tracking-widest">Next</p>
                         <canvas ref={previewRef} className="mx-auto mt-1 w-full"></canvas>

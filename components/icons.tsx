@@ -43,6 +43,21 @@ export const SeymourIcon: React.FC<{ className?: string }> = ({ className }) => 
     </svg>
 );
 
+export const ControllerIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M16.44 3.09c.38.16.7.4.94.73.22.3.36.64.44.99" />
+      <path d="M19.13 6.64c.26.42.43.89.51 1.38" />
+      <path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+      <path d="M12 12H4.87c.09-.5.26-1 .51-1.38" />
+      <path d="M8.56 3.09c-.38.16-.7.4-.94.73-.22.3-.36.64-.44.99" />
+      <path d="M12 12h7.13c-.08-.5-.26-.99-.5-1.38" />
+      <path d="M12 12v7.13c.5 0 .99-.17 1.38-.51" />
+      <path d="M12 12v-7.13c-.5-.01-1 .16-1.38.51" />
+      <path d="m15 13-1-1-1 1" />
+      <path d="m9 13 1-1 1 1" />
+    </svg>
+);
+
 export const PlusIcon: React.FC<{ className?: string }> = ({ className }) => (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />

@@ -4,8 +4,7 @@ import type { SourceType } from '../components/AddSource';
 import SettingsModal from '../components/SettingsModal';
 import AddSourceModal from '../components/AddSourceModal';
 import Sidebar from '../components/Sidebar';
-import TopNavBar from '../components/TopNavBar';
-import { ListIcon, TrophyIcon, RedditIcon, YoutubeIcon, NewspaperIcon, BookmarkIcon, CubeTransparentIcon } from '../components/icons';
+import { ListIcon, TrophyIcon, RedditIcon, YoutubeIcon, NewspaperIcon, BookmarkIcon, ControllerIcon } from '../components/icons';
 import GameHubPage from '../components/GameHubPage';
 import { resilientFetch } from '../services/fetch';
 import { useLocalStorage } from '../hooks/useLocalStorage';
@@ -186,7 +185,7 @@ const App: React.FC = () => {
     const [sudokuStats, setSudokuStats] = useLocalStorage<SudokuStats>(SUDOKU_STATS_KEY, defaultSudokuStats);
     const [solitaireStats, setSolitaireStats] = useLocalStorage<SolitaireStats>(SOLITAIRE_STATS_KEY, defaultSolitaireStats);
     const [solitaireSettings, setSolitaireSettings] = useLocalStorage<SolitaireSettings>(SOLITAIRE_SETTINGS_KEY, defaultSolitaireSettings);
-    const [selection, setSelection] = useLocalStorage<Selection>(SELECTION_KEY, { type: 'all', id: null });
+    const [selection, setSelection] = useLocalStorage<Selection>(SELECTION_KEY, { type: 'game_hub', id: null });
 
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
     const [isAddSourceModalOpen, setIsAddSourceModalOpen] = useState(false);
@@ -217,43 +216,6 @@ const App: React.FC = () => {
     }, [selection, folders, feeds, setSelection]);
 
     const [animationClass, setAnimationClass] = useState('animate-fade-in');
-
-    const mainPages = useMemo(() => {
-        const sportFolder = folders.find(f => f.name.toLowerCase() === 'sport');
-        const newsFolder = folders.find(f => f.name.toLowerCase() === 'news');
-        return [
-            { selection: { type: 'all' as const, id: null }, name: 'All Feeds', icon: <ListIcon className="w-6 h-6" /> },
-            { selection: { type: 'bookmarks' as const, id: 'bookmarks' }, name: 'Saved', icon: <BookmarkIcon className="w-6 h-6" /> },
-            { selection: { type: 'game_hub' as const, id: null }, name: 'Game Hub', icon: <CubeTransparentIcon className="w-6 h-6" /> },
-            newsFolder ? { selection: { type: 'folder' as const, id: newsFolder.id }, name: 'News', icon: <NewspaperIcon className="w-6 h-6" /> } : null,
-            sportFolder ? { selection: { type: 'folder' as const, id: sportFolder.id }, name: 'Sport', icon: <TrophyIcon className="w-6 h-6" /> } : null,
-            { selection: { type: 'reddit' as const, id: null }, name: 'Reddit', icon: <RedditIcon className="w-6 h-6" /> },
-            { selection: { type: 'youtube' as const, id: null }, name: 'YouTube', icon: <YoutubeIcon className="w-6 h-6" /> },
-        ].filter((page): page is NonNullable<typeof page> => !!page);
-    }, [folders]);
-    
-    const currentPageIndex = useMemo(() => mainPages.findIndex(p => 
-        p.selection.type === selection.type && p.selection.id === selection.id
-    ), [mainPages, selection]);
-
-    const navigate = useCallback((newIndex: number) => {
-        const oldIndex = currentPageIndex;
-        if (newIndex === oldIndex || newIndex < 0 || newIndex >= mainPages.length) {
-            return;
-        }
-
-        if (newIndex > oldIndex) {
-            setAnimationClass('animate-slide-in-from-right');
-        } else {
-            setAnimationClass('animate-slide-in-from-left');
-        }
-
-        const newSelection = mainPages[newIndex].selection;
-        if (newSelection.type === 'game_hub' && selection.type === 'game_hub') {
-            setGameHubResetKey(k => k + 1);
-        }
-        setSelection(newSelection);
-    }, [currentPageIndex, mainPages, setSelection, selection]);
 
     useEffect(() => {
         const feedInterval = setInterval(() => {
@@ -339,7 +301,6 @@ const App: React.FC = () => {
             const iconUrl = `https://www.google.com/s2/favicons?sz=32&domain_url=${new URL(siteLink).hostname}`;
             const newFeed: Feed = { id: Date.now(), title: feedTitle, url: feedUrl, iconUrl, folderId: null, sourceType: type };
             setFeeds(prevFeeds => [...prevFeeds, newFeed]);
-            navigate(0);
         } catch (error) {
             console.error("Failed to add source:", error);
             throw error;
@@ -603,16 +564,13 @@ const App: React.FC = () => {
     const pageTitle = useMemo(() => {
         if (selection.type === 'search') return `Search: "${selection.query}"`;
         if (selection.type === 'bookmarks') return 'Saved Articles';
-        if (selection.type === 'game_hub') return 'Game Hub';
-
-        const mainPage = mainPages.find(p => p.selection.type === selection.type && p.selection.id === selection.id);
-        if (mainPage) return mainPage.name;
+        if (selection.type === 'game_hub') return 'Chrono Echoes';
 
         if (selection.type === 'feed') return feeds.find(f => f.id === selection.id)?.title || 'Feed';
         if (selection.type === 'folder') return folders.find(f => f.id === selection.id)?.name || 'Folder';
         
         return 'See More';
-    }, [selection, mainPages, feeds, folders]);
+    }, [selection, feeds, folders]);
     
     return (
         <div className="h-screen font-sans text-sm relative flex overflow-hidden">
@@ -679,13 +637,6 @@ const App: React.FC = () => {
                     />
                 )}
             </div>
-            {selection.type !== 'game_hub' && (
-                 <TopNavBar 
-                    pages={mainPages}
-                    currentPageIndex={currentPageIndex}
-                    onNavigate={navigate}
-                 />
-            )}
             <SettingsModal
                 isOpen={isSettingsModalOpen}
                 onClose={() => setIsSettingsModalOpen(false)}

@@ -48,7 +48,7 @@ export const GameboyControls: React.FC<GameboyControlsProps> = ({ onButtonPress,
     const startSelectClasses = "w-16 h-7 bg-[#2d2d2d] rounded-full flex items-center justify-center text-xs font-bold text-white/60 uppercase active:bg-[#454545]";
 
     return (
-        <div className="w-full bg-[#d1d1d1] p-6 pt-4 border-t-2 border-black/10 flex-shrink-0 flex flex-col items-center landscape:hidden">
+        <div className="w-full bg-[#d1d1d1] p-6 pt-4 border-t-2 border-black/10 flex-shrink-0 flex flex-col items-center">
              <div className="flex justify-between items-center w-full max-w-sm">
                  {/* D-Pad */}
                 <div className="relative w-36 h-36">
