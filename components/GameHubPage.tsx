@@ -7,9 +7,8 @@ import SolitairePage from './SolitairePage';
 import MinesweeperPage from './MinesweeperPage';
 import TetrisPage from './TetrisPage';
 import PoolGamePage from './PoolGamePage';
-import MarioPage from './MarioPage';
 import SporeCryptPage from './SporeCryptPage';
-import { ControllerIcon, BrainIcon, CubeIcon, MushroomIcon, TetrisTBlockIcon, SeymourIcon, FlagIcon, CubeTransparentIcon, KeypadIcon } from './icons';
+import { ControllerIcon, BrainIcon, CubeIcon, TetrisTBlockIcon, SeymourIcon, FlagIcon, CubeTransparentIcon, KeypadIcon } from './icons';
 
 const SkidRowSurvivalGame: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => {
     const [gamePhase, setGamePhase] = useState<'TITLE' | 'PLAYING'>('TITLE');
@@ -92,7 +91,6 @@ const GameHubPage: React.FC<any> = (props) => {
         { id: 'minesweeper', title: 'Toxic Pods', description: 'Defuse the mutated seed pods before they burst!', icon: <FlagIcon />, bannerColor: 'from-red-950 to-black' },
         { id: 'tetris', title: 'Planter Stacker', description: 'Organize the planters or let the jungle take over.', icon: <TetrisTBlockIcon />, bannerColor: 'from-purple-950 to-black' },
         { id: 'pool', title: 'Eyeball Billiards', description: 'Sink the seeds into the fleshy pockets. Don\'t scratch.', icon: <CubeIcon />, bannerColor: 'from-zinc-900 to-black' },
-        { id: 'mario', title: 'Plumber Snack', description: 'Help the greenery reclaim the mushroom kingdom.', icon: <MushroomIcon />, bannerColor: 'from-orange-950 to-black' },
         { id: 'skid-row', title: 'Skid Row Survival', description: 'The flagship. Feed Seymour. Survive the night.', icon: <SeymourIcon />, bannerColor: 'from-plant-950 to-flesh-950' }
     ];
 
@@ -130,7 +128,6 @@ const GameHubPage: React.FC<any> = (props) => {
             {activeGame === 'minesweeper' && <MinesweeperPage onBackToHub={handleBackToHub} onReturnToFeeds={props.onReturnToFeeds} />}
             {activeGame === 'tetris' && <TetrisPage onBackToHub={handleBackToHub} onReturnToFeeds={props.onReturnToFeeds} />}
             {activeGame === 'pool' && <PoolGamePage onBackToHub={handleBackToHub} onReturnToFeeds={props.onReturnToFeeds} />}
-            {activeGame === 'mario' && <MarioPage onBackToHub={handleBackToHub} onReturnToFeeds={props.onReturnToFeeds} />}
             {activeGame === 'skid-row' && <SkidRowSurvivalGame onBackToHub={handleBackToHub} />}
         </Suspense>
     );
