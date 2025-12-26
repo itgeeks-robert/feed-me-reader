@@ -1,6 +1,6 @@
 
 import React, { useState, useCallback, Suspense } from 'react';
-import type { SudokuStats, SudokuDifficulty, SolitaireStats, SolitaireSettings } from '../src/App';
+import type { SudokuStats, SolitaireStats, SolitaireSettings } from '../src/App';
 
 import SudokuPage from './SudokuPage';
 import SolitairePage from './SolitairePage';
@@ -98,7 +98,7 @@ const GameHubPage: React.FC<any> = (props) => {
 
     if (activeGame === 'hub') {
         return (
-            <main className="h-full flex-grow overflow-y-auto bg-zinc-950 p-6 md:p-12 animate-fade-in relative scrollbar-hide pb-40 z-10 touch-pan-y">
+            <main className="h-full min-h-0 flex-grow overflow-y-auto bg-zinc-950 p-6 md:p-12 animate-fade-in relative scrollbar-hide pb-40 z-10 touch-pan-y">
                 <div className="max-w-7xl mx-auto relative z-10">
                     <header className="mb-16 flex flex-col md:flex-row md:items-end justify-between gap-10">
                         <div className="flex items-center gap-6">

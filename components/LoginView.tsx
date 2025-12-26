@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { SeymourIcon, GoogleIcon } from './icons';
 
@@ -5,54 +6,39 @@ interface LoginViewProps {
     onLogin: () => void;
     onGuestLogin: () => void;
     isApiReady: boolean;
-    isApiKeyMissing: boolean;
-    isGoogleClientIdMissing: boolean;
 }
 
-const LoginView: React.FC<LoginViewProps> = ({ onLogin, onGuestLogin, isApiReady, isApiKeyMissing, isGoogleClientIdMissing }) => {
-    const isConfigMissing = isApiKeyMissing || isGoogleClientIdMissing;
-
+const LoginView: React.FC<LoginViewProps> = ({ onLogin, onGuestLogin, isApiReady }) => {
     return (
-        <div className="flex items-center justify-center h-screen bg-white dark:bg-zinc-900">
-             {isConfigMissing && (
-                <div className="absolute top-0 left-0 right-0 p-4 bg-yellow-100 dark:bg-yellow-900/30 border-b border-yellow-300 dark:border-yellow-500/30 text-center">
-                    <p className="text-sm font-bold text-yellow-800 dark:text-yellow-200">
-                        Action Required: Configuration Missing
-                    </p>
-                    <div className="text-xs text-yellow-700 dark:text-yellow-300 mt-2 space-y-1">
-                        {isApiKeyMissing && (
-                            <p>Your <strong>Gemini API Key</strong> is not set. AI features like sports scores will be disabled.</p>
-                        )}
-                        {isGoogleClientIdMissing && (
-                             <p>Your <strong>Google Client ID</strong> is not set. Google Sign-In and cloud sync will be disabled.</p>
-                        )}
-                        <p className="mt-2 pt-1 border-t border-yellow-600/20">Please create a <code>.env</code> file in the project's root and add your keys (e.g., <code>API_KEY=...</code>).</p>
-                    </div>
+        <div className="flex items-center justify-center h-screen bg-zinc-950">
+            <div className="w-full max-w-sm mx-auto text-center px-6">
+                <div className="p-4 bg-plant-500 rounded-[2.5rem] shadow-[0_0_50px_rgba(34,197,94,0.3)] w-24 h-24 mx-auto mb-8 flex items-center justify-center">
+                    <SeymourIcon className="w-16 h-16 text-black" />
                 </div>
-            )}
-            <div className="w-full max-w-sm mx-auto text-center">
-                <SeymourIcon className="w-24 h-24 mx-auto mb-4" />
-                <h1 className="text-3xl font-bold text-zinc-900 dark:text-white mb-2">See-More, Feed Me!</h1>
-                <p className="text-zinc-600 dark:text-zinc-400 mb-8">Sign in with Google to sync feeds or continue as a guest.</p>
-                <div className="px-4">
-                    <button
-                        type="button"
-                        onClick={onLogin}
-                        disabled={!isApiReady || isGoogleClientIdMissing}
-                        className="w-full bg-white text-zinc-700 font-medium py-2.5 px-4 rounded-md border border-gray-300 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white hover:bg-gray-50 dark:hover:bg-zinc-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-zinc-900 focus:ring-lime-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-3"
-                    >
-                        <GoogleIcon className="w-5 h-5" />
-                        <span>Sign in with Google</span>
-                    </button>
+                <h1 className="text-4xl font-black text-white italic uppercase tracking-tighter mb-2">FEED ME!</h1>
+                <p className="text-plant-500/60 font-bold uppercase tracking-[0.3em] text-[10px] mb-12">The Offline Alley Arcade</p>
+                
+                <div className="space-y-4">
                     <button
                         type="button"
                         onClick={onGuestLogin}
-                        className="mt-4 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-lime-500 dark:hover:text-lime-400"
+                        className="w-full bg-white text-black font-black py-4 px-6 rounded-2xl italic uppercase text-lg shadow-xl hover:scale-105 transition-transform flex items-center justify-center gap-3"
                     >
-                        Continue as Guest
+                        <span>Enter The Pit</span>
                     </button>
-                    {!isApiReady && <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-4">Initializing...</p>}
+                    
+                    <button
+                        type="button"
+                        onClick={onLogin}
+                        disabled={!isApiReady}
+                        className="w-full bg-zinc-900 text-zinc-400 font-bold py-3 px-6 rounded-2xl uppercase text-xs border border-white/5 hover:text-white transition-colors flex items-center justify-center gap-3"
+                    >
+                        <GoogleIcon className="w-4 h-4" />
+                        <span>Sync Spores (Google)</span>
+                    </button>
                 </div>
+                
+                {!isApiReady && <p className="text-[10px] text-zinc-600 font-bold uppercase tracking-widest mt-8 animate-pulse">Initializing DNA...</p>}
             </div>
         </div>
     );

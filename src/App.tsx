@@ -6,11 +6,9 @@ import SettingsModal from '../components/SettingsModal';
 import AddSourceModal from '../components/AddSourceModal';
 import Sidebar from '../components/Sidebar';
 import BottomNavBar from '../components/BottomNavBar';
-import { ListIcon, TrophyIcon, RedditIcon, YoutubeIcon, NewspaperIcon, BookmarkIcon, ControllerIcon } from '../components/icons';
 import GameHubPage from '../components/GameHubPage';
 import { resilientFetch } from '../services/fetch';
 import { useLocalStorage } from '../hooks/useLocalStorage';
-
 
 export interface Folder {
   id: number;
@@ -39,7 +37,7 @@ export interface Article {
 export type Selection = {
   type: 'all' | 'folder' | 'bookmarks' | 'search' | 'feed' | 'reddit' | 'youtube' | 'game_hub';
   id: string | number | null;
-  query?: string; // For search
+  query?: string;
 };
 
 export type Theme = 'light' | 'dark';
@@ -71,7 +69,7 @@ export type SudokuDifficultyStats = {
 
 export interface SudokuStats {
   dailyStreak: number;
-  lastDailyCompletionDate: string | null; // YYYY-MM-DD
+  lastDailyCompletionDate: string | null;
   totalWins: number;
   easy: SudokuDifficultyStats;
   medium: SudokuDifficultyStats;
@@ -92,11 +90,10 @@ export interface SolitaireStats {
 export interface SolitaireSettings {
   drawCount: 1 | 3;
   theme: {
-    cardBack: string; // base64
-    background: string; // base64
+    cardBack: string;
+    background: string;
   } | null;
 }
-
 
 const GUEST_USER_ID = 'guest';
 const READ_ARTICLES_KEY = `feedme_read_articles_${GUEST_USER_ID}`;
@@ -111,7 +108,6 @@ const SUDOKU_STATS_KEY = `feedme_sudoku_stats_${GUEST_USER_ID}`;
 const SOLITAIRE_STATS_KEY = `feedme_solitaire_stats_${GUEST_USER_ID}`;
 const SOLITAIRE_SETTINGS_KEY = `feedme_solitaire_settings_${GUEST_USER_ID}`;
 const SELECTION_KEY = `feedme_selection_${GUEST_USER_ID}`;
-
 
 const defaultFolders: Folder[] = [
     { id: 1, name: 'Main Feeds' },
@@ -131,8 +127,8 @@ const defaultWidgetSettings: WidgetSettings = {
     showWeather: true,
     showSports: true,
     showFinance: false,
-    weatherLocation: 'New York',
-    sportsTeams: ['MUN', 'LIV', 'MCI'],
+    weatherLocation: 'London',
+    sportsTeams: ['MUN', 'LIV', 'MCI', 'ARS'],
 };
 
 const defaultSudokuStats: SudokuStats = {
@@ -160,7 +156,6 @@ const defaultSolitaireSettings: SolitaireSettings = {
   theme: null,
 };
 
-
 const App: React.FC = () => {
     const [theme, setTheme] = useLocalStorage<Theme>(THEME_KEY, 'dark');
     const [articleView, setArticleView] = useLocalStorage<ArticleView>(ARTICLE_VIEW_KEY, 'list');
@@ -178,11 +173,7 @@ const App: React.FC = () => {
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
     const [isAddSourceModalOpen, setIsAddSourceModalOpen] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    
     const [lastRefresh, setLastRefresh] = useState(() => Date.now());
-    const [gameHubResetKey, setGameHubResetKey] = useState(0);
-    
-    const isApiKeyMissing = !process.env.API_KEY;
 
     useEffect(() => {
         const root = document.documentElement;
@@ -200,12 +191,7 @@ const App: React.FC = () => {
     };
 
     const handleSelectFromSidebar = (sel: Selection) => {
-        if (sel.type === 'game_hub' && selection.type === 'game_hub') {
-            setGameHubResetKey(k => k + 1);
-        }
-        if (JSON.stringify(sel) !== JSON.stringify(selection)) {
-            setSelection(sel);
-        }
+        setSelection(sel);
         setIsSidebarOpen(false);
     };
 
@@ -216,73 +202,54 @@ const App: React.FC = () => {
     const handleAddSource = async (url: string, type: SourceType) => {
         let feedUrl = url;
         let originalUrl = url;
-
         try {
             if (type === 'youtube') {
-                if (url.includes('/playlist?list=')) {
-                    const playlistIdMatch = url.match(/list=([a-zA-Z0-9_-]+)/);
-                    if (playlistIdMatch?.[1]) {
-                        feedUrl = `https://www.youtube.com/feeds/videos.xml?playlist_id=${playlistIdMatch[1]}`;
-                    } else {
-                        throw new Error('Could not parse playlist ID from URL.');
-                    }
+                const playlistIdMatch = url.match(/list=([a-zA-Z0-9_-]+)/);
+                if (playlistIdMatch?.[1]) {
+                    feedUrl = `https://www.youtube.com/feeds/videos.xml?playlist_id=${playlistIdMatch[1]}`;
                 } else {
-                    const channelIdMatch = url.match(/youtube\.com\/channel\/([a-zA-Z0-9_-]{24})/);
-                    let channelId = channelIdMatch?.[1];
-                    if (!channelId) {
-                       const response = await resilientFetch(url.split('?')[0]);
-                       const text = await response.text();
-                       const canonicalMatch = text.match(/<link rel="canonical" href="https:\/\/www.youtube.com\/channel\/([a-zA-Z0-9_-]+)"/);
-                       channelId = canonicalMatch?.[1] || text.match(/"channelId":"([a-zA-Z0-9_-]+)"/)?.[1] || null;
-                    }
+                    const response = await resilientFetch(url.split('?')[0]);
+                    const text = await response.text();
+                    const canonicalMatch = text.match(/<link rel="canonical" href="https:\/\/www.youtube.com\/channel\/([a-zA-Z0-9_-]+)"/);
+                    const channelId = canonicalMatch?.[1] || text.match(/"channelId":"([a-zA-Z0-9_-]+)"/)?.[1] || null;
                     if (!channelId) throw new Error('Could not find a valid YouTube channel ID.');
-                    const uploadsPlaylistId = channelId.replace(/^UC/, 'UU');
-                    feedUrl = `https://www.youtube.com/feeds/videos.xml?playlist_id=${uploadsPlaylistId}`;
+                    feedUrl = `https://www.youtube.com/feeds/videos.xml?playlist_id=${channelId.replace(/^UC/, 'UU')}`;
                 }
-            } else if (type === 'website') {
-                feedUrl = `https://www.fivefilters.org/feed-creator/extract.php?url=${encodeURIComponent(url)}&format=xml`;
             } else if (type === 'reddit') {
-                const redditUrl = url.trim().replace(/\/$/, '');
-                const match = redditUrl.match(/reddit\.com\/(r\/[a-zA-Z0-9_]+|user\/[a-zA-Z0-9_-]+)/);
-                feedUrl = match ? `https://www.reddit.com/${match[1]}/.rss` : `${redditUrl}/.rss`;
+                const match = url.trim().match(/reddit\.com\/(r\/[a-zA-Z0-9_]+|user\/[a-zA-Z0-9_-]+)/);
+                feedUrl = match ? `https://www.reddit.com/${match[1]}/.rss` : `${url.trim().replace(/\/$/, '')}/.rss`;
             }
 
-            if (feeds.some(feed => feed.url === feedUrl)) throw new Error("This feed has already been added.");
+            if (feeds.some(feed => feed.url === feedUrl)) throw new Error("Source already exists.");
 
             const response = await resilientFetch(feedUrl);
             const text = await response.text();
             const xml = new DOMParser().parseFromString(text, "application/xml");
-            if (xml.querySelector('parsererror')) throw new Error('Failed to parse RSS feed.');
             const feedTitle = xml.querySelector('channel > title, feed > title')?.textContent || new URL(originalUrl).hostname;
             const siteLink = xml.querySelector('channel > link')?.textContent || originalUrl;
             const iconUrl = `https://www.google.com/s2/favicons?sz=32&domain_url=${new URL(siteLink).hostname}`;
-            const newFeed: Feed = { id: Date.now(), title: feedTitle, url: feedUrl, iconUrl, folderId: null, sourceType: type };
-            setFeeds(prevFeeds => [...prevFeeds, newFeed]);
+            
+            setFeeds(prev => [...prev, { id: Date.now(), title: feedTitle, url: feedUrl, iconUrl, folderId: null, sourceType: type }]);
         } catch (error) {
             console.error("Failed to add source:", error);
             throw error;
         }
     };
 
-    const handleMarkAsRead = (articleId: string) => {
-        setReadArticleIds(prev => new Set(prev).add(articleId));
-    };
-
     const handleSudokuWin = useCallback((difficulty: SudokuDifficulty, time: number, isDaily: boolean) => {
-      setSudokuStats(prevStats => {
-        const newStats = JSON.parse(JSON.stringify(prevStats)) as SudokuStats;
+      setSudokuStats(prev => {
+        const newStats = { ...prev };
         newStats.totalWins += 1;
-        const difficultyKey = difficulty.toLowerCase() as keyof Omit<SudokuStats, 'dailyStreak' | 'lastDailyCompletionDate' | 'totalWins'>;
-        const diffStats = newStats[difficultyKey];
+        const diffKey = difficulty.toLowerCase() as keyof Omit<SudokuStats, 'dailyStreak' | 'lastDailyCompletionDate' | 'totalWins'>;
+        const diffStats = newStats[diffKey];
         diffStats.gamesPlayed += 1;
         diffStats.totalTimePlayed += time;
         if (diffStats.fastestTime === null || time < diffStats.fastestTime) diffStats.fastestTime = time;
         if (isDaily) {
           const today = new Date().toISOString().split('T')[0];
-          if (prevStats.lastDailyCompletionDate !== today) {
+          if (prev.lastDailyCompletionDate !== today) {
             const yesterday = new Date(Date.now() - 864e5).toISOString().split('T')[0];
-            if (prevStats.lastDailyCompletionDate === yesterday) newStats.dailyStreak += 1;
-            else newStats.dailyStreak = 1;
+            newStats.dailyStreak = (prev.lastDailyCompletionDate === yesterday) ? prev.dailyStreak + 1 : 1;
             newStats.lastDailyCompletionDate = today;
           }
         }
@@ -290,33 +257,15 @@ const App: React.FC = () => {
       });
     }, [setSudokuStats]);
 
-    const handleSudokuLoss = useCallback(() => {
-        // Reset all Sudoku stats if user loses
-        setSudokuStats(defaultSudokuStats);
-    }, [setSudokuStats]);
-
     const handleSolitaireWin = useCallback((time: number, moves: number) => {
       setSolitaireStats(prev => {
-        if (prev.lastGameWasWin) return prev; 
-        const newStats: SolitaireStats = { ...prev };
-        newStats.gamesWon += 1;
-        newStats.currentStreak += 1;
+        if (prev.lastGameWasWin) return prev;
+        const newStats = { ...prev, gamesWon: prev.gamesWon + 1, currentStreak: prev.currentStreak + 1, lastGameWasWin: true };
         if (newStats.currentStreak > newStats.maxStreak) newStats.maxStreak = newStats.currentStreak;
         if (newStats.fastestTime === null || time < newStats.fastestTime) newStats.fastestTime = time;
         if (newStats.lowestMoves === null || moves < newStats.lowestMoves) newStats.lowestMoves = moves;
-        newStats.lastGameWasWin = true;
         return newStats;
       });
-    }, [setSolitaireStats]);
-
-    const handleSolitaireStart = useCallback(() => {
-        setSolitaireStats(prev => {
-            const newStats = {...prev};
-            if (!prev.lastGameWasWin) newStats.currentStreak = 0;
-            newStats.gamesPlayed += 1;
-            newStats.lastGameWasWin = false;
-            return newStats;
-        });
     }, [setSolitaireStats]);
 
     const pageTitle = useMemo(() => {
@@ -328,12 +277,6 @@ const App: React.FC = () => {
         return 'FEED ME!';
     }, [selection, feeds, folders]);
 
-    const feedsToDisplay = useMemo(() => {
-        if (selection.type === 'folder') return feeds.filter(f => f.folderId === selection.id);
-        if (selection.type === 'feed') return feeds.filter(f => f.id === selection.id);
-        return feeds;
-    }, [feeds, selection]);
-    
     return (
         <div className="h-screen font-sans text-sm relative flex flex-col md:flex-row overflow-hidden bg-zinc-950">
             <Sidebar
@@ -354,18 +297,16 @@ const App: React.FC = () => {
             
             <div className="flex-1 flex flex-col min-w-0 md:pl-72 relative pb-20 md:pb-0 h-full overflow-hidden">
                 {selection.type === 'game_hub' ? (
-                    <div className="flex-1 min-h-0">
+                    <div className="flex-1 min-h-0 h-full overflow-hidden">
                         <GameHubPage
-                            key={gameHubResetKey}
                             sudokuStats={sudokuStats}
                             onSudokuWin={handleSudokuWin}
-                            onSudokuLoss={handleSudokuLoss}
+                            onSudokuLoss={() => setSudokuStats(defaultSudokuStats)}
                             solitaireStats={solitaireStats}
                             onSolitaireWin={handleSolitaireWin}
-                            onSolitaireStart={handleSolitaireStart}
+                            onSolitaireStart={() => setSolitaireStats(s => ({...s, gamesPlayed: s.gamesPlayed + 1, lastGameWasWin: false}))}
                             solitaireSettings={solitaireSettings}
                             onUpdateSolitaireSettings={setSolitaireSettings}
-                            isApiKeyMissing={isApiKeyMissing}
                             onReturnToFeeds={handleReturnToFeeds}
                         />
                     </div>
@@ -375,18 +316,17 @@ const App: React.FC = () => {
                         animationClass="animate-fade-in"
                         pageTitle={pageTitle}
                         onSearch={(query: string) => setSelection({ type: 'search', id: null, query })}
-                        feedsToDisplay={feedsToDisplay}
+                        feedsToDisplay={selection.type === 'folder' ? feeds.filter(f => f.folderId === selection.id) : (selection.type === 'feed' ? feeds.filter(f => f.id === selection.id) : feeds)}
                         selection={selection}
                         readArticleIds={readArticleIds}
                         bookmarkedArticleIds={bookmarkedArticleIds}
                         articleTags={articleTags}
-                        onMarkAsRead={handleMarkAsRead}
+                        onMarkAsRead={(id) => setReadArticleIds(prev => new Set(prev).add(id))}
                         onMarkAsUnread={(id) => setReadArticleIds(prev => { const n = new Set(prev); n.delete(id); return n; })}
                         onMarkMultipleAsRead={(ids) => setReadArticleIds(prev => new Set([...prev, ...ids]))}
                         onToggleBookmark={(id) => setBookmarkedArticleIds(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; })}
                         onSetArticleTags={(id, t) => setArticleTags(prev => { const n = new Map(prev); if (t.size === 0) n.delete(id); else n.set(id, t); return n; })}
                         allFeeds={feeds}
-                        isApiKeyMissing={isApiKeyMissing}
                         refreshKey={lastRefresh}
                         onRefresh={() => setLastRefresh(Date.now())}
                         widgetSettings={widgetSettings}
