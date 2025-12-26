@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback, Suspense, lazy } from 'react';
+
+import React, { useState, useCallback, Suspense } from 'react';
 import type { SudokuStats, SudokuDifficulty, SolitaireStats, SolitaireSettings } from '../src/App';
 
 import SudokuPage from './SudokuPage';
@@ -9,186 +10,125 @@ import PoolGamePage from './PoolGamePage';
 import MarioPage from './MarioPage';
 import { ControllerIcon, BrainIcon, CubeIcon, MushroomIcon, TetrisTBlockIcon, SeymourIcon, FlagIcon, CubeTransparentIcon } from './icons';
 
-// --- CHRONO ECHOES GAME ---
-// The original GameHubPage content is preserved here as a standalone game component.
-const ChronoEchoesGame: React.FC<{ onReturnToFeeds: () => void, onBackToHub: () => void }> = ({ onReturnToFeeds, onBackToHub }) => {
+const SkidRowSurvivalGame: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => {
     const [gamePhase, setGamePhase] = useState<'TITLE' | 'PLAYING'>('TITLE');
 
     if (gamePhase === 'TITLE') {
-        return <ChronoEchoesTitleScreen onStartGame={() => setGamePhase('PLAYING')} />;
+        return (
+            <div className="w-full h-full flex flex-col items-center justify-center bg-[#050a06] text-white p-8 relative overflow-hidden">
+                <div className="absolute inset-0 opacity-10 pointer-events-none">
+                    <div className="w-full h-full bg-[repeating-linear-gradient(0deg,rgba(0,0,0,0.5)0px,rgba(0,0,0,0.5)1px,transparent 1px,transparent 2px)] bg-[length:100%_2px]"></div>
+                </div>
+                <div className="mb-6 p-6 bg-plant-500 rounded-full shadow-[0_0_60px_rgba(34,197,94,0.6)] animate-bounce">
+                    <SeymourIcon className="w-40 h-40 text-black" />
+                </div>
+                <h1 className="text-7xl font-black mb-2 tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-plant-400 via-flesh-500 to-plant-600 italic uppercase drop-shadow-2xl text-center">SKID ROW SURVIVAL</h1>
+                <p className="text-plant-400 mb-8 font-bold tracking-[0.5em] uppercase animate-pulse">Total Botanical Carnage</p>
+                <button onClick={() => setGamePhase('PLAYING')} className="px-16 py-5 bg-flesh-600 hover:bg-flesh-500 text-white rounded-full font-black text-2xl italic uppercase transition-all hover:scale-110 active:scale-95 shadow-[0_0_30px_rgba(236,72,153,0.4)] border-4 border-white/20">
+                    FEED THE PLANT
+                </button>
+            </div>
+        );
     }
 
-    return <ChronoEchoesGameScreen onReturnToFeeds={onReturnToFeeds} onBackToHub={onBackToHub} />;
-};
-
-const chronoEchoesStyles: { [key: string]: React.CSSProperties } = {
-  gameContainer: { width: '100%', height: '100%', backgroundColor: '#1a1a1a', position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', userSelect: 'none' },
-  canvas: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', imageRendering: 'pixelated' },
-  uiContainer: { position: 'absolute', bottom: '20px', left: '20px', right: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', pointerEvents: 'none' },
-  dPad: { position: 'relative', width: '150px', height: '150px', pointerEvents: 'auto' },
-  dPadButton: { position: 'absolute', width: '50px', height: '50px', backgroundColor: 'rgba(255, 255, 255, 0.3)', borderRadius: '10px' },
-  actionButtons: { display: 'flex', gap: '20px', pointerEvents: 'auto' },
-  actionButton: { width: '70px', height: '70px', borderRadius: '50%', backgroundColor: 'rgba(255, 255, 255, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', fontWeight: 'bold', color: 'white', border: '3px solid rgba(255, 255, 255, 0.5)' },
-  dialogueBox: { position: 'absolute', bottom: '20px', left: '50%', transform: 'translateX(-50%)', width: '80%', maxWidth: '800px', minHeight: '100px', backgroundColor: 'rgba(0, 0, 0, 0.8)', border: '3px solid #6c5ce7', borderRadius: '10px', color: 'white', padding: '20px', fontSize: '18px', fontFamily: 'monospace', boxShadow: '0 0 15px rgba(108, 92, 231, 0.7)' },
-  titleScreen: { width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(160deg, #0f0c29, #302b63, #24243e)', color: 'white', fontFamily: 'serif' },
-  title: { fontSize: '5rem', textShadow: '3px 3px 0px #fd79a8, 6px 6px 0px #a29bfe', marginBottom: '0.5rem' },
-  subtitle: { fontSize: '1.5rem', color: '#dfe6e9', marginBottom: '3rem', fontStyle: 'italic' },
-  startButton: { fontSize: '1.5rem', padding: '1rem 3rem', backgroundColor: '#fd79a8', color: '#2d3436', border: 'none', borderRadius: '50px', cursor: 'pointer', boxShadow: '0 5px 15px rgba(253, 121, 168, 0.4)', transition: 'transform 0.2s ease, box-shadow 0.2s ease' }
-};
-
-const ChronoEchoesTitleScreen: React.FC<{ onStartGame: () => void }> = ({ onStartGame }) => (
-  <div style={chronoEchoesStyles.titleScreen}>
-    <h1 style={chronoEchoesStyles.title}>Chrono Echoes</h1>
-    <p style={chronoEchoesStyles.subtitle}>The Shard of Worlds</p>
-    <button style={chronoEchoesStyles.startButton} onClick={onStartGame} onMouseOver={e => e.currentTarget.style.transform = 'scale(1.05)'} onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}>Start Game</button>
-  </div>
-);
-const ChronoEchoesGameScreen: React.FC<{ onReturnToFeeds: () => void, onBackToHub: () => void }> = ({ onReturnToFeeds, onBackToHub }) => {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const gameLoopRef = useRef<number>();
-    const playerRef = useRef({ x: 100, y: 100, w: 20, h: 20, speed: 3 });
-    const keysPressed = useRef<{ [key: string]: boolean }>({});
-    const [dialogue, setDialogue] = useState<string | null>(null);
-
-    const handleInteraction = useCallback(() => {
-        if (dialogue) {
-            setDialogue(null);
-        } else {
-            setDialogue("The air hums with forgotten magic. A path lies east, toward the Whispering Peaks.");
-        }
-    }, [dialogue]);
-
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            keysPressed.current[e.code] = true;
-            if (e.code === 'KeyE' || e.code === 'Space') { e.preventDefault(); handleInteraction(); }
-            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) { e.preventDefault(); }
-        };
-        const handleKeyUp = (e: KeyboardEvent) => { keysPressed.current[e.code] = false; };
-        window.addEventListener('keydown', handleKeyDown);
-        window.addEventListener('keyup', handleKeyUp);
-        
-        const canvas = canvasRef.current;
-        const ctx = canvas?.getContext('2d');
-        if (!ctx || !canvas) return;
-        
-        const gameLoop = () => {
-            const player = playerRef.current;
-            if (keysPressed.current['ArrowUp'] || keysPressed.current['KeyW']) player.y -= player.speed;
-            if (keysPressed.current['ArrowDown'] || keysPressed.current['KeyS']) player.y += player.speed;
-            if (keysPressed.current['ArrowLeft'] || keysPressed.current['KeyA']) player.x -= player.speed;
-            if (keysPressed.current['ArrowRight'] || keysPressed.current['KeyD']) player.x += player.speed;
-            player.x = Math.max(0, Math.min(canvas.width - player.w, player.x));
-            player.y = Math.max(0, Math.min(canvas.height - player.h, player.y));
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = '#6ab04c'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = '#2ecc71'; ctx.fillRect(player.x, player.y, player.w, player.h);
-            gameLoopRef.current = requestAnimationFrame(gameLoop);
-        };
-        gameLoop();
-        
-        return () => {
-            window.removeEventListener('keydown', handleKeyDown);
-            window.removeEventListener('keyup', handleKeyUp);
-            if (gameLoopRef.current) cancelAnimationFrame(gameLoopRef.current);
-        };
-    }, [handleInteraction]);
-    
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const resize = () => { canvas.width = canvas.clientWidth; canvas.height = canvas.clientHeight; };
-        window.addEventListener('resize', resize); resize();
-        return () => window.removeEventListener('resize', resize);
-    }, []);
-
     return (
-        <div style={chronoEchoesStyles.gameContainer} className="animate-fade-in">
-             <div className="absolute top-4 right-4 z-10 flex flex-col items-end gap-2">
-                <button onClick={onBackToHub} className="px-3 py-1.5 text-xs font-semibold rounded-full bg-black/30 backdrop-blur-sm border border-white/10 text-zinc-300 hover:bg-black/50 transition-colors">Back to Hub</button>
-                <button onClick={onReturnToFeeds} className="px-3 py-1.5 text-xs font-semibold rounded-full bg-black/30 backdrop-blur-sm border border-white/10 text-zinc-300 hover:bg-black/50 transition-colors">Back to Feeds</button>
+        <div className="relative w-full h-full bg-[#0a0a14] flex flex-col items-center justify-center p-4">
+             <div className="absolute top-4 right-4 z-20">
+                <button onClick={onBackToHub} className="px-5 py-2 bg-plant-600 text-black rounded-full text-xs font-black uppercase italic tracking-widest shadow-lg">Eject</button>
             </div>
-            <canvas ref={canvasRef} style={chronoEchoesStyles.canvas} />
-            {dialogue && <div style={chronoEchoesStyles.dialogueBox}><p>{dialogue}</p></div>}
+            <div className="text-center bg-black/80 p-12 rounded-[3rem] border-4 border-plant-500 shadow-[0_0_40px_rgba(34,197,94,0.3)]">
+                <p className="text-flesh-500 font-black text-5xl animate-pulse italic tracking-tighter mb-4 uppercase">Level 1: The Pit</p>
+                <p className="text-plant-500 font-mono text-sm uppercase tracking-widest">Digesting logic gates...</p>
+            </div>
         </div>
     );
 };
 
-
-// --- NEW GAME HUB ---
-
-interface GameHubPageProps {
-    sudokuStats: SudokuStats;
-    onSudokuWin: (difficulty: SudokuDifficulty, time: number, isDaily: boolean) => void;
-    solitaireStats: SolitaireStats;
-    onSolitaireWin: (time: number, moves: number) => void;
-    onSolitaireStart: () => void;
-    solitaireSettings: SolitaireSettings;
-    onUpdateSolitaireSettings: (settings: SolitaireSettings) => void;
-    isApiKeyMissing: boolean;
-    onReturnToFeeds: () => void;
+interface GameInfo {
+    id: string;
+    title: string;
+    description: string;
+    icon: React.ReactNode;
+    bannerColor: string;
 }
 
-type ActiveGame = 'hub' | 'sudoku' | 'solitaire' | 'minesweeper' | 'tetris' | 'pool' | 'mario' | 'chrono-echoes';
+const GameCard: React.FC<{ game: GameInfo; onPlay: () => void }> = ({ game, onPlay }) => {
+    return (
+        <div onClick={onPlay} className="group relative bg-zinc-950 border-4 border-zinc-800 rounded-[2.5rem] overflow-hidden flex flex-col transition-all duration-500 hover:scale-[1.05] hover:border-plant-500 hover:shadow-[0_0_50px_rgba(34,197,94,0.25)] cursor-pointer h-[320px] shadow-2xl">
+            <div className="absolute inset-0 pointer-events-none z-10 opacity-20 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%]"></div>
+            
+            <div className={`h-40 w-full relative overflow-hidden bg-gradient-to-br ${game.bannerColor} flex items-center justify-center`}>
+                <div className="opacity-30 group-hover:opacity-80 group-hover:scale-110 transition-all duration-700">
+                    {React.cloneElement(game.icon as React.ReactElement, { className: "w-24 h-24" })}
+                </div>
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-plant-500 shadow-[0_0_15px_#22c55e]"></div>
+            </div>
 
-const GameCard: React.FC<{ icon: React.ReactNode, title: string, description: string, onPlay: () => void }> = ({ icon, title, description, onPlay }) => (
-    <div className="bg-zinc-800/50 backdrop-blur-sm border border-white/10 rounded-2xl p-6 flex flex-col items-center text-center group hover:border-orange-500/50 transition-all duration-300 hover:-translate-y-1">
-        <div className="w-16 h-16 text-orange-400 mb-4">{icon}</div>
-        <h3 className="text-xl font-bold text-white mb-2">{title}</h3>
-        <p className="text-sm text-zinc-400 flex-grow mb-4">{description}</p>
-        <button onClick={onPlay} className="w-full bg-orange-600 hover:bg-orange-500 text-white font-bold py-2 rounded-lg transition-colors">
-            Play
-        </button>
-    </div>
-);
+            <div className="p-6 flex-grow flex flex-col justify-between bg-zinc-900">
+                <div>
+                    <div className="flex items-center gap-3 mb-2">
+                        <span className="text-flesh-500">{React.cloneElement(game.icon as React.ReactElement, { className: "w-6 h-6" })}</span>
+                        <h3 className="text-xl font-black text-white uppercase italic tracking-tighter leading-none">{game.title}</h3>
+                    </div>
+                    <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest line-clamp-2 leading-relaxed opacity-80">{game.description}</p>
+                </div>
+                <div className="px-4 py-1.5 rounded-full bg-plant-600 text-black font-black text-[10px] uppercase italic tracking-tighter group-hover:bg-flesh-500 group-hover:text-white transition-colors text-center">
+                    Insert Coin
+                </div>
+            </div>
+        </div>
+    );
+};
 
-const GameHubPage: React.FC<GameHubPageProps> = (props) => {
-    const [activeGame, setActiveGame] = useState<ActiveGame>('hub');
+const GameHubPage: React.FC<any> = (props) => {
+    const [activeGame, setActiveGame] = useState<string>('hub');
     const handleBackToHub = useCallback(() => setActiveGame('hub'), []);
 
-    const games = [
-        { id: 'sudoku', title: 'Sudoku', description: 'A classic logic puzzle. Fill the grid with numbers 1-9.', icon: <BrainIcon className="w-full h-full" /> },
-        { id: 'solitaire', title: 'Solitaire', description: 'The timeless card game of patience and strategy.', icon: <CubeTransparentIcon className="w-full h-full" /> },
-        { id: 'minesweeper', title: 'Minesweeper', description: 'Clear the board without detonating any hidden mines.', icon: <FlagIcon className="w-full h-full" /> },
-        { id: 'tetris', title: 'Tetris', description: 'Fit the falling blocks to clear lines and score points.', icon: <TetrisTBlockIcon className="w-full h-full" /> },
-        { id: 'pool', title: '8-Ball Pool', description: 'A realistic physics-based pool game simulation.', icon: <CubeIcon className="w-full h-full" /> },
-        { id: 'mario', title: 'Platformer', description: 'Jump and run in this classic platforming adventure.', icon: <MushroomIcon className="w-full h-full" /> },
-        { id: 'chrono-echoes', title: 'Chrono Echoes', description: 'A mini-RPG adventure. Explore a forgotten world.', icon: <SeymourIcon className="w-full h-full" /> }
+    const games: GameInfo[] = [
+        { id: 'sudoku', title: 'Brain Spores', description: 'Logical mutation puzzles that grow your mental vines.', icon: <BrainIcon />, bannerColor: 'from-green-950 to-black' },
+        { id: 'solitaire', title: 'Leaf Patience', description: 'Strategic survival cards for the Skid Row elite.', icon: <CubeTransparentIcon />, bannerColor: 'from-emerald-950 to-black' },
+        { id: 'minesweeper', title: 'Toxic Pods', description: 'Defuse the mutated seed pods before they burst!', icon: <FlagIcon />, bannerColor: 'from-red-950 to-black' },
+        { id: 'tetris', title: 'Planter Stacker', description: 'Organize the planters or let the jungle take over.', icon: <TetrisTBlockIcon />, bannerColor: 'from-purple-950 to-black' },
+        { id: 'pool', title: 'Eyeball Billiards', description: 'Sink the seeds into the fleshy pockets. Don\'t scratch.', icon: <CubeIcon />, bannerColor: 'from-zinc-900 to-black' },
+        { id: 'mario', title: 'Plumber Snack', description: 'Help the greenery reclaim the mushroom kingdom.', icon: <MushroomIcon />, bannerColor: 'from-orange-950 to-black' },
+        { id: 'skid-row', title: 'Skid Row Survival', description: 'The flagship. Feed Seymour. Survive the night.', icon: <SeymourIcon />, bannerColor: 'from-plant-950 to-flesh-950' }
     ];
 
     if (activeGame === 'hub') {
         return (
-            <div className="flex-grow overflow-y-auto bg-zinc-900 p-4 md:p-8">
-                <div className="text-center mb-8">
-                    <ControllerIcon className="w-16 h-16 mx-auto text-orange-500 mb-2" />
-                    <h1 className="text-4xl font-bold text-white">Game Hub</h1>
-                    <p className="text-zinc-400">Select a game to play</p>
+            <main className="h-full flex-grow overflow-y-auto bg-zinc-950 p-6 md:p-12 animate-fade-in relative scrollbar-hide pb-40 z-10 touch-pan-y">
+                <div className="max-w-7xl mx-auto relative z-10">
+                    <header className="mb-16 flex flex-col md:flex-row md:items-end justify-between gap-10">
+                        <div className="flex items-center gap-6">
+                            <div className="p-4 bg-plant-500 rounded-[2rem] shadow-[0_0_40px_rgba(34,197,94,0.4)] rotate-3">
+                                <SeymourIcon className="w-12 h-12 text-black" />
+                            </div>
+                            <div>
+                                <h1 className="text-4xl md:text-6xl font-black text-white tracking-tighter uppercase italic leading-none drop-shadow-lg">THE FEEDING PIT</h1>
+                                <p className="text-flesh-500 font-black tracking-[0.6em] uppercase text-[10px] md:text-xs mt-2">Mean green games from space</p>
+                            </div>
+                        </div>
+                        <button onClick={props.onReturnToFeeds} className="px-10 py-3 bg-zinc-900 border-2 border-plant-500/20 rounded-full text-zinc-400 hover:text-plant-500 transition-all text-sm font-black uppercase tracking-widest italic">
+                          Eat News
+                        </button>
+                    </header>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-10">
+                        {games.map(game => <GameCard key={game.id} game={game} onPlay={() => setActiveGame(game.id)} />)}
+                    </div>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    {games.map(game => (
-                        <GameCard
-                            key={game.id}
-                            icon={game.icon}
-                            title={game.title}
-                            description={game.description}
-                            onPlay={() => setActiveGame(game.id as ActiveGame)}
-                        />
-                    ))}
-                </div>
-            </div>
+            </main>
         );
     }
     
-    // Lazy loading is better, but for this exercise, direct rendering is fine to avoid adding files/complexity.
     return (
-        <Suspense fallback={<div className="w-full h-full flex items-center justify-center bg-zinc-900 text-white">Loading Game...</div>}>
-            {activeGame === 'sudoku' && <SudokuPage stats={props.sudokuStats} onGameWin={props.onSudokuWin} onBackToHub={handleBackToHub} onReturnToFeeds={props.onReturnToFeeds} />}
-            {activeGame === 'solitaire' && <SolitairePage stats={props.solitaireStats} onGameWin={props.onSolitaireWin} onGameStart={props.onSolitaireStart} settings={props.solitaireSettings} onUpdateSettings={props.onUpdateSolitaireSettings} isApiKeyMissing={props.isApiKeyMissing} onBackToHub={handleBackToHub} onReturnToFeeds={props.onReturnToFeeds} />}
+        <Suspense fallback={<div className="w-full h-full flex items-center justify-center bg-zinc-950 text-plant-500 font-black text-3xl italic animate-pulse uppercase">Incubating...</div>}>
+            {activeGame === 'sudoku' && <SudokuPage stats={props.sudokuStats} onGameWin={props.onSudokuWin} onGameLoss={props.onSudokuLoss} onBackToHub={handleBackToHub} onReturnToFeeds={props.onReturnToFeeds} />}
+            {activeGame === 'solitaire' && <SolitairePage stats={props.solitaireStats} onGameWin={props.onSolitaireWin} onGameStart={props.onSolitaireStart} settings={props.solitaireSettings} onUpdateSettings={props.onUpdateSolitaireSettings} onBackToHub={handleBackToHub} onReturnToFeeds={props.onReturnToFeeds} />}
             {activeGame === 'minesweeper' && <MinesweeperPage onBackToHub={handleBackToHub} onReturnToFeeds={props.onReturnToFeeds} />}
             {activeGame === 'tetris' && <TetrisPage onBackToHub={handleBackToHub} onReturnToFeeds={props.onReturnToFeeds} />}
             {activeGame === 'pool' && <PoolGamePage onBackToHub={handleBackToHub} onReturnToFeeds={props.onReturnToFeeds} />}
             {activeGame === 'mario' && <MarioPage onBackToHub={handleBackToHub} onReturnToFeeds={props.onReturnToFeeds} />}
-            {activeGame === 'chrono-echoes' && <ChronoEchoesGame onBackToHub={handleBackToHub} onReturnToFeeds={props.onReturnToFeeds} />}
+            {activeGame === 'skid-row' && <SkidRowSurvivalGame onBackToHub={handleBackToHub} />}
         </Suspense>
     );
 };

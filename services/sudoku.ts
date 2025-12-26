@@ -1,3 +1,4 @@
+
 import type { SudokuDifficulty as Difficulty } from '../src/App';
 type Grid = number[][];
 
@@ -36,24 +37,14 @@ const isSafe = (grid: Grid, row: number, col: number, num: number): boolean => {
 
 const getCellsToRemove = (difficulty: Difficulty): number => {
     switch (difficulty) {
-        case 'Easy': return 40;
-        case 'Medium': return 50;
+        case 'Easy': return 35;
+        case 'Medium': return 45;
         case 'Hard': return 55;
-        case 'Expert': return 60;
-        default: return 40;
+        case 'Expert': return 62;
+        default: return 35;
     }
 };
 
-/**
- * Generates a Sudoku puzzle locally, removing the dependency on unreliable external APIs.
- * This "outside the box" solution guarantees puzzles are generated quickly, reliably, and even offline,
- * permanently fixing the issues caused by flaky network requests.
- *
- * @param difficulty The desired difficulty level for the puzzle.
- * @param seed An optional seed to generate a deterministic puzzle.
- * @returns A promise that resolves to an object containing the puzzle string (with '0' for empty cells)
- *          and the complete solution as a 2D number array.
- */
 export const generateSudoku = async (difficulty: Difficulty, seed?: number): Promise<{ puzzle: string, solution: Grid }> => {
   return new Promise((resolve, reject) => {
     try {

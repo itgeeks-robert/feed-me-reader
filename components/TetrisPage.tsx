@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { startGame, PieceType } from '../services/tetrisGame';
 import { GameboyControls, GameboyButton } from './GameboyControls';
@@ -11,7 +12,6 @@ const TetrisPage: React.FC<TetrisPageProps> = ({ onBackToHub, onReturnToFeeds })
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const previewRef = useRef<HTMLCanvasElement>(null);
     const holdRef = useRef<HTMLCanvasElement>(null);
-    
     const gameInstance = useRef<ReturnType<typeof startGame> | null>(null);
     const continuousPressRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -25,36 +25,23 @@ const TetrisPage: React.FC<TetrisPageProps> = ({ onBackToHub, onReturnToFeeds })
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        pieces.forEach((piece, i) => {
-            if (piece) {
-                gameInstance.current?.drawPieceOn(ctx, piece, 0, i * 4);
-            }
-        });
+        pieces.forEach((piece, i) => { if (piece) gameInstance.current?.drawPieceOn(ctx, piece, 0, i * 4); });
     }, []);
 
     useEffect(() => {
-        if (holdRef.current && holdPiece) {
-            drawPieces(holdRef.current, [holdPiece]);
-        } else if (holdRef.current) {
-            const ctx = holdRef.current.getContext('2d');
-            ctx?.clearRect(0, 0, holdRef.current.width, holdRef.current.height);
-        }
+        if (holdRef.current) drawPieces(holdRef.current, [holdPiece]);
     }, [holdPiece, drawPieces]);
 
     useEffect(() => {
-        if (previewRef.current && nextQueue.length > 0) {
-            drawPieces(previewRef.current, nextQueue);
-        }
+        if (previewRef.current && nextQueue.length > 0) drawPieces(previewRef.current, nextQueue);
     }, [nextQueue, drawPieces]);
 
     const handleRestart = useCallback(() => {
         gameInstance.current?.stop();
         setIsGameOver(false);
         if (canvasRef.current && previewRef.current && holdRef.current) {
-            const game = startGame({
-                canvas: canvasRef.current,
-                previewCanvas: previewRef.current,
-                holdCanvas: holdRef.current,
+            gameInstance.current = startGame({
+                canvas: canvasRef.current, previewCanvas: previewRef.current, holdCanvas: holdRef.current,
                 onScoreUpdate: (score) => setStats(s => ({ ...s, score })),
                 onRowsUpdate: (rows) => setStats(s => ({ ...s, rows })),
                 onLevelUpdate: (level) => setStats(s => ({ ...s, level: Math.floor(level) })),
@@ -62,43 +49,21 @@ const TetrisPage: React.FC<TetrisPageProps> = ({ onBackToHub, onReturnToFeeds })
                 onHoldUpdate: (piece) => setHoldPiece(piece),
                 onNextUpdate: (queue) => setNextQueue(queue),
             });
-            gameInstance.current = game;
         }
     }, []);
 
     useEffect(() => {
         handleRestart();
-        
-        const keydownHandler = (ev: KeyboardEvent) => {
-            const controls = gameInstance.current;
-            if (!controls) return;
-            switch (ev.code) {
-                case 'ArrowLeft': controls.moveLeft(); break;
-                case 'ArrowRight': controls.moveRight(); break;
-                case 'ArrowUp': controls.rotate(); break;
-                case 'ArrowDown': controls.softDrop(); break;
-                case 'Space': ev.preventDefault(); controls.hardDrop(); break;
-                case 'KeyC': controls.hold(); break;
-            }
-        };
-        document.addEventListener('keydown', keydownHandler);
-
-        return () => {
-            gameInstance.current?.stop();
-            document.removeEventListener('keydown', keydownHandler);
-        };
+        return () => gameInstance.current?.stop();
     }, [handleRestart]);
     
     const handleButtonPress = (button: GameboyButton) => {
         const controls = gameInstance.current;
         if (!controls || isGameOver) return;
-        
         const startContinuous = (action: () => void) => {
             if (continuousPressRef.current) clearInterval(continuousPressRef.current);
-            action();
-            continuousPressRef.current = setInterval(action, 100);
+            action(); continuousPressRef.current = setInterval(action, 100);
         };
-
         switch(button) {
             case 'left': startContinuous(controls.moveLeft); break;
             case 'right': startContinuous(controls.moveRight); break;
@@ -112,73 +77,68 @@ const TetrisPage: React.FC<TetrisPageProps> = ({ onBackToHub, onReturnToFeeds })
     };
 
     const handleButtonRelease = (button: GameboyButton) => {
-        if (['left', 'right', 'down'].includes(button)) {
-            if (continuousPressRef.current) {
-                clearInterval(continuousPressRef.current);
-                continuousPressRef.current = null;
-            }
+        if (['left', 'right', 'down'].includes(button) && continuousPressRef.current) {
+            clearInterval(continuousPressRef.current); continuousPressRef.current = null;
         }
     };
 
-
     return (
-        <main className="w-full h-full flex flex-col items-center justify-center p-2 bg-zinc-950 text-white font-mono overflow-hidden relative" style={{'--glow-color': '#a855f7'} as React.CSSProperties}>
-             <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_10%,rgba(168,85,247,0.2),rgba(255,255,255,0))]"></div>
+        <main className="w-full h-full flex flex-col bg-zinc-950 text-white font-mono overflow-hidden relative">
+            <div className="absolute inset-0 opacity-5 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/leaves.png')]"></div>
             
-            <div className="absolute top-2 right-2 z-20 flex items-center gap-2">
-                <button onClick={onBackToHub} className="px-3 py-1.5 text-xs font-semibold rounded-full bg-black/30 border border-white/10 text-zinc-300 hover:bg-black/50 transition-colors">Hub</button>
-                <button onClick={onReturnToFeeds} className="px-3 py-1.5 text-xs font-semibold rounded-full bg-black/30 border border-white/10 text-zinc-300 hover:bg-black/50 transition-colors">Feeds</button>
-            </div>
+            <header className="flex justify-between items-center p-6 z-10">
+                <div>
+                    <h1 className="text-3xl font-black italic uppercase tracking-tighter text-plant-500">Planter Stacker</h1>
+                    <p className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-600">Skid Row Unit #7</p>
+                </div>
+                <div className="flex gap-2">
+                    <button onClick={onBackToHub} className="px-4 py-2 bg-zinc-900 border border-white/10 rounded-full text-[10px] font-black uppercase italic text-zinc-400 hover:text-white transition-all">Eject</button>
+                </div>
+            </header>
 
-            <div className="w-full flex-grow flex flex-col items-center justify-center gap-2 md:gap-4 p-2 relative z-10 overflow-hidden">
-                {/* Left Panel (Landscape) */}
-                <div className="hidden flex-col gap-2 md:gap-4 w-20 md:w-32">
-                    <div className="bg-black/40 border border-zinc-700 p-2 rounded-lg text-center">
-                        <p className="text-xs text-zinc-400 uppercase tracking-widest">Hold</p>
-                        <canvas ref={holdRef} className="mx-auto mt-1"></canvas>
+            <div className="flex-grow flex items-center justify-center gap-6 p-4 z-10">
+                <div className="hidden md:flex flex-col gap-4">
+                    <div className="bg-zinc-900 p-4 rounded-3xl border-2 border-white/5 text-center">
+                        <p className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-2">Stored</p>
+                        <canvas ref={holdRef} className="w-20 h-20 opacity-80" />
                     </div>
-                    <div className="bg-black/40 border border-zinc-700 p-2 md:p-4 rounded-lg text-center">
-                        <p className="text-xs text-zinc-400 uppercase tracking-widest">Level</p>
-                        <p className="text-xl md:text-3xl font-bold">{stats.level}</p>
+                    <div className="bg-zinc-900 p-4 rounded-3xl border-2 border-white/5 text-center">
+                        <p className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Growth</p>
+                        <p className="text-3xl font-black italic text-plant-500">{stats.level}</p>
                     </div>
                 </div>
 
-                {/* Game Canvas */}
-                <div className="relative w-full h-full max-w-[50vh] aspect-[1/2]">
-                    <div className="absolute -inset-1 rounded-lg bg-[var(--glow-color)] blur opacity-40"></div>
-                    <canvas ref={canvasRef} className="relative bg-black rounded-lg border-2 border-zinc-700 shadow-2xl w-full h-full" style={{boxShadow: '0 0 20px var(--glow-color)'}}></canvas>
+                <div className="relative aspect-[1/2] h-[60vh] sm:h-[70vh]">
+                    <div className="absolute -inset-2 bg-plant-500/20 blur-xl rounded-[2rem]"></div>
+                    <canvas ref={canvasRef} className="relative w-full h-full bg-black border-4 border-zinc-800 rounded-[1.5rem] shadow-2xl" />
                 </div>
 
-                {/* Right Panel */}
-                <div className="flex flex-row justify-between w-full max-w-[50vh] gap-2 md:gap-4 mt-2">
-                     <div className="bg-black/40 border border-zinc-700 p-2 rounded-lg text-center flex-1">
-                        <p className="text-xs text-zinc-400 uppercase tracking-widest">Next</p>
-                        <canvas ref={previewRef} className="mx-auto mt-1 w-full"></canvas>
+                <div className="flex flex-col gap-4">
+                    <div className="bg-zinc-900 p-4 rounded-3xl border-2 border-white/5 text-center">
+                        <p className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-2">Upcoming</p>
+                        <canvas ref={previewRef} className="w-20 h-40 opacity-80" />
                     </div>
-                     <div className="bg-black/40 border border-zinc-700 p-2 md:p-4 rounded-lg text-center flex-1">
-                        <p className="text-xs text-zinc-400 uppercase tracking-widest">Lines</p>
-                        <p className="text-xl md:text-3xl font-bold">{stats.rows}</p>
+                    <div className="bg-zinc-900 p-4 rounded-3xl border-2 border-white/5 text-center">
+                        <p className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Compost</p>
+                        <p className="text-3xl font-black italic text-flesh-500">{stats.rows}</p>
                     </div>
-                    <div className="bg-black/40 border border-zinc-700 p-2 md:p-4 rounded-lg text-center flex-1">
-                        <p className="text-xs text-zinc-400 uppercase tracking-widest">Score</p>
-                        <p className="text-xl md:text-3xl font-bold text-yellow-300">{stats.score}</p>
+                    <div className="bg-zinc-900 p-4 rounded-3xl border-2 border-white/5 text-center">
+                        <p className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Energy</p>
+                        <p className="text-3xl font-black italic text-yellow-400">{stats.score}</p>
                     </div>
                 </div>
             </div>
             
-            <GameboyControls onButtonPress={handleButtonPress} onButtonRelease={handleButtonRelease} />
+            <div className="bg-zinc-900 p-6 md:hidden">
+              <GameboyControls onButtonPress={handleButtonPress} onButtonRelease={handleButtonRelease} />
+            </div>
 
             {isGameOver && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-zinc-900 border-2 border-[var(--glow-color)]/50 rounded-2xl shadow-2xl w-full max-w-sm p-8 text-center text-white animate-fade-in" style={{boxShadow: '0 0 30px var(--glow-color)'}}>
-                        <h2 className="text-4xl font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-indigo-400">Game Over</h2>
-                        <p className="text-lg text-zinc-400">Final Score: <span className="font-bold text-yellow-300">{stats.score}</span></p>
-                        <button 
-                            onClick={handleRestart} 
-                            className="mt-6 w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold py-3 rounded-lg hover:opacity-90 transition-opacity shadow-lg"
-                        >
-                            Play Again
-                        </button>
+                <div className="fixed inset-0 bg-black/95 backdrop-blur-md z-50 flex items-center justify-center p-6">
+                    <div className="max-w-sm w-full bg-zinc-900 p-12 rounded-[3rem] border-4 border-flesh-600 text-center shadow-[0_0_100px_rgba(236,72,153,0.3)]">
+                        <h2 className="text-6xl font-black italic uppercase tracking-tighter text-flesh-500 mb-4">WILTED</h2>
+                        <p className="text-zinc-500 font-bold uppercase tracking-widest mb-10">Score: {stats.score}</p>
+                        <button onClick={handleRestart} className="w-full py-5 bg-flesh-600 text-white font-black text-xl italic uppercase rounded-full hover:scale-105 transition-transform">Regrow</button>
                     </div>
                 </div>
             )}

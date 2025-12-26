@@ -1,9 +1,11 @@
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import MainContent from '../components/MainContent';
 import type { SourceType } from '../components/AddSource';
 import SettingsModal from '../components/SettingsModal';
 import AddSourceModal from '../components/AddSourceModal';
 import Sidebar from '../components/Sidebar';
+import BottomNavBar from '../components/BottomNavBar';
 import { ListIcon, TrophyIcon, RedditIcon, YoutubeIcon, NewspaperIcon, BookmarkIcon, ControllerIcon } from '../components/icons';
 import GameHubPage from '../components/GameHubPage';
 import { resilientFetch } from '../services/fetch';
@@ -112,39 +114,25 @@ const SELECTION_KEY = `feedme_selection_${GUEST_USER_ID}`;
 
 
 const defaultFolders: Folder[] = [
-    { id: 1, name: 'News' },
-    { id: 2, name: 'Tech' },
-    { id: 3, name: 'Sport' },
+    { id: 1, name: 'Main Feeds' },
+    { id: 2, name: 'Tech Spores' },
+    { id: 3, name: 'Arena Scores' },
 ];
 
 const defaultFeeds: Feed[] = [
-    // News (folderId: 1)
     { id: 1, url: 'https://feeds.bbci.co.uk/news/world/rss.xml', title: 'BBC World News', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=bbc.co.uk', folderId: 1, sourceType: 'rss' },
     { id: 2, url: 'https://www.theguardian.com/world/rss', title: 'The Guardian', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=theguardian.com', folderId: 1, sourceType: 'rss' },
-    { id: 3, url: 'https://feeds.skynews.com/feeds/rss/world.xml', title: 'Sky News', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=news.sky.com', folderId: 1, sourceType: 'rss' },
-    { id: 20, url: 'https://www.manchestereveningnews.co.uk/rss.xml', title: 'Manchester Evening News', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=manchestereveningnews.co.uk', folderId: 1, sourceType: 'rss' },
-    
-    // Tech (folderId: 2)
     { id: 4, url: 'https://www.wired.com/feed/rss', title: 'Wired', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=wired.com', folderId: 2, sourceType: 'rss' },
-    { id: 36, url: 'https://feeds.arstechnica.com/arstechnica/index', title: 'Ars Technica', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=arstechnica.com', folderId: 2, sourceType: 'rss' },
-    
-    // Sports (folderId: 3)
     { id: 34, url: 'https://feeds.bbci.co.uk/sport/rss.xml', title: 'BBC Sport', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=bbc.co.uk', folderId: 3, sourceType: 'rss' },
-    { id: 15, url: 'https://www.motorsport.com/f1/rss/news/', title: 'Motorsport.com F1', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=motorsport.com', folderId: 3, sourceType: 'rss' },
-    { id: 17, url: 'https://www.skysports.com/rss/12040', title: 'Sky Sports', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=skysports.com', folderId: 3, sourceType: 'rss' },
-
-    // Reddit (unfiled)
     { id: 22, url: 'https://www.reddit.com/r/TheCivilService/.rss', title: 'r/TheCivilService', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=reddit.com', folderId: null, sourceType: 'reddit' },
-    { id: 23, url: 'https://www.reddit.com/r/news/.rss', title: 'r/news', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=reddit.com', folderId: null, sourceType: 'reddit' },
-    { id: 24, url: 'https://www.reddit.com/r/technology/.rss', title: 'r/technology', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=reddit.com', folderId: null, sourceType: 'reddit' },
 ];
 
 const defaultWidgetSettings: WidgetSettings = {
     showWeather: true,
     showSports: true,
     showFinance: false,
-    weatherLocation: 'Kirkham',
-    sportsTeams: ['MUN', 'BLA', 'MCI'],
+    weatherLocation: 'New York',
+    sportsTeams: ['MUN', 'LIV', 'MCI'],
 };
 
 const defaultSudokuStats: SudokuStats = {
@@ -196,35 +184,6 @@ const App: React.FC = () => {
     
     const isApiKeyMissing = !process.env.API_KEY;
 
-    // This effect runs on mount and whenever selection/data changes to validate the persisted selection.
-    // If the selected folder or feed no longer exists, it resets to the 'all' view to prevent a crash or inconsistent state.
-    useEffect(() => {
-        const validateSelection = () => {
-            if (selection.type === 'folder' && !folders.some(f => f.id === selection.id)) {
-                return false;
-            }
-            if (selection.type === 'feed' && !feeds.some(f => f.id === selection.id)) {
-                return false;
-            }
-            return true;
-        };
-
-        if (!validateSelection()) {
-            console.warn('Persisted selection from localStorage is invalid. Resetting to default.');
-            setSelection({ type: 'all', id: null });
-        }
-    }, [selection, folders, feeds, setSelection]);
-
-    const [animationClass, setAnimationClass] = useState('animate-fade-in');
-
-    useEffect(() => {
-        const feedInterval = setInterval(() => {
-            setLastRefresh(Date.now());
-        }, 5 * 60 * 1000); // 5 minutes
-
-        return () => clearInterval(feedInterval);
-    }, []);
-
     useEffect(() => {
         const root = document.documentElement;
         if (theme === 'light') {
@@ -245,14 +204,12 @@ const App: React.FC = () => {
             setGameHubResetKey(k => k + 1);
         }
         if (JSON.stringify(sel) !== JSON.stringify(selection)) {
-            setAnimationClass('animate-fade-in');
             setSelection(sel);
         }
         setIsSidebarOpen(false);
     };
 
     const handleReturnToFeeds = useCallback(() => {
-        setAnimationClass('animate-fade-in');
         setSelection({ type: 'all', id: null });
     }, [setSelection]);
 
@@ -310,84 +267,43 @@ const App: React.FC = () => {
     const handleMarkAsRead = (articleId: string) => {
         setReadArticleIds(prev => new Set(prev).add(articleId));
     };
-    
-    const handleMarkAsUnread = (articleId: string) => {
-        setReadArticleIds(prev => {
-            const newSet = new Set(prev);
-            newSet.delete(articleId);
-            return newSet;
-        });
-    };
-
-    const handleMarkMultipleAsRead = (articleIds: string[]) => {
-        setReadArticleIds(prev => new Set([...prev, ...articleIds]));
-    };
-
-    const handleToggleBookmark = (articleId: string) => {
-        setBookmarkedArticleIds(prev => {
-            const newSet = new Set(prev);
-            if (newSet.has(articleId)) newSet.delete(articleId);
-            else newSet.add(articleId);
-            return newSet;
-        });
-    };
-    
-    const handleSetArticleTags = (articleId: string, tags: Set<string>) => {
-        setArticleTags(prev => {
-            const newMap = new Map(prev);
-            if (tags.size === 0) newMap.delete(articleId);
-            else newMap.set(articleId, tags);
-            return newMap;
-        });
-    };
 
     const handleSudokuWin = useCallback((difficulty: SudokuDifficulty, time: number, isDaily: boolean) => {
       setSudokuStats(prevStats => {
         const newStats = JSON.parse(JSON.stringify(prevStats)) as SudokuStats;
         newStats.totalWins += 1;
-
         const difficultyKey = difficulty.toLowerCase() as keyof Omit<SudokuStats, 'dailyStreak' | 'lastDailyCompletionDate' | 'totalWins'>;
         const diffStats = newStats[difficultyKey];
-        
         diffStats.gamesPlayed += 1;
         diffStats.totalTimePlayed += time;
-        if (diffStats.fastestTime === null || time < diffStats.fastestTime) {
-          diffStats.fastestTime = time;
-        }
-
+        if (diffStats.fastestTime === null || time < diffStats.fastestTime) diffStats.fastestTime = time;
         if (isDaily) {
           const today = new Date().toISOString().split('T')[0];
           if (prevStats.lastDailyCompletionDate !== today) {
             const yesterday = new Date(Date.now() - 864e5).toISOString().split('T')[0];
-            if (prevStats.lastDailyCompletionDate === yesterday) {
-              newStats.dailyStreak += 1;
-            } else {
-              newStats.dailyStreak = 1;
-            }
+            if (prevStats.lastDailyCompletionDate === yesterday) newStats.dailyStreak += 1;
+            else newStats.dailyStreak = 1;
             newStats.lastDailyCompletionDate = today;
           }
         }
-        
         return newStats;
       });
+    }, [setSudokuStats]);
+
+    const handleSudokuLoss = useCallback(() => {
+        // Reset all Sudoku stats if user loses
+        setSudokuStats(defaultSudokuStats);
     }, [setSudokuStats]);
 
     const handleSolitaireWin = useCallback((time: number, moves: number) => {
       setSolitaireStats(prev => {
         if (prev.lastGameWasWin) return prev; 
-        
         const newStats: SolitaireStats = { ...prev };
         newStats.gamesWon += 1;
         newStats.currentStreak += 1;
-        if (newStats.currentStreak > newStats.maxStreak) {
-          newStats.maxStreak = newStats.currentStreak;
-        }
-        if (newStats.fastestTime === null || time < newStats.fastestTime) {
-          newStats.fastestTime = time;
-        }
-        if (newStats.lowestMoves === null || moves < newStats.lowestMoves) {
-          newStats.lowestMoves = moves;
-        }
+        if (newStats.currentStreak > newStats.maxStreak) newStats.maxStreak = newStats.currentStreak;
+        if (newStats.fastestTime === null || time < newStats.fastestTime) newStats.fastestTime = time;
+        if (newStats.lowestMoves === null || moves < newStats.lowestMoves) newStats.lowestMoves = moves;
         newStats.lastGameWasWin = true;
         return newStats;
       });
@@ -396,232 +312,79 @@ const App: React.FC = () => {
     const handleSolitaireStart = useCallback(() => {
         setSolitaireStats(prev => {
             const newStats = {...prev};
-            if (!prev.lastGameWasWin) {
-                newStats.currentStreak = 0;
-            }
+            if (!prev.lastGameWasWin) newStats.currentStreak = 0;
             newStats.gamesPlayed += 1;
             newStats.lastGameWasWin = false;
             return newStats;
         });
     }, [setSolitaireStats]);
 
-
-    const handleExportOpml = () => {
-        let opml = `<?xml version="1.0" encoding="UTF-8"?><opml version="2.0"><body>`;
-        folders.forEach(folder => {
-            opml += `<outline text="${folder.name}" title="${folder.name}">`;
-            feeds.filter(f => f.folderId === folder.id).forEach(feed => {
-                opml += `<outline type="rss" text="${feed.title}" title="${feed.title}" xmlUrl="${feed.url}" />`;
-            });
-            opml += `</outline>`;
-        });
-        feeds.filter(f => f.folderId === null).forEach(feed => {
-            opml += `<outline type="rss" text="${feed.title}" title="${feed.title}" xmlUrl="${feed.url}" />`;
-        });
-        opml += `</body></opml>`;
-        const blob = new Blob([opml], { type: 'application/xml' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'seemore_feeds.opml';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    };
-
-    const handleImportOpml = (file: File) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const xmlText = e.target?.result as string;
-                const xml = new DOMParser().parseFromString(xmlText, "application/xml");
-                if (xml.querySelector('parsererror')) throw new Error('Failed to parse OPML file.');
-                
-                let importedFolders: Folder[] = [...folders];
-                let importedFeeds: Feed[] = [...feeds];
-                const existingFeedUrls = new Set(feeds.map(f => f.url));
-
-                xml.querySelectorAll('body > outline').forEach(outline => {
-                    const isFolder = !outline.getAttribute('xmlUrl');
-                    if (isFolder) {
-                        const folderName = outline.getAttribute('text') || '';
-                        let folder = importedFolders.find(f => f.name === folderName);
-                        if (!folder) {
-                            folder = { id: Date.now() + Math.random(), name: folderName };
-                            importedFolders.push(folder);
-                        }
-                        outline.querySelectorAll('outline').forEach(feedOutline => {
-                            const feedUrl = feedOutline.getAttribute('xmlUrl');
-                            if (feedUrl && !existingFeedUrls.has(feedUrl)) {
-                                const feedTitle = feedOutline.getAttribute('text') || new URL(feedUrl).hostname;
-                                const iconUrl = `https://www.google.com/s2/favicons?sz=32&domain_url=${new URL(feedUrl).hostname}`;
-                                importedFeeds.push({ id: Date.now() + Math.random(), title: feedTitle, url: feedUrl, iconUrl, folderId: folder.id, sourceType: 'rss' });
-                                existingFeedUrls.add(feedUrl);
-                            }
-                        });
-                    } else {
-                        const feedUrl = outline.getAttribute('xmlUrl');
-                        if (feedUrl && !existingFeedUrls.has(feedUrl)) {
-                            const feedTitle = outline.getAttribute('text') || new URL(feedUrl).hostname;
-                            const iconUrl = `https://www.google.com/s2/favicons?sz=32&domain_url=${new URL(feedUrl).hostname}`;
-                            importedFeeds.push({ id: Date.now() + Math.random(), title: feedTitle, url: feedUrl, iconUrl, folderId: null, sourceType: 'rss' });
-                            existingFeedUrls.add(feedUrl);
-                        }
-                    }
-                });
-                setFolders(importedFolders);
-                setFeeds(importedFeeds);
-                alert('Feeds imported successfully!');
-            } catch (error) {
-                alert(`Could not import OPML file. Error: ${(error as Error).message}`);
-            }
-        };
-        reader.readAsText(file);
-    };
-    
-    const handleExportSettings = () => {
-        const settingsToExport: Settings = { feeds, folders, theme, articleView, widgets: widgetSettings };
-        const blob = new Blob([JSON.stringify(settingsToExport, null, 2)], { type: 'application/json' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = 'seemore_backup.json';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(a.href);
-    };
-
-    const handleImportSettings = (file: File) => {
-        if (!window.confirm('This will overwrite all current settings. Continue?')) return;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const importedSettings = JSON.parse(e.target?.result as string) as Settings;
-                if (importedSettings.feeds && importedSettings.folders && importedSettings.theme) {
-                    setFeeds(importedSettings.feeds);
-                    setFolders(importedSettings.folders);
-                    setTheme(importedSettings.theme);
-                    setArticleView(importedSettings.articleView);
-                    setWidgetSettings(importedSettings.widgets);
-                    alert('Settings imported successfully!');
-                } else throw new Error('Invalid settings file format.');
-            } catch (error) {
-                alert(`Could not import settings. Error: ${(error as Error).message}`);
-            }
-        };
-        reader.readAsText(file);
-    };
-    
-    const handleUpdateSettings = (newSettings: Partial<Omit<Settings, 'feeds' | 'folders'>>) => {
-        if (newSettings.theme) setTheme(newSettings.theme);
-        if (newSettings.articleView) setArticleView(newSettings.articleView);
-        if (newSettings.widgets) setWidgetSettings(newSettings.widgets);
-    };
-
-    const handleRemoveFeed = (id: number) => {
-        setFeeds(prev => prev.filter(f => f.id !== id));
-    };
-
-    const handleAddFolder = (name: string) => {
-        setFolders(prev => [...prev, { id: Date.now(), name }]);
-    };
-
-    const handleRenameFolder = (id: number, newName: string) => {
-        setFolders(prev => prev.map(f => (f.id === id ? { ...f, name: newName } : f)));
-    };
-
-    const handleDeleteFolder = (id: number) => {
-        if (window.confirm('Delete this folder and unfile its feeds?')) {
-            setFolders(prev => prev.filter(f => f.id !== id));
-            setFeeds(prev => prev.map(f => (f.folderId === id ? { ...f, folderId: null } : f)));
-        }
-    };
-
-    const handleMoveFeedToFolder = (feedId: number, folderId: number | null) => {
-        setFeeds(prev => prev.map(f => (f.id === feedId ? { ...f, folderId } : f)));
-    };
-    
-    const feedsToDisplay = useMemo(() => {
-        switch (selection.type) {
-            case 'all':
-            case 'search':
-            case 'bookmarks':
-                return feeds;
-            case 'folder':
-                return feeds.filter(f => f.folderId === selection.id);
-            case 'feed':
-                return feeds.filter(f => f.id === selection.id);
-            case 'reddit':
-                return feeds.filter(f => f.sourceType === 'reddit');
-            case 'youtube':
-                return feeds.filter(f => f.sourceType === 'youtube');
-            default:
-                return [];
-        }
-    }, [feeds, selection]);
-    
     const pageTitle = useMemo(() => {
-        if (selection.type === 'search') return `Search: "${selection.query}"`;
-        if (selection.type === 'bookmarks') return 'Saved Articles';
-        if (selection.type === 'game_hub') return 'Chrono Echoes';
-
+        if (selection.type === 'search') return `Hunting: "${selection.query}"`;
+        if (selection.type === 'bookmarks') return 'Saved Snacks';
+        if (selection.type === 'game_hub') return 'The Feeding Pit';
         if (selection.type === 'feed') return feeds.find(f => f.id === selection.id)?.title || 'Feed';
         if (selection.type === 'folder') return folders.find(f => f.id === selection.id)?.name || 'Folder';
-        
-        return 'See More';
+        return 'FEED ME!';
     }, [selection, feeds, folders]);
+
+    const feedsToDisplay = useMemo(() => {
+        if (selection.type === 'folder') return feeds.filter(f => f.folderId === selection.id);
+        if (selection.type === 'feed') return feeds.filter(f => f.id === selection.id);
+        return feeds;
+    }, [feeds, selection]);
     
     return (
-        <div className="h-screen font-sans text-sm relative flex overflow-hidden">
+        <div className="h-screen font-sans text-sm relative flex flex-col md:flex-row overflow-hidden bg-zinc-950">
             <Sidebar
                 feeds={feeds}
                 folders={folders}
                 selection={selection}
                 onAddSource={handleAddSource}
-                onRemoveFeed={handleRemoveFeed}
+                onRemoveFeed={(id) => setFeeds(f => f.filter(x => x.id !== id))}
                 onSelect={handleSelectFromSidebar}
-                onAddFolder={handleAddFolder}
-                onRenameFolder={handleRenameFolder}
-                onDeleteFolder={handleDeleteFolder}
-                onMoveFeedToFolder={handleMoveFeedToFolder}
+                onAddFolder={(n) => setFolders(f => [...f, {id: Date.now(), name: n}])}
+                onRenameFolder={(id, n) => setFolders(f => f.map(x => x.id === id ? {...x, name: n} : x))}
+                onDeleteFolder={(id) => { setFolders(f => f.filter(x => x.id !== id)); setFeeds(fe => fe.map(x => x.folderId === id ? {...x, folderId: null} : x)); }}
+                onMoveFeedToFolder={(fid, fldid) => setFeeds(fe => fe.map(x => x.id === fid ? {...x, folderId: fldid} : x))}
                 isSidebarOpen={isSidebarOpen}
                 onClose={() => setIsSidebarOpen(false)}
                 onOpenSettings={() => setIsSettingsModalOpen(true)}
             />
-            <div className="flex-1 flex flex-col min-w-0 md:pl-72 relative">
+            
+            <div className="flex-1 flex flex-col min-w-0 md:pl-72 relative pb-20 md:pb-0 h-full overflow-hidden">
                 {selection.type === 'game_hub' ? (
-                    <GameHubPage
-                        key={gameHubResetKey}
-                        sudokuStats={sudokuStats}
-                        onSudokuWin={handleSudokuWin}
-                        solitaireStats={solitaireStats}
-                        onSolitaireWin={handleSolitaireWin}
-                        onSolitaireStart={handleSolitaireStart}
-                        solitaireSettings={solitaireSettings}
-                        onUpdateSolitaireSettings={setSolitaireSettings}
-                        isApiKeyMissing={isApiKeyMissing}
-                        onReturnToFeeds={handleReturnToFeeds}
-                    />
+                    <div className="flex-1 min-h-0">
+                        <GameHubPage
+                            key={gameHubResetKey}
+                            sudokuStats={sudokuStats}
+                            onSudokuWin={handleSudokuWin}
+                            onSudokuLoss={handleSudokuLoss}
+                            solitaireStats={solitaireStats}
+                            onSolitaireWin={handleSolitaireWin}
+                            onSolitaireStart={handleSolitaireStart}
+                            solitaireSettings={solitaireSettings}
+                            onUpdateSolitaireSettings={setSolitaireSettings}
+                            isApiKeyMissing={isApiKeyMissing}
+                            onReturnToFeeds={handleReturnToFeeds}
+                        />
+                    </div>
                 ) : (
                     <MainContent
                         key={selection.type + String(selection.id)}
-                        animationClass={animationClass}
+                        animationClass="animate-fade-in"
                         pageTitle={pageTitle}
-                        onSearch={(query: string) => {
-                            setAnimationClass('animate-fade-in');
-                            setSelection({ type: 'search', id: null, query })
-                        }}
+                        onSearch={(query: string) => setSelection({ type: 'search', id: null, query })}
                         feedsToDisplay={feedsToDisplay}
                         selection={selection}
                         readArticleIds={readArticleIds}
                         bookmarkedArticleIds={bookmarkedArticleIds}
                         articleTags={articleTags}
                         onMarkAsRead={handleMarkAsRead}
-                        onMarkAsUnread={handleMarkAsUnread}
-                        onMarkMultipleAsRead={handleMarkMultipleAsRead}
-                        onToggleBookmark={handleToggleBookmark}
-                        onSetArticleTags={handleSetArticleTags}
+                        onMarkAsUnread={(id) => setReadArticleIds(prev => { const n = new Set(prev); n.delete(id); return n; })}
+                        onMarkMultipleAsRead={(ids) => setReadArticleIds(prev => new Set([...prev, ...ids]))}
+                        onToggleBookmark={(id) => setBookmarkedArticleIds(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; })}
+                        onSetArticleTags={(id, t) => setArticleTags(prev => { const n = new Map(prev); if (t.size === 0) n.delete(id); else n.set(id, t); return n; })}
                         allFeeds={feeds}
                         isApiKeyMissing={isApiKeyMissing}
                         refreshKey={lastRefresh}
@@ -637,15 +400,22 @@ const App: React.FC = () => {
                     />
                 )}
             </div>
+
+            <BottomNavBar selection={selection} onSelect={handleSelectFromSidebar} />
+
             <SettingsModal
                 isOpen={isSettingsModalOpen}
                 onClose={() => setIsSettingsModalOpen(false)}
                 settings={{ feeds, folders, theme, articleView, widgets: widgetSettings }}
-                onUpdateSettings={handleUpdateSettings}
-                onImportOpml={handleImportOpml}
-                onExportOpml={handleExportOpml}
-                onImportSettings={handleImportSettings}
-                onExportSettings={handleExportSettings}
+                onUpdateSettings={(s) => {
+                    if (s.theme) setTheme(s.theme);
+                    if (s.articleView) setArticleView(s.articleView);
+                    if (s.widgets) setWidgetSettings(s.widgets);
+                }}
+                onImportOpml={() => {}}
+                onExportOpml={() => {}}
+                onImportSettings={() => {}}
+                onExportSettings={() => {}}
             />
             <AddSourceModal
                 isOpen={isAddSourceModalOpen}

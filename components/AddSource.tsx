@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { RssIcon, PlusIcon, YoutubeIcon, GlobeAltIcon, RedditIcon, ArrowPathIcon } from './icons';
 
@@ -36,22 +37,22 @@ const AddSource: React.FC<AddSourceProps> = ({ onAddSource, onSuccess }) => {
     const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setUrl(e.target.value);
         if (error) {
-            setError(null); // Clear error on new input
+            setError(null);
         }
     };
 
     const placeholders: Record<SourceType, string> = {
-        rss: "Add RSS feed URL",
-        youtube: "Add YouTube channel URL",
-        website: "Add website URL to convert",
-        reddit: "Add Reddit user or subreddit URL"
+        rss: "Feed URL",
+        youtube: "Channel URL",
+        website: "Site URL",
+        reddit: "Subreddit"
     };
 
     const TabButton: React.FC<{ type: SourceType, children: React.ReactNode }> = ({ type, children }) => (
         <button 
             type="button"
             onClick={() => setActiveTab(type)} 
-            className={`flex-1 min-w-0 py-2 text-sm rounded-md flex justify-center items-center gap-1.5 transition-colors duration-200 ${activeTab === type ? 'bg-black/10 dark:bg-white/10 text-zinc-900 dark:text-white font-semibold' : 'text-zinc-600 dark:text-zinc-400 hover:bg-black/5 dark:hover:bg-white/5'}`}
+            className={`flex-1 min-w-0 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all duration-300 ${activeTab === type ? 'bg-white dark:bg-zinc-800 text-orange-500 shadow-md ring-1 ring-black/5' : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'}`}
         >
             {children}
         </button>
@@ -59,14 +60,14 @@ const AddSource: React.FC<AddSourceProps> = ({ onAddSource, onSuccess }) => {
 
     return (
         <div className="space-y-4">
-            <div className="flex justify-around bg-black/5 dark:bg-white/5 rounded-lg p-1">
-                <TabButton type="rss"><RssIcon className="w-5 h-5" /> RSS</TabButton>
-                <TabButton type="youtube"><YoutubeIcon className="w-5 h-5" /> YT</TabButton>
-                <TabButton type="reddit"><RedditIcon className="w-5 h-5" /> Reddit</TabButton>
-                <TabButton type="website"><GlobeAltIcon className="w-5 h-5" /> Web</TabButton>
+            <div className="flex justify-around bg-zinc-100 dark:bg-zinc-900 p-1.5 rounded-2xl ring-1 ring-black/5">
+                <TabButton type="rss">RSS</TabButton>
+                <TabButton type="youtube">YT</TabButton>
+                <TabButton type="reddit">RED</TabButton>
+                <TabButton type="website">WEB</TabButton>
             </div>
             <form onSubmit={handleSubmit}>
-                <div className="relative">
+                <div className="relative group">
                     <input 
                         key={activeTab}
                         type="url" 
@@ -75,12 +76,12 @@ const AddSource: React.FC<AddSourceProps> = ({ onAddSource, onSuccess }) => {
                         placeholder={placeholders[activeTab]} 
                         required 
                         disabled={isLoading}
-                        className="w-full bg-black/5 dark:bg-white/5 border border-zinc-300/50 dark:border-zinc-700/50 rounded-lg py-2.5 pl-4 pr-12 text-sm text-zinc-900 dark:text-white placeholder-zinc-600 dark:placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-70" />
-                    <button type="submit" disabled={isLoading} className="absolute inset-y-0 right-0 flex items-center pr-4 text-zinc-400 hover:text-orange-500 disabled:text-zinc-500 dark:disabled:text-zinc-600 disabled:cursor-not-allowed" aria-label="Add source">
-                        {isLoading ? <ArrowPathIcon className="w-5 h-5 animate-spin" /> : <PlusIcon className="w-6 h-6" />}
+                        className="w-full bg-zinc-100 dark:bg-zinc-900 border-none rounded-2xl py-3.5 pl-5 pr-14 text-sm text-zinc-900 dark:text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all shadow-inner" />
+                    <button type="submit" disabled={isLoading} className="absolute inset-y-0 right-0 flex items-center pr-4 text-zinc-400 hover:text-orange-500 disabled:opacity-50 transition-all active:scale-90" aria-label="Add">
+                        {isLoading ? <ArrowPathIcon className="w-6 h-6 animate-spin" /> : <PlusIcon className="w-8 h-8" />}
                     </button>
                 </div>
-                 {error && <p className="text-red-700 dark:text-red-400 text-xs mt-2 px-1">{error}</p>}
+                 {error && <p className="text-red-500 text-[10px] font-bold uppercase tracking-widest mt-2 px-2 animate-pulse">{error}</p>}
             </form>
         </div>
     );

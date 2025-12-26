@@ -1,5 +1,7 @@
 {
-  "name": "Chrono Echoes",
-  "description": "A 16-bit style Action RPG built with modern web tech.",
-  "requestFramePermissions": []
+  "name": "Copy of Feed Me!",
+  "description": "A carnivorous feed reader and arcade inspired by Skid Row's finest greenery.",
+  "requestFramePermissions": [
+    "camera"
+  ]
 }

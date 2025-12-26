@@ -1,9 +1,9 @@
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import type { Feed, Selection, WidgetSettings, Article, ArticleView, Theme } from '../src/App';
 import type { SourceType } from './AddSource';
-import { MenuIcon, SearchIcon, SunIcon, SunriseIcon, SunsetIcon, MoonIcon, BookOpenIcon } from './icons';
+import { MenuIcon, SearchIcon, SunIcon, MoonIcon, BookOpenIcon, SparklesIcon } from './icons';
 import ReaderViewModal from './ReaderViewModal';
-import { fetchAndCacheArticleContent } from '../services/readerService';
 import { resilientFetch } from '../services/fetch';
 import { parseRssXml } from '../services/rssParser';
 import { fetchAllSportsData, getCachedSportsData, needsFreshSportsData } from '../services/sportsService';
@@ -74,22 +74,12 @@ const MainContent: React.FC<MainContentProps> = (props) => {
             setLoading(true);
             setError(null);
 
-            const feedErrors: string[] = [];
-            const validFeeds = feeds.filter(feed => {
-                if (!feed || !feed.url) {
-                    console.warn('Skipping invalid feed object from storage:', feed);
-                    return false;
-                }
-                return true;
-            });
-
-            const promises = validFeeds.map(feed => 
+            const promises = feeds.filter(f => f && f.url).map(feed => 
                 resilientFetch(feed.url, { timeout: 10000 })
                     .then(response => response.text())
                     .then(xmlText => parseRssXml(xmlText, feed.title, feed.url))
                     .catch(err => {
                         console.warn(`Failed to fetch or parse feed ${feed.title}:`, err.message);
-                        feedErrors.push(feed.title);
                         return [];
                     })
             );
@@ -97,11 +87,6 @@ const MainContent: React.FC<MainContentProps> = (props) => {
             try {
                 const results = await Promise.all(promises);
                 const allArticles = results.flat();
-                
-                if (feedErrors.length > 0) {
-                    setError(allArticles.length === 0 ? `Failed to load all feeds. Check your network and try again.` : `Could not load: ${feedErrors.join(', ')}.`);
-                }
-
                 allArticles.sort((a, b) => (b.publishedDate?.getTime() || 0) - (a.publishedDate?.getTime() || 0));
                 const uniqueArticles = Array.from(new Map(allArticles.map(a => [a.id, a])).values());
                 setArticles(uniqueArticles);
@@ -117,24 +102,17 @@ const MainContent: React.FC<MainContentProps> = (props) => {
 
     useEffect(() => {
         if (!widgetSettings.showSports || widgetSettings.sportsTeams.length === 0) return;
-
         const fetchSports = async () => {
             setIsSportsLoading(true);
             const results = await fetchAllSportsData(widgetSettings.sportsTeams);
             setSportsResults(results);
             setIsSportsLoading(false);
         };
-
         const cachedData = getCachedSportsData();
-        if (cachedData) {
-            setSportsResults(cachedData);
-        }
-
+        if (cachedData) setSportsResults(cachedData);
         if (isInitialMount.current) {
             isInitialMount.current = false;
-            if (needsFreshSportsData() || !cachedData) {
-                fetchSports();
-            }
+            if (needsFreshSportsData() || !cachedData) fetchSports();
         } else {
             fetchSports();
         }
@@ -142,36 +120,14 @@ const MainContent: React.FC<MainContentProps> = (props) => {
 
     const filteredArticles = useMemo(() => {
         let result = articles;
-        if (selection.type === 'bookmarks') {
-            result = result.filter(a => bookmarkedArticleIds.has(a.id));
-        } else if (selection.type === 'search' && selection.query) {
+        if (selection.type === 'bookmarks') result = result.filter(a => bookmarkedArticleIds.has(a.id));
+        else if (selection.type === 'search' && selection.query) {
              const filter = selection.query.toLowerCase();
              result = result.filter(a => a.title.toLowerCase().includes(filter) || a.snippet.toLowerCase().includes(filter));
         }
-        
-        if (showOnlyUnread) {
-            result = result.filter(a => !readArticleIds.has(a.id));
-        }
-
+        if (showOnlyUnread) result = result.filter(a => !readArticleIds.has(a.id));
         return result;
     }, [articles, selection, bookmarkedArticleIds, showOnlyUnread, readArticleIds]);
-
-    useEffect(() => {
-        setVisibleCount(ARTICLES_PER_PAGE);
-    }, [filteredArticles]);
-    
-    useEffect(() => {
-        if (filteredArticles.length === 0) return;
-        const preCache = (articlesToCache: Article[]) => {
-            articlesToCache.forEach(article => fetchAndCacheArticleContent(article).catch(error => {
-                console.warn(`Pre-caching failed for "${article.title}":`, error);
-            }));
-        };
-        preCache(filteredArticles.slice(0, 5));
-        const timerId = setTimeout(() => preCache(filteredArticles.slice(5, 15)), 60000);
-        return () => clearTimeout(timerId);
-    }, [filteredArticles]);
-
 
     const feedInfoMap = useMemo(() => new Map(allFeeds.map(feed => [feed.title, { iconUrl: feed.iconUrl, sourceType: feed.sourceType }])), [allFeeds]);
 
@@ -180,28 +136,30 @@ const MainContent: React.FC<MainContentProps> = (props) => {
     const visibleArticlesToDisplay = articlesToDisplay.slice(0, visibleCount);
 
     return (
-        <main className={`flex-grow overflow-y-auto ${animationClass}`}>
+        <main className={`flex-grow overflow-y-auto ${animationClass} bg-zinc-950 pb-40 scroll-smooth`}>
             <Header onSearchSubmit={handleSearchSubmit} searchQuery={searchQuery} setSearchQuery={setSearchQuery} widgetSettings={widgetSettings} refreshKey={refreshKey} onOpenSidebar={onOpenSidebar} theme={theme} onToggleTheme={onToggleTheme} />
-            <div className="px-4 md:px-6 lg:px-8 pt-36 md:pt-24 pb-40">
-                 <h1 className="text-4xl font-bold text-zinc-900 dark:text-white px-2 pb-6 truncate">{pageTitle}</h1>
-                {latestArticle && <FeaturedStory article={latestArticle} onReadHere={() => setReaderArticle(latestArticle)} onMarkAsRead={() => onMarkAsRead(latestArticle.id)} isRead={readArticleIds.has(latestArticle.id)} />}
+            <div className="px-4 md:px-8 pt-28 md:pt-24">
+                 <h1 className="text-2xl md:text-3xl font-black text-white pb-6 tracking-tighter uppercase italic drop-shadow-lg">{pageTitle}</h1>
+                
+                {latestArticle && (
+                    <div className="mb-8">
+                        <FeaturedStory article={latestArticle} onReadHere={() => setReaderArticle(latestArticle)} onMarkAsRead={() => onMarkAsRead(latestArticle.id)} isRead={readArticleIds.has(latestArticle.id)} />
+                    </div>
+                )}
                 
                 <div className="mt-8">
-                    <div className="flex justify-between items-center mb-4 px-2">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-4">
                         <div className="flex items-center gap-4">
-                            <h2 className="font-bold text-xl text-zinc-900 dark:text-white">Recent</h2>
+                            <h2 className="font-black text-lg text-white uppercase italic tracking-tighter">Recent Snacks</h2>
                             <UnreadFilterToggle checked={showOnlyUnread} onChange={setShowOnlyUnread} />
                         </div>
                         {sportsResults.size > 0 && <SportsCarousel results={sportsResults} isLoading={isSportsLoading} onTeamSelect={onSearch} />}
                     </div>
-                    {loading && filteredArticles.length === 0 && <p className="text-center py-10">Loading articles...</p>}
-                    {error && <p className="text-center py-10 text-red-600 dark:text-red-400">{error}</p>}
+
+                    {loading && filteredArticles.length === 0 && <div className="text-center py-20 animate-pulse text-plant-500 font-black uppercase tracking-[0.3em] italic">Scanning Spores...</div>}
+                    {error && <p className="text-center py-10 text-red-500 font-black uppercase italic tracking-widest">{error}</p>}
                     
-                    <div className={
-                        articleView === 'grid' 
-                            ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" 
-                            : "space-y-4"
-                    }>
+                    <div className={articleView === 'grid' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}>
                         {visibleArticlesToDisplay.map(article => {
                             const feedInfo = feedInfoMap.get(article.source);
                             const commonProps = {
@@ -211,166 +169,122 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                                 onReadHere: () => setReaderArticle(article),
                                 isRead: readArticleIds.has(article.id),
                             };
-
                             if (articleView === 'featured') return <FeaturedStory {...commonProps} />;
                             if (articleView === 'grid') return <MagazineArticleListItem {...commonProps} sourceType={feedInfo?.sourceType} iconUrl={feedInfo?.iconUrl} />;
                             return <ArticleListItem {...commonProps} iconUrl={feedInfo?.iconUrl} sourceType={feedInfo?.sourceType} />;
                         })}
                     </div>
+
                     {articlesToDisplay.length > visibleCount && (
-                        <div className="mt-8 text-center">
+                        <div className="mt-12 text-center pb-20">
                             <button
                                 onClick={() => setVisibleCount(c => c + ARTICLES_PER_PAGE)}
-                                className="bg-white/50 dark:bg-black/20 backdrop-blur-md hover:bg-white/80 dark:hover:bg-black/30 border border-white/20 dark:border-white/10 text-zinc-800 dark:text-zinc-200 font-semibold py-2 px-6 rounded-full transition-all duration-200 shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-transparent focus:ring-orange-500"
+                                className="bg-plant-600 hover:bg-plant-500 text-black hover:scale-105 active:scale-95 font-black uppercase tracking-[0.2em] italic py-3 px-10 rounded-full transition-all duration-300 shadow-[0_0_20px_rgba(34,197,94,0.3)] border-b-4 border-black/20"
                             >
-                                Load More
+                                Digest More
                             </button>
                         </div>
                     )}
                 </div>
             </div>
-             {readerArticle && (
-                <ReaderViewModal 
-                    article={readerArticle}
-                    onClose={() => setReaderArticle(null)}
-                    onMarkAsRead={onMarkAsRead}
-                />
-            )}
+             {readerArticle && <ReaderViewModal article={readerArticle} onClose={() => setReaderArticle(null)} onMarkAsRead={onMarkAsRead} />}
         </main>
     );
 };
 
-const ThemeToggleButton: React.FC<{ theme: Theme, onToggle: () => void }> = ({ theme, onToggle }) => (
-    <button 
-        onClick={onToggle} 
-        className="p-2.5 rounded-full text-zinc-600 dark:text-zinc-300 hover:text-orange-500 dark:hover:text-orange-400 hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
-        aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-    >
-        {theme === 'dark' ? <SunIcon className="w-5 h-5" /> : <MoonIcon className="w-5 h-5" />}
-    </button>
-);
-
-const Header: React.FC<{onSearchSubmit: (e: React.FormEvent) => void; searchQuery: string; setSearchQuery: (q: string) => void; widgetSettings: WidgetSettings; refreshKey: number; onOpenSidebar: () => void; theme: Theme; onToggleTheme: () => void;}> = ({ onSearchSubmit, searchQuery, setSearchQuery, widgetSettings, refreshKey, onOpenSidebar, theme, onToggleTheme }) => (
-    <header className="fixed top-0 left-0 md:left-72 right-0 z-30 p-4">
-        <div className="w-full h-16 bg-white/30 dark:bg-zinc-900/40 backdrop-blur-2xl border border-white/20 dark:border-white/10 rounded-2xl shadow-lg flex items-center justify-between px-4">
-            <button onClick={onOpenSidebar} className="p-2.5 rounded-full text-zinc-600 dark:text-zinc-300 hover:bg-black/10 dark:hover:bg-white/10 transition-colors"><MenuIcon className="w-5 h-5" /></button>
-            <form onSubmit={onSearchSubmit} className="relative flex-grow mx-4 max-w-md">
-                <SearchIcon className="w-5 h-5 text-zinc-500 dark:text-zinc-400 absolute top-1/2 left-4 -translate-y-1/2" />
+const Header: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuery, widgetSettings, refreshKey, onOpenSidebar, theme, onToggleTheme }) => (
+    <header className="fixed top-0 left-0 md:left-72 right-0 z-30 p-4 md:p-6 pointer-events-none">
+        <div className="w-full h-16 md:h-20 bg-zinc-900/80 backdrop-blur-3xl border border-white/5 rounded-[1.5rem] md:rounded-[2.5rem] shadow-[0_0_40px_rgba(0,0,0,0.5)] flex items-center justify-between px-6 pointer-events-auto ring-1 ring-white/5">
+            <button onClick={onOpenSidebar} className="p-2 md:p-3 rounded-xl md:rounded-2xl text-zinc-400 hover:text-plant-500 hover:bg-zinc-800 transition-all"><MenuIcon className="w-6 h-6 md:w-7 md:h-7" /></button>
+            <form onSubmit={onSearchSubmit} className="relative flex-grow mx-2 md:mx-10 max-w-xl">
+                <SearchIcon className="w-4 h-4 md:w-5 md:h-5 text-zinc-500 absolute top-1/2 left-4 md:left-6 -translate-y-1/2" />
                 <input 
                     type="search" 
-                    placeholder="Search articles..." 
+                    placeholder="Hunting..." 
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
-                    className="w-full bg-black/5 dark:bg-white/5 placeholder-zinc-500 dark:placeholder-zinc-400 text-zinc-900 dark:text-white rounded-full py-2.5 pl-11 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 border border-transparent focus:border-orange-500/50"
+                    className="w-full bg-black/40 border-2 border-transparent focus:border-plant-500/30 placeholder-zinc-600 text-white rounded-xl md:rounded-2xl py-2 md:py-3.5 pl-10 md:pl-14 pr-4 text-xs md:text-sm transition-all font-black uppercase italic tracking-widest outline-none"
                 />
             </form>
-            <div className="hidden md:flex items-center gap-2">
+            <div className="hidden lg:flex items-center gap-4">
+                <div className="flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-full border border-white/5 group relative cursor-help">
+                    <div className="w-2 h-2 rounded-full bg-plant-500 animate-pulse shadow-[0_0_8px_#22c55e]"></div>
+                    <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Auto-Save</span>
+                    <div className="absolute top-full mt-2 right-0 w-48 p-2 bg-zinc-900 border border-white/10 rounded-xl text-[8px] font-bold text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-2xl">
+                        ALL CHANGES ROOTED AUTOMATICALLY TO LOCAL STORAGE.
+                    </div>
+                </div>
                 {widgetSettings.showWeather && <WeatherDisplay location={widgetSettings.weatherLocation} refreshKey={refreshKey} />}
-                <ThemeToggleButton theme={theme} onToggle={onToggleTheme} />
+                <div className="w-px h-10 bg-zinc-800" />
+                <button onClick={onToggleTheme} className="p-3 rounded-2xl text-zinc-400 hover:text-flesh-500 hover:bg-zinc-800 transition-all">
+                    {theme === 'dark' ? <SunIcon className="w-6 h-6" /> : <MoonIcon className="w-6 h-6" />}
+                </button>
             </div>
         </div>
     </header>
 );
 
-const WeatherDisplay: React.FC<{ location: string, refreshKey: number }> = ({ location, refreshKey }) => {
-    const [weather, setWeather] = useState<{temp: number; sunrise: string; sunset: string} | null>(null);
-
+const WeatherDisplay: React.FC<any> = ({ location, refreshKey }) => {
+    const [weather, setWeather] = useState<any>(null);
     useEffect(() => {
         const fetchWeather = async () => {
-            if (!location) { setWeather(null); return; }
+            if (!location) return;
             try {
                 const response = await resilientFetch(`https://wttr.in/${encodeURIComponent(location)}?format=j1`, { timeout: 10000 });
-                if (!response.ok) throw new Error("Weather service failed");
                 const data = await response.json();
-                if (data?.current_condition?.[0] && data.weather?.[0]?.astronomy?.[0]) {
-                    setWeather({ temp: parseInt(data.current_condition[0].temp_C, 10), sunrise: data.weather[0].astronomy[0].sunrise, sunset: data.weather[0].astronomy[0].sunset });
-                } else setWeather(null);
-            } catch (e) { setWeather(null); }
+                if (data?.current_condition?.[0]) setWeather({ temp: data.current_condition[0].temp_C });
+            } catch (e) {}
         };
         fetchWeather();
     }, [location, refreshKey]);
-
-    const formatTime = (timeStr?: string) => {
-        if (!timeStr) return '';
-        const parts = timeStr.match(/(\d{1,2}):(\d{2}) (AM|PM)/);
-        if (!parts) return timeStr;
-        let [, hour, minute, ampm] = parts;
-        let hourNum = parseInt(hour, 10);
-        if (ampm === 'PM' && hourNum < 12) hourNum += 12;
-        if (ampm === 'AM' && hourNum === 12) hourNum = 0;
-        return `${String(hourNum).padStart(2, '0')}:${minute}`;
-    };
-
-    if (!weather) return <div className="flex items-center gap-2 text-sm w-32 h-8 justify-end" />;
-    
+    if (!weather) return null;
     return (
-        <div className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
-            <div className="flex items-center gap-1">
-                <SunIcon className="w-5 h-5 text-yellow-500" />
-                <span className="font-medium">{weather.temp}°C</span>
-            </div>
-            <div className="text-xs flex items-center gap-1 opacity-80">
-                <SunriseIcon className="w-4 h-4" />
-                <span>{formatTime(weather.sunrise)}</span>
-            </div>
-            <div className="text-xs flex items-center gap-1 opacity-80">
-                <SunsetIcon className="w-4 h-4" />
-                <span>{formatTime(weather.sunset)}</span>
-            </div>
+        <div className="flex items-center gap-3 bg-black/40 px-5 py-2.5 rounded-2xl border border-white/5">
+            <SunIcon className="w-6 h-6 text-flesh-500 animate-pulse" />
+            <span className="font-black text-lg text-white italic">{weather.temp}°C</span>
         </div>
     );
 };
 
-const UnreadFilterToggle: React.FC<{ checked: boolean; onChange: (checked: boolean) => void; }> = ({ checked, onChange }) => (
-    <label htmlFor="unread-toggle" className="flex items-center cursor-pointer group">
+const UnreadFilterToggle: React.FC<any> = ({ checked, onChange }) => (
+    <label className="flex items-center cursor-pointer group bg-black/40 px-4 py-2 rounded-xl border border-white/5 transition-all hover:bg-zinc-900">
         <div className="relative">
-            <input id="unread-toggle" type="checkbox" className="sr-only" checked={checked} onChange={(e) => onChange(e.target.checked)} />
-            <div className={`block w-10 h-6 rounded-full transition-colors ${checked ? 'bg-orange-500' : 'bg-black/10 dark:bg-white/10'}`}></div>
-            <div className={`dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${checked ? 'transform translate-x-4' : ''}`}></div>
+            <input type="checkbox" className="sr-only" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+            <div className={`block w-10 h-6 rounded-full transition-colors ${checked ? 'bg-plant-500' : 'bg-zinc-800'}`}></div>
+            <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${checked ? 'translate-x-4' : ''} shadow-lg`}></div>
         </div>
-        <div className="ml-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors">
-            Unread Only
-        </div>
+        <span className="ml-3 text-[9px] font-black uppercase tracking-[0.2em] text-zinc-400 group-hover:text-white transition-colors">Fresh</span>
     </label>
 );
 
-const SportsCarousel: React.FC<{ results: Map<string, any>; isLoading: boolean; onTeamSelect: (teamName: string) => void; }> = ({ results, isLoading, onTeamSelect }) => (
-    <div className="flex gap-2 overflow-x-auto scrollbar-hide -mr-4 pr-4">
-        {Array.from(results.keys()).map(teamCode => (
+const SportsCarousel: React.FC<any> = ({ results, isLoading, onTeamSelect }) => (
+    <div className="flex gap-4 overflow-x-auto scrollbar-hide -mr-4 pr-4">
+        {Array.from(results.keys()).map((teamCode: any) => (
             <SportsCard key={teamCode} data={results.get(teamCode)} isLoading={isLoading} onSelect={onTeamSelect} />
         ))}
     </div>
 );
 
-const TeamLogo = ({ name, badgeUrl }: { name: string; badgeUrl: string | null }) => {
-    // Prioritize the URL from the API. Fallback to the static map.
-    const finalBadgeUrl = badgeUrl || teamLogos[name] || null;
+const SportsCard: React.FC<any> = ({ data, isLoading, onSelect }) => {
+    if (isLoading) return <div className="w-32 h-12 bg-zinc-900 rounded-xl animate-pulse flex-shrink-0" />;
+    if (!data || !data.success) return null;
     return (
-        <ImageWithProxy
-            src={finalBadgeUrl}
-            alt={`${name} logo`}
-            className="w-full h-full object-contain"
-            wrapperClassName="w-5 h-5"
-            fallback={<div className="w-5 h-5 rounded-full bg-zinc-300 dark:bg-zinc-600" />}
-        />
-    );
-};
-
-const SportsCard: React.FC<{ data: any; isLoading: boolean; onSelect: (teamName: string) => void; }> = ({ data, isLoading, onSelect }) => {
-    if (isLoading) return <div className="w-32 h-10 bg-black/5 dark:bg-white/5 rounded-full animate-pulse flex-shrink-0" />;
-    if (!data || !data.success || data.error) return null;
-    
-    return (
-        <button onClick={() => onSelect(data.teamFullName)}
-            className="p-2 pl-3 bg-white/30 dark:bg-zinc-900/40 backdrop-blur-2xl border border-white/20 dark:border-white/10 rounded-full w-auto flex-shrink-0 flex items-center gap-2 text-xs hover:border-white/40 dark:hover:border-white/20 transition-colors shadow-md"
-        >
-            <TeamLogo name={data.homeTeam} badgeUrl={data.homeTeamBadge} />
-            <span className="font-bold text-lg text-zinc-900 dark:text-white">{data.homeScore}</span>
-            <span className="opacity-50">-</span>
-            <span className="font-bold text-lg text-zinc-900 dark:text-white">{data.awayScore}</span>
-            <TeamLogo name={data.awayTeam} badgeUrl={data.awayTeamBadge} />
+        <button onClick={() => onSelect(data.teamFullName)} className="px-4 py-2 bg-zinc-900 border border-white/5 rounded-xl flex items-center gap-3 hover:border-plant-500/50 transition-all shadow-xl">
+            <div className="flex items-center gap-2">
+                <TeamLogo name={data.homeTeam} badgeUrl={data.homeTeamBadge} />
+                <span className="font-black text-lg text-white italic">{data.homeScore}</span>
+            </div>
+            <div className="w-1 h-1 rounded-full bg-zinc-800" />
+            <div className="flex items-center gap-2">
+                <span className="font-black text-lg text-white italic">{data.awayScore}</span>
+                <TeamLogo name={data.awayTeam} badgeUrl={data.awayTeamBadge} />
+            </div>
         </button>
     );
 };
+
+const TeamLogo = ({ name, badgeUrl }: any) => (
+    <ImageWithProxy src={badgeUrl || teamLogos[name]} alt={name} className="w-6 h-6 object-contain" wrapperClassName="w-6 h-6" fallback={<div className="w-6 h-6 rounded-full bg-zinc-800" />} />
+);
 
 export default MainContent;
