@@ -8,7 +8,8 @@ import MinesweeperPage from './MinesweeperPage';
 import TetrisPage from './TetrisPage';
 import PoolGamePage from './PoolGamePage';
 import MarioPage from './MarioPage';
-import { ControllerIcon, BrainIcon, CubeIcon, MushroomIcon, TetrisTBlockIcon, SeymourIcon, FlagIcon, CubeTransparentIcon } from './icons';
+import SporeCryptPage from './SporeCryptPage';
+import { ControllerIcon, BrainIcon, CubeIcon, MushroomIcon, TetrisTBlockIcon, SeymourIcon, FlagIcon, CubeTransparentIcon, KeypadIcon } from './icons';
 
 const SkidRowSurvivalGame: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => {
     const [gamePhase, setGamePhase] = useState<'TITLE' | 'PLAYING'>('TITLE');
@@ -86,6 +87,7 @@ const GameHubPage: React.FC<any> = (props) => {
 
     const games: GameInfo[] = [
         { id: 'sudoku', title: 'Brain Spores', description: 'Logical mutation puzzles that grow your mental vines.', icon: <BrainIcon />, bannerColor: 'from-green-950 to-black' },
+        { id: 'spore-crypt', title: 'Spore Crypt', description: 'Crack the genetic 5-letter code of the day.', icon: <KeypadIcon />, bannerColor: 'from-zinc-800 to-black' },
         { id: 'solitaire', title: 'Leaf Patience', description: 'Strategic survival cards for the Skid Row elite.', icon: <CubeTransparentIcon />, bannerColor: 'from-emerald-950 to-black' },
         { id: 'minesweeper', title: 'Toxic Pods', description: 'Defuse the mutated seed pods before they burst!', icon: <FlagIcon />, bannerColor: 'from-red-950 to-black' },
         { id: 'tetris', title: 'Planter Stacker', description: 'Organize the planters or let the jungle take over.', icon: <TetrisTBlockIcon />, bannerColor: 'from-purple-950 to-black' },
@@ -123,6 +125,7 @@ const GameHubPage: React.FC<any> = (props) => {
     return (
         <Suspense fallback={<div className="w-full h-full flex items-center justify-center bg-zinc-950 text-plant-500 font-black text-3xl italic animate-pulse uppercase">Incubating...</div>}>
             {activeGame === 'sudoku' && <SudokuPage stats={props.sudokuStats} onGameWin={props.onSudokuWin} onGameLoss={props.onSudokuLoss} onBackToHub={handleBackToHub} onReturnToFeeds={props.onReturnToFeeds} />}
+            {activeGame === 'spore-crypt' && <SporeCryptPage onBackToHub={handleBackToHub} />}
             {activeGame === 'solitaire' && <SolitairePage stats={props.solitaireStats} onGameWin={props.onSolitaireWin} onGameStart={props.onSolitaireStart} settings={props.solitaireSettings} onUpdateSettings={props.onUpdateSolitaireSettings} onBackToHub={handleBackToHub} onReturnToFeeds={props.onReturnToFeeds} />}
             {activeGame === 'minesweeper' && <MinesweeperPage onBackToHub={handleBackToHub} onReturnToFeeds={props.onReturnToFeeds} />}
             {activeGame === 'tetris' && <TetrisPage onBackToHub={handleBackToHub} onReturnToFeeds={props.onReturnToFeeds} />}
