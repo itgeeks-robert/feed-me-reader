@@ -282,7 +282,7 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
                             <span>{hasDoneDaily ? 'Daily Decoded' : 'Daily Segment'}</span>
                         </button>
                         <button onClick={() => startNewGame(difficulty)} className="w-full py-4 bg-white text-black font-black uppercase italic rounded-2xl hover:scale-[1.02] transition-all shadow-xl">Logic Sync</button>
-                        <button onClick={onBackToHub} className="text-zinc-500 font-bold uppercase tracking-widest text-xs hover:text-white transition-colors pt-2 block w-full">Back to Hub</button>
+                        <button onClick={onBackToHub} className="text-zinc-500 font-bold uppercase tracking-widest text-xs hover:text-white transition-colors pt-2 block w-full italic">Back to Hub</button>
                     </div>
                 </div>
             </div>
@@ -297,6 +297,20 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
                     50% { box-shadow: 0 0 30px #e11d48, inset 0 0 15px #e11d48; transform: scale(1.02); }
                 }
                 .animate-selection { animation: selection-glow 0.6s ease-in-out infinite; }
+
+                @keyframes cross-highlight {
+                    0% { background-color: rgba(225, 29, 72, 0.1); }
+                    50% { background-color: rgba(225, 29, 72, 0.35); box-shadow: inset 0 0 10px rgba(225, 29, 72, 0.2); }
+                    100% { background-color: rgba(225, 29, 72, 0.1); }
+                }
+                .animate-cross-highlight { animation: cross-highlight 1.5s ease-in-out infinite; }
+
+                @keyframes completion-flash {
+                    0% { background-color: white; transform: scale(1); box-shadow: 0 0 50px white; z-index: 50; }
+                    50% { background-color: #22c55e; transform: scale(1.1); box-shadow: 0 0 100px #22c55e; }
+                    100% { background-color: transparent; transform: scale(1); box-shadow: none; }
+                }
+                .animate-completion { animation: completion-flash 0.8s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
             `}</style>
 
             <div className="max-w-md w-full h-full flex flex-col p-4 gap-4 z-10">
@@ -320,7 +334,7 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
                         </div>
                         <div className="w-px h-8 bg-zinc-800 mx-1" />
                         <div>
-                            <span className="text-[8px] font-black uppercase text-zinc-500 block leading-none mb-1">Time</span>
+                            <span className="text-[8px] font-black uppercase text-zinc-500 block leading-none mb-1 italic">Time</span>
                             <span className="text-sm font-black font-mono leading-none">{formatTime(time)}</span>
                         </div>
                     </div>
@@ -331,7 +345,7 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
 
                 <div className="flex-grow flex items-center justify-center min-h-0">
                     {gameState === 'LOADING' ? (
-                        <div className="text-pulse-500 font-black animate-pulse uppercase tracking-[0.3em]">Hacking Host...</div>
+                        <div className="text-pulse-500 font-black animate-pulse uppercase tracking-[0.3em] italic">Hacking Host...</div>
                     ) : (
                         <div className="aspect-square w-full max-w-[340px] grid grid-cols-9 bg-zinc-950 rounded-2xl border-2 border-zinc-900 shadow-2xl relative overflow-hidden">
                             {grid?.map((row, r) => row.map((cell, c) => {
@@ -345,14 +359,24 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
                                 const selectedBlockIndex = selectedCell ? Math.floor(selectedCell.row / 3) * 3 + Math.floor(selectedCell.col / 3) : -1;
                                 const isSameBlock = blockIndex === selectedBlockIndex;
 
+                                // Check for recent completion to trigger animation
+                                let isAnimatingCompletion = false;
+                                if (lastCompleted) {
+                                    if (lastCompleted.type === 'row' && lastCompleted.index === r) isAnimatingCompletion = true;
+                                    else if (lastCompleted.type === 'col' && lastCompleted.index === c) isAnimatingCompletion = true;
+                                    else if (lastCompleted.type === 'block' && lastCompleted.index === blockIndex) isAnimatingCompletion = true;
+                                }
+
                                 let baseStyle = "aspect-square flex items-center justify-center text-xl font-normal cursor-pointer transition-all duration-150 relative ";
                                 
                                 if (isSelected) {
                                     baseStyle += "bg-pulse-500 z-20 text-white animate-selection ";
+                                } else if (isAnimatingCompletion) {
+                                    baseStyle += "animate-completion ";
                                 } else if (isSameValue) {
-                                    baseStyle += "bg-yellow-400/20 text-yellow-100 ";
+                                    baseStyle += "bg-yellow-400/30 text-yellow-100 ";
                                 } else if (isSameRow || isSameCol || isSameBlock) {
-                                    baseStyle += "bg-zinc-800/40 "; 
+                                    baseStyle += "animate-cross-highlight z-10 "; 
                                 } else {
                                     baseStyle += "bg-zinc-900/40 ";
                                 }
