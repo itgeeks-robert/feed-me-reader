@@ -1,13 +1,24 @@
 
 import React from 'react';
 
+// Added missing SeymourIcon for the app's identity and game pages
 export const SeymourIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 22v-5M9 18q3-2 6 0" />
+        <path d="M12 17c-4-4-4-9 0-14 4 5 4 10 0 14" />
+        <circle cx="12" cy="9" r="3" />
+        <path d="M10 14h4" />
+    </svg>
+);
+
+export const VoidIcon: React.FC<{ className?: string }> = ({ className }) => (
     <svg className={className} viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
         <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M40 10 L10 70 L70 70 Z" strokeWidth="4" />
             <circle cx="40" cy="45" r="12" />
-            <path d="M35 45 L45 45 M40 40 L40 50" />
+            <path d="M30 45 h20 M40 35 v20" />
             <path d="M20 60 Q 40 50 60 60" strokeDasharray="4 2" />
+            <circle cx="40" cy="45" r="25" strokeOpacity="0.2" />
         </g>
     </svg>
 );
@@ -147,8 +158,6 @@ export const SparklesIcon: React.FC<{ className?: string }> = ({ className }) =>
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
     </svg>
 );
-
-// Added missing icons
 
 export const ListIcon: React.FC<{ className?: string }> = ({ className }) => (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">

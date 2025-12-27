@@ -7,7 +7,7 @@ import AddSourceModal from '../components/AddSourceModal';
 import Sidebar from '../components/Sidebar';
 import BottomNavBar from '../components/BottomNavBar';
 import GameHubPage from '../components/GameHubPage';
-import DailyRationPage from '../components/DailyRationPage';
+import DailyUplinkPage from '../components/DailyUplinkPage';
 import { resilientFetch } from '../services/fetch';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 
@@ -36,7 +36,7 @@ export interface Article {
 }
 
 export type Selection = {
-  type: 'all' | 'folder' | 'bookmarks' | 'search' | 'feed' | 'reddit' | 'game_hub' | 'daily_ration';
+  type: 'all' | 'folder' | 'bookmarks' | 'search' | 'feed' | 'reddit' | 'game_hub' | 'daily_uplink';
   id: string | number | null;
   query?: string;
 };
@@ -96,26 +96,26 @@ export interface SolitaireSettings {
   } | null;
 }
 
-const GUEST_USER_ID = 'guest';
-const READ_ARTICLES_KEY = `feedme_read_articles_${GUEST_USER_ID}`;
-const BOOKMARKED_ARTICLES_KEY = `feedme_bookmarked_articles_${GUEST_USER_ID}`;
-const ARTICLE_TAGS_KEY = `feedme_article_tags_${GUEST_USER_ID}`;
-const FEEDS_KEY = `feedme_feeds_${GUEST_USER_ID}`;
-const FOLDERS_KEY = `feedme_folders_${GUEST_USER_ID}`;
-const THEME_KEY = `feedme_theme_${GUEST_USER_ID}`;
-const ARTICLE_VIEW_KEY = `feedme_article_view_${GUEST_USER_ID}`;
-const WIDGET_SETTINGS_KEY = `feedme_widget_settings_${GUEST_USER_ID}`;
-const SUDOKU_STATS_KEY = `feedme_sudoku_stats_${GUEST_USER_ID}`;
-const SOLITAIRE_STATS_KEY = `feedme_solitaire_stats_${GUEST_USER_ID}`;
-const SOLITAIRE_SETTINGS_KEY = `feedme_solitaire_settings_${GUEST_USER_ID}`;
-const SELECTION_KEY = `feedme_selection_${GUEST_USER_ID}`;
-const FERTILIZER_KEY = `feedme_fertilizer_${GUEST_USER_ID}`;
-const LAST_RATION_KEY = `feedme_last_ration_date_${GUEST_USER_ID}`;
+const GUEST_USER_ID = 'survivor';
+const READ_ARTICLES_KEY = `void_read_articles_${GUEST_USER_ID}`;
+const BOOKMARKED_ARTICLES_KEY = `void_bookmarked_articles_${GUEST_USER_ID}`;
+const ARTICLE_TAGS_KEY = `void_article_tags_${GUEST_USER_ID}`;
+const FEEDS_KEY = `void_feeds_${GUEST_USER_ID}`;
+const FOLDERS_KEY = `void_folders_${GUEST_USER_ID}`;
+const THEME_KEY = `void_theme_${GUEST_USER_ID}`;
+const ARTICLE_VIEW_KEY = `void_article_view_${GUEST_USER_ID}`;
+const WIDGET_SETTINGS_KEY = `void_widget_settings_${GUEST_USER_ID}`;
+const SUDOKU_STATS_KEY = `void_sudoku_stats_${GUEST_USER_ID}`;
+const SOLITAIRE_STATS_KEY = `void_solitaire_stats_${GUEST_USER_ID}`;
+const SOLITAIRE_SETTINGS_KEY = `void_solitaire_settings_${GUEST_USER_ID}`;
+const SELECTION_KEY = `void_selection_${GUEST_USER_ID}`;
+const UPTIME_KEY = `void_uptime_${GUEST_USER_ID}`;
+const LAST_UPLINK_KEY = `void_last_uplink_date_${GUEST_USER_ID}`;
 
 const defaultFolders: Folder[] = [
-    { id: 1, name: 'Main Feeds' },
-    { id: 2, name: 'Tech Spores' },
-    { id: 3, name: 'Arena Scores' },
+    { id: 1, name: 'Primary Channels' },
+    { id: 2, name: 'Tech Uplinks' },
+    { id: 3, name: 'Arena Intel' },
 ];
 
 const defaultFeeds: Feed[] = [
@@ -171,14 +171,14 @@ const App: React.FC = () => {
     const [sudokuStats, setSudokuStats] = useLocalStorage<SudokuStats>(SUDOKU_STATS_KEY, defaultSudokuStats);
     const [solitaireStats, setSolitaireStats] = useLocalStorage<SolitaireStats>(SOLITAIRE_STATS_KEY, defaultSolitaireStats);
     const [solitaireSettings, setSolitaireSettings] = useLocalStorage<SolitaireSettings>(SOLITAIRE_SETTINGS_KEY, defaultSolitaireSettings);
-    const [fertilizer, setFertilizer] = useLocalStorage<number>(FERTILIZER_KEY, 0);
-    const [lastRationDate, setLastRationDate] = useLocalStorage<string | null>(LAST_RATION_KEY, null);
+    const [uptime, setUptime] = useLocalStorage<number>(UPTIME_KEY, 0);
+    const [lastUplinkDate, setLastUplinkDate] = useLocalStorage<string | null>(LAST_UPLINK_KEY, null);
 
     const [selection, setSelection] = useLocalStorage<Selection>(SELECTION_KEY, () => {
         const today = new Date().toISOString().split('T')[0];
-        const savedRation = localStorage.getItem(LAST_RATION_KEY);
-        if (savedRation !== JSON.stringify(today)) {
-            return { type: 'daily_ration', id: null };
+        const savedUplink = localStorage.getItem(LAST_UPLINK_KEY);
+        if (savedUplink !== JSON.stringify(today)) {
+            return { type: 'daily_uplink', id: null };
         }
         return { type: 'all', id: null };
     });
@@ -187,20 +187,6 @@ const App: React.FC = () => {
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
     const [isAddSourceModalOpen, setIsAddSourceModalOpen] = useState(false);
     const [lastRefresh, setLastRefresh] = useState(() => Date.now());
-
-    useEffect(() => {
-        const handleKeys = (e: KeyboardEvent) => {
-            if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-            
-            const key = e.key.toLowerCase();
-            if (key === 'g') setSelection({ type: 'game_hub', id: null });
-            if (key === 'n') setSelection({ type: 'all', id: null });
-            if (key === 'b') setSelection({ type: 'bookmarks', id: null });
-            if (key === 'r') setSelection({ type: 'daily_ration', id: null });
-        };
-        window.addEventListener('keydown', handleKeys);
-        return () => window.removeEventListener('keydown', handleKeys);
-    }, [setSelection]);
 
     useEffect(() => {
         const root = document.documentElement;
@@ -220,13 +206,13 @@ const App: React.FC = () => {
     const handleMarkAsRead = (id: string) => {
         if (!readArticleIds.has(id)) {
             setReadArticleIds(prev => new Set(prev).add(id));
-            setFertilizer(f => Math.min(100, f + 5)); 
+            setUptime(f => Math.min(100, f + 5)); 
         }
     };
 
-    const handleSatiateSeymour = (articleIds: string[]) => {
+    const handlePurgeBuffer = (articleIds: string[]) => {
         setReadArticleIds(prev => new Set([...Array.from(prev), ...articleIds]));
-        setFertilizer(100);
+        setUptime(100);
     };
 
     const handleSelectFromSidebar = (sel: Selection) => {
@@ -236,13 +222,13 @@ const App: React.FC = () => {
 
     const handleReturnToFeeds = useCallback(() => {
         setSelection({ type: 'all', id: null });
-        setLastRationDate(new Date().toISOString().split('T')[0]);
-    }, [setSelection, setLastRationDate]);
+        setLastUplinkDate(new Date().toISOString().split('T')[0]);
+    }, [setSelection, setLastUplinkDate]);
 
     const handleEnterArcade = useCallback(() => {
         setSelection({ type: 'game_hub', id: null });
-        setLastRationDate(new Date().toISOString().split('T')[0]);
-    }, [setSelection, setLastRationDate]);
+        setLastUplinkDate(new Date().toISOString().split('T')[0]);
+    }, [setSelection, setLastUplinkDate]);
 
     const handleAddSource = async (url: string, type: SourceType) => {
         let feedUrl = url.trim();
@@ -295,8 +281,8 @@ const App: React.FC = () => {
         }
         return newStats;
       });
-      setFertilizer(f => Math.min(100, f + 15));
-    }, [setSudokuStats, setFertilizer]);
+      setUptime(f => Math.min(100, f + 15));
+    }, [setSudokuStats, setUptime]);
 
     const handleSolitaireWin = useCallback((time: number, moves: number) => {
       setSolitaireStats(prev => {
@@ -307,20 +293,20 @@ const App: React.FC = () => {
         if (newStats.lowestMoves === null || moves < newStats.lowestMoves) newStats.lowestMoves = moves;
         return newStats;
       });
-      setFertilizer(f => Math.min(100, f + 25));
-    }, [setSolitaireStats, setFertilizer]);
+      setUptime(f => Math.min(100, f + 25));
+    }, [setSolitaireStats, setUptime]);
 
     const pageTitle = useMemo(() => {
-        if (selection.type === 'search') return `Hunting: "${selection.query}"`;
-        if (selection.type === 'bookmarks') return 'Saved Snacks';
-        if (selection.type === 'game_hub') return 'The Feeding Pit';
-        if (selection.type === 'daily_ration') return 'SURVEILLANCE LOG';
+        if (selection.type === 'search') return `SEARCHING: "${selection.query}"`;
+        if (selection.type === 'bookmarks') return 'SAVED PACKETS';
+        if (selection.type === 'game_hub') return 'DARK ARCADE';
+        if (selection.type === 'daily_uplink') return 'UPLINK SEQUENCE';
         if (selection.type === 'feed') return feeds.find(f => f.id === selection.id)?.title || 'Feed';
         if (selection.type === 'folder') return folders.find(f => f.id === selection.id)?.name || 'Folder';
         return 'SURVEILLANCE LOG';
     }, [selection, feeds, folders]);
 
-    const isGameActive = selection.type === 'game_hub' || selection.type === 'daily_ration';
+    const isGameActive = selection.type === 'game_hub' || selection.type === 'daily_uplink';
 
     return (
         <div className="h-screen font-sans text-sm relative flex flex-col md:flex-row overflow-hidden bg-zinc-950">
@@ -341,13 +327,13 @@ const App: React.FC = () => {
             />
             
             <div className="flex-1 flex flex-col min-w-0 md:pl-72 relative pb-20 md:pb-0 h-full overflow-hidden">
-                {selection.type === 'daily_ration' ? (
-                   <DailyRationPage 
+                {selection.type === 'daily_uplink' ? (
+                   <DailyUplinkPage 
                       feeds={feeds} 
                       onComplete={handleReturnToFeeds} 
                       onEnterArcade={handleEnterArcade}
                       onSelectGame={(id) => setSelection({type: 'game_hub', id: null})} 
-                      fertilizer={fertilizer}
+                      uptime={uptime}
                    />
                 ) : selection.type === 'game_hub' ? (
                     <div className="flex-1 min-h-0 h-full overflow-hidden">
@@ -361,8 +347,8 @@ const App: React.FC = () => {
                             solitaireSettings={solitaireSettings}
                             onUpdateSolitaireSettings={setSolitaireSettings}
                             onReturnToFeeds={handleReturnToFeeds}
-                            fertilizer={fertilizer}
-                            setFertilizer={setFertilizer}
+                            uptime={uptime}
+                            setUptime={setUptime}
                         />
                     </div>
                 ) : (
@@ -377,7 +363,7 @@ const App: React.FC = () => {
                         bookmarkedArticleIds={bookmarkedArticleIds}
                         articleTags={articleTags}
                         onMarkAsRead={handleMarkAsRead}
-                        onSatiateSeymour={handleSatiateSeymour}
+                        onPurgeBuffer={handlePurgeBuffer}
                         onMarkAsUnread={(id) => setReadArticleIds(prev => { const n = new Set(prev); n.delete(id); return n; })}
                         onMarkMultipleAsRead={(ids) => setReadArticleIds(prev => new Set([...prev, ...ids]))}
                         onToggleBookmark={(id) => setBookmarkedArticleIds(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; })}
@@ -393,7 +379,7 @@ const App: React.FC = () => {
                         onOpenAddSource={() => setIsAddSourceModalOpen(true)}
                         onAddSource={handleAddSource}
                         onOpenSidebar={() => setIsSidebarOpen(true)}
-                        fertilizer={fertilizer}
+                        uptime={uptime}
                     />
                 )}
             </div>

@@ -4,6 +4,7 @@ import { startGame, PieceType } from '../services/tetrisGame';
 import { GameboyControls, GameboyButton } from './GameboyControls';
 import { saveHighScore, getHighScores } from '../services/highScoresService';
 import HighScoreTable from './HighScoreTable';
+import { XIcon } from './icons';
 
 interface TetrisPageProps {
   onBackToHub: () => void;
@@ -58,7 +59,7 @@ const TetrisPage: React.FC<TetrisPageProps> = ({ onBackToHub, onReturnToFeeds })
 
     const handleSaveScore = () => {
         saveHighScore('tetris', {
-            name: initials || "???",
+            name: initials.toUpperCase() || "???",
             score: stats.score,
             displayValue: stats.score.toLocaleString(),
             date: new Date().toISOString()
@@ -97,63 +98,65 @@ const TetrisPage: React.FC<TetrisPageProps> = ({ onBackToHub, onReturnToFeeds })
     };
 
     return (
-        <main className="w-full h-full flex flex-col bg-zinc-950 text-white font-mono overflow-hidden relative">
-            <div className="absolute inset-0 opacity-5 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/leaves.png')]"></div>
-            
-            <header className="flex justify-between items-center p-6 z-10">
+        <main className="w-full h-full flex flex-col bg-zinc-950 text-white font-mono overflow-y-auto scrollbar-hide relative">
+            <header className="flex justify-between items-center p-4 md:p-6 z-10 flex-shrink-0">
                 <div>
-                    <h1 className="text-3xl font-black italic uppercase tracking-tighter text-plant-500">Planter Stacker</h1>
-                    <p className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-600">Skid Row Unit #7</p>
+                    <h1 className="text-2xl md:text-3xl font-black italic uppercase tracking-tighter text-pulse-500">STACK TRACE</h1>
+                    <p className="text-[9px] font-black uppercase tracking-[0.4em] text-zinc-600 italic">Sector Terminal // v1.8.4</p>
                 </div>
-                <button onClick={onBackToHub} className="px-4 py-2 bg-zinc-900 border border-white/10 rounded-full text-[10px] font-black uppercase italic text-zinc-400 hover:text-white transition-all">Eject</button>
+                <button onClick={onBackToHub} className="p-3 bg-zinc-900 border border-white/10 rounded-2xl text-zinc-400 hover:text-white transition-all active:scale-95 shadow-lg">
+                    <XIcon className="w-6 h-6" />
+                </button>
             </header>
 
-            <div className="flex-grow flex items-center justify-center gap-6 p-4 z-10 overflow-hidden">
-                <div className="hidden lg:flex flex-col gap-6 w-48">
-                    <div className="bg-zinc-900/80 p-4 rounded-3xl border-2 border-white/5 text-center">
-                        <p className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-2">Stored</p>
+            <div className="flex-grow flex flex-col lg:flex-row items-center justify-center gap-4 md:gap-8 p-4 z-10">
+                <div className="flex lg:flex-col gap-4 w-full lg:w-48 order-2 lg:order-1">
+                    <div className="flex-1 lg:flex-none bg-zinc-900/80 p-4 rounded-3xl border border-white/5 text-center shadow-2xl">
+                        <p className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-2 italic">Buffer</p>
                         <canvas ref={holdRef} className="mx-auto w-16 h-16 opacity-80" />
                     </div>
-                    <HighScoreTable entries={getHighScores('tetris')} title="STACKER" />
+                    <div className="hidden lg:block">
+                        <HighScoreTable entries={getHighScores('tetris')} title="TRACE" />
+                    </div>
                 </div>
 
-                <div className="relative aspect-[1/2] h-[60vh] sm:h-[70vh]">
-                    <div className="absolute -inset-2 bg-plant-500/20 blur-xl rounded-[2rem]"></div>
-                    <canvas ref={canvasRef} className="relative w-full h-full bg-black border-4 border-zinc-800 rounded-[1.5rem] shadow-2xl" />
+                <div className="relative aspect-[1/2] h-[55vh] md:h-[65vh] order-1 lg:order-2 shadow-[0_0_100px_rgba(225,29,72,0.1)]">
+                    <div className="absolute -inset-2 bg-pulse-500/10 blur-2xl rounded-[2rem]"></div>
+                    <canvas ref={canvasRef} className="relative w-full h-full bg-black border-4 border-zinc-900 rounded-[1.5rem] shadow-2xl" />
                 </div>
 
-                <div className="flex flex-col gap-4">
-                    <div className="bg-zinc-900/80 p-4 rounded-3xl border-2 border-white/5 text-center">
-                        <p className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-2">Upcoming</p>
+                <div className="flex lg:flex-col gap-4 w-full lg:w-48 order-3">
+                    <div className="flex-1 lg:flex-none bg-zinc-900/80 p-4 rounded-3xl border border-white/5 text-center shadow-2xl">
+                        <p className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-2 italic">Queue</p>
                         <canvas ref={previewRef} className="mx-auto w-16 h-32 opacity-80" />
                     </div>
-                    <div className="bg-zinc-900 p-4 rounded-3xl border-2 border-white/5 text-center">
-                        <p className="text-[8px] font-black uppercase text-zinc-500 tracking-widest">Score</p>
-                        <p className="text-2xl font-black italic text-yellow-400">{stats.score}</p>
+                    <div className="flex-1 lg:flex-none bg-zinc-900 p-4 rounded-3xl border border-white/5 text-center shadow-2xl">
+                        <p className="text-[8px] font-black uppercase text-zinc-500 tracking-widest italic">Sync Value</p>
+                        <p className="text-2xl font-black italic text-yellow-400 drop-shadow-[0_0_10px_rgba(250,204,21,0.3)]">{stats.score}</p>
                     </div>
                 </div>
             </div>
             
-            <div className="bg-zinc-900 p-6 md:hidden">
+            <div className="p-4 flex-shrink-0 md:hidden pb-10">
               <GameboyControls onButtonPress={handleButtonPress} onButtonRelease={handleButtonRelease} />
             </div>
 
             {isGameOver && (
                 <div className="fixed inset-0 bg-black/95 backdrop-blur-md z-50 flex items-center justify-center p-6 text-center">
-                    <div className="max-w-sm w-full bg-zinc-900 p-12 rounded-[3rem] border-4 border-flesh-600 shadow-[0_0_100px_rgba(236,72,153,0.3)]">
-                        <h2 className="text-5xl font-black italic uppercase tracking-tighter text-flesh-500 mb-4">WILTED</h2>
+                    <div className="max-w-sm w-full bg-zinc-900 p-12 rounded-[3rem] border-4 border-pulse-600 shadow-[0_0_100px_rgba(225,29,72,0.3)]">
+                        <h2 className="text-4xl font-black italic uppercase tracking-tighter text-pulse-500 mb-4 leading-none">BUFFER OVERFLOW</h2>
                         <div className="mb-8">
-                            <p className="text-zinc-500 font-bold uppercase tracking-widest text-[10px] mb-4">Enter Arcade Initials</p>
+                            <p className="text-zinc-500 font-bold uppercase tracking-widest text-[10px] mb-4 italic">Post Trace Initials</p>
                             <input 
                                 autoFocus
                                 maxLength={3} 
                                 value={initials} 
                                 onChange={e => setInitials(e.target.value.toUpperCase())}
-                                className="bg-black/50 border-2 border-flesh-500 text-flesh-500 rounded-xl px-4 py-3 text-center text-2xl font-black w-32 outline-none uppercase italic"
+                                className="bg-black/50 border-2 border-pulse-500 text-white rounded-xl px-4 py-3 text-center text-2xl font-black w-32 outline-none uppercase italic"
                                 placeholder="???"
                             />
                         </div>
-                        <button onClick={handleSaveScore} className="w-full py-5 bg-flesh-600 text-white font-black text-xl italic uppercase rounded-full hover:scale-105 transition-transform">Post Score</button>
+                        <button onClick={handleSaveScore} className="w-full py-5 bg-pulse-600 text-white font-black text-xl italic uppercase rounded-full hover:scale-105 transition-transform shadow-xl">Transmit Log</button>
                     </div>
                 </div>
             )}

@@ -5,7 +5,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>THE VOID | Signal Reader</title>
-    <link rel="manifest" href="data:application/manifest+json;base64,eyJuYW1lIjoiVGhlIFZvaWQiLCJzaG9ydF9uYW1lIjoiVGhlIFZvaWQiLCJzdGFydF91cmwiOiIuIiwiZGlzcGxheSI6InN0YW5kYWxvbmUiLCJiYWNrZ3JvdW5kX2NvbG9yIjoiIzBhMGEwYSIsInRoZW1lX2NvbG9yIjoiI2UxMWQ0OCIsImRlc2NyaXB0aW9uIjoiQSBzdXBlcm5hdHVyYWwgODBzIGZlZWQgcmVhZGVyLiIsImljb25zIjpbeyJzcmMiOiJkYXRhOmltYWdlL3N2Zyt4bWw7YmFzZTY0LFBITjJaeUI0Yld4VmJDQXhNREFnTVRBd0lIUm9aVzFsUFNKalluUmxibWRoZEdsdmJpSTdabTl1ZEMweE1EQWdNRFFnTVRRNU1EQXVOell3TXk0eU16QXdJSDE0WkdWdWRHbG1hV05oZEdsdmJpQjNjeUI0Yld4VmJHbHphR1Z5WVhScGIyNG5JSFpwWlhoMFBTSTBNVEF3TFM0M016UXA+PGEvbj48L2c+PC9zdmc+Iiwic2l6ZXMiOiJhbnkiLCJ0eXBlIjoiaW1hZ2Uvc3ZnK3htbCJ9XX0=" />
+    <link rel="manifest" href="data:application/manifest+json;base64,eyJuYW1lIjoiVGhlIFZvaWQiLCJzaG9ydF9uYW1lIjoiVGhlIFZvaWQiLCJzdGFydF91cmwiOiIuIiwiZGlzcGxheSI6InN0YW5kYWxvbmUiLCJiYWNrZ3JvdW5kX2NvbG9yIjoiIzBhMGEwYSIsInRoZW1lX2NvbG9yIjoiI2UxMWQ0OCIsImRlc2NyaXB0aW9uIjoiQSB0ZWNobmljYWwgbm9pciBzaWduYWwgcmVhZGVyLiIsImljb25zIjpbeyJzcmMiOiJkYXRhOmltYWdlL3N2Zyt4bWw7YmFzZTY0LFBITjJaeUI0Yld4VmJDQXhNREFnTVRBd0lIUm9aVzFsUFNKalluUmxibWRoZEdsdmJpSTdabTl1ZEMweE1EQWdNRFFnTVRRNU1EQXVOell3TXk0eU16QXdJSDE0WkdWdWRHbG1hV05oZEdsdmJpQjNjeUI0Yld4VmJHbHphR1Z5WVhScGIyNG5JSFpwWlhoMFBTSTBNVEF3TFM0M016UXA+PGEvbj48L2c+PC9zdmc+Iiwic2l6ZXMiOiJhbnkiLCJ0eXBlIjoiaW1hZ2Uvc3ZnK3htbCJ9XX0=" />
     <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PScwIDAgODAgODAnIHhtbG5zPSdodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2Zyc+PGcgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZTExZDQ4IiBzdHJva2Utd2lkdGg9IjQiPjxwYXRoIGQ9Ik0yMCA2MEw0MCAyMEw2MCA2ME0zMCA0NUg1MCIvPjwvZz48L3N2Zz4=" type="image/svg+xml" />
     <meta name="theme-color" content="#e11d48" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -16,13 +16,17 @@
                 extend: {
                     colors: {
                         void: {
-                            50: '#fef2f2',
-                            900: '#180202',
-                            950: '#050101',
+                            900: '#0a0a0a',
+                            950: '#050505',
                         },
                         pulse: {
                             500: '#e11d48',
                             600: '#be123c',
+                        },
+                        signal: {
+                            400: '#4ade80',
+                            500: '#22c55e',
+                            600: '#16a34a',
                         },
                         neon: {
                             400: '#22d3ee',
@@ -30,7 +34,7 @@
                         }
                     },
                     fontFamily: {
-                        'horror': ['Georgia', 'serif'],
+                        'horror': ['Courier New', 'monospace'],
                         'mono': ['Space Mono', 'Courier New', 'monospace']
                     }
                 }
@@ -40,13 +44,24 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
 
-        /* CRT Scanline Effect */
+        /* VOID THEME STYLE SHEET - REFER TO THIS FOR ALL UI UPDATES */
+        :root {
+            --color-bg: #050505;
+            --color-surface: #0a0a0a;
+            --color-primary: #e11d48; /* Neon Red Pulse */
+            --color-secondary: #22c55e; /* Technical Emerald */
+            --color-accent: #06b6d4; /* Cyber Cyan */
+            --glow-primary: 0 0 10px rgba(225, 29, 72, 0.4);
+            --glow-secondary: 0 0 10px rgba(34, 197, 94, 0.4);
+        }
+
         body::before {
             content: " ";
             display: block;
             position: fixed;
             top: 0; left: 0; bottom: 0; right: 0;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), 
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
             z-index: 9999;
             pointer-events: none;
             background-size: 100% 2px, 3px 100%;
@@ -60,7 +75,7 @@
             height: 100%;
             overflow: hidden;
             z-index: -1;
-            background-color: #050101; 
+            background-color: var(--color-bg); 
         }
 
         @keyframes noise {
@@ -110,7 +125,7 @@
 
         h1, h2 { text-transform: uppercase; letter-spacing: -0.05em; font-weight: 900; }
         .glitch-text:hover {
-            text-shadow: 2px 0 #06b6d4, -2px 0 #e11d48;
+            text-shadow: 2px 0 var(--color-accent), -2px 0 var(--color-primary);
         }
     </style>
 <script type="importmap">
