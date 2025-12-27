@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 type DPadDirection = 'up' | 'down' | 'left' | 'right';
@@ -9,33 +10,24 @@ interface GameboyControlsProps {
   onButtonRelease: (button: GameboyButton) => void;
 }
 
-const Button: React.FC<{
+const ControlButton: React.FC<{
   onPress: () => void;
   onRelease: () => void;
   className?: string;
   children?: React.ReactNode;
 }> = ({ onPress, onRelease, className, children }) => {
-    
     const handlePress = (e: React.TouchEvent | React.MouseEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        onPress();
+        e.preventDefault(); e.stopPropagation(); onPress();
     };
-
     const handleRelease = (e: React.TouchEvent | React.MouseEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        onRelease();
+        e.preventDefault(); e.stopPropagation(); onRelease();
     };
 
     return (
         <div
-            className={`select-none ${className}`}
-            onTouchStart={handlePress}
-            onTouchEnd={handleRelease}
-            onMouseDown={handlePress}
-            onMouseUp={handleRelease}
-            onMouseLeave={handleRelease}
+            className={`select-none cursor-pointer active:scale-95 transition-transform ${className}`}
+            onTouchStart={handlePress} onTouchEnd={handleRelease}
+            onMouseDown={handlePress} onMouseUp={handleRelease} onMouseLeave={handleRelease}
         >
             {children}
         </div>
@@ -43,35 +35,76 @@ const Button: React.FC<{
 };
 
 export const GameboyControls: React.FC<GameboyControlsProps> = ({ onButtonPress, onButtonRelease }) => {
-    const dpadButtonClasses = "absolute bg-[#2d2d2d] w-[33.33%] h-[33.33%] active:bg-[#454545] transition-colors";
-    const actionButtonClasses = "w-16 h-16 rounded-full bg-[#a02c42] border-2 border-[#6f1d2e] shadow-md flex items-center justify-center font-bold text-lg text-white/80 active:bg-[#c03952] active:scale-95 transition-transform";
-    const startSelectClasses = "w-16 h-7 bg-[#2d2d2d] rounded-full flex items-center justify-center text-xs font-bold text-white/60 uppercase active:bg-[#454545]";
-
     return (
-        <div className="w-full bg-[#d1d1d1] p-6 pt-4 border-t-2 border-black/10 flex-shrink-0 flex flex-col items-center">
-             <div className="flex justify-between items-center w-full max-w-sm">
-                 {/* D-Pad */}
-                <div className="relative w-36 h-36">
-                    <div className="absolute inset-0 bg-[#2d2d2d] rounded-full shadow-inner"></div>
-                    <div className="absolute w-[33.33%] h-full left-[33.33%] top-0 bg-[#2d2d2d]"></div>
-                    <div className="absolute h-[33.33%] w-full top-[33.33%] left-0 bg-[#2d2d2d]"></div>
-                    <Button onPress={() => onButtonPress('up')} onRelease={() => onButtonRelease('up')} className={`${dpadButtonClasses} top-0 left-[33.33%] rounded-t-md`}/>
-                    <Button onPress={() => onButtonPress('down')} onRelease={() => onButtonRelease('down')} className={`${dpadButtonClasses} bottom-0 left-[33.33%] rounded-b-md`}/>
-                    <Button onPress={() => onButtonPress('left')} onRelease={() => onButtonRelease('left')} className={`${dpadButtonClasses} left-0 top-[33.33%] rounded-l-md`}/>
-                    <Button onPress={() => onButtonPress('right')} onRelease={() => onButtonRelease('right')} className={`${dpadButtonClasses} right-0 top-[33.33%] rounded-r-md`}/>
+        <div className="w-full bg-[#2a2a2a] p-8 pb-12 border-t-4 border-black relative overflow-hidden flex flex-col items-center">
+            {/* Texture and Antenna */}
+            <div className="absolute top-0 left-12 w-4 h-24 bg-[#1a1a1a] -translate-y-full border-x-2 border-black" />
+            <div className="absolute inset-0 opacity-10 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
+            
+            <div className="w-full max-w-md flex flex-col gap-8 relative z-10">
+                {/* Speaker Grille Area */}
+                <div className="w-full h-12 flex flex-col gap-1.5 px-4 mb-4">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                        <div key={i} className="w-full h-1 bg-black/40 rounded-full" />
+                    ))}
                 </div>
-                 {/* A & B Buttons */}
-                <div className="relative w-40 h-24">
-                    <Button onPress={() => onButtonPress('b')} onRelease={() => onButtonRelease('b')} className={`absolute top-8 left-0 ${actionButtonClasses}`}>B</Button>
-                    <Button onPress={() => onButtonPress('a')} onRelease={() => onButtonRelease('a')} className={`absolute top-0 right-0 ${actionButtonClasses}`}>A</Button>
-                </div>
-             </div>
 
-             {/* Start & Select */}
-             <div className="flex justify-center items-center gap-6 mt-4">
-                <Button onPress={() => onButtonPress('select')} onRelease={() => onButtonRelease('select')} className={startSelectClasses}>SELECT</Button>
-                <Button onPress={() => onButtonPress('start')} onRelease={() => onButtonRelease('start')} className={startSelectClasses}>START</Button>
-             </div>
+                <div className="flex justify-between items-start w-full">
+                    {/* Tactical D-Pad (Rugged Arrows) */}
+                    <div className="relative w-36 h-36 bg-[#1a1a1a] rounded-2xl border-4 border-black shadow-2xl flex items-center justify-center p-2">
+                         <div className="grid grid-cols-3 grid-rows-3 w-full h-full gap-1">
+                            <div />
+                            <ControlButton onPress={() => onButtonPress('up')} onRelease={() => onButtonRelease('up')} className="bg-[#333] border-2 border-black rounded-lg flex items-center justify-center text-zinc-500 hover:text-white">
+                                <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24"><path d="M12 4l-8 8h16l-8-8z"/></svg>
+                            </ControlButton>
+                            <div />
+                            
+                            <ControlButton onPress={() => onButtonPress('left')} onRelease={() => onButtonRelease('left')} className="bg-[#333] border-2 border-black rounded-lg flex items-center justify-center text-zinc-500 hover:text-white">
+                                <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24"><path d="M4 12l8-8v16l-8-8z"/></svg>
+                            </ControlButton>
+                            <div className="bg-[#0a0a0a] rounded-full border-2 border-black m-2 shadow-inner" />
+                            <ControlButton onPress={() => onButtonPress('right')} onRelease={() => onButtonRelease('right')} className="bg-[#333] border-2 border-black rounded-lg flex items-center justify-center text-zinc-500 hover:text-white">
+                                <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24"><path d="M20 12l-8 8v-16l8 8z"/></svg>
+                            </ControlButton>
+
+                            <div />
+                            <ControlButton onPress={() => onButtonPress('down')} onRelease={() => onButtonRelease('down')} className="bg-[#333] border-2 border-black rounded-lg flex items-center justify-center text-zinc-500 hover:text-white">
+                                <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24"><path d="M12 20l8-8h-16l8 8z"/></svg>
+                            </ControlButton>
+                            <div />
+                         </div>
+                    </div>
+
+                    {/* Industrial Dials and Action Buttons */}
+                    <div className="flex flex-col gap-6 items-end">
+                        <div className="flex gap-4">
+                            <div className="flex flex-col items-center">
+                                <span className="text-[7px] font-black text-zinc-500 uppercase tracking-widest mb-1">Link</span>
+                                <ControlButton onPress={() => onButtonPress('start')} onRelease={() => onButtonRelease('start')} className="w-14 h-14 bg-zinc-800 rounded-full border-4 border-black shadow-xl flex items-center justify-center relative group">
+                                    <div className="w-full h-full rounded-full border-t-2 border-white/10 group-active:rotate-45 transition-transform" />
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                        <div className="w-1 h-6 bg-red-600 rounded-full shadow-[0_0_5px_red]" />
+                                    </div>
+                                </ControlButton>
+                            </div>
+                            <div className="flex flex-col items-center">
+                                <span className="text-[7px] font-black text-zinc-500 uppercase tracking-widest mb-1">Freq</span>
+                                <ControlButton onPress={() => onButtonPress('select')} onRelease={() => onButtonRelease('select')} className="w-14 h-14 bg-zinc-800 rounded-full border-4 border-black shadow-xl flex items-center justify-center relative group">
+                                    <div className="w-full h-full rounded-full border-t-2 border-white/10 group-active:rotate-[120deg] transition-transform" />
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                        <div className="w-6 h-1 bg-zinc-600 rounded-full" />
+                                    </div>
+                                </ControlButton>
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3">
+                            <ControlButton onPress={() => onButtonPress('b')} onRelease={() => onButtonRelease('b')} className="w-16 h-16 bg-[#b91c1c] border-4 border-black rounded-2xl shadow-xl flex items-center justify-center text-white font-black italic">B</ControlButton>
+                            <ControlButton onPress={() => onButtonPress('a')} onRelease={() => onButtonRelease('a')} className="w-16 h-16 bg-[#b91c1c] border-4 border-black rounded-2xl shadow-xl flex items-center justify-center text-white font-black italic">A</ControlButton>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 };

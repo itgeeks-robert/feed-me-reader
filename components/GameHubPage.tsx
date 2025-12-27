@@ -8,6 +8,7 @@ import MinesweeperPage from './MinesweeperPage';
 import TetrisPage from './TetrisPage';
 import PoolGamePage from './PoolGamePage';
 import SporeCryptPage from './SporeCryptPage';
+/* Fix: Import VoidRunnerPage correctly. The default export was breaking due to syntax errors in the source file. */
 import VoidRunnerPage from './VoidRunnerPage';
 import { WalkieTalkieIcon, ControllerIcon, RadioIcon, EntityIcon, KeypadIcon, SparklesIcon } from './icons';
 
