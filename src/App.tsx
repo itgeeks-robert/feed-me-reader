@@ -174,7 +174,6 @@ const App: React.FC = () => {
     const [fertilizer, setFertilizer] = useLocalStorage<number>(FERTILIZER_KEY, 0);
     const [lastRationDate, setLastRationDate] = useLocalStorage<string | null>(LAST_RATION_KEY, null);
 
-    // Landing Logic: If it's a new day, show Daily Ration
     const [selection, setSelection] = useLocalStorage<Selection>(SELECTION_KEY, () => {
         const today = new Date().toISOString().split('T')[0];
         const savedRation = localStorage.getItem(LAST_RATION_KEY);
@@ -189,7 +188,6 @@ const App: React.FC = () => {
     const [isAddSourceModalOpen, setIsAddSourceModalOpen] = useState(false);
     const [lastRefresh, setLastRefresh] = useState(() => Date.now());
 
-    // Global Hotkeys
     useEffect(() => {
         const handleKeys = (e: KeyboardEvent) => {
             if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
@@ -241,6 +239,11 @@ const App: React.FC = () => {
         setLastRationDate(new Date().toISOString().split('T')[0]);
     }, [setSelection, setLastRationDate]);
 
+    const handleEnterArcade = useCallback(() => {
+        setSelection({ type: 'game_hub', id: null });
+        setLastRationDate(new Date().toISOString().split('T')[0]);
+    }, [setSelection, setLastRationDate]);
+
     const handleAddSource = async (url: string, type: SourceType) => {
         let feedUrl = url.trim();
         const normalizeUrl = (u: string) => u.toLowerCase().replace(/\/$/, "");
@@ -253,7 +256,6 @@ const App: React.FC = () => {
 
             const existingFeed = feeds.find(f => normalizeUrl(f.url) === normalizeUrl(feedUrl));
             if (existingFeed) {
-                // If it exists, just select it and close any modals/sidebars
                 setSelection({ type: 'feed', id: existingFeed.id });
                 setIsSidebarOpen(false);
                 setIsAddSourceModalOpen(false);
@@ -343,6 +345,7 @@ const App: React.FC = () => {
                    <DailyRationPage 
                       feeds={feeds} 
                       onComplete={handleReturnToFeeds} 
+                      onEnterArcade={handleEnterArcade}
                       onSelectGame={(id) => setSelection({type: 'game_hub', id: null})} 
                       fertilizer={fertilizer}
                    />

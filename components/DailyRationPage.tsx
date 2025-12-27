@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import type { Feed, Article } from '../src/App';
-import { WalkieTalkieIcon, RadioIcon, EntityIcon, SparklesIcon } from './icons';
+import { WalkieTalkieIcon, RadioIcon, EntityIcon, SparklesIcon, ChevronRightIcon } from './icons';
 import { resilientFetch } from '../services/fetch';
 import { parseRssXml } from '../services/rssParser';
 import FeaturedStory from './articles/FeaturedStory';
@@ -11,10 +11,11 @@ interface DailyRationPageProps {
     feeds: Feed[];
     fertilizer: number;
     onComplete: () => void;
+    onEnterArcade: () => void;
     onSelectGame: (id: string) => void;
 }
 
-const DailyRationPage: React.FC<DailyRationPageProps> = ({ feeds, fertilizer, onComplete, onSelectGame }) => {
+const DailyRationPage: React.FC<DailyRationPageProps> = ({ feeds, fertilizer, onComplete, onEnterArcade, onSelectGame }) => {
     const [articles, setArticles] = useState<Article[]>([]);
     const [loading, setLoading] = useState(true);
     const [readerArticle, setReaderArticle] = useState<Article | null>(null);
@@ -84,6 +85,16 @@ const DailyRationPage: React.FC<DailyRationPageProps> = ({ feeds, fertilizer, on
                                         />
                                     </div>
                                 ))}
+                                
+                                <div className="pt-10 flex justify-center">
+                                    <button 
+                                        onClick={onComplete}
+                                        className="group flex items-center gap-4 px-12 py-5 bg-white text-black font-black uppercase italic text-sm tracking-widest hover:bg-pulse-500 hover:text-white transition-all shadow-[8px_8px_0px_#e11d48]"
+                                    >
+                                        <span>Return to Main Signal</span>
+                                        <ChevronRightIcon className="w-5 h-5 transition-transform group-hover:translate-x-2" />
+                                    </button>
+                                </div>
                             </div>
                         )}
                     </section>
@@ -110,7 +121,7 @@ const DailyRationPage: React.FC<DailyRationPageProps> = ({ feeds, fertilizer, on
                              <h3 className="text-lg md:text-2xl font-black text-white italic uppercase tracking-tighter mb-3">The Dark Arcade</h3>
                              <p className="text-xs md:text-sm text-zinc-500 font-mono mb-10 leading-relaxed uppercase">Simulation Active. Awaiting Host.</p>
                              <button 
-                                onClick={onComplete}
+                                onClick={onEnterArcade}
                                 className="w-full py-4 md:py-6 bg-white text-black font-black uppercase italic rounded-none hover:bg-pulse-500 hover:text-white transition-all text-xs md:text-sm tracking-widest"
                              >
                                 Enter The Void

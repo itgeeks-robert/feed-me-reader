@@ -62,7 +62,8 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
     const stringToGrid = (puzzleString: string): Grid =>
         Array.from({ length: 9 }, (_, r) =>
             Array.from({ length: 9 }, (_, c) => {
-                const value = parseInt(puzzleString[r * 9 + c], 10) || null;
+                const valChar = puzzleString[r * 9 + c];
+                const value = (valChar === '0' || valChar === '.' || !valChar) ? null : parseInt(valChar, 10);
                 return {
                     value,
                     isPrefilled: value !== null,
@@ -218,7 +219,6 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
         
         const { row, col } = selectedCell;
         let newGrid: Grid = grid.map(r => r.map(c => ({...c, notes: new Set(c.notes)})));
-        newGrid.forEach(r => r.forEach(c => { c.isError = false; }));
         
         if (isNotesMode) {
             const notes = newGrid[row][col].notes;
@@ -230,7 +230,7 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
                 newGrid[row][col].notes = new Set();
                 checkCompletions(newGrid);
             } else {
-                newGrid[row][col].value = num; // Persist the mistake value so it doesn't "disappear"
+                newGrid[row][col].value = num; 
                 newGrid[row][col].isError = true;
                 setMistakes(m => {
                     const next = m + 1;
@@ -288,30 +288,39 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
     }
 
     return (
-        <main className="w-full h-full bg-zinc-950 text-white flex flex-col items-center justify-center font-sans overflow-hidden">
+        <main className="w-full h-full bg-zinc-950 text-white flex flex-col items-center justify-center font-sans overflow-hidden relative">
             <style>{`
-                @keyframes pulse-green {
-                    0% { background-color: rgba(34, 197, 94, 0.1); }
-                    50% { background-color: rgba(34, 197, 94, 0.8); box-shadow: 0 0 30px rgba(34, 197, 94, 0.6); }
-                    100% { background-color: rgba(34, 197, 94, 0.1); }
+                @keyframes pulse-red-bg {
+                    0% { background-color: rgba(225, 29, 72, 0.1); }
+                    50% { background-color: rgba(225, 29, 72, 0.3); }
+                    100% { background-color: rgba(225, 29, 72, 0.1); }
+                }
+                @keyframes selection-red-glow {
+                    0%, 100% { box-shadow: 0 0 15px #e11d48, inset 0 0 5px #e11d48; transform: scale(1); }
+                    50% { box-shadow: 0 0 30px #e11d48, inset 0 0 15px #e11d48; transform: scale(1.02); }
+                    10%, 30%, 70%, 90% { transform: translate(-1px, 1px); }
+                    20%, 40%, 60%, 80% { transform: translate(1px, -1px); }
                 }
                 @keyframes glitch-flash {
-                    0% { background-color: rgba(34, 197, 94, 0.8); filter: brightness(2); }
-                    25% { background-color: rgba(225, 29, 72, 0.4); transform: scaleX(1.05); }
-                    50% { background-color: rgba(34, 197, 94, 0.9); transform: scaleY(1.05); }
+                    0% { background-color: rgba(225, 29, 72, 0.8); filter: brightness(2); }
+                    25% { background-color: rgba(34, 197, 94, 0.4); transform: scaleX(1.05); }
+                    50% { background-color: rgba(225, 29, 72, 0.9); transform: scaleY(1.05); }
                     100% { background-color: transparent; filter: brightness(1); }
                 }
                 @keyframes signal-reject {
-                    0% { transform: translate(0, 0) scale(1); background-color: rgba(225, 29, 72, 0.2); }
-                    10% { transform: translate(-2px, 2px) scale(1.05); background-color: rgba(225, 29, 72, 0.6); }
-                    20% { transform: translate(2px, -2px) scale(1.05); }
-                    30% { transform: translate(-2px, -2px) scale(1.05); }
-                    40% { transform: translate(2px, 2px) scale(1.05); }
-                    50% { transform: translate(-2px, 2px) scale(1.05); background-color: rgba(225, 29, 72, 0.8); }
-                    100% { transform: translate(0, 0) scale(1); background-color: rgba(225, 29, 72, 0.3); }
+                    0% { transform: translate(0, 0) scale(1); }
+                    10% { transform: translate(-3px, 3px) scale(1.1); }
+                    20% { transform: translate(3px, -3px) scale(1.1); }
+                    30% { transform: translate(-3px, -3px) scale(1.1); }
+                    40% { transform: translate(3px, 3px) scale(1.1); }
+                    50% { transform: translate(-3px, -3px) scale(1.1); }
+                    100% { transform: translate(0, 0) scale(1); }
                 }
-                .animate-pulse-green {
-                    animation: pulse-green 0.8s ease-in-out infinite;
+                .animate-pulse-selection-red {
+                    animation: pulse-red-bg 0.8s ease-in-out infinite;
+                }
+                .animate-glitch-selection {
+                    animation: selection-red-glow 0.3s ease-in-out infinite;
                 }
                 .animate-glitch-flash {
                     animation: glitch-flash 0.6s ease-out forwards;
@@ -320,7 +329,15 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
                     animation: signal-reject 0.4s cubic-bezier(.36,.07,.19,.97) both;
                 }
             `}</style>
-            <div className="max-w-md w-full h-full flex flex-col p-4 gap-4">
+
+            {/* Tactical Overlay for "Others" Theme */}
+            <div className="absolute top-24 left-1/2 -translate-x-1/2 pointer-events-none opacity-20 hidden md:block">
+                <div className="text-[10px] font-mono text-pulse-500 animate-pulse tracking-[0.5em] font-black italic">
+                    [ LINKING TO THE OTHERS... ] // DECRYPTING DATASTREAM
+                </div>
+            </div>
+
+            <div className="max-w-md w-full h-full flex flex-col p-4 gap-4 z-10">
                 <header className="flex justify-between items-center bg-zinc-900/50 p-4 rounded-3xl border border-white/5 flex-shrink-0">
                     <button onClick={onBackToHub} className="p-2 bg-zinc-800 rounded-xl text-zinc-400 hover:text-flesh-500 transition-colors">
                         <XIcon className="w-6 h-6" />
@@ -329,7 +346,7 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
                         <button 
                             onClick={() => setIsSmartPad(!isSmartPad)} 
                             title="Toggle Smart Pad"
-                            className={`p-2 rounded-xl transition-all border ${isSmartPad ? 'bg-plant-600 border-plant-400 text-black shadow-lg' : 'bg-zinc-800 border-white/5 text-zinc-500'}`}
+                            className={`p-2 rounded-xl transition-all border ${isSmartPad ? 'bg-pulse-600 border-pulse-400 text-white shadow-lg' : 'bg-zinc-800 border-white/5 text-zinc-500'}`}
                         >
                             <CpuChipIcon className="w-4 h-4" />
                         </button>
@@ -345,25 +362,27 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
                             <span className="text-sm font-black font-mono">{formatTime(time)}</span>
                         </div>
                     </div>
-                    <button onClick={() => setView('IDLE')} className="p-2 bg-zinc-800 rounded-xl text-zinc-400 hover:text-plant-500 transition-colors">
+                    <button onClick={() => setView('IDLE')} className="p-2 bg-zinc-800 rounded-xl text-zinc-400 hover:text-pulse-500 transition-colors">
                         <ArrowPathIcon className="w-6 h-6" />
                     </button>
                 </header>
 
                 <div className="flex-grow flex items-center justify-center min-h-0">
                     {gameState === 'LOADING' ? (
-                        <div className="text-plant-500 font-black animate-pulse uppercase tracking-[0.3em]">Mutating...</div>
+                        <div className="text-pulse-500 font-black animate-pulse uppercase tracking-[0.3em]">Hacking Host...</div>
                     ) : (
-                        <div className="aspect-square w-full max-h-full grid grid-cols-9 bg-zinc-950 rounded-2xl border-2 border-zinc-800 shadow-2xl relative overflow-hidden ring-1 ring-plant-500/10">
+                        <div className="aspect-square w-[80%] mx-auto max-h-full grid grid-cols-9 bg-zinc-950 rounded-2xl border-2 border-zinc-800 shadow-2xl relative overflow-hidden ring-1 ring-pulse-500/10">
                             {grid?.map((row, r) => row.map((cell, c) => {
                                 const isSelected = selectedCell?.row === r && selectedCell?.col === c;
-                                const isSameValue = selectedCell && grid[selectedCell.row][selectedCell.col].value !== null && grid[selectedCell.row][selectedCell.col].value === cell.value;
+                                const selectedCellValue = selectedCell ? grid[selectedCell.row][selectedCell.col].value : null;
+                                const isSameValue = cell.value !== null && selectedCellValue !== null && cell.value === selectedCellValue;
                                 
                                 const isSameRow = selectedCell?.row === r;
                                 const isSameCol = selectedCell?.col === c;
-                                const isSameBlock = selectedCell && (Math.floor(selectedCell.row/3) === Math.floor(r/3) && Math.floor(selectedCell.col/3) === Math.floor(c/3));
-
                                 const blockIndex = Math.floor(r / 3) * 3 + Math.floor(c / 3);
+                                const selectedBlockIndex = selectedCell ? Math.floor(selectedCell.row / 3) * 3 + Math.floor(selectedCell.col / 3) : -1;
+                                const isSameBlock = blockIndex === selectedBlockIndex;
+
                                 const isRowDone = completedRows.has(r);
                                 const isColDone = completedCols.has(c);
                                 const isBlockDone = completedBlocks.has(blockIndex);
@@ -372,35 +391,42 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
                                 const isJustDoneCol = lastCompleted?.type === 'col' && lastCompleted.index === c;
                                 const isJustDoneBlock = lastCompleted?.type === 'block' && lastCompleted.index === blockIndex;
 
-                                let baseStyle = "aspect-square flex items-center justify-center text-lg sm:text-xl font-black cursor-pointer transition-all duration-200 relative ";
+                                let baseStyle = "aspect-square flex items-center justify-center text-xl sm:text-2xl font-normal cursor-pointer transition-all duration-150 relative ";
                                 
                                 if (isJustDoneRow || isJustDoneCol || isJustDoneBlock) {
                                     baseStyle += "animate-glitch-flash ";
-                                } else if (cell.isError) {
-                                    baseStyle += "animate-signal-reject text-flesh-200 ring-inset ring-2 ring-flesh-500/50 ";
-                                } else if (isSelected) {
-                                    baseStyle += "bg-plant-500 ring-4 ring-white z-20 shadow-[0_0_25px_rgba(34,197,94,1)] text-black ";
-                                } else if (isSameValue) {
-                                    baseStyle += "bg-yellow-400/40 text-yellow-100 ring-1 ring-yellow-400/50 ";
-                                } else if (isSameRow || isSameCol || isSameBlock) {
-                                    baseStyle += "bg-plant-500/25 "; // Increased opacity for better visibility
-                                } else if (isRowDone || isColDone || isBlockDone) {
-                                    baseStyle += "bg-plant-950/20 ";
                                 } else {
-                                    baseStyle += "bg-zinc-900/40 ";
+                                    if (isSelected) {
+                                        baseStyle += "bg-pulse-500 z-20 text-white ring-4 ring-white animate-glitch-selection ";
+                                    } else if (isSameValue) {
+                                        baseStyle += "bg-yellow-400/40 text-yellow-100 ring-1 ring-yellow-400/50 ";
+                                    } else if (isSameRow || isSameCol || isSameBlock) {
+                                        baseStyle += "animate-pulse-selection-red "; 
+                                    } else if (isRowDone || isColDone || isBlockDone) {
+                                        baseStyle += "bg-zinc-800/40 opacity-60 ";
+                                    } else {
+                                        baseStyle += "bg-zinc-900/40 ";
+                                    }
+
+                                    if (cell.isError) {
+                                        baseStyle += "animate-signal-reject text-pulse-500 ring-inset ring-2 ring-pulse-600/50 ";
+                                    } else if (!isSelected && !cell.isPrefilled && cell.value) {
+                                        baseStyle += "text-pulse-400 ";
+                                    }
                                 }
                                 
-                                const borderR = (c + 1) % 3 === 0 && c < 8 ? 'border-r-2 border-r-plant-500/40' : 'border-r border-r-zinc-800/40';
-                                const borderB = (r + 1) % 3 === 0 && r < 8 ? 'border-b-2 border-b-plant-500/40' : 'border-b border-b-zinc-800/40';
+                                const borderR = (c + 1) % 3 === 0 && c < 8 ? 'border-r-2 border-r-pulse-500/40' : 'border-r border-r-zinc-800/40';
+                                const borderB = (r + 1) % 3 === 0 && r < 8 ? 'border-b-2 border-b-pulse-500/40' : 'border-b border-b-zinc-800/40';
 
                                 return (
-                                    <div key={`${r}-${c}`} onClick={() => handleCellClick(r, c)} className={`${baseStyle} ${borderR} ${borderB} ${!isSelected && !cell.isPrefilled && cell.value && !cell.isError ? 'text-plant-400' : ''}`}>
+                                    <div key={`${r}-${c}`} onClick={() => handleCellClick(r, c)} className={`${baseStyle} ${borderR} ${borderB}`}>
                                         {cell.isError && <div className="absolute inset-0 static-noise opacity-30 pointer-events-none" />}
+                                        {isSelected && <div className="absolute inset-0 bg-pulse-500/20 mix-blend-overlay animate-pulse pointer-events-none" />}
                                         {cell.value !== null ? (
-                                            <span className={cell.isError ? 'text-flesh-500' : ''}>{cell.value}</span>
+                                            <span className="drop-shadow-[0_0_10px_rgba(225,29,72,0.4)]">{cell.value}</span>
                                         ) : (cell.notes.size > 0 && (
-                                            <div className="grid grid-cols-3 gap-[1px] p-0.5 w-full h-full opacity-40">
-                                                {[1,2,3,4,5,6,7,8,9].map(n => <div key={n} className="flex items-center justify-center text-[7px] leading-none font-bold">{cell.notes.has(n) ? n : ''}</div>)}
+                                            <div className="grid grid-cols-3 gap-[1px] p-1 w-full h-full opacity-40">
+                                                {[1,2,3,4,5,6,7,8,9].map(n => <div key={n} className="flex items-center justify-center text-[8px] leading-none font-black">{cell.notes.has(n) ? n : ''}</div>)}
                                             </div>
                                         ))}
                                     </div>
@@ -419,7 +445,7 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
                         return (
                             <button key={num} onClick={() => handleNumberInput(num)} 
                                 disabled={isPadDisabled}
-                                className={`aspect-square bg-zinc-900/80 hover:bg-plant-600 hover:text-black border border-white/5 rounded-xl text-xl font-black italic transition-all active:scale-90 shadow-md 
+                                className={`aspect-square bg-zinc-900/80 hover:bg-pulse-600 hover:text-white border border-white/5 rounded-xl text-xl font-black italic transition-all active:scale-90 shadow-md 
                                     ${isPadDisabled ? 'opacity-10 grayscale cursor-not-allowed' : ''} 
                                     ${inBlock ? 'text-zinc-700 bg-zinc-950/50' : 'text-white'}
                                 `}>
@@ -441,37 +467,37 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
 
             {(gameState === 'WON' || gameState === 'LOST') && (
                 <div className="fixed inset-0 bg-black/95 backdrop-blur-md z-50 flex items-center justify-center p-6">
-                    <div className="max-w-sm w-full bg-zinc-900 p-10 rounded-[3rem] border-4 border-plant-500 text-center shadow-[0_0_100px_rgba(34,197,94,0.3)]">
+                    <div className="max-w-sm w-full bg-zinc-900 p-10 rounded-[3rem] border-4 border-pulse-500 text-center shadow-[0_0_100px_rgba(225,29,72,0.3)]">
                         <div className="flex justify-center gap-2 mb-4 opacity-50">
                             <HeartIcon filled={false} />
                             <HeartIcon filled={false} />
                             <HeartIcon filled={false} />
                         </div>
                         <h2 className={`text-5xl font-black italic uppercase tracking-tighter mb-4 ${gameState === 'WON' ? 'text-plant-500' : 'text-flesh-500'}`}>
-                            {gameState === 'WON' ? 'HI-SCORE!' : 'ROTTEN'}
+                            {gameState === 'WON' ? 'CODE BREAK!' : 'TERMINATED'}
                         </h2>
                         {gameState === 'WON' ? (
                             <div className="mb-8">
-                                <p className="text-zinc-500 font-bold uppercase tracking-widest text-[10px] mb-4">Enter Arcade Initials</p>
+                                <p className="text-zinc-500 font-bold uppercase tracking-widest text-[10px] mb-4">Post Signal Initials</p>
                                 <input 
                                     autoFocus
                                     maxLength={3} 
                                     value={initials} 
                                     onChange={e => setInitials(e.target.value.toUpperCase())}
-                                    className="bg-black/50 border-2 border-plant-500 text-plant-500 rounded-xl px-4 py-3 text-center text-2xl font-black w-32 outline-none uppercase italic"
+                                    className="bg-black/50 border-2 border-plant-500 text-pulse-500 rounded-xl px-4 py-3 text-center text-2xl font-black w-32 outline-none uppercase italic"
                                     placeholder="???"
                                 />
                             </div>
                         ) : (
-                            <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs mb-8">You were digested.</p>
+                            <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs mb-8">Access was denied by the Others.</p>
                         )}
                         <div className="flex flex-col gap-3">
                             {gameState === 'WON' ? (
-                                <button onClick={handleSaveScore} className="w-full py-4 bg-plant-600 text-black font-black text-lg italic uppercase rounded-full hover:scale-105 transition-transform shadow-xl">Post Records</button>
+                                <button onClick={handleSaveScore} className="w-full py-4 bg-pulse-600 text-white font-black text-lg italic uppercase rounded-full hover:scale-105 transition-transform shadow-xl">Transmit Sequence</button>
                             ) : (
                                 <>
-                                    <button onClick={() => setView('IDLE')} className="w-full py-4 bg-plant-600 text-black font-black text-lg italic uppercase rounded-full hover:scale-105 transition-transform shadow-xl">Replay</button>
-                                    <button onClick={onBackToHub} className="w-full py-4 bg-zinc-800 text-zinc-400 font-black text-xs uppercase rounded-full hover:text-white transition-colors">Exit Pit</button>
+                                    <button onClick={() => setView('IDLE')} className="w-full py-4 bg-pulse-600 text-white font-black text-lg italic uppercase rounded-full hover:scale-105 transition-transform shadow-xl">Reconnect</button>
+                                    <button onClick={onBackToHub} className="w-full py-4 bg-zinc-800 text-zinc-400 font-black text-xs uppercase rounded-full hover:text-white transition-colors">Exit Node</button>
                                 </>
                             )}
                         </div>
