@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import MainContent from '../components/MainContent';
 import type { SourceType } from '../components/AddSource';
@@ -309,7 +308,7 @@ const App: React.FC = () => {
     const isGameActive = selection.type === 'game_hub' || selection.type === 'daily_uplink';
 
     return (
-        <div className="h-screen font-sans text-sm relative flex flex-col md:flex-row overflow-hidden bg-zinc-950">
+        <div className="h-screen font-sans text-sm relative flex flex-col md:flex-row overflow-hidden bg-void-950">
             <Sidebar
                 feeds={feeds}
                 folders={folders}

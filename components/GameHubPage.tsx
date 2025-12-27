@@ -15,7 +15,8 @@ interface GameInfo {
     id: string;
     title: string;
     description: string;
-    icon: React.ReactNode;
+    // FIX: Changed from ReactNode to ReactElement with expected props to ensure compatibility with React.cloneElement.
+    icon: React.ReactElement<{ className?: string }>;
     bannerColor: string;
     stats?: string;
 }
@@ -26,7 +27,8 @@ const VHSCard: React.FC<{ game: GameInfo; onPlay: () => void }> = ({ game, onPla
             <div className="h-44 w-full bg-void-950 flex items-center justify-center relative overflow-hidden border-b-2 border-zinc-800">
                 <div className="absolute top-0 left-0 bg-pulse-500 text-white px-3 py-1 text-[8px] font-black uppercase font-mono tracking-widest">VOID-SIM</div>
                 <div className="opacity-20 group-hover:opacity-100 group-hover:scale-125 transition-all duration-700 text-pulse-500">
-                    {React.cloneElement(game.icon as React.ReactElement, { className: "w-28 h-28" })}
+                    {/* FIX: Removed explicit type cast as the interface now correctly defines icon as a ReactElement. */}
+                    {React.cloneElement(game.icon, { className: "w-28 h-28" })}
                 </div>
                 <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-pulse-500 via-neon-400 to-pulse-500 animate-pulse"></div>
             </div>
