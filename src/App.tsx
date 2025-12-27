@@ -318,6 +318,8 @@ const App: React.FC = () => {
         return 'SURVEILLANCE LOG';
     }, [selection, feeds, folders]);
 
+    const isGameActive = selection.type === 'game_hub' || selection.type === 'daily_ration';
+
     return (
         <div className="h-screen font-sans text-sm relative flex flex-col md:flex-row overflow-hidden bg-zinc-950">
             <Sidebar
@@ -393,7 +395,7 @@ const App: React.FC = () => {
                 )}
             </div>
 
-            <BottomNavBar selection={selection} onSelect={handleSelectFromSidebar} />
+            {!isGameActive && <BottomNavBar selection={selection} onSelect={handleSelectFromSidebar} />}
 
             <SettingsModal
                 isOpen={isSettingsModalOpen}
