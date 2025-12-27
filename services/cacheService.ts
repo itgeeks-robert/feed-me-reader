@@ -36,8 +36,6 @@ const openDB = (): Promise<IDBDatabase> => {
         
         request.onblocked = () => {
             console.warn('IndexedDB is blocked. Please close other tabs with this app open.');
-            // This can happen if the user has another tab open with an older version of the DB
-            // For this app's purpose, we can just reject and let the app function without cache
             reject(new Error('IndexedDB upgrade blocked by another tab.'));
             dbPromise = null;
         };
@@ -57,7 +55,6 @@ export const set = async (key: string, value: any): Promise<void> => {
         });
     } catch (error) {
         console.error("Failed to set item in IndexedDB:", error);
-        // Don't re-throw, allowing the app to continue without caching
     }
 };
 
@@ -73,6 +70,21 @@ export const get = async <T>(key: string): Promise<T | undefined> => {
         });
     } catch (error) {
         console.error("Failed to get item from IndexedDB:", error);
-        return undefined; // Return undefined on error to mimic cache miss
+        return undefined;
+    }
+};
+
+export const getCacheCount = async (): Promise<number> => {
+    try {
+        const db = await openDB();
+        const transaction = db.transaction(STORE_NAME, 'readonly');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.count();
+        return new Promise((resolve) => {
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => resolve(0);
+        });
+    } catch (e) {
+        return 0;
     }
 };

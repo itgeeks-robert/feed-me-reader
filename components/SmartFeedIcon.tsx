@@ -1,6 +1,7 @@
+
 import React, { useState } from 'react';
 import { SourceType } from './AddSource';
-import { RssIcon, RedditIcon, YoutubeIcon, GlobeAltIcon } from './icons';
+import { RssIcon, RedditIcon, GlobeAltIcon } from './icons';
 
 // Mapping single colors to richer gradients for a more polished look.
 const colorToGradient: { [key: string]: string } = {
@@ -49,8 +50,6 @@ export const SmartFeedIcon: React.FC<{
         switch (sourceType) {
             case 'reddit':
                 return <IconWrapper gradient="bg-gradient-to-br from-orange-500 to-red-500"><RedditIcon className={`${iconSize} text-white`} /></IconWrapper>;
-            case 'youtube':
-                return <IconWrapper gradient="bg-gradient-to-br from-red-500 to-red-700"><YoutubeIcon className={`${iconSize} text-white`} /></IconWrapper>;
             case 'website':
                 return <IconWrapper gradient="bg-gradient-to-br from-sky-500 to-blue-600"><GlobeAltIcon className={`${iconSize} text-white`} /></IconWrapper>;
             case 'rss':

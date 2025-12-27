@@ -7,6 +7,7 @@ import AddSourceModal from '../components/AddSourceModal';
 import Sidebar from '../components/Sidebar';
 import BottomNavBar from '../components/BottomNavBar';
 import GameHubPage from '../components/GameHubPage';
+import DailyRationPage from '../components/DailyRationPage';
 import { resilientFetch } from '../services/fetch';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 
@@ -35,7 +36,7 @@ export interface Article {
 }
 
 export type Selection = {
-  type: 'all' | 'folder' | 'bookmarks' | 'search' | 'feed' | 'reddit' | 'youtube' | 'game_hub';
+  type: 'all' | 'folder' | 'bookmarks' | 'search' | 'feed' | 'reddit' | 'game_hub' | 'daily_ration';
   id: string | number | null;
   query?: string;
 };
@@ -108,6 +109,8 @@ const SUDOKU_STATS_KEY = `feedme_sudoku_stats_${GUEST_USER_ID}`;
 const SOLITAIRE_STATS_KEY = `feedme_solitaire_stats_${GUEST_USER_ID}`;
 const SOLITAIRE_SETTINGS_KEY = `feedme_solitaire_settings_${GUEST_USER_ID}`;
 const SELECTION_KEY = `feedme_selection_${GUEST_USER_ID}`;
+const FERTILIZER_KEY = `feedme_fertilizer_${GUEST_USER_ID}`;
+const LAST_RATION_KEY = `feedme_last_ration_date_${GUEST_USER_ID}`;
 
 const defaultFolders: Folder[] = [
     { id: 1, name: 'Main Feeds' },
@@ -168,12 +171,38 @@ const App: React.FC = () => {
     const [sudokuStats, setSudokuStats] = useLocalStorage<SudokuStats>(SUDOKU_STATS_KEY, defaultSudokuStats);
     const [solitaireStats, setSolitaireStats] = useLocalStorage<SolitaireStats>(SOLITAIRE_STATS_KEY, defaultSolitaireStats);
     const [solitaireSettings, setSolitaireSettings] = useLocalStorage<SolitaireSettings>(SOLITAIRE_SETTINGS_KEY, defaultSolitaireSettings);
-    const [selection, setSelection] = useLocalStorage<Selection>(SELECTION_KEY, { type: 'game_hub', id: null });
+    const [fertilizer, setFertilizer] = useLocalStorage<number>(FERTILIZER_KEY, 0);
+    const [lastRationDate, setLastRationDate] = useLocalStorage<string | null>(LAST_RATION_KEY, null);
 
+    // Landing Logic: If it's a new day, show Daily Ration
+    const [selection, setSelection] = useLocalStorage<Selection>(SELECTION_KEY, () => {
+        const today = new Date().toISOString().split('T')[0];
+        const savedRation = localStorage.getItem(LAST_RATION_KEY);
+        if (savedRation !== JSON.stringify(today)) {
+            return { type: 'daily_ration', id: null };
+        }
+        return { type: 'all', id: null };
+    });
+
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
     const [isAddSourceModalOpen, setIsAddSourceModalOpen] = useState(false);
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [lastRefresh, setLastRefresh] = useState(() => Date.now());
+
+    // Global Hotkeys
+    useEffect(() => {
+        const handleKeys = (e: KeyboardEvent) => {
+            if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+            
+            const key = e.key.toLowerCase();
+            if (key === 'g') setSelection({ type: 'game_hub', id: null });
+            if (key === 'n') setSelection({ type: 'all', id: null });
+            if (key === 'b') setSelection({ type: 'bookmarks', id: null });
+            if (key === 'r') setSelection({ type: 'daily_ration', id: null });
+        };
+        window.addEventListener('keydown', handleKeys);
+        return () => window.removeEventListener('keydown', handleKeys);
+    }, [setSelection]);
 
     useEffect(() => {
         const root = document.documentElement;
@@ -190,6 +219,18 @@ const App: React.FC = () => {
         setTheme(prev => prev === 'dark' ? 'light' : 'dark');
     };
 
+    const handleMarkAsRead = (id: string) => {
+        if (!readArticleIds.has(id)) {
+            setReadArticleIds(prev => new Set(prev).add(id));
+            setFertilizer(f => Math.min(100, f + 5)); 
+        }
+    };
+
+    const handleSatiateSeymour = (articleIds: string[]) => {
+        setReadArticleIds(prev => new Set([...Array.from(prev), ...articleIds]));
+        setFertilizer(100);
+    };
+
     const handleSelectFromSidebar = (sel: Selection) => {
         setSelection(sel);
         setIsSidebarOpen(false);
@@ -197,36 +238,33 @@ const App: React.FC = () => {
 
     const handleReturnToFeeds = useCallback(() => {
         setSelection({ type: 'all', id: null });
-    }, [setSelection]);
+        setLastRationDate(new Date().toISOString().split('T')[0]);
+    }, [setSelection, setLastRationDate]);
 
     const handleAddSource = async (url: string, type: SourceType) => {
-        let feedUrl = url;
-        let originalUrl = url;
+        let feedUrl = url.trim();
+        const normalizeUrl = (u: string) => u.toLowerCase().replace(/\/$/, "");
+        
         try {
-            if (type === 'youtube') {
-                const playlistIdMatch = url.match(/list=([a-zA-Z0-9_-]+)/);
-                if (playlistIdMatch?.[1]) {
-                    feedUrl = `https://www.youtube.com/feeds/videos.xml?playlist_id=${playlistIdMatch[1]}`;
-                } else {
-                    const response = await resilientFetch(url.split('?')[0]);
-                    const text = await response.text();
-                    const canonicalMatch = text.match(/<link rel="canonical" href="https:\/\/www.youtube.com\/channel\/([a-zA-Z0-9_-]+)"/);
-                    const channelId = canonicalMatch?.[1] || text.match(/"channelId":"([a-zA-Z0-9_-]+)"/)?.[1] || null;
-                    if (!channelId) throw new Error('Could not find a valid YouTube channel ID.');
-                    feedUrl = `https://www.youtube.com/feeds/videos.xml?playlist_id=${channelId.replace(/^UC/, 'UU')}`;
-                }
-            } else if (type === 'reddit') {
+            if (type === 'reddit') {
                 const match = url.trim().match(/reddit\.com\/(r\/[a-zA-Z0-9_]+|user\/[a-zA-Z0-9_-]+)/);
                 feedUrl = match ? `https://www.reddit.com/${match[1]}/.rss` : `${url.trim().replace(/\/$/, '')}/.rss`;
             }
 
-            if (feeds.some(feed => feed.url === feedUrl)) throw new Error("Source already exists.");
+            const existingFeed = feeds.find(f => normalizeUrl(f.url) === normalizeUrl(feedUrl));
+            if (existingFeed) {
+                // If it exists, just select it and close any modals/sidebars
+                setSelection({ type: 'feed', id: existingFeed.id });
+                setIsSidebarOpen(false);
+                setIsAddSourceModalOpen(false);
+                return;
+            }
 
             const response = await resilientFetch(feedUrl);
             const text = await response.text();
             const xml = new DOMParser().parseFromString(text, "application/xml");
-            const feedTitle = xml.querySelector('channel > title, feed > title')?.textContent || new URL(originalUrl).hostname;
-            const siteLink = xml.querySelector('channel > link')?.textContent || originalUrl;
+            const feedTitle = xml.querySelector('channel > title, feed > title')?.textContent || new URL(url).hostname;
+            const siteLink = xml.querySelector('channel > link')?.textContent || url;
             const iconUrl = `https://www.google.com/s2/favicons?sz=32&domain_url=${new URL(siteLink).hostname}`;
             
             setFeeds(prev => [...prev, { id: Date.now(), title: feedTitle, url: feedUrl, iconUrl, folderId: null, sourceType: type }]);
@@ -255,7 +293,8 @@ const App: React.FC = () => {
         }
         return newStats;
       });
-    }, [setSudokuStats]);
+      setFertilizer(f => Math.min(100, f + 15));
+    }, [setSudokuStats, setFertilizer]);
 
     const handleSolitaireWin = useCallback((time: number, moves: number) => {
       setSolitaireStats(prev => {
@@ -266,15 +305,17 @@ const App: React.FC = () => {
         if (newStats.lowestMoves === null || moves < newStats.lowestMoves) newStats.lowestMoves = moves;
         return newStats;
       });
-    }, [setSolitaireStats]);
+      setFertilizer(f => Math.min(100, f + 25));
+    }, [setSolitaireStats, setFertilizer]);
 
     const pageTitle = useMemo(() => {
         if (selection.type === 'search') return `Hunting: "${selection.query}"`;
         if (selection.type === 'bookmarks') return 'Saved Snacks';
         if (selection.type === 'game_hub') return 'The Feeding Pit';
+        if (selection.type === 'daily_ration') return 'SURVEILLANCE LOG';
         if (selection.type === 'feed') return feeds.find(f => f.id === selection.id)?.title || 'Feed';
         if (selection.type === 'folder') return folders.find(f => f.id === selection.id)?.name || 'Folder';
-        return 'FEED ME!';
+        return 'SURVEILLANCE LOG';
     }, [selection, feeds, folders]);
 
     return (
@@ -296,7 +337,14 @@ const App: React.FC = () => {
             />
             
             <div className="flex-1 flex flex-col min-w-0 md:pl-72 relative pb-20 md:pb-0 h-full overflow-hidden">
-                {selection.type === 'game_hub' ? (
+                {selection.type === 'daily_ration' ? (
+                   <DailyRationPage 
+                      feeds={feeds} 
+                      onComplete={handleReturnToFeeds} 
+                      onSelectGame={(id) => setSelection({type: 'game_hub', id: null})} 
+                      fertilizer={fertilizer}
+                   />
+                ) : selection.type === 'game_hub' ? (
                     <div className="flex-1 min-h-0 h-full overflow-hidden">
                         <GameHubPage
                             sudokuStats={sudokuStats}
@@ -308,6 +356,8 @@ const App: React.FC = () => {
                             solitaireSettings={solitaireSettings}
                             onUpdateSolitaireSettings={setSolitaireSettings}
                             onReturnToFeeds={handleReturnToFeeds}
+                            fertilizer={fertilizer}
+                            setFertilizer={setFertilizer}
                         />
                     </div>
                 ) : (
@@ -321,7 +371,8 @@ const App: React.FC = () => {
                         readArticleIds={readArticleIds}
                         bookmarkedArticleIds={bookmarkedArticleIds}
                         articleTags={articleTags}
-                        onMarkAsRead={(id) => setReadArticleIds(prev => new Set(prev).add(id))}
+                        onMarkAsRead={handleMarkAsRead}
+                        onSatiateSeymour={handleSatiateSeymour}
                         onMarkAsUnread={(id) => setReadArticleIds(prev => { const n = new Set(prev); n.delete(id); return n; })}
                         onMarkMultipleAsRead={(ids) => setReadArticleIds(prev => new Set([...prev, ...ids]))}
                         onToggleBookmark={(id) => setBookmarkedArticleIds(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; })}
@@ -337,6 +388,7 @@ const App: React.FC = () => {
                         onOpenAddSource={() => setIsAddSourceModalOpen(true)}
                         onAddSource={handleAddSource}
                         onOpenSidebar={() => setIsSidebarOpen(true)}
+                        fertilizer={fertilizer}
                     />
                 )}
             </div>

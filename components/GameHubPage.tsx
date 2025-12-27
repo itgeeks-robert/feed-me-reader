@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback, Suspense } from 'react';
+import React, { useState, useCallback, Suspense, useMemo } from 'react';
 import type { SudokuStats, SolitaireStats, SolitaireSettings } from '../src/App';
 
 import SudokuPage from './SudokuPage';
@@ -8,41 +8,7 @@ import MinesweeperPage from './MinesweeperPage';
 import TetrisPage from './TetrisPage';
 import PoolGamePage from './PoolGamePage';
 import SporeCryptPage from './SporeCryptPage';
-import { ControllerIcon, BrainIcon, CubeIcon, TetrisTBlockIcon, SeymourIcon, FlagIcon, CubeTransparentIcon, KeypadIcon } from './icons';
-
-const SkidRowSurvivalGame: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => {
-    const [gamePhase, setGamePhase] = useState<'TITLE' | 'PLAYING'>('TITLE');
-
-    if (gamePhase === 'TITLE') {
-        return (
-            <div className="w-full h-full flex flex-col items-center justify-center bg-[#050a06] text-white p-8 relative overflow-hidden">
-                <div className="absolute inset-0 opacity-10 pointer-events-none">
-                    <div className="w-full h-full bg-[repeating-linear-gradient(0deg,rgba(0,0,0,0.5)0px,rgba(0,0,0,0.5)1px,transparent 1px,transparent 2px)] bg-[length:100%_2px]"></div>
-                </div>
-                <div className="mb-6 p-6 bg-plant-500 rounded-full shadow-[0_0_60px_rgba(34,197,94,0.6)] animate-bounce">
-                    <SeymourIcon className="w-40 h-40 text-black" />
-                </div>
-                <h1 className="text-7xl font-black mb-2 tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-plant-400 via-flesh-500 to-plant-600 italic uppercase drop-shadow-2xl text-center">SKID ROW SURVIVAL</h1>
-                <p className="text-plant-400 mb-8 font-bold tracking-[0.5em] uppercase animate-pulse">Total Botanical Carnage</p>
-                <button onClick={() => setGamePhase('PLAYING')} className="px-16 py-5 bg-flesh-600 hover:bg-flesh-500 text-white rounded-full font-black text-2xl italic uppercase transition-all hover:scale-110 active:scale-95 shadow-[0_0_30px_rgba(236,72,153,0.4)] border-4 border-white/20">
-                    FEED THE PLANT
-                </button>
-            </div>
-        );
-    }
-
-    return (
-        <div className="relative w-full h-full bg-[#0a0a14] flex flex-col items-center justify-center p-4">
-             <div className="absolute top-4 right-4 z-20">
-                <button onClick={onBackToHub} className="px-5 py-2 bg-plant-600 text-black rounded-full text-xs font-black uppercase italic tracking-widest shadow-lg">Eject</button>
-            </div>
-            <div className="text-center bg-black/80 p-12 rounded-[3rem] border-4 border-plant-500 shadow-[0_0_40px_rgba(34,197,94,0.3)]">
-                <p className="text-flesh-500 font-black text-5xl animate-pulse italic tracking-tighter mb-4 uppercase">Level 1: The Pit</p>
-                <p className="text-plant-500 font-mono text-sm uppercase tracking-widest">Digesting logic gates...</p>
-            </div>
-        </div>
-    );
-};
+import { WalkieTalkieIcon, ControllerIcon, RadioIcon, EntityIcon, KeypadIcon } from './icons';
 
 interface GameInfo {
     id: string;
@@ -50,30 +16,28 @@ interface GameInfo {
     description: string;
     icon: React.ReactNode;
     bannerColor: string;
+    stats?: string;
 }
 
-const GameCard: React.FC<{ game: GameInfo; onPlay: () => void }> = ({ game, onPlay }) => {
+const VHSCard: React.FC<{ game: GameInfo; onPlay: () => void }> = ({ game, onPlay }) => {
     return (
-        <div onClick={onPlay} className="group relative bg-zinc-950 border-4 border-zinc-800 rounded-[2.5rem] overflow-hidden flex flex-col transition-all duration-500 hover:scale-[1.05] hover:border-plant-500 hover:shadow-[0_0_50px_rgba(34,197,94,0.25)] cursor-pointer h-[320px] shadow-2xl">
-            <div className="absolute inset-0 pointer-events-none z-10 opacity-20 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%]"></div>
-            
-            <div className={`h-40 w-full relative overflow-hidden bg-gradient-to-br ${game.bannerColor} flex items-center justify-center`}>
-                <div className="opacity-30 group-hover:opacity-80 group-hover:scale-110 transition-all duration-700">
-                    {React.cloneElement(game.icon as React.ReactElement, { className: "w-24 h-24" })}
+        <div onClick={onPlay} className="group relative bg-void-900 border-2 border-zinc-800 hover:border-pulse-500 transition-all duration-300 cursor-pointer h-[350px] shadow-[10px_10px_0px_black] hover:translate-x-[-4px] hover:translate-y-[-4px]">
+            <div className="h-44 w-full bg-void-950 flex items-center justify-center relative overflow-hidden border-b-2 border-zinc-800">
+                <div className="absolute top-0 left-0 bg-pulse-500 text-white px-3 py-1 text-[8px] font-black uppercase font-mono tracking-widest">VHS-MASTER</div>
+                <div className="opacity-20 group-hover:opacity-100 group-hover:scale-125 transition-all duration-700 text-pulse-500">
+                    {React.cloneElement(game.icon as React.ReactElement, { className: "w-28 h-28" })}
                 </div>
-                <div className="absolute bottom-0 left-0 right-0 h-1 bg-plant-500 shadow-[0_0_15px_#22c55e]"></div>
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-pulse-500 via-neon-400 to-pulse-500 animate-pulse"></div>
             </div>
 
-            <div className="p-6 flex-grow flex flex-col justify-between bg-zinc-900">
+            <div className="p-6 flex flex-col justify-between h-[calc(350px-11rem)]">
                 <div>
-                    <div className="flex items-center gap-3 mb-2">
-                        <span className="text-flesh-500">{React.cloneElement(game.icon as React.ReactElement, { className: "w-6 h-6" })}</span>
-                        <h3 className="text-xl font-black text-white uppercase italic tracking-tighter leading-none">{game.title}</h3>
-                    </div>
-                    <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest line-clamp-2 leading-relaxed opacity-80">{game.description}</p>
+                    <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter mb-2 font-horror group-hover:text-pulse-500 transition-colors">{game.title}</h3>
+                    <p className="text-[9px] text-zinc-600 uppercase font-bold tracking-widest font-mono leading-relaxed">{game.description}</p>
                 </div>
-                <div className="px-4 py-1.5 rounded-full bg-plant-600 text-black font-black text-[10px] uppercase italic tracking-tighter group-hover:bg-flesh-500 group-hover:text-white transition-colors text-center">
-                    Insert Coin
+                <div className="flex justify-between items-center mt-4">
+                     <div className="px-4 py-1 border border-pulse-500/40 text-pulse-500 text-[9px] font-black uppercase tracking-tighter">Play Simulation</div>
+                     {game.stats && <span className="text-[9px] font-bold text-zinc-700 uppercase font-mono">{game.stats}</span>}
                 </div>
             </div>
         </div>
@@ -85,35 +49,63 @@ const GameHubPage: React.FC<any> = (props) => {
     const handleBackToHub = useCallback(() => setActiveGame('hub'), []);
 
     const games: GameInfo[] = [
-        { id: 'sudoku', title: 'Brain Spores', description: 'Logical mutation puzzles that grow your mental vines.', icon: <BrainIcon />, bannerColor: 'from-green-950 to-black' },
-        { id: 'spore-crypt', title: 'Spore Crypt', description: 'Crack the genetic 5-letter code of the day.', icon: <KeypadIcon />, bannerColor: 'from-zinc-800 to-black' },
-        { id: 'solitaire', title: 'Leaf Patience', description: 'Strategic survival cards for the Skid Row elite.', icon: <CubeTransparentIcon />, bannerColor: 'from-emerald-950 to-black' },
-        { id: 'minesweeper', title: 'Toxic Pods', description: 'Defuse the mutated seed pods before they burst!', icon: <FlagIcon />, bannerColor: 'from-red-950 to-black' },
-        { id: 'tetris', title: 'Planter Stacker', description: 'Organize the planters or let the jungle take over.', icon: <TetrisTBlockIcon />, bannerColor: 'from-purple-950 to-black' },
-        { id: 'pool', title: 'Eyeball Billiards', description: 'Sink the seeds into the fleshy pockets. Don\'t scratch.', icon: <CubeIcon />, bannerColor: 'from-zinc-900 to-black' },
-        { id: 'skid-row', title: 'Skid Row Survival', description: 'The flagship. Feed Seymour. Survive the night.', icon: <SeymourIcon />, bannerColor: 'from-plant-950 to-flesh-950' }
+        { 
+            id: 'sudoku', 
+            title: 'Pattern Zero', 
+            description: 'A logical cryptogram leaked from the mainframe.', 
+            icon: <KeypadIcon />, 
+            bannerColor: 'from-zinc-950 to-void-900',
+            stats: props.sudokuStats.totalWins > 0 ? `${props.sudokuStats.totalWins} LOGS` : undefined
+        },
+        { 
+            id: 'spore-crypt', 
+            title: 'The Frequency', 
+            description: 'Intercept the daily code before the static takes over.', 
+            icon: <WalkieTalkieIcon />, 
+            bannerColor: 'from-void-950 to-black',
+            stats: 'ENCRYPTED'
+        },
+        { 
+            id: 'solitaire', 
+            title: 'Void Patience', 
+            description: 'Arrange the sequence or face the shadow.', 
+            icon: <RadioIcon />, 
+            bannerColor: 'from-void-950 to-black',
+            stats: props.solitaireStats.gamesWon > 0 ? `${props.solitaireStats.gamesWon} CLEARED` : undefined
+        },
+        { id: 'minesweeper', title: 'Void Breakers', description: 'Defuse the anomalies hidden in the grid.', icon: <EntityIcon />, bannerColor: 'from-void-950 to-black' },
+        { id: 'tetris', title: 'Matrix Stacker', description: 'Stack the data blocks. Avoid overflow.', icon: <ControllerIcon />, bannerColor: 'from-void-950 to-black' },
+        { id: 'pool', title: 'Dark Pocket', description: 'Simulated physics in a pocket dimension.', icon: <EntityIcon />, bannerColor: 'from-void-950 to-black' }
     ];
 
     if (activeGame === 'hub') {
         return (
-            <main className="h-full min-h-0 flex-grow overflow-y-auto bg-zinc-950 p-6 md:p-12 animate-fade-in relative scrollbar-hide pb-40 z-10 touch-pan-y">
-                <div className="max-w-7xl mx-auto relative z-10">
-                    <header className="mb-16 flex flex-col md:flex-row md:items-end justify-between gap-10">
-                        <div className="flex items-center gap-6">
-                            <div className="p-4 bg-plant-500 rounded-[2rem] shadow-[0_0_40px_rgba(34,197,94,0.4)] rotate-3">
-                                <SeymourIcon className="w-12 h-12 text-black" />
+            <main className="h-full min-h-0 flex-grow overflow-y-auto bg-void-950 p-8 md:p-16 animate-fade-in relative scrollbar-hide pb-40">
+                <div className="max-w-7xl mx-auto">
+                    <header className="mb-20 flex flex-col lg:flex-row lg:items-center justify-between gap-12 border-b-2 border-pulse-500/20 pb-12">
+                        <div className="flex items-center gap-8">
+                            <div className="p-4 bg-pulse-500 shadow-[8px_8px_0px_white]">
+                                <ControllerIcon className="w-14 h-14 text-white" />
                             </div>
                             <div>
-                                <h1 className="text-4xl md:text-6xl font-black text-white tracking-tighter uppercase italic leading-none drop-shadow-lg">THE FEEDING PIT</h1>
-                                <p className="text-flesh-500 font-black tracking-[0.6em] uppercase text-[10px] md:text-xs mt-2">Mean green games from space</p>
+                                <h1 className="text-5xl md:text-7xl font-black text-white tracking-tighter uppercase italic leading-none font-horror glitch-text">DARK ARCADE</h1>
+                                <p className="text-pulse-500 font-bold tracking-[0.8em] uppercase text-[10px] md:text-xs mt-4 font-mono">1984 - Unauthorized Entry Detected</p>
                             </div>
                         </div>
-                        <button onClick={props.onReturnToFeeds} className="px-10 py-3 bg-zinc-900 border-2 border-plant-500/20 rounded-full text-zinc-400 hover:text-plant-500 transition-all text-sm font-black uppercase tracking-widest italic">
-                          Eat News
-                        </button>
+                        <div className="flex items-center gap-10 bg-void-900 p-6 shadow-[10px_10px_0px_black]">
+                             <div className="flex flex-col items-center gap-2">
+                                <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest font-mono">System Energy</span>
+                                <div className="w-48 h-2 bg-black rounded-none border border-pulse-500/30 overflow-hidden">
+                                    <div className="h-full bg-pulse-500" style={{ width: `${props.fertilizer}%` }} />
+                                </div>
+                             </div>
+                             <button onClick={props.onReturnToFeeds} className="px-8 py-3 bg-white text-black text-xs font-black uppercase italic tracking-widest hover:bg-pulse-500 hover:text-white transition-all shadow-[4px_4px_0px_#e11d48]">
+                                Exit Simulation
+                             </button>
+                        </div>
                     </header>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-10">
-                        {games.map(game => <GameCard key={game.id} game={game} onPlay={() => setActiveGame(game.id)} />)}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-12">
+                        {games.map(game => <VHSCard key={game.id} game={game} onPlay={() => setActiveGame(game.id)} />)}
                     </div>
                 </div>
             </main>
@@ -121,14 +113,13 @@ const GameHubPage: React.FC<any> = (props) => {
     }
     
     return (
-        <Suspense fallback={<div className="w-full h-full flex items-center justify-center bg-zinc-950 text-plant-500 font-black text-3xl italic animate-pulse uppercase">Incubating...</div>}>
+        <Suspense fallback={<div className="w-full h-full flex flex-col items-center justify-center bg-void-950 text-pulse-500 font-black text-4xl italic animate-pulse uppercase font-horror">Loading Simulation...</div>}>
             {activeGame === 'sudoku' && <SudokuPage stats={props.sudokuStats} onGameWin={props.onSudokuWin} onGameLoss={props.onSudokuLoss} onBackToHub={handleBackToHub} onReturnToFeeds={props.onReturnToFeeds} />}
-            {activeGame === 'spore-crypt' && <SporeCryptPage onBackToHub={handleBackToHub} />}
+            {activeGame === 'spore-crypt' && <SporeCryptPage onBackToHub={handleBackToHub} fertilizer={props.fertilizer} setFertilizer={props.setFertilizer} />}
             {activeGame === 'solitaire' && <SolitairePage stats={props.solitaireStats} onGameWin={props.onSolitaireWin} onGameStart={props.onSolitaireStart} settings={props.solitaireSettings} onUpdateSettings={props.onUpdateSolitaireSettings} onBackToHub={handleBackToHub} onReturnToFeeds={props.onReturnToFeeds} />}
             {activeGame === 'minesweeper' && <MinesweeperPage onBackToHub={handleBackToHub} onReturnToFeeds={props.onReturnToFeeds} />}
             {activeGame === 'tetris' && <TetrisPage onBackToHub={handleBackToHub} onReturnToFeeds={props.onReturnToFeeds} />}
             {activeGame === 'pool' && <PoolGamePage onBackToHub={handleBackToHub} onReturnToFeeds={props.onReturnToFeeds} />}
-            {activeGame === 'skid-row' && <SkidRowSurvivalGame onBackToHub={handleBackToHub} />}
         </Suspense>
     );
 };

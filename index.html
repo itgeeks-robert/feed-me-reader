@@ -1,12 +1,13 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>FEED ME!</title>
-    <link rel="manifest" href="data:application/manifest+json;base64,eyJuYW1lIjoiRmVlZCBNZSEiLCJzaG9ydF9uYW1lIjoiRmVlZCBNZSEiLCJzdGFydF91cmwiOiIuIiwiZGlzcGxheSI6InN0YW5kYWxvbmUiLCJiYWNrZ3JvdW5kX2NvbG9yIjoiIzBhMGEwYSIsInRoZW1lX2NvbG9yIjoiIzIyYzk1ZSIsImRlc2NyaXB0aW9uIjoiQSBzbGVlaywgY2Fybml2b3JvdXMgZmVlZCByZWFkZXIuIiwiaWNvbnMiOlt7InNyYyI6ImRhdGE6aW1hZ2Uvc3ZnK3htbDtiYXNlNjQsUEhOMlp5QjRiV3hWY0d4cFkyVnpQU0JtYVd4c1BTOUpPMDBnTVRRNU1EQXVOell3TXk0eU16QXdJSDE0WkdWdWRHbG1hV05oZEdsdmJpQjNjeUI0Yld4VmJHbHphR1Z5WVhScGIyNG5JSFpwWlhoMFBTSTBNVEF3TFM0M016UXA+PGEvbj48L2c+PHBhdGggZD0nTTI1IDI1QzMwIDIyIDM4IDI1IDM4IDI1JyBmaWxsPSdub25lJyBzdHJva2Utd2lkdGg9JzEuNScvPjxwYXRoIGQ0nTTIxIDM5QzIxIDQ1IDE4IDQ1IDE4IDQyQzE4IDQ1IDE1IDQ1IDE1IDM5JyBmaWxsPScjRTM5MzUnIHN0cm9rZT0nI2M0MmEyYScvPjwvZz48L3N2Zz4iLCJzaXplcyI6ImFueSIsInR5cGUiOiJpbWFnZS9zdmcreG1sIn1dfQ==" />
-    <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PScwIDAgODAgODAnIHhtbG5zPSdodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2Zyc+PGcgc3Ryb2tlPSdibGFjaycgc3Ryb2tlLXdpZHRoPScxLjUnIHN0cm9rZS1saW5lY2FwPSdyb3VuZCcgc3Ryb2tlLWxpbmVqb2luPSdyb3VuZCc+PHBhdGggZD0nTTMwIDc1SDUwTDU1IDYwSDI1TDMwIDc1WicgZmlsbD0nI0EwNTIyRCcvPjxwYXRoIGQ9J00yNCA2MEg1NlY1NUgyNFY2MFonIGZpbGw9JyM4QjQ1MTMnLz48cGF0aCBkPSdNNDAgNjBDMzUgNTAgNDUgNDUgNDIgMzUgQzQwIDI4IDM1IDI1IDM4IDIwJyBmaWxsPSdub25lJyBzdHJva2U9JyMyRTdEMzInIHN0cm9rZS13aWR0aD0nNCcvPjxwYXRoIGQ9J000MSA0OEw0NCA0Nicgc3Ryb2tlPScjMkU3RDMyJyBzdHJva2Utd2lkdGg9JzEuNScvPjxwYXRoIGQ9J00zOCAzOEwzNSAzNicgc3Ryb2tlPScjMkU3RDMyJyBzdHJva2Utd2lkdGg9JzEuNScvPjxwYXRoIGQ9J00zOCAyOEw0MiAyNicgc3Ryb2tlPScjMkU3RDMyJyBzdHJva2Utd2lkdGg9JzEuNScvPjxwYXRoIGQ9J000MCAxMCBMNTAgMiBMNTUgMTIgTDY1IDUgTDY4IDE4IEw3OCAxNSBMNzUgMjggTDY1IDI1IEw2MCAzNSBMNTAgMjggWicgZmlsbD0nI0ZERDgzNScvPjxwYXRoIGQ9J00zOCAyMEMxMCAxNSAxMCA0NSAzNSA0OEM1NSA1MiA2NSAzNSA2MCAyMEM1MCAxMCA0NSAxMiAzOCAyMCBaJyBmaWxsPScjNjZCQjZBJy8+PHBhdGggZD0nTTIwIDM4QzMwIDQ1IDUwIDQ4IDU4IDQwQzU1IDQ1IDM1IDQ4IDIwIDM4IFonIGZpbGw9JyNENEUxNTcnLz48Zz48cGF0aCBkPSdNMjUgMzVDMzUgNDAgNTAgNDIgNTUgMzZDNTggMzggMzUgNDAgMjggMzVaJyBmaWxsPScjNDI0MjQyJy8+PHBhdGggZD0nTTI4IDM1LjVMMzAgMzggTDMyIDM1LjUnIHN0cm9rZT0nd2hpdGUnIHN0cm9rZS13aWR0aD0nMC41JyBmaWxsPSd3aGl0ZScvPjxwYXRoIGQ9J00zMyAzNkwzNSAzOC41IEwzNyAzNicgc3Ryb2tlPSd3aGl0ZScgc3Ryb2tlLXdpZHRoPScwLjUnIGZpbGw9J3doaXRlJy8+PHBhdGggZD0nTTM4IDM2LjVMNDAgMzkgTDQyIDM2LjUnIHN0cm9rZT0nd2hpdGUnIHN0cm9rZS13aWR0aD0nMC41JyBmaWxsPSd3aGl0ZScvPjxwYXRoIGQ9J000III3TDQ1IDM5LjUgTDQ3IDM3JyBzdHJva2U9J3doaXRlJyBzdHJva2Utd2lkdGg9JzAuNScgZmlsbD0nd2hpdGUnLz48L2c+PHBhdGggZD0nTTI1IDI1QzMwIDIyIDM4IDI1IDM4IDI1JyBmaWxsPSdub25lJyBzdHJva2Utd2lkdGg9JzEuNScvPjxwYXRoIGQ9J00yMSAzOUMyMSA0NSAxOCA0NSAxOCA0MkMxOCA0NSAxNSA0NSAxNSAzOScgZmlsbD0nI0UzMTM1Scgc3Ryb2tlPScjYzQyYTJhJy8+PC9nPjwvc3ZnPg==" type="image/svg+xml" />
-    <meta name="theme-color" content="#22c95e" />
+    <title>THE VOID | Signal Reader</title>
+    <link rel="manifest" href="data:application/manifest+json;base64,eyJuYW1lIjoiVGhlIFZvaWQiLCJzaG9ydF9uYW1lIjoiVGhlIFZvaWQiLCJzdGFydF91cmwiOiIuIiwiZGlzcGxheSI6InN0YW5kYWxvbmUiLCJiYWNrZ3JvdW5kX2NvbG9yIjoiIzBhMGEwYSIsInRoZW1lX2NvbG9yIjoiI2UxMWQ0OCIsImRlc2NyaXB0aW9uIjoiQSBzdXBlcm5hdHVyYWwgODBzIGZlZWQgcmVhZGVyLiIsImljb25zIjpbeyJzcmMiOiJkYXRhOmltYWdlL3N2Zyt4bWw7YmFzZTY0LFBITjJaeUI0Yld4VmJDQXhNREFnTVRBd0lIUm9aVzFsUFNKalluUmxibWRoZEdsdmJpSTdabTl1ZEMweE1EQWdNRFFnTVRRNU1EQXVOell3TXk0eU16QXdJSDE0WkdWdWRHbG1hV05oZEdsdmJpQjNjeUI0Yld4VmJHbHphR1Z5WVhScGIyNG5JSFpwWlhoMFBTSTBNVEF3TFM0M016UXA+PGEvbj48L2c+PC9zdmc+Iiwic2l6ZXMiOiJhbnkiLCJ0eXBlIjoiaW1hZ2Uvc3ZnK3htbCJ9XX0=" />
+    <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PScwIDAgODAgODAnIHhtbG5zPSdodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2Zyc+PGcgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZTExZDQ4IiBzdHJva2Utd2lkdGg9IjQiPjxwYXRoIGQ9Ik0yMCA2MEw0MCAyMEw2MCA2ME0zMCA0NUg1MCIvPjwvZz48L3N2Zz4=" type="image/svg+xml" />
+    <meta name="theme-color" content="#e11d48" />
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -14,51 +15,43 @@
             theme: {
                 extend: {
                     colors: {
-                        plant: {
-                            50: '#f0fdf4',
-                            100: '#dcfce7',
-                            500: '#22c55e',
-                            600: '#16a34a',
-                            900: '#14532d',
+                        void: {
+                            50: '#fef2f2',
+                            900: '#180202',
+                            950: '#050101',
                         },
-                        flesh: {
-                            500: '#ec4899',
-                            600: '#db2777',
+                        pulse: {
+                            500: '#e11d48',
+                            600: '#be123c',
+                        },
+                        neon: {
+                            400: '#22d3ee',
+                            500: '#06b6d4',
                         }
                     },
-                    backdropBlur: {
-                        '2xl': '40px',
+                    fontFamily: {
+                        'horror': ['Georgia', 'serif'],
+                        'mono': ['Space Mono', 'Courier New', 'monospace']
                     }
                 }
             }
         }
     </script>
     <style>
-        /* Custom scrollbar for plant theme */
-        ::-webkit-scrollbar {
-            width: 8px;
+        @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+
+        /* CRT Scanline Effect */
+        body::before {
+            content: " ";
+            display: block;
+            position: fixed;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            z-index: 9999;
+            pointer-events: none;
+            background-size: 100% 2px, 3px 100%;
         }
-        ::-webkit-scrollbar-track {
-            background: rgba(20, 83, 45, 0.1);
-        }
-        ::-webkit-scrollbar-thumb {
-            background: rgba(34,197, 94, 0.4);
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #22c55e;
-        }
-        
-        /* Base theme colors */
-        html.dark body {
-            background-color: transparent;
-            color: #dcfce7; 
-        }
-        body {
-            transition: color 0.3s;
-            overflow-x: hidden;
-        }
-        
+
         #aurora-background {
             position: fixed;
             top: 0;
@@ -67,45 +60,58 @@
             height: 100%;
             overflow: hidden;
             z-index: -1;
-            background-color: #050a06; 
+            background-color: #050101; 
         }
 
-        #aurora-background::before, #aurora-background::after {
-            content: '';
+        @keyframes noise {
+            0% { transform: translate(0,0) }
+            10% { transform: translate(-5%,-5%) }
+            20% { transform: translate(-10%,5%) }
+            30% { transform: translate(5%,-10%) }
+            40% { transform: translate(-5%,15%) }
+            50% { transform: translate(-10%,5%) }
+            60% { transform: translate(15%,0) }
+            70% { transform: translate(0,10%) }
+            80% { transform: translate(-15%,0) }
+            90% { transform: translate(10%,5%) }
+            100% { transform: translate(5%,0) }
+        }
+
+        .static-noise {
+            position: relative;
+            background-color: #111;
+            overflow: hidden;
+        }
+
+        .static-noise::after {
+            content: "";
             position: absolute;
-            width: 80vw;
-            height: 80vw;
-            border-radius: 50%;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIj48ZmlsdGVyIGlkPSJuIj48ZmVUdXJidWxlbmNlIHR5cGU9ImZyYWN0YWxOb2lzZSIgYmFzZUZyZXF1ZW5jeT0iMC42NSIgbnVtT2N0YXZlcz0iMyIgc3RpdGNoVGlsZXM9InN0aXRjaCIvPjwvZmlsdGVyPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbHRlcj0idXJsKCNuKSIvPjwvc3ZnPg==');
             opacity: 0.15;
-            mix-blend-mode: screen;
-            animation: move 40s infinite linear;
-            filter: blur(120px);
+            animation: noise 0.5s steps(4) infinite;
+            pointer-events: none;
         }
 
-        #aurora-background::before {
-            background: radial-gradient(circle, #22c55e, transparent 70%);
-            top: -10%;
-            left: -10%;
-        }
-
-        #aurora-background::after {
-            background: radial-gradient(circle, #ec4899, transparent 70%);
-            bottom: -10%;
-            right: -10%;
-            animation-delay: -20s;
-        }
-
-        @keyframes move {
-            0% { transform: translate(0, 0) rotate(0deg); }
-            50% { transform: translate(10vw, 20vh) rotate(180deg); }
-            100% { transform: translate(0, 0) rotate(360deg); }
+        .cctv-overlay {
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.2) 50%), 
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.05), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.05));
+            background-size: 100% 3px, 3px 100%;
         }
 
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
         
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.6s ease-out forwards; }
+
+        h1, h2 { text-transform: uppercase; letter-spacing: -0.05em; font-weight: 900; }
+        .glitch-text:hover {
+            text-shadow: 2px 0 #06b6d4, -2px 0 #e11d48;
+        }
     </style>
 <script type="importmap">
 {
@@ -121,7 +127,7 @@
 </script>
 <link rel="stylesheet" href="/index.css">
 </head>
-<body class="antialiased">
+<body class="antialiased selection:bg-pulse-500 selection:text-white">
     <div id="aurora-background"></div>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>

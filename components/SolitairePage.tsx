@@ -2,6 +2,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ArrowPathIcon, XIcon } from './icons';
 import type { SolitaireStats, SolitaireSettings } from '../src/App';
+import { saveHighScore, getHighScores } from '../services/highScoresService';
+import HighScoreTable from './HighScoreTable';
 
 const SUITS = ['♥', '♦', '♠', '♣'];
 const RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
@@ -54,6 +56,7 @@ const SolitairePage: React.FC<SolitairePageProps> = (props) => {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [history, setHistory] = useState<GameState[]>([]);
   const [time, setTime] = useState(0);
+  const [initials, setInitials] = useState("");
   const timerRef = useRef<number | null>(null);
   const [selectedInfo, setSelectedInfo] = useState<{ type: string; pileIndex: number; cardIndex: number; } | null>(null);
 
@@ -74,6 +77,16 @@ const SolitairePage: React.FC<SolitairePageProps> = (props) => {
       onGameWin(time, state.moves);
     }
   }, [gamePhase, onGameWin, stopTimer, time]);
+
+  const handleSaveScore = () => {
+    saveHighScore('solitaire', {
+        name: initials.toUpperCase() || "???",
+        score: time,
+        displayValue: `${Math.floor(time / 60)}:${String(time % 60).padStart(2, '0')}`,
+        date: new Date().toISOString()
+    }, true);
+    setGamePhase('intro');
+  };
 
   const pushHistoryAndSetState = useCallback((newState: GameState) => {
       if (gameState) setHistory(h => [...h, gameState]);
@@ -102,6 +115,7 @@ const SolitairePage: React.FC<SolitairePageProps> = (props) => {
     });
     setHistory([]);
     setTime(0);
+    setInitials("");
     setSelectedInfo(null);
     setGamePhase('dealing');
     
@@ -225,7 +239,6 @@ const SolitairePage: React.FC<SolitairePageProps> = (props) => {
                 </div>
 
                 <div className="w-full max-w-5xl relative flex-grow">
-                    {/* Top Row */}
                     <div className="grid grid-cols-7 w-full gap-[var(--board-gap)] mb-8">
                         <div onClick={() => { if (gamePhase === 'playing' && gameState) { 
                             const newState = JSON.parse(JSON.stringify(gameState));
@@ -247,7 +260,6 @@ const SolitairePage: React.FC<SolitairePageProps> = (props) => {
                         </div>
                     </div>
 
-                    {/* Tableau */}
                     <div className="grid grid-cols-7 w-full gap-[var(--board-gap)]">
                         {gameState?.tableau.map((pile, i) => (
                             <div key={i} className="relative" onClick={() => pile.length === 0 && selectedInfo && moveCards(selectedInfo, { type: 'tableau', pileIndex: i })}>
@@ -260,34 +272,60 @@ const SolitairePage: React.FC<SolitairePageProps> = (props) => {
                         ))}
                     </div>
                 </div>
+
+                {gamePhase === 'won' && (
+                    <div className="fixed inset-0 bg-black/95 backdrop-blur-md z-50 flex items-center justify-center p-6 text-center">
+                        <div className="max-w-sm w-full bg-zinc-900 p-12 rounded-[3rem] border-4 border-plant-500 shadow-[0_0_100px_rgba(34,197,94,0.3)]">
+                            <h2 className="text-5xl font-black italic uppercase tracking-tighter text-plant-500 mb-4">CLEARED</h2>
+                            <div className="mb-8">
+                                <p className="text-zinc-500 font-bold uppercase tracking-widest text-[10px] mb-4">Enter Arcade Initials</p>
+                                <input 
+                                    autoFocus
+                                    maxLength={3} 
+                                    value={initials} 
+                                    onChange={e => setInitials(e.target.value.toUpperCase())}
+                                    className="bg-black/50 border-2 border-plant-500 text-plant-500 rounded-xl px-4 py-3 text-center text-2xl font-black w-32 outline-none uppercase italic"
+                                    placeholder="???"
+                                />
+                            </div>
+                            <button onClick={handleSaveScore} className="w-full py-5 bg-plant-600 text-black font-black text-xl italic uppercase rounded-full hover:scale-105 transition-transform">Post Record</button>
+                        </div>
+                    </div>
+                )}
             </div>
         }
     </div>
   );
 };
 
-const IntroScreen = ({ onStart, onBackToHub, stats, settings, onUpdateSettings }: any) => (
-    <div className="w-full h-full flex items-center justify-center bg-zinc-950 p-6">
-        <div className="w-full max-w-sm text-center bg-zinc-900 p-10 rounded-[3rem] border-4 border-plant-500 shadow-[0_0_50px_rgba(34,197,94,0.2)]">
-            <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter mb-2">Leaf Patience</h2>
-            <p className="text-zinc-500 font-bold uppercase tracking-widest text-[10px] mb-8">Strategic alley survival</p>
-            <div className="grid grid-cols-2 gap-4 mb-8">
-                <div className="bg-black/40 p-4 rounded-2xl border border-white/5">
-                    <span className="text-[8px] font-black text-plant-500 uppercase block">Wins</span>
-                    <span className="text-xl font-black italic text-white">{stats.gamesWon}</span>
+const IntroScreen = ({ onStart, onBackToHub, stats, settings, onUpdateSettings }: any) => {
+    const topScores = getHighScores('solitaire');
+    return (
+        <div className="w-full h-full flex items-center justify-center bg-zinc-950 p-6 overflow-y-auto">
+            <div className="w-full max-w-sm text-center bg-zinc-900 p-10 rounded-[3rem] border-4 border-plant-500 shadow-[0_0_50px_rgba(34,197,94,0.2)]">
+                <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter mb-2">Leaf Patience</h2>
+                <p className="text-zinc-500 font-bold uppercase tracking-widest text-[10px] mb-8">Strategic alley survival</p>
+                
+                <HighScoreTable entries={topScores} title="PATIENCE" />
+
+                <div className="grid grid-cols-2 gap-4 mt-8 mb-8">
+                    <div className="bg-black/40 p-4 rounded-2xl border border-white/5">
+                        <span className="text-[8px] font-black text-plant-500 uppercase block">Wins</span>
+                        <span className="text-xl font-black italic text-white">{stats.gamesWon}</span>
+                    </div>
+                    <div className="bg-black/40 p-4 rounded-2xl border border-white/5">
+                        <span className="text-[8px] font-black text-flesh-500 uppercase block">Streak</span>
+                        <span className="text-xl font-black italic text-white">{stats.currentStreak}</span>
+                    </div>
                 </div>
-                <div className="bg-black/40 p-4 rounded-2xl border border-white/5">
-                    <span className="text-[8px] font-black text-flesh-500 uppercase block">Streak</span>
-                    <span className="text-xl font-black italic text-white">{stats.currentStreak}</span>
+                <div className="space-y-4">
+                    <button onClick={onStart} className="w-full py-4 bg-plant-600 hover:bg-plant-500 text-black font-black uppercase italic rounded-2xl transition-all">Plant Deck</button>
+                    <button onClick={onBackToHub} className="text-zinc-500 font-bold uppercase tracking-widest text-xs hover:text-white transition-colors pt-4 block w-full">Back to Hub</button>
                 </div>
-            </div>
-            <div className="space-y-4">
-                <button onClick={onStart} className="w-full py-4 bg-plant-600 hover:bg-plant-500 text-black font-black uppercase italic rounded-2xl transition-all">Plant Deck</button>
-                <button onClick={onBackToHub} className="text-zinc-500 font-bold uppercase tracking-widest text-xs hover:text-white transition-colors pt-4 block w-full">Back to Hub</button>
             </div>
         </div>
-    </div>
-);
+    );
+};
 
 const Card = ({ card, isSelected, onClick }: any) => (
     <div onClick={onClick} className={`card-container rounded-md shadow-lg cursor-pointer transition-all ${isSelected ? 'ring-4 ring-flesh-500 -translate-y-2' : ''}`}>

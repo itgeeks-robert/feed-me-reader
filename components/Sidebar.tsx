@@ -5,7 +5,7 @@ import type { SourceType } from './AddSource';
 import AddSource from './AddSource';
 import { Disclosure, DisclosureButton, DisclosurePanel } from './Disclosure';
 import {
-    SeymourIcon, ListIcon, PlusIcon, RssIcon, TrashIcon, FolderIcon, PencilIcon, ChevronDownIcon, ChevronRightIcon, XIcon, BookmarkIcon, SettingsIcon, RedditIcon, YoutubeIcon, GlobeAltIcon, ControllerIcon
+    SeymourIcon, ListIcon, PlusIcon, RssIcon, TrashIcon, FolderIcon, PencilIcon, ChevronDownIcon, ChevronRightIcon, XIcon, BookmarkIcon, SettingsIcon, RedditIcon, GlobeAltIcon, ControllerIcon
 } from './icons';
 import { SmartFeedIcon } from './SmartFeedIcon';
 
@@ -46,12 +46,12 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
             <div className="p-6 flex-shrink-0">
                 <div className="flex items-center justify-between space-x-2 mb-8">
                     <div className="flex items-center space-x-3">
-                        <div className="p-1 bg-plant-500 rounded-2xl shadow-[0_0_15px_rgba(34,197,94,0.4)]">
-                            <SeymourIcon className="w-8 h-8 text-black" />
+                        <div className="p-1 bg-plant-500 rounded-xl shadow-[0_0_15px_rgba(34,197,94,0.4)]">
+                            <SeymourIcon className="w-6 h-6 text-black" />
                         </div>
                         <div className="flex flex-col">
-                            <span className="text-xl font-black text-white tracking-tighter uppercase italic leading-none">FEED ME!</span>
-                            <span className="text-[8px] font-bold text-plant-500 uppercase tracking-[0.3em]">S E Y M O U R</span>
+                            <span className="text-[10px] font-black text-white tracking-tighter uppercase italic leading-none">THE VOID</span>
+                            <span className="text-[6px] font-bold text-pulse-500 uppercase tracking-[0.3em]">S I G N A L</span>
                         </div>
                     </div>
                     <button onClick={onClose} className="p-2 -mr-2 rounded-2xl text-zinc-500 hover:bg-zinc-900 md:hidden">
@@ -63,13 +63,13 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
             </div>
             
             <div className="flex-grow overflow-y-auto px-6 space-y-2 scrollbar-hide">
-                <NavItem sel={{type: 'game_hub', id: null}} label="Skid Row Arcade" icon={<ControllerIcon className="w-4 h-4 flex-shrink-0" />} />
-                <NavItem sel={{type: 'all', id: null}} label="Fresh Meat" icon={<ListIcon className="w-4 h-4 flex-shrink-0" />} />
-                <NavItem sel={{type: 'bookmarks', id: 'bookmarks'}} label="Saved Snacks" icon={<BookmarkIcon className="w-4 h-4 flex-shrink-0" />} />
+                <NavItem sel={{type: 'game_hub', id: null}} label="The Arcade" icon={<ControllerIcon className="w-4 h-4 flex-shrink-0" />} />
+                <NavItem sel={{type: 'all', id: null}} label="Frequency" icon={<ListIcon className="w-4 h-4 flex-shrink-0" />} />
+                <NavItem sel={{type: 'bookmarks', id: 'bookmarks'}} label="Saved Signals" icon={<BookmarkIcon className="w-4 h-4 flex-shrink-0" />} />
                 
                 <div className="pt-6 pb-2">
                     <div className="flex items-center justify-between px-2 mb-4">
-                        <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em]">Spore Folders</h3>
+                        <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em]">Folders</h3>
                         <button onClick={() => setIsAddingFolder(true)} className="p-1 hover:bg-zinc-900 rounded-lg text-zinc-500">
                             <PlusIcon className="w-4 h-4" />
                         </button>
@@ -78,7 +78,7 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                         {folders.map(folder => (
                             <div key={folder.id} onClick={() => onSelect({type: 'folder', id: folder.id})} className={`flex items-center gap-3 px-3 py-2 rounded-xl cursor-pointer transition-all ${selection.type === 'folder' && selection.id === folder.id ? 'bg-plant-900/50 text-plant-500' : 'text-zinc-500 hover:text-zinc-300'}`}>
                                 <FolderIcon className="w-4 h-4" />
-                                <span className="text-xs font-bold uppercase truncate">{folder.name}</span>
+                                <span className="text-[10px] font-bold uppercase truncate">{folder.name}</span>
                             </div>
                         ))}
                     </nav>
@@ -86,9 +86,9 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
             </div>
             
             <div className="p-6 mt-auto flex-shrink-0 bg-zinc-950 border-t border-zinc-900">
-                <button onClick={onOpenSettings} className="w-full flex items-center gap-3 py-3 px-4 text-xs font-black uppercase tracking-widest rounded-2xl text-zinc-500 bg-zinc-900 hover:bg-zinc-800 hover:text-white transition-all">
+                <button onClick={onOpenSettings} className="w-full flex items-center gap-3 py-3 px-4 text-[9px] font-black uppercase tracking-widest rounded-2xl text-zinc-500 bg-zinc-900 hover:bg-zinc-800 hover:text-white transition-all">
                     <SettingsIcon className="w-4 h-4" />
-                    <span>Nurture Settings</span>
+                    <span>Configuration</span>
                 </button>
             </div>
         </aside>

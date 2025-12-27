@@ -1,8 +1,8 @@
 
 import React, { useState } from 'react';
-import { RssIcon, PlusIcon, YoutubeIcon, GlobeAltIcon, RedditIcon, ArrowPathIcon } from './icons';
+import { RssIcon, PlusIcon, GlobeAltIcon, RedditIcon, ArrowPathIcon } from './icons';
 
-export type SourceType = 'rss' | 'youtube' | 'website' | 'reddit';
+export type SourceType = 'rss' | 'website' | 'reddit';
 
 interface AddSourceProps {
     onAddSource: (url: string, type: SourceType) => Promise<void>;
@@ -43,7 +43,6 @@ const AddSource: React.FC<AddSourceProps> = ({ onAddSource, onSuccess }) => {
 
     const placeholders: Record<SourceType, string> = {
         rss: "Feed URL",
-        youtube: "Channel URL",
         website: "Site URL",
         reddit: "Subreddit"
     };
@@ -62,7 +61,6 @@ const AddSource: React.FC<AddSourceProps> = ({ onAddSource, onSuccess }) => {
         <div className="space-y-4">
             <div className="flex justify-around bg-zinc-100 dark:bg-zinc-900 p-1.5 rounded-2xl ring-1 ring-black/5">
                 <TabButton type="rss">RSS</TabButton>
-                <TabButton type="youtube">YT</TabButton>
                 <TabButton type="reddit">RED</TabButton>
                 <TabButton type="website">WEB</TabButton>
             </div>

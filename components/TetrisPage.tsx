@@ -2,6 +2,8 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { startGame, PieceType } from '../services/tetrisGame';
 import { GameboyControls, GameboyButton } from './GameboyControls';
+import { saveHighScore, getHighScores } from '../services/highScoresService';
+import HighScoreTable from './HighScoreTable';
 
 interface TetrisPageProps {
   onBackToHub: () => void;
@@ -17,6 +19,7 @@ const TetrisPage: React.FC<TetrisPageProps> = ({ onBackToHub, onReturnToFeeds })
 
     const [stats, setStats] = useState({ score: 0, rows: 0, level: 0 });
     const [isGameOver, setIsGameOver] = useState(false);
+    const [initials, setInitials] = useState("");
     const [holdPiece, setHoldPiece] = useState<PieceType | null>(null);
     const [nextQueue, setNextQueue] = useState<PieceType[]>([]);
 
@@ -39,6 +42,7 @@ const TetrisPage: React.FC<TetrisPageProps> = ({ onBackToHub, onReturnToFeeds })
     const handleRestart = useCallback(() => {
         gameInstance.current?.stop();
         setIsGameOver(false);
+        setInitials("");
         if (canvasRef.current && previewRef.current && holdRef.current) {
             gameInstance.current = startGame({
                 canvas: canvasRef.current, previewCanvas: previewRef.current, holdCanvas: holdRef.current,
@@ -51,6 +55,16 @@ const TetrisPage: React.FC<TetrisPageProps> = ({ onBackToHub, onReturnToFeeds })
             });
         }
     }, []);
+
+    const handleSaveScore = () => {
+        saveHighScore('tetris', {
+            name: initials || "???",
+            score: stats.score,
+            displayValue: stats.score.toLocaleString(),
+            date: new Date().toISOString()
+        });
+        onBackToHub();
+    };
 
     useEffect(() => {
         handleRestart();
@@ -91,21 +105,16 @@ const TetrisPage: React.FC<TetrisPageProps> = ({ onBackToHub, onReturnToFeeds })
                     <h1 className="text-3xl font-black italic uppercase tracking-tighter text-plant-500">Planter Stacker</h1>
                     <p className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-600">Skid Row Unit #7</p>
                 </div>
-                <div className="flex gap-2">
-                    <button onClick={onBackToHub} className="px-4 py-2 bg-zinc-900 border border-white/10 rounded-full text-[10px] font-black uppercase italic text-zinc-400 hover:text-white transition-all">Eject</button>
-                </div>
+                <button onClick={onBackToHub} className="px-4 py-2 bg-zinc-900 border border-white/10 rounded-full text-[10px] font-black uppercase italic text-zinc-400 hover:text-white transition-all">Eject</button>
             </header>
 
-            <div className="flex-grow flex items-center justify-center gap-6 p-4 z-10">
-                <div className="hidden md:flex flex-col gap-4">
-                    <div className="bg-zinc-900 p-4 rounded-3xl border-2 border-white/5 text-center">
+            <div className="flex-grow flex items-center justify-center gap-6 p-4 z-10 overflow-hidden">
+                <div className="hidden lg:flex flex-col gap-6 w-48">
+                    <div className="bg-zinc-900/80 p-4 rounded-3xl border-2 border-white/5 text-center">
                         <p className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-2">Stored</p>
-                        <canvas ref={holdRef} className="w-20 h-20 opacity-80" />
+                        <canvas ref={holdRef} className="mx-auto w-16 h-16 opacity-80" />
                     </div>
-                    <div className="bg-zinc-900 p-4 rounded-3xl border-2 border-white/5 text-center">
-                        <p className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Growth</p>
-                        <p className="text-3xl font-black italic text-plant-500">{stats.level}</p>
-                    </div>
+                    <HighScoreTable entries={getHighScores('tetris')} title="STACKER" />
                 </div>
 
                 <div className="relative aspect-[1/2] h-[60vh] sm:h-[70vh]">
@@ -114,17 +123,13 @@ const TetrisPage: React.FC<TetrisPageProps> = ({ onBackToHub, onReturnToFeeds })
                 </div>
 
                 <div className="flex flex-col gap-4">
-                    <div className="bg-zinc-900 p-4 rounded-3xl border-2 border-white/5 text-center">
+                    <div className="bg-zinc-900/80 p-4 rounded-3xl border-2 border-white/5 text-center">
                         <p className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-2">Upcoming</p>
-                        <canvas ref={previewRef} className="w-20 h-40 opacity-80" />
+                        <canvas ref={previewRef} className="mx-auto w-16 h-32 opacity-80" />
                     </div>
                     <div className="bg-zinc-900 p-4 rounded-3xl border-2 border-white/5 text-center">
-                        <p className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Compost</p>
-                        <p className="text-3xl font-black italic text-flesh-500">{stats.rows}</p>
-                    </div>
-                    <div className="bg-zinc-900 p-4 rounded-3xl border-2 border-white/5 text-center">
-                        <p className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Energy</p>
-                        <p className="text-3xl font-black italic text-yellow-400">{stats.score}</p>
+                        <p className="text-[8px] font-black uppercase text-zinc-500 tracking-widest">Score</p>
+                        <p className="text-2xl font-black italic text-yellow-400">{stats.score}</p>
                     </div>
                 </div>
             </div>
@@ -134,11 +139,21 @@ const TetrisPage: React.FC<TetrisPageProps> = ({ onBackToHub, onReturnToFeeds })
             </div>
 
             {isGameOver && (
-                <div className="fixed inset-0 bg-black/95 backdrop-blur-md z-50 flex items-center justify-center p-6">
-                    <div className="max-w-sm w-full bg-zinc-900 p-12 rounded-[3rem] border-4 border-flesh-600 text-center shadow-[0_0_100px_rgba(236,72,153,0.3)]">
-                        <h2 className="text-6xl font-black italic uppercase tracking-tighter text-flesh-500 mb-4">WILTED</h2>
-                        <p className="text-zinc-500 font-bold uppercase tracking-widest mb-10">Score: {stats.score}</p>
-                        <button onClick={handleRestart} className="w-full py-5 bg-flesh-600 text-white font-black text-xl italic uppercase rounded-full hover:scale-105 transition-transform">Regrow</button>
+                <div className="fixed inset-0 bg-black/95 backdrop-blur-md z-50 flex items-center justify-center p-6 text-center">
+                    <div className="max-w-sm w-full bg-zinc-900 p-12 rounded-[3rem] border-4 border-flesh-600 shadow-[0_0_100px_rgba(236,72,153,0.3)]">
+                        <h2 className="text-5xl font-black italic uppercase tracking-tighter text-flesh-500 mb-4">WILTED</h2>
+                        <div className="mb-8">
+                            <p className="text-zinc-500 font-bold uppercase tracking-widest text-[10px] mb-4">Enter Arcade Initials</p>
+                            <input 
+                                autoFocus
+                                maxLength={3} 
+                                value={initials} 
+                                onChange={e => setInitials(e.target.value.toUpperCase())}
+                                className="bg-black/50 border-2 border-flesh-500 text-flesh-500 rounded-xl px-4 py-3 text-center text-2xl font-black w-32 outline-none uppercase italic"
+                                placeholder="???"
+                            />
+                        </div>
+                        <button onClick={handleSaveScore} className="w-full py-5 bg-flesh-600 text-white font-black text-xl italic uppercase rounded-full hover:scale-105 transition-transform">Post Score</button>
                     </div>
                 </div>
             )}
