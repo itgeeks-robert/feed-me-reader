@@ -10,7 +10,7 @@ export interface HighScoreEntry {
 export type ScoreCategory = 
     | 'sudoku_easy' | 'sudoku_medium' | 'sudoku_hard' 
     | 'minesweeper_easy' | 'minesweeper_medium' | 'minesweeper_hard'
-    | 'tetris' | 'solitaire' | 'spore_crypt';
+    | 'tetris' | 'solitaire' | 'spore_crypt' | 'void_runner';
 
 const STORAGE_KEY = 'feedme_arcade_high_scores';
 

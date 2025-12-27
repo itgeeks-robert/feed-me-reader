@@ -49,10 +49,10 @@ const ARTICLES_PER_PAGE = 10;
 const EnergyScope: React.FC<{ value: number }> = ({ value }) => (
     <div className="w-full flex flex-col gap-1">
         <div className="flex justify-between items-center">
-            <span className="text-[7px] font-black text-pulse-500 uppercase tracking-tighter">Psychic Charge</span>
-            <span className="text-[7px] font-black text-pulse-500 uppercase tracking-tighter">{value}%</span>
+            <span className="text-[10px] font-black text-pulse-500 uppercase tracking-tighter">Psychic Charge</span>
+            <span className="text-[10px] font-black text-pulse-500 uppercase tracking-tighter">{value}%</span>
         </div>
-        <div className="w-full h-1 bg-void-900 border border-pulse-500/20 rounded-full overflow-hidden relative">
+        <div className="w-full h-1.5 bg-void-900 border border-pulse-500/20 rounded-full overflow-hidden relative">
             <div 
                 className="h-full bg-pulse-500 shadow-[0_0_10px_#e11d48] transition-all duration-1000" 
                 style={{ width: `${value}%` }} 
@@ -170,13 +170,13 @@ const MainContent: React.FC<MainContentProps> = (props) => {
             <div className="px-4 md:px-12 pt-28 md:pt-32 max-w-6xl mx-auto">
                  <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b-2 border-pulse-500/10 mb-8">
                     <div>
-                        <h1 className="text-[11px] md:text-lg font-black text-white italic drop-shadow-[0_0_10px_rgba(225,29,72,0.4)] glitch-text uppercase tracking-widest">{pageTitle}</h1>
-                        <p className="text-[7px] md:text-[8px] font-black text-zinc-600 uppercase tracking-[0.4em] mt-1 font-mono">{unreadCount} SIGS</p>
+                        <h1 className="text-xl md:text-2xl font-black text-white italic drop-shadow-[0_0_10px_rgba(225,29,72,0.4)] glitch-text uppercase tracking-widest">{pageTitle}</h1>
+                        <p className="text-[10px] md:text-xs font-black text-zinc-600 uppercase tracking-[0.4em] mt-2 font-mono">{unreadCount} SIGS DETECTED</p>
                     </div>
                     {unreadCount > 5 && (
                         <button 
                             onClick={() => onSatiateSeymour(articles.map(a => a.id))}
-                            className="flex items-center gap-2 px-4 py-1.5 bg-void-900 border border-pulse-500 text-pulse-500 hover:bg-pulse-500 hover:text-white rounded-none font-black uppercase italic text-[8px] transition-all shadow-[3px_3px_0px_#e11d48]"
+                            className="flex items-center gap-2 px-6 py-2.5 bg-void-900 border border-pulse-500 text-pulse-500 hover:bg-pulse-500 hover:text-white rounded-none font-black uppercase italic text-xs transition-all shadow-[4px_4px_0px_#e11d48]"
                         >
                             <span>Clear Frequency</span>
                         </button>
@@ -184,28 +184,28 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                 </div>
                 
                 {latestArticle && (
-                    <div className="mb-10">
+                    <div className="mb-12">
                         <FeaturedStory article={latestArticle} onReadHere={() => setReaderArticle(latestArticle)} onMarkAsRead={() => onMarkAsRead(latestArticle.id)} isRead={readArticleIds.has(latestArticle.id)} />
                     </div>
                 )}
                 
-                <div className="mt-6">
-                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-4">
-                        <div className="flex items-center gap-4">
-                            <h2 className="font-black text-[10px] md:text-xs text-white italic uppercase tracking-tighter">Transmissions</h2>
+                <div className="mt-8">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-8 gap-4">
+                        <div className="flex items-center gap-6">
+                            <h2 className="font-black text-xs md:text-sm text-white italic uppercase tracking-tighter">Transmissions</h2>
                             <UnreadFilterToggle checked={showOnlyUnread} onChange={setShowOnlyUnread} />
                         </div>
                         {sportsResults.size > 0 && <SportsCarousel results={sportsResults} isLoading={isSportsLoading} onTeamSelect={onSearch} />}
                     </div>
 
                     {loading && filteredArticles.length === 0 && (
-                        <div className="text-center py-20 flex flex-col items-center gap-3">
-                            <div className="w-8 h-8 border-t-2 border-pulse-500 rounded-full animate-spin"></div>
-                            <span className="text-pulse-500 font-mono text-[8px] uppercase tracking-widest animate-pulse">Decrypting...</span>
+                        <div className="text-center py-20 flex flex-col items-center gap-4">
+                            <div className="w-10 h-10 border-t-2 border-pulse-500 rounded-full animate-spin"></div>
+                            <span className="text-pulse-500 font-mono text-xs uppercase tracking-widest animate-pulse">Decrypting Signal...</span>
                         </div>
                     )}
                     
-                    <div className={articleView === 'grid' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8" : "space-y-5 md:space-y-6"}>
+                    <div className={articleView === 'grid' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10" : "space-y-6 md:space-y-8"}>
                         {visibleArticlesToDisplay.map(article => {
                             const commonProps = {
                                 key: article.id,
@@ -221,10 +221,10 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                     </div>
 
                     {articlesToDisplay.length > visibleCount && (
-                        <div className="mt-12 text-center pb-20">
+                        <div className="mt-16 text-center pb-24">
                             <button
                                 onClick={() => setVisibleCount(c => c + ARTICLES_PER_PAGE)}
-                                className="bg-void-950 border border-pulse-500 text-pulse-500 hover:bg-pulse-500 hover:text-white font-black uppercase italic py-2.5 px-8 rounded-none transition-all shadow-[4px_4px_0px_#e11d48] text-[9px] md:text-xs"
+                                className="bg-void-950 border-2 border-pulse-500 text-pulse-500 hover:bg-pulse-500 hover:text-white font-black uppercase italic py-4 px-12 rounded-none transition-all shadow-[6px_6px_0px_#e11d48] text-sm md:text-base"
                             >
                                 Dig Deeper
                             </button>
@@ -238,19 +238,19 @@ const MainContent: React.FC<MainContentProps> = (props) => {
 };
 
 const Header: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuery, onOpenSidebar, theme, onToggleTheme, fertilizer, cacheCount }) => (
-    <header className="fixed top-0 left-0 md:left-72 right-0 z-30 p-3 md:p-8 pointer-events-none">
-        <div className="w-full h-14 md:h-20 bg-void-950/90 backdrop-blur-xl border-b border-pulse-500/30 flex items-center justify-between px-4 md:px-8 pointer-events-auto shadow-2xl">
-            <button onClick={onOpenSidebar} className="p-2 text-pulse-500 transition-all flex-shrink-0"><MenuIcon className="w-6 h-6 md:w-8 md:h-8" /></button>
+    <header className="fixed top-0 left-0 md:left-72 right-0 z-30 p-3 md:p-6 pointer-events-none">
+        <div className="w-full h-16 md:h-24 bg-void-950/90 backdrop-blur-xl border-b border-pulse-500/30 flex items-center justify-between px-4 md:px-10 pointer-events-auto shadow-2xl">
+            <button onClick={onOpenSidebar} className="p-2 text-pulse-500 transition-all flex-shrink-0"><MenuIcon className="w-7 h-7 md:w-9 md:h-9" /></button>
             
-            <div className="flex-grow flex flex-col items-center mx-3 md:mx-8 max-w-2xl">
-                <form onSubmit={onSearchSubmit} className="relative w-full mb-1 md:mb-2">
-                    <SearchIcon className="w-3.5 h-3.5 md:w-5 md:h-5 text-zinc-700 absolute top-1/2 left-3.5 md:left-6 -translate-y-1/2" />
+            <div className="flex-grow flex flex-col items-center mx-3 md:mx-12 max-w-2xl">
+                <form onSubmit={onSearchSubmit} className="relative w-full mb-2 md:mb-3">
+                    <SearchIcon className="w-5 h-5 text-zinc-700 absolute top-1/2 left-4 md:left-6 -translate-y-1/2" />
                     <input 
                         type="search" 
-                        placeholder="Frequency..." 
+                        placeholder="Intercepting..." 
                         value={searchQuery}
                         onChange={e => setSearchQuery(e.target.value)}
-                        className="w-full bg-void-900 border border-zinc-800 focus:border-pulse-500 placeholder-zinc-700 text-white rounded-none py-1.5 md:py-3 pl-9 md:pl-16 pr-3 text-[11px] md:text-sm transition-all font-mono uppercase tracking-widest outline-none"
+                        className="w-full bg-void-900 border border-zinc-800 focus:border-pulse-500 placeholder-zinc-700 text-white rounded-none py-2.5 md:py-4 pl-12 md:pl-16 pr-4 text-sm md:text-base transition-all font-mono uppercase tracking-widest outline-none"
                     />
                 </form>
                 <div className="w-full px-1 md:px-6">
@@ -258,13 +258,13 @@ const Header: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuery, on
                 </div>
             </div>
 
-            <div className="flex items-center gap-3 md:gap-8 flex-shrink-0">
+            <div className="flex items-center gap-4 md:gap-10 flex-shrink-0">
                 <div className="hidden lg:flex flex-col items-end">
-                    <span className="text-[7px] font-black text-zinc-600 uppercase tracking-tighter">Buffer</span>
-                    <span className="text-[9px] font-black text-pulse-500 uppercase tracking-tighter">{cacheCount} SIGS</span>
+                    <span className="text-[10px] font-black text-zinc-600 uppercase tracking-tighter">Buffer</span>
+                    <span className="text-xs font-black text-pulse-500 uppercase tracking-tighter">{cacheCount} SIGS</span>
                 </div>
                 <button onClick={onToggleTheme} className="p-2 text-pulse-500 hover:text-white transition-all">
-                    {theme === 'dark' ? <SunIcon className="w-5 h-5 md:w-6 md:h-6" /> : <MoonIcon className="w-5 h-5 md:w-6 md:h-6" />}
+                    {theme === 'dark' ? <SunIcon className="w-6 h-6 md:w-8 md:h-8" /> : <MoonIcon className="w-6 h-6 md:w-8 md:h-8" />}
                 </button>
             </div>
         </div>
@@ -272,15 +272,15 @@ const Header: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuery, on
 );
 
 const UnreadFilterToggle: React.FC<any> = ({ checked, onChange }) => (
-    <label className="flex items-center cursor-pointer group bg-void-900 px-3 py-1.5 md:px-6 md:py-2 border border-zinc-800 transition-all hover:border-pulse-500">
+    <label className="flex items-center cursor-pointer group bg-void-900 px-4 py-2 md:px-8 md:py-3 border border-zinc-800 transition-all hover:border-pulse-500">
         <input type="checkbox" className="sr-only" checked={checked} onChange={(e) => onChange(e.target.checked)} />
-        <div className={`w-3 h-3 md:w-4 md:h-4 border-2 flex-shrink-0 mr-2 md:mr-3 transition-colors ${checked ? 'bg-pulse-500 border-pulse-500' : 'bg-transparent border-zinc-700'}`}></div>
-        <span className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.1em] text-zinc-500 group-hover:text-white transition-colors font-mono">Unread</span>
+        <div className={`w-4 h-4 md:w-5 md:h-5 border-2 flex-shrink-0 mr-3 md:mr-4 transition-colors ${checked ? 'bg-pulse-500 border-pulse-500' : 'bg-transparent border-zinc-700'}`}></div>
+        <span className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-zinc-500 group-hover:text-white transition-colors font-mono">Unread</span>
     </label>
 );
 
 const SportsCarousel: React.FC<any> = ({ results, isLoading, onTeamSelect }) => (
-    <div className="flex gap-3 overflow-x-auto scrollbar-hide max-w-[150px] sm:max-w-none">
+    <div className="flex gap-4 overflow-x-auto scrollbar-hide max-w-[180px] sm:max-w-none">
         {Array.from(results.keys()).map((teamCode: any) => (
             <SportsCard key={teamCode} data={results.get(teamCode)} isLoading={isLoading} onSelect={onTeamSelect} />
         ))}
@@ -288,11 +288,11 @@ const SportsCarousel: React.FC<any> = ({ results, isLoading, onTeamSelect }) => 
 );
 
 const SportsCard: React.FC<any> = ({ data, isLoading, onSelect }) => {
-    if (isLoading) return <div className="w-20 h-8 bg-void-900 animate-pulse flex-shrink-0" />;
+    if (isLoading) return <div className="w-24 h-10 bg-void-900 animate-pulse flex-shrink-0" />;
     if (!data || !data.success) return null;
     return (
-        <button onClick={() => onSelect(data.teamFullName)} className="px-3 py-1.5 bg-void-950 border border-zinc-800 hover:border-pulse-500 transition-all flex items-center flex-shrink-0">
-            <span className="font-black text-[9px] md:text-xs text-white font-mono">{data.homeScore}-{data.awayScore}</span>
+        <button onClick={() => onSelect(data.teamFullName)} className="px-4 py-2.5 bg-void-950 border border-zinc-800 hover:border-pulse-500 transition-all flex items-center flex-shrink-0 shadow-lg">
+            <span className="font-black text-xs md:text-sm text-white font-mono">{data.homeScore}-{data.awayScore}</span>
         </button>
     );
 };

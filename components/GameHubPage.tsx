@@ -8,7 +8,8 @@ import MinesweeperPage from './MinesweeperPage';
 import TetrisPage from './TetrisPage';
 import PoolGamePage from './PoolGamePage';
 import SporeCryptPage from './SporeCryptPage';
-import { WalkieTalkieIcon, ControllerIcon, RadioIcon, EntityIcon, KeypadIcon } from './icons';
+import VoidRunnerPage from './VoidRunnerPage';
+import { WalkieTalkieIcon, ControllerIcon, RadioIcon, EntityIcon, KeypadIcon, SparklesIcon } from './icons';
 
 interface GameInfo {
     id: string;
@@ -49,6 +50,14 @@ const GameHubPage: React.FC<any> = (props) => {
     const handleBackToHub = useCallback(() => setActiveGame('hub'), []);
 
     const games: GameInfo[] = [
+        { 
+            id: 'void-runner', 
+            title: 'Void Runner', 
+            description: 'Navigate the multidimensional maze. Avoid the Demogorgons.', 
+            icon: <SparklesIcon />, 
+            bannerColor: 'from-pulse-950 to-void-900',
+            stats: 'LEVEL 1-8'
+        },
         { 
             id: 'sudoku', 
             title: 'Pattern Zero', 
@@ -114,6 +123,7 @@ const GameHubPage: React.FC<any> = (props) => {
     
     return (
         <Suspense fallback={<div className="w-full h-full flex flex-col items-center justify-center bg-void-950 text-pulse-500 font-black text-4xl italic animate-pulse uppercase font-horror">Loading Simulation...</div>}>
+            {activeGame === 'void-runner' && <VoidRunnerPage onBackToHub={handleBackToHub} onReturnToFeeds={props.onReturnToFeeds} />}
             {activeGame === 'sudoku' && <SudokuPage stats={props.sudokuStats} onGameWin={props.onSudokuWin} onGameLoss={props.onSudokuLoss} onBackToHub={handleBackToHub} onReturnToFeeds={props.onReturnToFeeds} />}
             {activeGame === 'spore-crypt' && <SporeCryptPage onBackToHub={handleBackToHub} fertilizer={props.fertilizer} setFertilizer={props.setFertilizer} />}
             {activeGame === 'solitaire' && <SolitairePage stats={props.solitaireStats} onGameWin={props.onSolitaireWin} onGameStart={props.onSolitaireStart} settings={props.solitaireSettings} onUpdateSettings={props.onUpdateSolitaireSettings} onBackToHub={handleBackToHub} onReturnToFeeds={props.onReturnToFeeds} />}
