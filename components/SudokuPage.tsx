@@ -54,7 +54,6 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
     const [initials, setInitials] = useState("");
     const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-    // Track completed sets for animations
     const [completedRows, setCompletedRows] = useState<Set<number>>(new Set());
     const [completedCols, setCompletedCols] = useState<Set<number>>(new Set());
     const [completedBlocks, setCompletedBlocks] = useState<Set<number>>(new Set());
@@ -100,11 +99,11 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
         const newBlocks = new Set<number>();
 
         for (let r = 0; r < 9; r++) {
-            if (currentGrid[r].every(c => c.value !== null)) newRows.add(r);
+            if (currentGrid[r].every(c => c.value !== null && !c.isError)) newRows.add(r);
         }
         for (let c = 0; c < 9; c++) {
             let full = true;
-            for (let r = 0; r < 9; r++) if (currentGrid[r][c].value === null) full = false;
+            for (let r = 0; r < 9; r++) if (currentGrid[r][c].value === null || currentGrid[r][c].isError) full = false;
             if (full) newCols.add(c);
         }
         for (let b = 0; b < 9; b++) {
@@ -113,7 +112,7 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
             const startC = (b % 3) * 3;
             for (let r = startR; r < startR + 3; r++) {
                 for (let c = startC; c < startC + 3; c++) {
-                    if (currentGrid[r][c].value === null) full = false;
+                    if (currentGrid[r][c].value === null || currentGrid[r][c].isError) full = false;
                 }
             }
             if (full) newBlocks.add(b);
@@ -136,7 +135,6 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
         }
     };
 
-    // Logical Analysis for Highlights and Pad UI
     const cellContext = useMemo(() => {
         if (!selectedCell || !grid) return { 
             inBlock: new Set<number>(),
@@ -151,15 +149,15 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
         const inBlock = new Set<number>();
         
         for (let i = 0; i < 9; i++) {
-            if (grid[row][i].value) inRow.add(grid[row][i].value!);
-            if (grid[i][col].value) inCol.add(grid[i][col].value!);
+            if (grid[row][i].value && !grid[row][i].isError) inRow.add(grid[row][i].value!);
+            if (grid[i][col].value && !grid[i][col].isError) inCol.add(grid[i][col].value!);
         }
         
         const boxRowStart = Math.floor(row / 3) * 3;
         const boxColStart = Math.floor(col / 3) * 3;
         for (let r = boxRowStart; r < boxRowStart + 3; r++) {
             for (let c = boxColStart; c < boxColStart + 3; c++) {
-                if (grid[r][c].value) inBlock.add(grid[r][c].value!);
+                if (grid[r][c].value && !grid[r][c].isError) inBlock.add(grid[r][c].value!);
             }
         }
         
@@ -228,9 +226,12 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
         } else {
             if (solution[row][col] === num) {
                 newGrid[row][col].value = num;
+                newGrid[row][col].isError = false;
                 newGrid[row][col].notes = new Set();
                 checkCompletions(newGrid);
             } else {
+                newGrid[row][col].value = num; // Persist the mistake value so it doesn't "disappear"
+                newGrid[row][col].isError = true;
                 setMistakes(m => {
                     const next = m + 1;
                     if (next >= MISTAKE_LIMIT) {
@@ -239,8 +240,6 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
                     }
                     return next;
                 });
-                newGrid[row][col].isError = true;
-                // Add a brief timeout to clear the error visually or keep it for the jitter
             }
         }
         setGrid(newGrid);
@@ -384,7 +383,7 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
                                 } else if (isSameValue) {
                                     baseStyle += "bg-yellow-400/40 text-yellow-100 ring-1 ring-yellow-400/50 ";
                                 } else if (isSameRow || isSameCol || isSameBlock) {
-                                    baseStyle += "bg-plant-500/10 ";
+                                    baseStyle += "bg-plant-500/25 "; // Increased opacity for better visibility
                                 } else if (isRowDone || isColDone || isBlockDone) {
                                     baseStyle += "bg-plant-950/20 ";
                                 } else {
@@ -395,9 +394,11 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
                                 const borderB = (r + 1) % 3 === 0 && r < 8 ? 'border-b-2 border-b-plant-500/40' : 'border-b border-b-zinc-800/40';
 
                                 return (
-                                    <div key={`${r}-${c}`} onClick={() => handleCellClick(r, c)} className={`${baseStyle} ${borderR} ${borderB} ${!isSelected && !cell.isPrefilled && cell.value ? 'text-plant-400' : ''}`}>
-                                        {cell.isError && <div className="absolute inset-0 static-noise opacity-20 pointer-events-none" />}
-                                        {cell.value || (cell.notes.size > 0 && (
+                                    <div key={`${r}-${c}`} onClick={() => handleCellClick(r, c)} className={`${baseStyle} ${borderR} ${borderB} ${!isSelected && !cell.isPrefilled && cell.value && !cell.isError ? 'text-plant-400' : ''}`}>
+                                        {cell.isError && <div className="absolute inset-0 static-noise opacity-30 pointer-events-none" />}
+                                        {cell.value !== null ? (
+                                            <span className={cell.isError ? 'text-flesh-500' : ''}>{cell.value}</span>
+                                        ) : (cell.notes.size > 0 && (
                                             <div className="grid grid-cols-3 gap-[1px] p-0.5 w-full h-full opacity-40">
                                                 {[1,2,3,4,5,6,7,8,9].map(n => <div key={n} className="flex items-center justify-center text-[7px] leading-none font-bold">{cell.notes.has(n) ? n : ''}</div>)}
                                             </div>
