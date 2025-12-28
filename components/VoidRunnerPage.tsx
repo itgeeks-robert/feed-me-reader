@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { XIcon, SparklesIcon, VoidIcon } from './icons';
 import { GameboyControls, GameboyButton } from './GameboyControls';
@@ -8,7 +9,7 @@ type Direction = 'UP' | 'DOWN' | 'LEFT' | 'RIGHT' | 'NONE';
 type GameState = 'INTRO' | 'STORY_BEAT' | 'PLAYING' | 'DYING' | 'SECTOR_CLEAR' | 'WON' | 'LOST';
 
 const TILE_SIZE = 20;
-const BASE_SPEED = 2; // Must be a factor of TILE_SIZE (20)
+const BASE_SPEED = 1.25; // Slower base speed for better control
 const MAX_PLAYABLE_SECTORS = 7;
 
 const MAZE_LAYOUT = [
@@ -61,6 +62,7 @@ interface Entity {
     y: number;
     dir: Direction;
     nextDir: Direction;
+    isMoving: boolean;
 }
 
 const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () => void; onCollectPacket?: () => void }> = ({ onBackToHub, onCollectPacket }) => {
@@ -74,7 +76,7 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
     
     const requestRef = useRef<number | undefined>(undefined);
     const gameData = useRef({
-        player: { x: 9 * TILE_SIZE, y: 15 * TILE_SIZE, dir: 'NONE', nextDir: 'NONE' } as Entity,
+        player: { x: 9 * TILE_SIZE, y: 15 * TILE_SIZE, dir: 'NONE', nextDir: 'NONE', isMoving: false } as Entity,
         ghosts: [] as Ghost[],
         maze: [] as number[][],
         frightenedTimer: 0,
@@ -83,37 +85,63 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
         deathTimer: 0,
         bonus: null as { x: number, y: number, type: 'BURGER' | 'SHAKE', timer: number } | null,
         modeTimer: 0,
-        currentMode: 'SCATTER' as 'SCATTER' | 'CHASE'
+        currentMode: 'SCATTER' as 'SCATTER' | 'CHASE',
+        activeInputKeys: new Set<string>()
     });
 
     useEffect(() => { setHighScores(getHighScores('void_runner')); }, [gameState]);
 
-    // Robust Keyboard Input
+    // Enhanced Keyboard Tracking for Press/Release
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            const { player } = gameData.current;
+            const { activeInputKeys, player } = gameData.current;
             let captured = true;
             switch (e.key) {
-                case 'ArrowUp': case 'w': case 'W': player.nextDir = 'UP'; break;
-                case 'ArrowDown': case 's': case 'S': player.nextDir = 'DOWN'; break;
-                case 'ArrowLeft': case 'a': case 'A': player.nextDir = 'LEFT'; break;
-                case 'ArrowRight': case 'd': case 'D': player.nextDir = 'RIGHT'; break;
+                case 'ArrowUp': case 'w': case 'W': 
+                    activeInputKeys.add('UP'); player.nextDir = 'UP'; break;
+                case 'ArrowDown': case 's': case 'S': 
+                    activeInputKeys.add('DOWN'); player.nextDir = 'DOWN'; break;
+                case 'ArrowLeft': case 'a': case 'A': 
+                    activeInputKeys.add('LEFT'); player.nextDir = 'LEFT'; break;
+                case 'ArrowRight': case 'd': case 'D': 
+                    activeInputKeys.add('RIGHT'); player.nextDir = 'RIGHT'; break;
                 default: captured = false;
             }
-            if (captured) {
-                e.preventDefault();
-                e.stopPropagation();
+            if (activeInputKeys.size > 0) player.isMoving = true;
+            if (captured) { e.preventDefault(); e.stopPropagation(); }
+        };
+
+        const handleKeyUp = (e: KeyboardEvent) => {
+            const { activeInputKeys, player } = gameData.current;
+            switch (e.key) {
+                case 'ArrowUp': case 'w': case 'W': activeInputKeys.delete('UP'); break;
+                case 'ArrowDown': case 's': case 'S': activeInputKeys.delete('DOWN'); break;
+                case 'ArrowLeft': case 'a': case 'A': activeInputKeys.delete('LEFT'); break;
+                case 'ArrowRight': case 'd': case 'D': activeInputKeys.delete('RIGHT'); break;
+            }
+            if (activeInputKeys.size === 0) {
+                player.isMoving = false;
+                player.nextDir = 'NONE';
+            } else {
+                // Set nextDir to whatever is still held
+                const held = Array.from(activeInputKeys);
+                player.nextDir = held[held.length - 1] as Direction;
             }
         };
+
         window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
+        window.addEventListener('keyup', handleKeyUp);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('keyup', handleKeyUp);
+        };
     }, []);
 
     const isWall = (tx: number, ty: number) => {
         const row = gameData.current.maze[ty];
         if (!row) return true;
         const cell = row[tx];
-        return cell === 1 || cell === 4; // Walls and House borders
+        return cell === 1 || cell === 4; 
     };
 
     const getValidDirs = (x: number, y: number, currentDir: Direction): Direction[] => {
@@ -124,12 +152,7 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
         
         const check = (dtx: number, dty: number, dir: Direction) => {
             if (dir === opp[currentDir]) return;
-            const row = gameData.current.maze[ty + dty];
-            if (!row) return;
-            const cell = row[tx + dtx];
-            // Ghosts can't enter the house through the gate usually, but they can exit. 
-            // In the play area, they treats 1 and 4 as walls.
-            if (cell !== 1 && cell !== 4) res.push(dir);
+            if (!isWall(tx + dtx, ty + dty)) res.push(dir);
         };
 
         check(0, -1, 'UP');
@@ -143,11 +166,11 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
         setSector(s);
         if (s === 8) { setGameState('WON'); return; }
         gameData.current.maze = JSON.parse(JSON.stringify(MAZE_LAYOUT));
-        gameData.current.player = { x: 9 * TILE_SIZE, y: 15 * TILE_SIZE, dir: 'NONE', nextDir: 'NONE' };
+        gameData.current.player = { x: 9 * TILE_SIZE, y: 15 * TILE_SIZE, dir: 'NONE', nextDir: 'NONE', isMoving: false };
         gameData.current.ghosts = [
             { id: 1, x: 9 * TILE_SIZE, y: 9 * TILE_SIZE, dir: 'UP', color: '#ef4444', state: 'HOUSE', exitDelay: 0 },
-            { id: 2, x: 8 * TILE_SIZE, y: 9 * TILE_SIZE, dir: 'UP', color: '#ec4899', state: 'HOUSE', exitDelay: 180 },
-            { id: 3, x: 10 * TILE_SIZE, y: 9 * TILE_SIZE, dir: 'UP', color: '#06b6d4', state: 'HOUSE', exitDelay: 360 }
+            { id: 2, x: 8 * TILE_SIZE, y: 9 * TILE_SIZE, dir: 'UP', color: '#ec4899', state: 'HOUSE', exitDelay: 120 },
+            { id: 3, x: 10 * TILE_SIZE, y: 9 * TILE_SIZE, dir: 'UP', color: '#06b6d4', state: 'HOUSE', exitDelay: 240 }
         ];
         let count = 0;
         MAZE_LAYOUT.forEach(row => row.forEach(cell => { if (cell === 0 || cell === 3) count++; }));
@@ -156,6 +179,7 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
         gameData.current.bonus = null;
         gameData.current.modeTimer = 0;
         gameData.current.currentMode = 'SCATTER';
+        gameData.current.activeInputKeys.clear();
         setIsFrightened(false);
         gameData.current.frightenedTimer = 0;
         setGameState('STORY_BEAT');
@@ -164,34 +188,72 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
     const update = useCallback(() => {
         const { player, ghosts, maze, bonus } = gameData.current;
 
-        // --- PLAYER LOGIC ---
-        const pAligned = player.x % TILE_SIZE === 0 && player.y % TILE_SIZE === 0;
+        // --- PLAYER LOGIC (NON-RAILS) ---
+        const pAligned = Math.abs(player.x % TILE_SIZE) < 0.1 && Math.abs(player.y % TILE_SIZE) < 0.1;
+        const tx = Math.round(player.x / TILE_SIZE);
+        const ty = Math.round(player.y / TILE_SIZE);
+
+        // Intent logic: if moving, handle turning at junctions or reversing immediately
         if (player.nextDir !== 'NONE') {
             const opp: Record<Direction, Direction> = { UP: 'DOWN', DOWN: 'UP', LEFT: 'RIGHT', RIGHT: 'LEFT', NONE: 'NONE' };
-            if (player.nextDir === opp[player.dir] || pAligned) {
-                const tx = Math.round(player.x / TILE_SIZE), ty = Math.round(player.y / TILE_SIZE);
-                let can = false;
-                if (player.nextDir === 'UP') can = !isWall(tx, ty - 1);
-                else if (player.nextDir === 'DOWN') can = !isWall(tx, ty + 1);
-                else if (player.nextDir === 'LEFT') can = !isWall(tx - 1, ty);
-                else if (player.nextDir === 'RIGHT') can = !isWall(tx + 1, ty);
-                if (can) { player.dir = player.nextDir; player.nextDir = 'NONE'; }
+            
+            // Allow immediate reversal
+            if (player.nextDir === opp[player.dir]) {
+                player.dir = player.nextDir;
+            } else if (pAligned) {
+                // Only turn at junctions if aligned
+                let canTurn = false;
+                if (player.nextDir === 'UP') canTurn = !isWall(tx, ty - 1);
+                else if (player.nextDir === 'DOWN') canTurn = !isWall(tx, ty + 1);
+                else if (player.nextDir === 'LEFT') canTurn = !isWall(tx - 1, ty);
+                else if (player.nextDir === 'RIGHT') canTurn = !isWall(tx + 1, ty);
+                
+                if (canTurn) {
+                    player.dir = player.nextDir;
+                }
             }
         }
-        if (player.dir !== 'NONE') {
+
+        // Apply movement only if isMoving is true
+        if (player.isMoving && player.dir !== 'NONE') {
+            // Check wall collision ahead
+            let blocked = false;
             if (pAligned) {
-                const tx = Math.round(player.x / TILE_SIZE), ty = Math.round(player.y / TILE_SIZE);
-                let wall = false;
-                if (player.dir === 'UP') wall = isWall(tx, ty - 1);
-                else if (player.dir === 'DOWN') wall = isWall(tx, ty + 1);
-                else if (player.dir === 'LEFT') wall = isWall(tx - 1, ty);
-                else if (player.dir === 'RIGHT') wall = isWall(tx + 1, ty);
-                if (wall) player.dir = 'NONE';
+                if (player.dir === 'UP') blocked = isWall(tx, ty - 1);
+                else if (player.dir === 'DOWN') blocked = isWall(tx, ty + 1);
+                else if (player.dir === 'LEFT') blocked = isWall(tx - 1, ty);
+                else if (player.dir === 'RIGHT') blocked = isWall(tx + 1, ty);
+                if (blocked) {
+                    player.dir = 'NONE';
+                    // Snap to precise center
+                    player.x = tx * TILE_SIZE;
+                    player.y = ty * TILE_SIZE;
+                }
             }
-            if (player.dir === 'UP') player.y -= BASE_SPEED;
-            else if (player.dir === 'DOWN') player.y += BASE_SPEED;
-            else if (player.dir === 'LEFT') player.x -= BASE_SPEED;
-            else if (player.dir === 'RIGHT') player.x += BASE_SPEED;
+
+            if (!blocked) {
+                if (player.dir === 'UP') {
+                    player.y -= BASE_SPEED;
+                    // Lane Centering
+                    const targetX = tx * TILE_SIZE;
+                    player.x += (targetX - player.x) * 0.2;
+                }
+                else if (player.dir === 'DOWN') {
+                    player.y += BASE_SPEED;
+                    const targetX = tx * TILE_SIZE;
+                    player.x += (targetX - player.x) * 0.2;
+                }
+                else if (player.dir === 'LEFT') {
+                    player.x -= BASE_SPEED;
+                    const targetY = ty * TILE_SIZE;
+                    player.y += (targetY - player.y) * 0.2;
+                }
+                else if (player.dir === 'RIGHT') {
+                    player.x += BASE_SPEED;
+                    const targetY = ty * TILE_SIZE;
+                    player.y += (targetY - player.y) * 0.2;
+                }
+            }
         }
 
         // Screen Wrap
@@ -199,10 +261,10 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
         else if (player.x > (maze[0].length - 0.5) * TILE_SIZE) player.x = -TILE_SIZE/2;
 
         // Collision: Packets
-        const tx = Math.round(player.x / TILE_SIZE), ty = Math.round(player.y / TILE_SIZE);
-        if (maze[ty]?.[tx] === 0 || maze[ty]?.[tx] === 3) {
-            const isPower = maze[ty][tx] === 3;
-            maze[ty][tx] = 2;
+        const curTx = Math.round(player.x / TILE_SIZE), curTy = Math.round(player.y / TILE_SIZE);
+        if (maze[curTy]?.[curTx] === 0 || maze[curTy]?.[curTx] === 3) {
+            const isPower = maze[curTy][curTx] === 3;
+            maze[curTy][curTx] = 2;
             setScore(s => s + (isPower ? 50 : 10));
             gameData.current.packetsRemaining--;
             gameData.current.packetsCollected++;
@@ -212,12 +274,11 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
                 gameData.current.frightenedTimer = 480 - (sector * 30);
                 ghosts.forEach(g => { if(g.state !== 'HOUSE' && g.state !== 'EXITING') g.state = 'FRIGHTENED'; });
             }
-            // Bonus spawns
             if (gameData.current.packetsCollected === 70 || gameData.current.packetsCollected === 150) {
                 gameData.current.bonus = { x: 9 * TILE_SIZE, y: 11 * TILE_SIZE, type: Math.random() > 0.5 ? 'BURGER' : 'SHAKE', timer: 400 };
             }
         }
-        if (bonus && Math.abs(player.x - bonus.x) < 10 && Math.abs(player.y - bonus.y) < 10) {
+        if (bonus && Math.abs(player.x - bonus.x) < 12 && Math.abs(player.y - bonus.y) < 12) {
             setScore(s => s + 500);
             gameData.current.bonus = null;
         }
@@ -236,13 +297,12 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
                 ghosts.forEach(g => { if(g.state === 'FRIGHTENED') g.state = gameData.current.currentMode; });
             }
         } else {
-            // Mode Cycling (Scatter for 7s, Chase for 20s)
             gameData.current.modeTimer++;
-            const cycle = 1600; // ~27 seconds at 60fps
+            const cycle = 1800; 
             if (gameData.current.modeTimer % cycle === 0) {
                 gameData.current.currentMode = 'SCATTER';
                 ghosts.forEach(g => { if(g.state === 'CHASE') g.state = 'SCATTER'; });
-            } else if (gameData.current.modeTimer % cycle === 420) { // 7 seconds
+            } else if (gameData.current.modeTimer % cycle === 480) { 
                 gameData.current.currentMode = 'CHASE';
                 ghosts.forEach(g => { if(g.state === 'SCATTER') g.state = 'CHASE'; });
             }
@@ -250,16 +310,16 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
 
         // --- GHOST LOGIC ---
         ghosts.forEach(ghost => {
-            const speed = (isFrightened && ghost.state === 'FRIGHTENED') ? 1 : (BASE_SPEED + (sector * 0.1));
-            const aligned = ghost.x % TILE_SIZE === 0 && ghost.y % TILE_SIZE === 0;
+            // Speed scaling: Ghosts get 5% faster per level
+            const speedMultiplier = 0.85 + (sector * 0.05);
+            const speed = (isFrightened && ghost.state === 'FRIGHTENED') ? 0.6 : (BASE_SPEED * speedMultiplier);
+            const aligned = Math.abs(ghost.x % TILE_SIZE) < speed && Math.abs(ghost.y % TILE_SIZE) < speed;
 
             if (ghost.state === 'HOUSE') {
                 ghost.exitDelay--;
-                // Bounce
                 if (ghost.y <= 9 * TILE_SIZE - 4) ghost.dir = 'DOWN';
                 if (ghost.y >= 9 * TILE_SIZE + 4) ghost.dir = 'UP';
                 ghost.y += (ghost.dir === 'UP' ? -0.5 : 0.5);
-
                 if (ghost.exitDelay <= 0) ghost.state = 'EXITING';
             } else if (ghost.state === 'EXITING') {
                 const gateX = 9 * TILE_SIZE;
@@ -273,6 +333,10 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
                 }
             } else {
                 if (aligned) {
+                    // Snap to grid for pathfinding
+                    ghost.x = Math.round(ghost.x / TILE_SIZE) * TILE_SIZE;
+                    ghost.y = Math.round(ghost.y / TILE_SIZE) * TILE_SIZE;
+                    
                     const gtx = Math.round(ghost.x / TILE_SIZE), gty = Math.round(ghost.y / TILE_SIZE);
                     const valid = getValidDirs(ghost.x, ghost.y, ghost.dir);
 
@@ -282,21 +346,18 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
                             ghost.dir = valid[Math.floor(Math.random() * valid.length)];
                         } else {
                             if (ghost.state === 'SCATTER') {
-                                // Corner targets
                                 if (ghost.id === 1) { targetX = 18; targetY = 0; }
                                 else if (ghost.id === 2) { targetX = 0; targetY = 0; }
                                 else { targetX = 0; targetY = 20; }
                             } else {
-                                // CHASE AI
                                 const ptx = Math.round(player.x / TILE_SIZE);
                                 const pty = Math.round(player.y / TILE_SIZE);
-                                if (ghost.id === 1) { // Blinky: Direct
-                                    targetX = ptx; targetY = pty;
-                                } else if (ghost.id === 2) { // Pinky: Intercept (4 tiles ahead)
+                                if (ghost.id === 1) { targetX = ptx; targetY = pty; }
+                                else if (ghost.id === 2) { 
                                     targetX = ptx; targetY = pty;
                                     if (player.dir === 'UP') targetY -= 4; else if (player.dir === 'DOWN') targetY += 4;
                                     else if (player.dir === 'LEFT') targetX -= 4; else targetX += 4;
-                                } else { // Inky: Flank (Offset from Blinky)
+                                } else { 
                                     targetX = ptx; targetY = pty;
                                     if (player.dir === 'UP') targetY += 4; else if (player.dir === 'DOWN') targetY -= 4;
                                     else if (player.dir === 'LEFT') targetX += 4; else targetX -= 4;
@@ -307,7 +368,7 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
                                 let ax = gtx, ay = gty, bx = gtx, by = gty;
                                 if (a === 'UP') ay--; else if (a === 'DOWN') ay++; else if (a === 'LEFT') ax--; else ax++;
                                 if (b === 'UP') by--; else if (b === 'DOWN') by++; else if (b === 'LEFT') bx--; else bx++;
-                                return Math.sqrt((ax-targetX)**2 + (ay-targetY)**2) - Math.sqrt((bx-targetX)**2 + (by-targetY)**2);
+                                return ((ax-targetX)**2 + (ay-targetY)**2) - ((bx-targetX)**2 + (by-targetY)**2);
                             });
                             ghost.dir = valid[0];
                         }
@@ -319,13 +380,12 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
                 else if (ghost.dir === 'LEFT') ghost.x -= speed;
                 else if (ghost.dir === 'RIGHT') ghost.x += speed;
 
-                // Ghost Tunnels
                 if (ghost.x < -TILE_SIZE/2) ghost.x = 18.5 * TILE_SIZE;
                 else if (ghost.x > 18.5 * TILE_SIZE) ghost.x = -TILE_SIZE/2;
             }
 
             const dist = Math.sqrt((player.x - ghost.x)**2 + (player.y - ghost.y)**2);
-            if (dist < TILE_SIZE * 0.8 && ghost.state !== 'HOUSE' && ghost.state !== 'EXITING') {
+            if (dist < TILE_SIZE * 0.7 && ghost.state !== 'HOUSE' && ghost.state !== 'EXITING') {
                 if (isFrightened) {
                     setScore(s => s + 200);
                     ghost.state = 'EXITING'; ghost.x = 9 * TILE_SIZE; ghost.y = 9 * TILE_SIZE;
@@ -381,7 +441,6 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
             ctx.shadowBlur = 0;
         });
 
-        // Scanlines
         ctx.fillStyle = 'rgba(0,0,0,0.1)'; for (let i = 0; i < ctx.canvas.height; i += 4) ctx.fillRect(0, i, ctx.canvas.width, 1);
     }, [isFrightened, sector, gameState]);
 
@@ -402,21 +461,31 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
         return () => { if (requestRef.current) cancelAnimationFrame(requestRef.current); };
     }, [gameState, update, draw]);
 
-    const handleInput = useCallback((btn: GameboyButton) => {
+    // Handle Gameboy Button Press & Release
+    const handleInputPress = useCallback((btn: GameboyButton) => {
         const { player } = gameData.current;
-        if (btn === 'up') player.nextDir = 'UP';
-        if (btn === 'down') player.nextDir = 'DOWN';
-        if (btn === 'left') player.nextDir = 'LEFT';
-        if (btn === 'right') player.nextDir = 'RIGHT';
+        if (btn === 'quit') { onBackToHub(); return; }
+        if (btn === 'up') { player.nextDir = 'UP'; player.isMoving = true; }
+        if (btn === 'down') { player.nextDir = 'DOWN'; player.isMoving = true; }
+        if (btn === 'left') { player.nextDir = 'LEFT'; player.isMoving = true; }
+        if (btn === 'right') { player.nextDir = 'RIGHT'; player.isMoving = true; }
         if (btn === 'start') {
             if (gameState === 'INTRO') initSector(1);
             else if (gameState === 'STORY_BEAT') setGameState('PLAYING');
             else if (gameState === 'WON' || gameState === 'LOST') { setGameState('INTRO'); setScore(0); setSector(1); }
         }
-    }, [gameState, initSector]);
+    }, [gameState, initSector, onBackToHub]);
+
+    const handleInputRelease = useCallback((btn: GameboyButton) => {
+        const { player } = gameData.current;
+        if (['up', 'down', 'left', 'right'].includes(btn)) {
+            player.isMoving = false;
+            player.nextDir = 'NONE';
+        }
+    }, []);
 
     return (
-        <main className="w-full h-full bg-zinc-950 flex flex-col items-center justify-center p-4 font-mono overflow-y-auto scrollbar-hide">
+        <main className="w-full h-full bg-zinc-950 flex flex-col items-center justify-center p-4 font-mono overflow-y-auto scrollbar-hide pt-[env(safe-area-inset-top)]">
             <style>{`
                 .arcade-silhouette { width: 120px; height: 180px; background: #111; clip-path: polygon(0 20%, 10% 0, 90% 0, 100% 20%, 100% 100%, 0 100%); position: relative; border: 2px solid #333; }
                 .arcade-screen { position: absolute; top: 25px; left: 10px; right: 10px; bottom: 80px; background: #000; overflow: hidden; }
@@ -489,7 +558,7 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
                 </div>
 
                 <div className="md:hidden mt-2 pb-10">
-                    <GameboyControls onButtonPress={handleInput} onButtonRelease={() => {}} />
+                    <GameboyControls onButtonPress={handleInputPress} onButtonRelease={handleInputRelease} />
                 </div>
             </div>
         </main>

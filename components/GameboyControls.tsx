@@ -2,7 +2,7 @@
 import React from 'react';
 
 type DPadDirection = 'up' | 'down' | 'left' | 'right';
-type ButtonType = 'a' | 'b' | 'start' | 'select';
+type ButtonType = 'a' | 'b' | 'start' | 'select' | 'quit';
 export type GameboyButton = DPadDirection | ButtonType;
 
 interface GameboyControlsProps {
@@ -102,6 +102,20 @@ export const GameboyControls: React.FC<GameboyControlsProps> = ({ onButtonPress,
                             <ControlButton onPress={() => onButtonPress('b')} onRelease={() => onButtonRelease('b')} className="w-16 h-16 bg-[#b91c1c] border-4 border-black rounded-2xl shadow-xl flex items-center justify-center text-white font-black italic">B</ControlButton>
                             <ControlButton onPress={() => onButtonPress('a')} onRelease={() => onButtonRelease('a')} className="w-16 h-16 bg-[#b91c1c] border-4 border-black rounded-2xl shadow-xl flex items-center justify-center text-white font-black italic">A</ControlButton>
                         </div>
+                    </div>
+                </div>
+
+                {/* SAFETY EXIT BUTTON */}
+                <div className="flex justify-center mt-4">
+                    <div className="flex flex-col items-center">
+                         <span className="text-[8px] font-black text-pulse-500 uppercase tracking-[0.3em] mb-1 italic">Abort Simulation</span>
+                         <ControlButton 
+                            onPress={() => onButtonPress('quit')} 
+                            onRelease={() => onButtonRelease('quit')} 
+                            className="px-8 py-2 bg-[#111] border-2 border-pulse-500 rounded-full flex items-center justify-center text-pulse-500 font-black italic uppercase text-[10px] shadow-lg hover:bg-pulse-500 hover:text-white transition-all active:scale-90"
+                         >
+                            QUIT_MISSION
+                         </ControlButton>
                     </div>
                 </div>
             </div>
