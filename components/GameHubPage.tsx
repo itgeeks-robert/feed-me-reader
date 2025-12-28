@@ -9,12 +9,13 @@ import PoolGamePage from './PoolGamePage';
 import CipherCorePage from './SporeCryptPage'; 
 import VoidRunnerPage from './VoidRunnerPage';
 import SynapseLinkPage from './SynapseLinkPage';
-import { WalkieTalkieIcon, ControllerIcon, RadioIcon, EntityIcon, KeypadIcon, SparklesIcon, XIcon, ListIcon } from './icons';
+import GridResetPage from './GridResetPage';
+import { WalkieTalkieIcon, ControllerIcon, RadioIcon, EntityIcon, KeypadIcon, SparklesIcon, XIcon, ListIcon, CpuChipIcon } from './icons';
 
 interface GameInfo {
     id: string;
     title: string;
-    protocol: string; // New: Explains the gameplay type
+    protocol: string; 
     description: string;
     icon: React.ReactElement<{ className?: string }>;
     bannerColor: string;
@@ -56,7 +57,6 @@ const VHSCard: React.FC<{ game: GameInfo; onPlay: () => void }> = ({ game, onPla
                 <div>
                     <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter mb-1 group-hover:text-pulse-500 transition-colors">{game.title}</h3>
                     
-                    {/* MECHANIC PROTOCOL LABEL */}
                     <div className="inline-block px-2 py-0.5 bg-neon-500/10 border border-neon-500/30 mb-3">
                         <span className="text-[8px] font-black text-neon-400 uppercase tracking-widest font-mono">Protocol: {game.protocol}</span>
                     </div>
@@ -86,6 +86,15 @@ const GameHubPage: React.FC<any> = (props) => {
             icon: <ListIcon />, 
             bannerColor: 'from-pulse-950 to-void-900',
             stats: 'CONNECTION'
+        },
+        { 
+            id: 'grid-reset', 
+            title: 'GRID RESET', 
+            protocol: 'Module Recalibration',
+            description: 'A hardware-level logic panel. Manually toggle nodes to reset the sector grid.', 
+            icon: <CpuChipIcon />, 
+            bannerColor: 'from-zinc-950 to-void-900',
+            stats: 'MAINTENANCE'
         },
         { 
             id: 'cipher-core', 
@@ -176,11 +185,9 @@ const GameHubPage: React.FC<any> = (props) => {
                     </div>
                 </div>
 
-                {/* BLACK MARKET SHOP MODAL - ENHANCED POP-UP WINDOW */}
                 {showShop && (
                     <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[100] flex items-center justify-center p-6 animate-fade-in" onClick={() => setShowShop(false)}>
                         <div className="max-w-2xl w-full bg-void-900 border-4 border-pulse-500 rounded-[3rem] p-8 md:p-12 shadow-[0_0_120px_rgba(225,29,72,0.4)] overflow-hidden relative" onClick={e => e.stopPropagation()}>
-                             {/* BIG CLEAR CLOSE BUTTON */}
                              <div className="absolute top-6 right-6">
                                 <button onClick={() => setShowShop(false)} className="group p-5 bg-void-950 border-2 border-pulse-500/40 rounded-full text-pulse-500 hover:bg-pulse-500 hover:text-white transition-all shadow-lg active:scale-90">
                                     <XIcon className="w-8 h-8 group-hover:rotate-90 transition-transform" />
@@ -244,6 +251,7 @@ const GameHubPage: React.FC<any> = (props) => {
                 {activeGame === 'anomaly-detector' && <MinesweeperPage onBackToHub={handleBackToHub} onReturnToFeeds={props.onReturnToFeeds} onDefuse={() => setCredits(c => c + 50)} />}
                 {activeGame === 'stack-trace' && <TetrisPage onBackToHub={handleBackToHub} onReturnToFeeds={props.onReturnToFeeds} />}
                 {activeGame === 'pool' && <PoolGamePage onBackToHub={handleBackToHub} onReturnToFeeds={props.onReturnToFeeds} />}
+                {activeGame === 'grid-reset' && <GridResetPage onBackToHub={handleBackToHub} onComplete={() => setCredits(c => c + 100)} />}
             </Suspense>
         </div>
     );

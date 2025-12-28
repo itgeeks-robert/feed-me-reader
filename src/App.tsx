@@ -15,7 +15,7 @@ import { useLocalStorage } from '../hooks/useLocalStorage';
 export interface Folder { id: number; name: string; }
 export interface Feed { id: number; url: string; title: string; iconUrl: string; folderId: number | null; sourceType?: SourceType; }
 export interface Article { id: string; title: string; link: string; source: string; publishedDate: Date | null; snippet: string; imageUrl: string | null; }
-export type Selection = { type: 'splash' | 'all' | 'folder' | 'bookmarks' | 'search' | 'feed' | 'reddit' | 'game_hub' | 'daily_uplink'; id: string | number | null; query?: string; };
+export type Selection = { type: 'splash' | 'all' | 'folder' | 'bookmarks' | 'search' | 'feed' | 'reddit' | 'game_hub' | 'daily_uplink' | 'grid_reset'; id: string | number | null; query?: string; };
 export type Theme = 'light' | 'dark';
 export type ArticleView = 'list' | 'grid' | 'featured';
 export interface WidgetSettings { showWeather: boolean; showFinance: boolean; weatherLocation: string; }
@@ -38,7 +38,6 @@ const WIDGET_SETTINGS_KEY = `void_widget_settings_${GUEST_USER_ID}`;
 const SUDOKU_STATS_KEY = `void_sudoku_stats_${GUEST_USER_ID}`;
 const SOLITAIRE_STATS_KEY = `void_solitaire_stats_${GUEST_USER_ID}`;
 const SOLITAIRE_SETTINGS_KEY = `void_solitaire_settings_${GUEST_USER_ID}`;
-const SELECTION_KEY = `void_selection_${GUEST_USER_ID}`;
 const UPTIME_KEY = `void_uptime_${GUEST_USER_ID}`;
 const CREDITS_KEY = `void_credits_${GUEST_USER_ID}`;
 const LAST_UPLINK_KEY = `void_last_uplink_date_${GUEST_USER_ID}`;
@@ -72,7 +71,10 @@ const App: React.FC = () => {
     const [credits, setCredits] = useLocalStorage<number>(CREDITS_KEY, 100); 
     const [lastUplinkDate, setLastUplinkDate] = useLocalStorage<string | null>(LAST_UPLINK_KEY, null);
 
-    const [selection, setSelection] = useLocalStorage<Selection>(SELECTION_KEY, { type: 'splash', id: null });
+    // CHANGED: Use useState instead of useLocalStorage for 'selection'.
+    // This forces the landing page to always be 'splash' on refresh/cold boot,
+    // ensuring the menu screen/boot sequence is always shown as the entry point.
+    const [selection, setSelection] = useState<Selection>({ type: 'splash', id: null });
 
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
@@ -102,6 +104,9 @@ const App: React.FC = () => {
             } else if (selection.type !== 'all' && selection.type !== 'splash') {
                 setSelection({ type: 'all', id: null });
                 window.history.pushState(null, '');
+            } else if (selection.type === 'all') {
+                setSelection({ type: 'splash', id: null });
+                window.history.pushState(null, '');
             }
         };
         window.addEventListener('popstate', handlePopState);
@@ -110,7 +115,7 @@ const App: React.FC = () => {
             window.history.pushState(null, '');
         }
         return () => window.removeEventListener('popstate', handlePopState);
-    }, [closeAllModals, selection.type, setSelection]);
+    }, [closeAllModals, selection.type]);
 
     useEffect(() => {
         const root = document.documentElement;
@@ -135,7 +140,7 @@ const App: React.FC = () => {
         if (selection.type !== 'game_hub') setSelection({ type: 'game_hub', id: null });
         setShowShop(true);
         setIsSidebarOpen(false);
-    }, [selection.type, setSelection]);
+    }, [selection.type]);
 
     const handleAddSource = async (url: string, type: SourceType) => {
         let feedUrl = url.trim();
