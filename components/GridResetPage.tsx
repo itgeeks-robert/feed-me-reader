@@ -268,7 +268,7 @@ const GridResetPage: React.FC<{ onBackToHub: () => void; onComplete?: () => void
                                     <div className="help-node bg-zinc-800" /><div className="help-node bg-pulse-500" /><div className="help-node bg-zinc-800" />
                                 </div>
                                 <div className="text-[9px] text-zinc-500 italic font-black">
-                                    NODE TRIGGERED <br/> -> 5 POINTS FLIP
+                                    NODE TRIGGERED <br/> &rarr; 5 POINTS FLIP
                                 </div>
                             </div>
 
