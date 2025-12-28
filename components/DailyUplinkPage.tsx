@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import type { Feed, Article } from '../src/App';
 import { WalkieTalkieIcon, RadioIcon, ChevronRightIcon } from './icons';
@@ -36,7 +35,7 @@ const DailyUplinkPage: React.FC<DailyUplinkPageProps> = ({ feeds, uptime, onComp
     const isCipherDone = !!localStorage.getItem(`cipher_core_${daysSinceEpoch}`);
 
     return (
-        <main className="h-full w-full bg-void-950 overflow-y-auto p-6 md:p-20 relative scrollbar-hide pb-40">
+        <main className="h-full w-full bg-void-950 overflow-y-auto p-6 md:p-20 pt-[calc(1.5rem+env(safe-area-inset-top))] pb-[calc(10rem+env(safe-area-inset-bottom))] relative scrollbar-hide">
             <div className="max-w-4xl mx-auto">
                 <header className="mb-12 md:mb-20 border-b-4 border-emerald-500 pb-8 md:pb-12 flex flex-col md:flex-row md:items-end justify-between gap-8">
                     <div>
@@ -74,7 +73,7 @@ const DailyUplinkPage: React.FC<DailyUplinkPageProps> = ({ feeds, uptime, onComp
 
                         <div className="bg-void-900 p-8 md:p-10 border-2 border-zinc-800 shadow-[10px_10px_0px_black]">
                              <h3 className="text-lg md:text-2xl font-black text-white italic uppercase tracking-tighter mb-3">VOID ARCADE</h3>
-                             <p className="text-xs md:text-sm text-zinc-500 font-mono mb-10 leading-relaxed uppercase">Simulation Active. Local access only.</p>
+                             <p className="text-xs md:text-sm text-zinc-500 font-mono mb-10 leading-relaxed uppercase">Simulation Active. Awaiting Host.</p>
                              <button onClick={onEnterArcade} className="w-full py-4 md:py-6 bg-white text-black font-black uppercase italic rounded-none hover:bg-emerald-500 hover:text-white transition-all text-xs md:text-sm">Establish Link</button>
                         </div>
                     </aside>

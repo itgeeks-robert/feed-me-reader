@@ -1,4 +1,3 @@
-
 import React from 'react';
 import type { Article } from '../../src/App';
 import type { SourceType } from '../AddSource';
@@ -16,8 +15,9 @@ const CCTVThumbnail: React.FC<{ src: string | null; }> = ({ src }) => {
                 className="w-full h-full object-cover opacity-70"
                 wrapperClassName="w-full h-full"
                 fallback={
-                    <div className="w-full h-full static-noise flex items-center justify-center">
-                        <div className="w-6 h-6 border-2 border-white/10 rounded-full animate-ping" />
+                    <div className="w-full h-full static-noise flex flex-col items-center justify-center p-2">
+                        <span className="text-[10px] font-black text-signal-500 tracking-widest uppercase italic animate-pulse">NO_IMAGE</span>
+                        <div className="w-full h-px bg-signal-500/20 mt-1"></div>
                     </div>
                 }
             />
@@ -46,10 +46,10 @@ const ArticleListItem: React.FC<{ article: Article; onMarkAsRead: () => void; on
                          <span className="text-[10px] md:text-xs font-mono font-bold text-pulse-500 uppercase tracking-[0.3em]">{article.source}</span>
                     </div>
                     <p className="font-black text-base md:text-xl text-white line-clamp-3 leading-tight italic uppercase tracking-tighter mb-2 md:mb-3 font-horror">{article.title}</p>
-                    <p className="text-xs md:text-sm text-zinc-600 font-mono line-clamp-2 opacity-70 uppercase tracking-wide mb-4 md:mb-6">{article.snippet}</p>
+                    <p className="text-xs md:text-sm text-zinc-200 font-mono line-clamp-2 uppercase tracking-wide mb-4 md:mb-6">{article.snippet}</p>
                 </div>
                 
-                <div className="flex items-center gap-4 md:gap-6 text-[10px] md:text-xs font-mono font-bold uppercase tracking-widest text-zinc-700 pointer-events-auto">
+                <div className="flex items-center gap-4 md:gap-6 text-[10px] md:text-xs font-mono font-bold uppercase tracking-widest text-zinc-600 pointer-events-auto">
                     <span className="bg-void-950 px-2 py-1 border border-zinc-800">{timeAgo(article.publishedDate)}</span>
                     
                     <button 

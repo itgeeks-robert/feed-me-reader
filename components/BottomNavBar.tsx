@@ -1,4 +1,3 @@
-
 import React from 'react';
 import type { Selection } from '../src/App';
 import { ControllerIcon, ListIcon, BookmarkIcon, SearchIcon } from './icons';
@@ -16,8 +15,8 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ selection, onSelect }) => {
     ];
 
     return (
-        <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden pb-safe">
-            <div className="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-2xl border-t border-white/20 dark:border-white/10 px-6 py-2 shadow-2xl flex justify-around items-center">
+        <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden pb-[env(safe-area-inset-bottom)] bg-white/80 dark:bg-zinc-900/80 backdrop-blur-2xl border-t border-white/20 dark:border-white/10 shadow-2xl">
+            <div className="px-6 py-2 flex justify-around items-center">
                 {navItems.map((item) => {
                     const isActive = selection.type === item.type;
                     return (

@@ -1,9 +1,7 @@
-
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import type { Feed, Selection, WidgetSettings, Article, ArticleView, Theme } from '../src/App';
 import type { SourceType } from './AddSource';
 import { MenuIcon, SearchIcon, SunIcon, MoonIcon, BookOpenIcon } from './icons';
-import ReaderViewModal from './ReaderViewModal';
 import { resilientFetch } from '../services/fetch';
 import { parseRssXml } from '../services/rssParser';
 import { fetchAllSportsData, getCachedSportsData, needsFreshSportsData } from '../services/sportsService';
@@ -25,6 +23,7 @@ interface MainContentProps {
     onToggleBookmark: (articleId: string) => void;
     onSetArticleTags: (articleId: string, tags: Set<string>) => void;
     onSearch: (query: string) => void;
+    onOpenReader: (article: Article) => void;
     allFeeds: Feed[];
     refreshKey: number;
     onRefresh: () => void;
@@ -62,8 +61,7 @@ const EnergyScope: React.FC<{ value: number }> = ({ value }) => (
 );
 
 const MainContent: React.FC<MainContentProps> = (props) => {
-    // Added missing widgetSettings to destructuring to fix TS errors in useEffect and other parts of the component.
-    const { feedsToDisplay, selection, readArticleIds, bookmarkedArticleIds, onMarkAsRead, onPurgeBuffer, onSearch, refreshKey, onOpenSidebar, articleView, theme, onToggleTheme, animationClass, pageTitle, uptime, widgetSettings } = props;
+    const { feedsToDisplay, selection, readArticleIds, bookmarkedArticleIds, onMarkAsRead, onPurgeBuffer, onSearch, onOpenReader, refreshKey, onOpenSidebar, articleView, theme, onToggleTheme, animationClass, pageTitle, uptime, widgetSettings } = props;
     
     const [articles, setArticles] = useState<Article[]>([]);
     const [loading, setLoading] = useState(false);
@@ -75,8 +73,6 @@ const MainContent: React.FC<MainContentProps> = (props) => {
     
     const [sportsResults, setSportsResults] = useState<Map<string, any>>(new Map());
     const [isSportsLoading, setIsSportsLoading] = useState(false);
-    
-    const [readerArticle, setReaderArticle] = useState<Article | null>(null);
     const isInitialMount = useRef(true);
 
     const handleSearchSubmit = (e: React.FormEvent) => {
@@ -86,7 +82,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
     
     useEffect(() => {
         getCacheCount().then(setCacheCount);
-    }, [refreshKey, readerArticle]);
+    }, [refreshKey]);
 
     useEffect(() => {
         const fetchRssFeeds = async (feeds: Feed[]) => {
@@ -154,7 +150,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
     const visibleArticlesToDisplay = articlesToDisplay.slice(0, visibleCount);
 
     return (
-        <main className={`flex-grow overflow-y-auto ${animationClass} bg-void-950 pb-40 scroll-smooth`}>
+        <main className={`flex-grow overflow-y-auto ${animationClass} bg-void-950 pb-[calc(10rem+env(safe-area-inset-bottom))] scroll-smooth`}>
             <Header 
                 onSearchSubmit={handleSearchSubmit} 
                 searchQuery={searchQuery} 
@@ -165,7 +161,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                 uptime={uptime}
                 cacheCount={cacheCount}
             />
-            <div className="px-4 md:px-12 pt-28 md:pt-32 max-w-6xl mx-auto">
+            <div className="px-4 md:px-12 pt-32 md:pt-40 max-w-6xl mx-auto">
                  <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b-2 border-pulse-500/10 mb-8">
                     <div>
                         <h1 className="text-xl md:text-2xl font-black text-white italic drop-shadow-[0_0_10px_rgba(225,29,72,0.4)] glitch-text uppercase tracking-widest">{pageTitle}</h1>
@@ -183,7 +179,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                 
                 {latestArticle && (
                     <div className="mb-12">
-                        <FeaturedStory article={latestArticle} onReadHere={() => setReaderArticle(latestArticle)} onMarkAsRead={() => onMarkAsRead(latestArticle.id)} isRead={readArticleIds.has(latestArticle.id)} />
+                        <FeaturedStory article={latestArticle} onReadHere={() => onOpenReader(latestArticle)} onMarkAsRead={() => onMarkAsRead(latestArticle.id)} isRead={readArticleIds.has(latestArticle.id)} />
                     </div>
                 )}
                 
@@ -209,7 +205,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                                 key: article.id,
                                 article: article,
                                 onMarkAsRead: () => onMarkAsRead(article.id),
-                                onReadHere: () => setReaderArticle(article),
+                                onReadHere: () => onOpenReader(article),
                                 isRead: readArticleIds.has(article.id),
                             };
                             if (articleView === 'featured') return <FeaturedStory {...commonProps} />;
@@ -230,13 +226,12 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                     )}
                 </div>
             </div>
-             {readerArticle && <ReaderViewModal article={readerArticle} onClose={() => setReaderArticle(null)} onMarkAsRead={onMarkAsRead} />}
         </main>
     );
 };
 
 const Header: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuery, onOpenSidebar, theme, onToggleTheme, uptime, cacheCount }) => (
-    <header className="fixed top-0 left-0 md:left-72 right-0 z-30 p-3 md:p-6 pointer-events-none">
+    <header className="fixed top-0 left-0 md:left-72 right-0 z-30 pt-[env(safe-area-inset-top)] pointer-events-none">
         <div className="w-full h-16 md:h-24 bg-void-950/90 backdrop-blur-xl border-b border-pulse-500/30 flex items-center justify-between px-4 md:px-10 pointer-events-auto shadow-2xl">
             <button onClick={onOpenSidebar} className="p-2 text-pulse-500 transition-all flex-shrink-0"><MenuIcon className="w-7 h-7 md:w-9 md:h-9" /></button>
             
@@ -248,7 +243,7 @@ const Header: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuery, on
                         placeholder="Scan Frequencies..." 
                         value={searchQuery}
                         onChange={e => setSearchQuery(e.target.value)}
-                        className="w-full bg-void-900 border border-zinc-800 focus:border-pulse-500 placeholder-zinc-700 text-white rounded-none py-2.5 md:py-4 pl-12 md:pl-16 pr-4 text-sm md:text-base transition-all font-mono uppercase tracking-widest outline-none"
+                        className="w-full bg-void-900 border border-zinc-800 focus:border-pulse-500 placeholder-zinc-700 text-white rounded-none py-2 md:py-3 pl-10 md:pl-14 pr-4 text-xs md:text-sm transition-all font-mono uppercase tracking-widest outline-none"
                     />
                 </form>
                 <div className="w-full px-1 md:px-6">

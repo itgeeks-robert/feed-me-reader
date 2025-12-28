@@ -22,24 +22,40 @@ interface SidebarProps {
     onClose: () => void;
     onOpenSettings: () => void;
     credits: number;
+    onOpenShop: () => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = (props) => {
-    const { feeds, folders, selection, onAddSource, onRemoveFeed, onSelect, onAddFolder, isSidebarOpen, onClose, onOpenSettings, credits } = props;
+    const { feeds, folders, selection, onAddSource, onRemoveFeed, onSelect, onAddFolder, isSidebarOpen, onClose, onOpenSettings, credits, onOpenShop } = props;
     
     const NavItem: React.FC<{sel: Selection, label: string, icon: React.ReactNode}> = ({sel, label, icon}) => {
-        const isActive = selection.type === sel.type && selection.id === sel.id;
-        const activeClasses = isActive ? 'bg-pulse-600 text-white shadow-lg' : 'hover:bg-zinc-900 text-zinc-400';
+        const isActive = selection.type === sel.type && (sel.id === null || selection.id === sel.id);
+        
         return (
-            <div onClick={() => onSelect(sel)} className={`flex items-center space-x-4 px-5 py-4 rounded-2xl cursor-pointer transition-all duration-300 ${activeClasses} ${isActive ? 'scale-[1.02]' : ''}`}>
-                <div className={`p-2.5 rounded-xl ${isActive ? 'bg-white/20' : 'bg-zinc-800'}`}>{icon}</div>
-                <span className="truncate font-black text-xs uppercase tracking-widest min-w-0">{label}</span>
+            <div 
+                onClick={() => onSelect(sel)} 
+                className={`group relative flex items-center space-x-4 px-5 py-4 rounded-2xl cursor-pointer transition-all duration-300 overflow-hidden
+                    ${isActive 
+                        ? 'bg-pulse-600 text-white shadow-lg scale-[1.02] z-10' 
+                        : 'hover:bg-zinc-900 text-zinc-400 hover:text-zinc-200'}`}
+            >
+                {/* Active Indicator Bar */}
+                {isActive && (
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-8 bg-white rounded-r-full shadow-[0_0_10px_rgba(255,255,255,0.8)] animate-pulse" />
+                )}
+                
+                <div className={`p-2.5 rounded-xl transition-colors duration-300 ${isActive ? 'bg-white/20' : 'bg-zinc-800 group-hover:bg-zinc-700'}`}>
+                    {icon}
+                </div>
+                <span className={`truncate uppercase tracking-widest min-w-0 transition-all duration-300 font-black text-xs`}>
+                    {label}
+                </span>
             </div>
         )
     };
 
     return (
-        <aside className={`fixed inset-y-0 left-0 z-50 w-72 bg-zinc-950 border-r border-zinc-900 flex flex-col h-full transform transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} shadow-2xl md:shadow-none`}>
+        <aside className={`fixed inset-y-0 left-0 z-50 w-72 bg-zinc-950 border-r border-zinc-900 flex flex-col h-full transform transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} shadow-2xl md:shadow-none pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]`}>
             <div className="p-6 flex-shrink-0">
                 <div className="flex items-center justify-between space-x-2 mb-10">
                     <div className="flex items-center space-x-4">
@@ -57,19 +73,25 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                 </div>
 
                 {/* SIGNAL CREDITS DISPLAY */}
-                <div className="mb-8 p-4 bg-void-900 border border-pulse-500/20 rounded-2xl flex items-center gap-4 group hover:border-pulse-500/50 transition-colors cursor-help shadow-lg relative overflow-hidden">
+                <button 
+                    onClick={onOpenShop}
+                    className="w-full mb-8 p-4 bg-void-900 border border-pulse-500/20 rounded-2xl flex items-center gap-4 group hover:border-pulse-500/50 transition-all cursor-pointer shadow-lg relative overflow-hidden active:scale-95"
+                >
                     <div className="absolute inset-0 bg-pulse-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
                     <div className="p-2 bg-pulse-500/10 rounded-lg">
                         <SparklesIcon className="w-5 h-5 text-pulse-500 animate-pulse" />
                     </div>
-                    <div>
-                        <span className="text-[8px] font-black text-zinc-600 uppercase tracking-[0.3em] block mb-0.5">Frequency Assets</span>
+                    <div className="text-left">
+                        <span className="text-[8px] font-black text-zinc-600 uppercase tracking-[0.3em] block mb-0.5 italic">Frequency Assets</span>
                         <div className="flex items-baseline gap-1">
                             <span className="text-lg font-black text-white italic tracking-tighter leading-none">{credits.toLocaleString()}</span>
                             <span className="text-[9px] font-black text-pulse-500 uppercase tracking-tighter italic">SC</span>
                         </div>
                     </div>
-                </div>
+                    <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
+                         <div className="text-[8px] font-black text-pulse-500 uppercase italic">SHOP</div>
+                    </div>
+                </button>
                 
                 <AddSource onAddSource={onAddSource} />
             </div>
@@ -81,48 +103,74 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                 
                 <div className="pt-8 pb-3 border-t border-zinc-900/50 mt-6">
                     <div className="flex items-center justify-between px-3 mb-5">
-                        <h3 className="text-xs font-black text-zinc-500 uppercase tracking-[0.2em]">Zones</h3>
-                        <button onClick={() => onAddFolder("New Zone")} className="p-1.5 hover:bg-zinc-900 rounded-lg text-zinc-500">
+                        <h3 className="text-xs font-black text-zinc-400 uppercase tracking-[0.2em]">Zones</h3>
+                        <button onClick={() => onAddFolder("New Zone")} className="p-1.5 hover:bg-zinc-900 rounded-lg text-zinc-500 transition-colors">
                             <PlusIcon className="w-5 h-5" />
                         </button>
                     </div>
                     <nav className="space-y-2">
-                        {folders.map(folder => (
-                            <div key={folder.id} onClick={() => onSelect({type: 'folder', id: folder.id})} className={`flex items-center gap-4 px-4 py-3 rounded-xl cursor-pointer transition-all ${selection.type === 'folder' && selection.id === folder.id ? 'bg-pulse-900/50 text-pulse-500' : 'text-zinc-500 hover:text-zinc-300'}`}>
-                                <FolderIcon className="w-5 h-5" />
-                                <span className="text-xs font-bold uppercase truncate">{folder.name}</span>
-                            </div>
-                        ))}
+                        {folders.map(folder => {
+                            const isActive = selection.type === 'folder' && selection.id === folder.id;
+                            return (
+                                <div 
+                                    key={folder.id} 
+                                    onClick={() => onSelect({type: 'folder', id: folder.id})} 
+                                    className={`relative flex items-center gap-4 px-5 py-3 rounded-xl cursor-pointer transition-all duration-300 group
+                                        ${isActive 
+                                            ? 'bg-pulse-600 text-white shadow-md scale-[1.01]' 
+                                            : 'text-zinc-400 hover:text-white hover:bg-zinc-900/40'}`}
+                                >
+                                    {isActive && (
+                                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-white rounded-r-full" />
+                                    )}
+                                    <FolderIcon className={`w-5 h-5 transition-colors ${isActive ? 'text-white' : 'text-zinc-600 group-hover:text-zinc-400'}`} />
+                                    <span className={`text-xs uppercase truncate transition-all font-black`}>
+                                        {folder.name}
+                                    </span>
+                                </div>
+                            );
+                        })}
                     </nav>
                 </div>
 
                 <div className="pt-8 pb-3">
                     <div className="flex items-center justify-between px-3 mb-5">
-                        <h3 className="text-xs font-black text-zinc-500 uppercase tracking-[0.2em]">Streams</h3>
+                        <h3 className="text-xs font-black text-zinc-400 uppercase tracking-[0.2em]">Streams</h3>
                     </div>
                     <nav className="space-y-2">
-                        {feeds.map(feed => (
-                            <div 
-                                key={feed.id} 
-                                onClick={() => onSelect({type: 'feed', id: feed.id})} 
-                                className={`flex items-center gap-4 px-4 py-3 rounded-xl cursor-pointer transition-all group ${selection.type === 'feed' && selection.id === feed.id ? 'bg-pulse-900/50 text-pulse-500' : 'text-zinc-500 hover:text-zinc-300'}`}
-                            >
-                                <SmartFeedIcon 
-                                    iconUrl={feed.iconUrl} 
-                                    feedTitle={feed.title} 
-                                    sourceType={feed.sourceType} 
-                                    className="w-4.5 h-4.5 grayscale group-hover:grayscale-0 transition-all" 
-                                />
-                                <span className="text-xs font-bold uppercase truncate leading-none">{feed.title}</span>
-                                <button 
-                                    onClick={(e) => { e.stopPropagation(); onRemoveFeed(feed.id); }}
-                                    className="ml-auto opacity-0 group-hover:opacity-100 p-1.5 text-zinc-600 hover:text-red-500 transition-all"
-                                    title="Eject Source"
+                        {feeds.map(feed => {
+                            const isActive = selection.type === 'feed' && selection.id === feed.id;
+                            return (
+                                <div 
+                                    key={feed.id} 
+                                    onClick={() => onSelect({type: 'feed', id: feed.id})} 
+                                    className={`relative flex items-center gap-4 px-5 py-3 rounded-xl cursor-pointer transition-all duration-300 group
+                                        ${isActive 
+                                            ? 'bg-pulse-600 text-white shadow-md scale-[1.01]' 
+                                            : 'text-zinc-400 hover:text-white hover:bg-zinc-900/40'}`}
                                 >
-                                    <TrashIcon className="w-4 h-4" />
-                                </button>
-                            </div>
-                        ))}
+                                    {isActive && (
+                                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-white rounded-r-full" />
+                                    )}
+                                    <SmartFeedIcon 
+                                        iconUrl={feed.iconUrl} 
+                                        feedTitle={feed.title} 
+                                        sourceType={feed.sourceType} 
+                                        className={`w-4.5 h-4.5 transition-all ${isActive ? 'grayscale-0' : 'grayscale group-hover:grayscale-0'}`} 
+                                    />
+                                    <span className={`text-xs uppercase truncate leading-none transition-all font-black`}>
+                                        {feed.title}
+                                    </span>
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); onRemoveFeed(feed.id); }}
+                                        className={`ml-auto p-1.5 rounded-lg transition-all ${isActive ? 'text-white/40 hover:text-white' : 'opacity-0 group-hover:opacity-100 text-zinc-600 hover:text-red-500'}`}
+                                        title="Eject Source"
+                                    >
+                                        <TrashIcon className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            );
+                        })}
                     </nav>
                 </div>
             </div>

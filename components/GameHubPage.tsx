@@ -8,11 +8,13 @@ import TetrisPage from './TetrisPage';
 import PoolGamePage from './PoolGamePage';
 import CipherCorePage from './SporeCryptPage'; 
 import VoidRunnerPage from './VoidRunnerPage';
-import { WalkieTalkieIcon, ControllerIcon, RadioIcon, EntityIcon, KeypadIcon, SparklesIcon, XIcon } from './icons';
+import SynapseLinkPage from './SynapseLinkPage';
+import { WalkieTalkieIcon, ControllerIcon, RadioIcon, EntityIcon, KeypadIcon, SparklesIcon, XIcon, ListIcon } from './icons';
 
 interface GameInfo {
     id: string;
     title: string;
+    protocol: string; // New: Explains the gameplay type
     description: string;
     icon: React.ReactElement<{ className?: string }>;
     bannerColor: string;
@@ -41,22 +43,28 @@ const ShopItem: React.FC<{ name: string, cost: number, icon: React.ReactNode, de
 
 const VHSCard: React.FC<{ game: GameInfo; onPlay: () => void }> = ({ game, onPlay }) => {
     return (
-        <div onClick={onPlay} className="group relative bg-void-900 border-2 border-zinc-800 hover:border-pulse-500 transition-all duration-300 cursor-pointer h-[350px] shadow-[10px_10px_0px_black] hover:translate-x-[-4px] hover:translate-y-[-4px]">
-            <div className="h-44 w-full bg-void-950 flex items-center justify-center relative overflow-hidden border-b-2 border-zinc-800">
+        <div onClick={onPlay} className="group relative bg-void-900 border-2 border-zinc-800 hover:border-pulse-500 transition-all duration-300 cursor-pointer h-[380px] shadow-[10px_10px_0px_black] hover:translate-x-[-4px] hover:translate-y-[-4px]">
+            <div className="h-40 w-full bg-void-950 flex items-center justify-center relative overflow-hidden border-b-2 border-zinc-800">
                 <div className="absolute top-0 left-0 bg-pulse-500 text-white px-3 py-1 text-[8px] font-black uppercase font-mono tracking-widest">VOID-SIM</div>
                 <div className="opacity-20 group-hover:opacity-100 group-hover:scale-125 transition-all duration-700 text-pulse-500">
-                    {React.cloneElement(game.icon, { className: "w-28 h-28" })}
+                    {React.cloneElement(game.icon, { className: "w-24 h-24" })}
                 </div>
                 <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-pulse-500 via-neon-400 to-pulse-500 animate-pulse"></div>
             </div>
 
-            <div className="p-6 flex flex-col justify-between h-[calc(350px-11rem)]">
+            <div className="p-6 flex flex-col justify-between h-[calc(380px-10rem)]">
                 <div>
-                    <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter mb-2 group-hover:text-pulse-500 transition-colors">{game.title}</h3>
-                    <p className="text-[9px] text-zinc-600 uppercase font-bold tracking-widest font-mono leading-relaxed">{game.description}</p>
+                    <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter mb-1 group-hover:text-pulse-500 transition-colors">{game.title}</h3>
+                    
+                    {/* MECHANIC PROTOCOL LABEL */}
+                    <div className="inline-block px-2 py-0.5 bg-neon-500/10 border border-neon-500/30 mb-3">
+                        <span className="text-[8px] font-black text-neon-400 uppercase tracking-widest font-mono">Protocol: {game.protocol}</span>
+                    </div>
+
+                    <p className="text-[9px] text-zinc-500 uppercase font-bold tracking-widest font-mono leading-relaxed">{game.description}</p>
                 </div>
                 <div className="flex justify-between items-center mt-4">
-                     <div className="px-4 py-1 border border-pulse-500/40 text-pulse-500 text-[9px] font-black uppercase tracking-tighter">Enter Simulation</div>
+                     <div className="px-4 py-1 border border-pulse-500/40 text-pulse-500 text-[9px] font-black uppercase tracking-tighter group-hover:bg-pulse-500 group-hover:text-white transition-all">Enter Simulation</div>
                      {game.stats && <span className="text-[9px] font-bold text-zinc-700 uppercase font-mono">{game.stats}</span>}
                 </div>
             </div>
@@ -65,16 +73,25 @@ const VHSCard: React.FC<{ game: GameInfo; onPlay: () => void }> = ({ game, onPla
 };
 
 const GameHubPage: React.FC<any> = (props) => {
-    const { credits, setCredits } = props;
+    const { credits, setCredits, showShop, setShowShop } = props;
     const [activeGame, setActiveGame] = useState<string>('hub');
-    const [showShop, setShowShop] = useState(false);
     const handleBackToHub = useCallback(() => setActiveGame('hub'), []);
 
     const games: GameInfo[] = [
         { 
+            id: 'synapse-link', 
+            title: 'SYNAPSE LINK', 
+            protocol: 'Logical Association',
+            description: 'Determine logical connections between fragmented nodes. Avoid synaptic overload.', 
+            icon: <ListIcon />, 
+            bannerColor: 'from-pulse-950 to-void-900',
+            stats: 'CONNECTION'
+        },
+        { 
             id: 'cipher-core', 
             title: 'CIPHER CORE', 
-            description: 'Daily decryption ritual. Intercept the sequence before the system locks.', 
+            protocol: 'Word Decryption',
+            description: 'Daily decryption ritual. Intercept the 5-bit sequence before the system locks.', 
             icon: <WalkieTalkieIcon />, 
             bannerColor: 'from-pulse-950 to-void-900',
             stats: 'PRIORITY'
@@ -82,7 +99,8 @@ const GameHubPage: React.FC<any> = (props) => {
         { 
             id: 'pattern-zero', 
             title: 'PATTERN ZERO', 
-            description: 'A logical cryptogram extracted from the mainframe core.', 
+            protocol: 'Logic Grid Analysis',
+            description: 'A numeric logical cryptogram extracted from the mainframe core.', 
             icon: <KeypadIcon />, 
             bannerColor: 'from-zinc-950 to-void-900',
             stats: props.sudokuStats.totalWins > 0 ? `${props.sudokuStats.totalWins} RECORDS` : undefined
@@ -90,6 +108,7 @@ const GameHubPage: React.FC<any> = (props) => {
         { 
             id: 'void-runner', 
             title: 'VOID RUNNER', 
+            protocol: 'Pathfinding & Evasion',
             description: 'Navigate the multidimensional maze. Evade terminal sentinels.', 
             icon: <SparklesIcon />, 
             bannerColor: 'from-void-950 to-black',
@@ -98,14 +117,16 @@ const GameHubPage: React.FC<any> = (props) => {
         { 
             id: 'anomaly-detector', 
             title: 'ANOMALY DETECTOR', 
-            description: 'Identify and defuse signal fractures within the grid.', 
+            protocol: 'Hazard Identification',
+            description: 'Identify and defuse signal fractures within the grid using spatial logic.', 
             icon: <EntityIcon />, 
             bannerColor: 'from-void-950 to-black' 
         },
         { 
             id: 'signal-alignment', 
             title: 'SIGNAL ALIGNMENT', 
-            description: 'Order the data frequency or face total system blackout.', 
+            protocol: 'Sequential Sorting',
+            description: 'Order the data frequency stacks or face total system blackout.', 
             icon: <RadioIcon />, 
             bannerColor: 'from-void-950 to-black',
             stats: props.solitaireStats.gamesWon > 0 ? `${props.solitaireStats.gamesWon} SYNCED` : undefined
@@ -113,7 +134,8 @@ const GameHubPage: React.FC<any> = (props) => {
         { 
             id: 'stack-trace', 
             title: 'STACK TRACE', 
-            description: 'Compile data blocks. Avoid buffer overflow.', 
+            protocol: 'Block Compilation',
+            description: 'Compile descending data blocks. Avoid buffer overflow.', 
             icon: <ControllerIcon />, 
             bannerColor: 'from-void-950 to-black' 
         }
@@ -121,7 +143,7 @@ const GameHubPage: React.FC<any> = (props) => {
 
     if (activeGame === 'hub') {
         return (
-            <main className="h-full min-h-0 flex-grow overflow-y-auto bg-void-950 p-8 md:p-16 animate-fade-in relative scrollbar-hide pb-40">
+            <main className="h-full min-h-0 flex-grow overflow-y-auto bg-void-950 p-8 md:p-16 pt-[calc(2rem+env(safe-area-inset-top))] pb-[calc(10rem+env(safe-area-inset-bottom))] animate-fade-in relative scrollbar-hide">
                 <div className="max-w-7xl mx-auto">
                     <header className="mb-20 flex flex-col lg:flex-row lg:items-center justify-between gap-12 border-b-2 border-pulse-500/20 pb-12">
                         <div className="flex items-center gap-8">
@@ -136,7 +158,7 @@ const GameHubPage: React.FC<any> = (props) => {
                         <div className="flex items-center gap-6">
                             <div 
                                 onClick={() => setShowShop(true)}
-                                className="group flex items-center gap-4 bg-void-900 px-6 py-4 border-2 border-pulse-500/30 hover:border-pulse-500 transition-all cursor-pointer shadow-[10px_10px_0px_black]"
+                                className="group flex items-center gap-4 bg-void-900 px-6 py-4 border-2 border-pulse-500/30 hover:border-pulse-500 transition-all cursor-pointer shadow-[10px_10px_0px_black] active:scale-95"
                             >
                                 <div className="p-2 bg-pulse-500/10 rounded-lg group-hover:scale-110 transition-transform">
                                     <SparklesIcon className="w-6 h-6 text-pulse-500 animate-pulse" />
@@ -154,23 +176,27 @@ const GameHubPage: React.FC<any> = (props) => {
                     </div>
                 </div>
 
-                {/* BLACK MARKET SHOP MODAL */}
+                {/* BLACK MARKET SHOP MODAL - ENHANCED POP-UP WINDOW */}
                 {showShop && (
-                    <div className="fixed inset-0 bg-void-950/95 backdrop-blur-xl z-[100] flex items-center justify-center p-6 animate-fade-in">
-                        <div className="max-w-2xl w-full bg-void-900 border-4 border-pulse-500 rounded-[3rem] p-10 shadow-[0_0_100px_rgba(225,29,72,0.2)] overflow-hidden relative">
-                             <div className="absolute top-0 right-0 p-8">
-                                <button onClick={() => setShowShop(false)} className="p-3 bg-zinc-800 rounded-2xl text-zinc-500 hover:text-white transition-colors">
-                                    <XIcon className="w-6 h-6" />
+                    <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[100] flex items-center justify-center p-6 animate-fade-in" onClick={() => setShowShop(false)}>
+                        <div className="max-w-2xl w-full bg-void-900 border-4 border-pulse-500 rounded-[3rem] p-8 md:p-12 shadow-[0_0_120px_rgba(225,29,72,0.4)] overflow-hidden relative" onClick={e => e.stopPropagation()}>
+                             {/* BIG CLEAR CLOSE BUTTON */}
+                             <div className="absolute top-6 right-6">
+                                <button onClick={() => setShowShop(false)} className="group p-5 bg-void-950 border-2 border-pulse-500/40 rounded-full text-pulse-500 hover:bg-pulse-500 hover:text-white transition-all shadow-lg active:scale-90">
+                                    <XIcon className="w-8 h-8 group-hover:rotate-90 transition-transform" />
                                 </button>
                              </div>
 
-                             <div className="mb-10">
-                                <span className="text-[10px] font-black text-pulse-500 uppercase tracking-[0.5em] italic block mb-2">Unauthorized Exchange</span>
-                                <h2 className="text-4xl font-black italic text-white uppercase tracking-tighter leading-none">THE BLACK MARKET</h2>
-                                <p className="text-zinc-600 text-xs font-mono uppercase mt-2">Spend Signal Credits to augment system performance.</p>
+                             <div className="mb-12 pr-16">
+                                <div className="flex items-center gap-3 mb-2">
+                                    <span className="w-2 h-2 rounded-full bg-pulse-500 animate-ping"></span>
+                                    <span className="text-[10px] font-black text-pulse-500 uppercase tracking-[0.5em] italic">Encrypted Exchange</span>
+                                </div>
+                                <h2 className="text-5xl md:text-6xl font-black italic text-white uppercase tracking-tighter leading-none glitch-text">THE BLACK MARKET</h2>
+                                <p className="text-zinc-600 text-xs font-mono uppercase mt-6 tracking-widest leading-relaxed max-w-lg">Unauthorized signal augmentations. Use of Signal Credits (SC) implies consent to terminal synchronization protocols.</p>
                              </div>
 
-                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-12 overflow-y-auto max-h-[45vh] pr-2 scrollbar-hide">
                                 <ShopItem 
                                     name="Sequence Restore" cost={50} icon={<WalkieTalkieIcon />} 
                                     description="Reset Cipher Core attempts without losing progress."
@@ -193,9 +219,12 @@ const GameHubPage: React.FC<any> = (props) => {
                                 />
                              </div>
 
-                             <div className="p-6 bg-black/40 rounded-2xl border border-white/5 flex justify-between items-center">
-                                <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Session Balance</span>
-                                <span className="text-xl font-black italic text-pulse-500">{credits.toLocaleString()} SC</span>
+                             <div className="p-8 bg-black/60 rounded-[2.5rem] border-2 border-white/5 flex flex-col sm:flex-row justify-between items-center gap-6 shadow-inner">
+                                <div className="flex flex-col text-center sm:text-left">
+                                    <span className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.3em] mb-1">Operator Balance</span>
+                                    <span className="text-4xl font-black italic text-pulse-500 drop-shadow-[0_0_15px_rgba(225,29,72,0.6)]">{credits.toLocaleString()} <span className="text-sm">SC</span></span>
+                                </div>
+                                <button onClick={() => setShowShop(false)} className="w-full sm:w-auto px-12 py-5 bg-pulse-600 border-2 border-pulse-400 text-white font-black uppercase italic tracking-widest text-sm hover:bg-white hover:text-black transition-all shadow-[8px_8px_0px_#111]">Confirm Assets</button>
                              </div>
                         </div>
                     </div>
@@ -206,11 +235,12 @@ const GameHubPage: React.FC<any> = (props) => {
     
     return (
         <div className="w-full h-full overflow-hidden">
-            <Suspense fallback={<div className="w-full h-full flex flex-col items-center justify-center bg-void-950 text-pulse-500 font-black text-4xl italic animate-pulse uppercase">Initializing Core...</div>}>
+            <Suspense fallback={<div className="w-full h-full flex flex-col items-center justify-center bg-void-950 text-pulse-500 font-black text-4xl italic animate-pulse uppercase tracking-[0.4em]">Initializing Core...</div>}>
                 {activeGame === 'cipher-core' && <CipherCorePage onBackToHub={handleBackToHub} uptime={props.uptime} setUptime={props.setUptime} />}
+                {activeGame === 'synapse-link' && <SynapseLinkPage onBackToHub={handleBackToHub} onComplete={() => setCredits(c => c + 150)} />}
                 {activeGame === 'pattern-zero' && <SudokuPage stats={props.sudokuStats} onGameWin={props.onSudokuWin} onGameLoss={props.onSudokuLoss} onBackToHub={handleBackToHub} onReturnToFeeds={props.onReturnToFeeds} />}
                 {activeGame === 'void-runner' && <VoidRunnerPage onBackToHub={handleBackToHub} onReturnToFeeds={props.onReturnToFeeds} onCollectPacket={() => setCredits(c => c + 1)} />}
-                {activeGame === 'signal-alignment' && <SolitairePage stats={props.solitaireStats} onGameWin={props.onSolitaireWin} onGameStart={props.onSolitaireStart} settings={props.solitaireSettings} onUpdateSettings={props.onUpdateSolitaireSettings} onBackToHub={handleBackToHub} onReturnToFeeds={props.onReturnToFeeds} />}
+                {activeGame === 'signal-alignment' && <SolitairePage stats={props.solitaireStats} onGameWin={() => {}} onGameStart={props.onGameStart} settings={props.solitaireSettings} onUpdateSettings={props.onUpdateSolitaireSettings} onBackToHub={handleBackToHub} onReturnToFeeds={props.onReturnToFeeds} />}
                 {activeGame === 'anomaly-detector' && <MinesweeperPage onBackToHub={handleBackToHub} onReturnToFeeds={props.onReturnToFeeds} onDefuse={() => setCredits(c => c + 50)} />}
                 {activeGame === 'stack-trace' && <TetrisPage onBackToHub={handleBackToHub} onReturnToFeeds={props.onReturnToFeeds} />}
                 {activeGame === 'pool' && <PoolGamePage onBackToHub={handleBackToHub} onReturnToFeeds={props.onReturnToFeeds} />}

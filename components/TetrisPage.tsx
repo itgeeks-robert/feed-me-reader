@@ -1,10 +1,8 @@
-
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { startGame, PieceType } from '../services/tetrisGame';
-import { GameboyControls, GameboyButton } from './GameboyControls';
 import { saveHighScore, getHighScores } from '../services/highScoresService';
 import HighScoreTable from './HighScoreTable';
-import { XIcon } from './icons';
+import { XIcon, ArrowPathIcon } from './icons';
 
 interface TetrisPageProps {
   onBackToHub: () => void;
@@ -71,74 +69,116 @@ const TetrisPage: React.FC<TetrisPageProps> = ({ onBackToHub, onReturnToFeeds })
         handleRestart();
         return () => gameInstance.current?.stop();
     }, [handleRestart]);
-    
-    const handleButtonPress = (button: GameboyButton) => {
+
+    const handleAction = (action: string) => {
         const controls = gameInstance.current;
         if (!controls || isGameOver) return;
-        const startContinuous = (action: () => void) => {
-            if (continuousPressRef.current) clearInterval(continuousPressRef.current);
-            action(); continuousPressRef.current = setInterval(action, 100);
-        };
-        switch(button) {
-            case 'left': startContinuous(controls.moveLeft); break;
-            case 'right': startContinuous(controls.moveRight); break;
-            case 'down': startContinuous(controls.softDrop); break;
-            case 'up': controls.rotate(); break;
-            case 'b': controls.rotate(); break;
-            case 'a': controls.hardDrop(); break;
-            case 'select': controls.hold(); break;
+        
+        switch(action) {
+            case 'left': controls.moveLeft(); break;
+            case 'right': controls.moveRight(); break;
+            case 'rotate': controls.rotate(); break;
+            case 'drop': controls.hardDrop(); break;
             case 'start': handleRestart(); break;
-        }
-    };
-
-    const handleButtonRelease = (button: GameboyButton) => {
-        if (['left', 'right', 'down'].includes(button) && continuousPressRef.current) {
-            clearInterval(continuousPressRef.current); continuousPressRef.current = null;
+            case 'quit': onBackToHub(); break;
         }
     };
 
     return (
-        <main className="w-full h-full flex flex-col bg-zinc-950 text-white font-mono overflow-y-auto scrollbar-hide relative">
-            <header className="flex justify-between items-center p-4 md:p-6 z-10 flex-shrink-0">
+        <main className="w-full h-full flex flex-col bg-zinc-950 text-white font-mono overflow-hidden relative">
+            <header className="flex justify-between items-center px-4 py-3 z-10 flex-shrink-0 bg-void-900 border-b border-white/5">
                 <div>
-                    <h1 className="text-2xl md:text-3xl font-black italic uppercase tracking-tighter text-pulse-500">STACK TRACE</h1>
-                    <p className="text-[9px] font-black uppercase tracking-[0.4em] text-zinc-600 italic">Sector Terminal // v1.8.4</p>
+                    <h1 className="text-xl font-black italic uppercase tracking-tighter text-pulse-500 leading-none">STACK TRACE</h1>
+                    <p className="text-[7px] font-black uppercase tracking-[0.2em] text-zinc-600 mt-1 italic">Protocol: Block Compilation</p>
                 </div>
-                <button onClick={onBackToHub} className="p-3 bg-zinc-900 border border-white/10 rounded-2xl text-zinc-400 hover:text-white transition-all active:scale-95 shadow-lg">
-                    <XIcon className="w-6 h-6" />
-                </button>
+                <div className="text-right">
+                    <span className="text-[7px] font-black uppercase text-zinc-500 block mb-0.5 tracking-widest">Score</span>
+                    <span className="text-sm font-black italic text-yellow-400 font-mono">{stats.score.toLocaleString()}</span>
+                </div>
             </header>
 
-            <div className="flex-grow flex flex-col lg:flex-row items-center justify-center gap-4 md:gap-8 p-4 z-10">
-                <div className="flex lg:flex-col gap-4 w-full lg:w-48 order-2 lg:order-1">
-                    <div className="flex-1 lg:flex-none bg-zinc-900/80 p-4 rounded-3xl border border-white/5 text-center shadow-2xl">
-                        <p className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-2 italic">Buffer</p>
-                        <canvas ref={holdRef} className="mx-auto w-16 h-16 opacity-80" />
+            <div className="flex-grow flex items-center justify-center p-2 min-h-0">
+                <div className="grid grid-cols-[60px,1fr,60px] gap-2 h-full max-h-[70vh] w-full max-w-lg">
+                    {/* Left Column: Buffer & Stats */}
+                    <div className="flex flex-col gap-2 justify-center">
+                        <div className="bg-zinc-900/80 p-2 rounded-xl border border-white/5 text-center">
+                            <p className="text-[7px] font-black uppercase text-zinc-500 mb-1 italic">Buf</p>
+                            <canvas ref={holdRef} className="mx-auto w-10 h-10 opacity-80" />
+                        </div>
+                        <div className="bg-zinc-900/80 p-2 rounded-xl border border-white/5 text-center">
+                            <p className="text-[7px] font-black uppercase text-zinc-500 mb-1 italic">Lvl</p>
+                            <span className="text-xs font-black text-white">{stats.level}</span>
+                        </div>
                     </div>
-                    <div className="hidden lg:block">
-                        <HighScoreTable entries={getHighScores('tetris')} title="TRACE" />
-                    </div>
-                </div>
 
-                <div className="relative aspect-[1/2] h-[55vh] md:h-[65vh] order-1 lg:order-2 shadow-[0_0_100px_rgba(225,29,72,0.1)]">
-                    <div className="absolute -inset-2 bg-pulse-500/10 blur-2xl rounded-[2rem]"></div>
-                    <canvas ref={canvasRef} className="relative w-full h-full bg-black border-4 border-zinc-900 rounded-[1.5rem] shadow-2xl" />
-                </div>
-
-                <div className="flex lg:flex-col gap-4 w-full lg:w-48 order-3">
-                    <div className="flex-1 lg:flex-none bg-zinc-900/80 p-4 rounded-3xl border border-white/5 text-center shadow-2xl">
-                        <p className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-2 italic">Queue</p>
-                        <canvas ref={previewRef} className="mx-auto w-16 h-32 opacity-80" />
+                    {/* Main Game Screen */}
+                    <div className="relative h-full border-2 border-zinc-800 bg-black rounded-lg overflow-hidden shadow-[0_0_40px_rgba(225,29,72,0.1)]">
+                        <canvas ref={canvasRef} className="w-full h-full" />
                     </div>
-                    <div className="flex-1 lg:flex-none bg-zinc-900 p-4 rounded-3xl border border-white/5 text-center shadow-2xl">
-                        <p className="text-[8px] font-black uppercase text-zinc-500 tracking-widest italic">Sync Value</p>
-                        <p className="text-2xl font-black italic text-yellow-400 drop-shadow-[0_0_10px_rgba(250,204,21,0.3)]">{stats.score}</p>
+
+                    {/* Right Column: Queue */}
+                    <div className="flex flex-col gap-2 justify-center">
+                        <div className="bg-zinc-900/80 p-2 rounded-xl border border-white/5 text-center">
+                            <p className="text-[7px] font-black uppercase text-zinc-500 mb-1 italic">Next</p>
+                            <canvas ref={previewRef} className="mx-auto w-10 h-24 opacity-80" />
+                        </div>
                     </div>
                 </div>
             </div>
             
-            <div className="p-4 flex-shrink-0 md:hidden pb-10">
-              <GameboyControls onButtonPress={handleButtonPress} onButtonRelease={handleButtonRelease} />
+            {/* COMPACT CONTROLS SECTION */}
+            <div className="bg-zinc-900 border-t-2 border-zinc-800 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] flex-shrink-0">
+                <div className="max-w-md mx-auto grid grid-cols-4 gap-3">
+                    {/* Left & Right - Move */}
+                    <div className="col-span-2 flex gap-3">
+                        <button 
+                            onPointerDown={() => handleAction('left')}
+                            className="flex-1 h-16 bg-zinc-800 border-b-4 border-black rounded-2xl flex items-center justify-center active:translate-y-1 active:border-b-0 transition-all"
+                        >
+                            <span className="text-2xl">←</span>
+                        </button>
+                        <button 
+                            onPointerDown={() => handleAction('right')}
+                            className="flex-1 h-16 bg-zinc-800 border-b-4 border-black rounded-2xl flex items-center justify-center active:translate-y-1 active:border-b-0 transition-all"
+                        >
+                            <span className="text-2xl">→</span>
+                        </button>
+                    </div>
+
+                    {/* Rotate */}
+                    <button 
+                        onPointerDown={() => handleAction('rotate')}
+                        className="h-16 bg-pulse-600 border-b-4 border-pulse-950 rounded-2xl flex flex-col items-center justify-center active:translate-y-1 active:border-b-0 transition-all group"
+                    >
+                        <span className="text-[8px] font-black uppercase leading-none mb-1 opacity-50 group-active:opacity-100">Spin</span>
+                        <span className="text-xl font-black italic">B</span>
+                    </button>
+
+                    {/* Drop */}
+                    <button 
+                        onPointerDown={() => handleAction('drop')}
+                        className="h-16 bg-pulse-600 border-b-4 border-pulse-950 rounded-2xl flex flex-col items-center justify-center active:translate-y-1 active:border-b-0 transition-all group"
+                    >
+                        <span className="text-[8px] font-black uppercase leading-none mb-1 opacity-50 group-active:opacity-100">Drop</span>
+                        <span className="text-xl font-black italic">A</span>
+                    </button>
+
+                    {/* Bottom Row Controls */}
+                    <div className="col-span-4 flex gap-4 pt-2">
+                        <button 
+                            onClick={() => handleAction('start')}
+                            className="flex-1 py-3 bg-zinc-800 border border-white/5 rounded-xl text-[9px] font-black uppercase italic text-zinc-400 hover:text-white transition-all active:scale-95"
+                        >
+                            RESTART_SYNC
+                        </button>
+                        <button 
+                            onClick={() => handleAction('quit')}
+                            className="flex-1 py-3 bg-zinc-800 border border-pulse-500/30 rounded-xl text-[9px] font-black uppercase italic text-pulse-500 hover:bg-pulse-500 hover:text-white transition-all active:scale-95"
+                        >
+                            ABORT_MISSION
+                        </button>
+                    </div>
+                </div>
             </div>
 
             {isGameOver && (

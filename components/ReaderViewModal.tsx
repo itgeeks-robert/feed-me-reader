@@ -62,10 +62,10 @@ const ReaderViewModal: React.FC<ReaderViewModalProps> = ({ article, onClose, onM
                 </header>
                 
                 <div className="p-8 md:p-16 overflow-y-auto flex-grow prose prose-sm md:prose-base prose-invert max-w-none 
-                    text-zinc-300 selection:bg-pulse-500 selection:text-white
+                    text-zinc-100 selection:bg-pulse-500 selection:text-white
                     prose-h1:text-2xl prose-h1:font-black prose-h1:italic prose-h1:tracking-tighter prose-h1:uppercase prose-h1:text-white
                     prose-h2:text-xl prose-h2:font-black prose-h2:italic prose-h2:text-white/90
-                    prose-p:text-base prose-p:leading-relaxed prose-p:text-zinc-300 prose-p:font-medium
+                    prose-p:text-base prose-p:leading-relaxed prose-p:text-zinc-100 prose-p:font-medium
                     prose-img:rounded-[2rem] prose-img:shadow-[0_0_50px_rgba(0,0,0,0.5)] prose-img:mx-auto prose-img:border-2 prose-img:border-white/5
                     prose-a:text-pulse-500 prose-a:italic prose-a:font-black hover:prose-a:text-pulse-400
                     prose-strong:text-white prose-strong:font-black

@@ -1,9 +1,8 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>THE VOID | Signal Reader</title>
     <link rel="manifest" href="data:application/manifest+json;base64,eyJuYW1lIjoiVGhlIFZvaWQiLCJzaG9ydF9uYW1lIjoiVGhlIFZvaWQiLCJzdGFydF91cmwiOiIuIiwiZGlzcGxheSI6InN0YW5kYWxvbmUiLCJiYWNrZ3JvdW5kX2NvbG9yIjoiIzBhMGEwYSIsInRoZW1lX2NvbG9yIjoiI2UxMWQ0OCIsImRlc2NyaXB0aW9uIjoiQSB0ZWNobmljYWwgbm9pciBzaWduYWwgcmVhZGVyLiIsImljb25zIjpbeyJzcmMiOiJkYXRhOmltYWdlL3N2Zyt4bWw7YmFzZTY0LFBITjJaeUI0Yld4VmJDQXhNREFnTVRBd0lIUm9aVzFsUFNKalluUmxibWRoZEdsdmJpSTdabTl1ZEMweE1EQWdNRFFnTVRRNU1EQXVOell3TXk0eU16QXdJSDE0WkdWdWRHbG1hV05oZEdsdmJpQjNjeUI0Yld4VmJHbHphR1Z5WVhScGIyNG5JSFpwWlhoMFBTSTBNVEF3TFM0M016UXA+PGEvbj48L2c+PC9zdmc+Iiwic2l6ZXMiOiJhbnkiLCJ0eXBlIjoiaW1hZ2Uvc3ZnK3htbCJ9XX0=" />
     <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PScwIDAgODAgODAnIHhtbG5zPSdodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2Zyc+PGcgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZTExZDQ4IiBzdHJva2Utd2lkdGg9IjQiPjxwYXRoIGQ9Ik0yMCA2MEw0MCAyMEw2MCA2ME0zMCA0NUg1MCIvPjwvZz48L3N2Zz4=" type="image/svg+xml" />
@@ -44,13 +43,12 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
 
-        /* VOID THEME STYLE SHEET - REFER TO THIS FOR ALL UI UPDATES */
         :root {
             --color-bg: #050505;
             --color-surface: #0a0a0a;
-            --color-primary: #e11d48; /* Neon Red Pulse */
-            --color-secondary: #22c55e; /* Technical Emerald */
-            --color-accent: #06b6d4; /* Cyber Cyan */
+            --color-primary: #e11d48;
+            --color-secondary: #22c55e;
+            --color-accent: #06b6d4;
             --glow-primary: 0 0 10px rgba(225, 29, 72, 0.4);
             --glow-secondary: 0 0 10px rgba(34, 197, 94, 0.4);
         }
@@ -92,9 +90,21 @@
             100% { transform: translate(5%,0) }
         }
 
+        @keyframes noise-flicker {
+            0%, 100% { opacity: 0.15; }
+            10%, 90% { opacity: 0.18; }
+            50% { opacity: 0.3; }
+            55% { opacity: 0.1; }
+        }
+
+        @keyframes scanline-roll {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100%); }
+        }
+
         .static-noise {
             position: relative;
-            background-color: #111;
+            background-color: #051508; /* Dark green tint */
             overflow: hidden;
         }
 
@@ -105,9 +115,19 @@
             left: -50%;
             width: 200%;
             height: 200%;
-            background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIj48ZmlsdGVyIGlkPSJuIj48ZmVUdXJidWxlbmNlIHR5cGU9ImZyYWN0YWxOb2lzZSIgYmFzZUZyZXF1ZW5jeT0iMC42NSIgbnVtT2N0YXZlcz0iMyIgc3RpdGNoVGlsZXM9InN0aXRjaCIvPjwvZmlsdGVyPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbHRlcj0idXJsKCNuKSIvPjwvc3ZnPg==');
-            opacity: 0.15;
-            animation: noise 0.5s steps(4) infinite;
+            background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIj48ZmlsdGVyIGlkPSJuIj48ZmVUdXJidWxlbmNlIHR5cGU9ImZyYWN0YWxOb2lzZSIgYmFzZUZyZXF1ZW5jeT0iMC44NSIgbnVtT2N0YXZlcz0iNCIgc3RpdGNoVGlsZXM9InN0aXRjaCIvPjwvZmlsdGVyPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbHRlcj0idXJsKCNuKSIvPjwvc3ZnPg==');
+            opacity: 0.2;
+            animation: noise 0.15s steps(2) infinite, noise-flicker 0.1s infinite;
+            pointer-events: none;
+        }
+
+        .static-noise::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 100px;
+            background: linear-gradient(to bottom, transparent, rgba(34, 197, 94, 0.1), transparent);
+            animation: scanline-roll 4s linear infinite;
+            z-index: 1;
             pointer-events: none;
         }
 
@@ -131,12 +151,11 @@
 <script type="importmap">
 {
   "imports": {
-    "react": "https://aistudiocdn.com/react@^18.2.0",
-    "react/": "https://aistudiocdn.com/react@^18.2.0/",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^18.2.0/",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.16.0",
-    "vite": "https://aistudiocdn.com/vite@^7.1.3",
-    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.0.2"
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "vite": "https://esm.sh/vite@^7.3.0",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3"
   }
 }
 </script>
