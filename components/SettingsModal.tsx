@@ -1,9 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { Settings, Theme, ArticleView, WidgetSettings } from '../src/App';
 import { XIcon, SunIcon, MoonIcon, CloudArrowUpIcon, CloudArrowDownIcon, ChevronDownIcon } from './icons';
-import { leagues } from '../services/sportsData';
-import { teamLogos } from '../services/teamLogos';
-import ImageWithProxy from './ImageWithProxy';
 
 interface SettingsModalProps {
     isOpen: boolean;
@@ -18,31 +15,11 @@ interface SettingsModalProps {
 
 type Tab = 'General' | 'Data' | 'Widgets';
 
-const TeamLogo: React.FC<{ name: string }> = ({ name }) => {
-    const logoUrl = teamLogos[name];
-    const displayName = (name || '').trim().substring(0, 3).toUpperCase() || '???';
-    
-    return (
-        <ImageWithProxy
-            src={logoUrl}
-            alt={`${name} logo`}
-            className="w-full h-full object-contain"
-            wrapperClassName="w-5 h-5 flex-shrink-0"
-            fallback={
-                <div className="w-5 h-5 rounded-full bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center font-bold text-xs text-zinc-500 dark:text-gray-400 flex-shrink-0">
-                    {displayName}
-                </div>
-            }
-        />
-    );
-};
-
 const hiddenInputStyle: React.CSSProperties = { display: 'none' };
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onUpdateSettings, onImportOpml, onExportOpml, onImportSettings, onExportSettings }) => {
     const [activeTab, setActiveTab] = useState<Tab>('General');
     const [localSettings, setLocalSettings] = useState({ ...settings });
-    const [openLeague, setOpenLeague] = useState<string | null>(leagues[0]?.name || null);
 
     const opmlInputRef = useRef<HTMLInputElement>(null);
     const settingsInputRef = useRef<HTMLInputElement>(null);
@@ -64,10 +41,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
 
     const handleWidgetChange = (key: keyof WidgetSettings, value: any) => {
         setLocalSettings(prev => ({ ...prev, widgets: { ...prev.widgets, [key]: value } }));
-    };
-    
-    const handleTeamSelectionChange = (teamCodes: string[]) => {
-        handleWidgetChange('sportsTeams', teamCodes);
     };
 
     const TabButton: React.FC<{ name: Tab }> = ({ name }) => (
@@ -133,43 +106,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                         </div>
                         <hr className="border-black/10 dark:border-white/10" />
                         <div className="flex items-center justify-between">
-                            <span className="font-medium text-zinc-800 dark:text-zinc-200">Show Sports Widget</span>
-                            <input type="checkbox" checked={localSettings.widgets.showSports} onChange={e => handleWidgetChange('showSports', e.target.checked)} className="h-4 w-4 rounded border-zinc-400 dark:border-zinc-600 text-orange-600 focus:ring-orange-500 bg-transparent" />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-zinc-800 dark:text-zinc-300 mb-2">Select Teams</label>
-                            <div className="border border-black/10 dark:border-white/10 rounded-lg max-h-64 overflow-y-auto bg-black/5 dark:bg-white/5">
-                                {leagues.map(league => {
-                                    const teamsInLeague = league.teams.map(t => t.code);
-                                    const selectedCount = teamsInLeague.filter(code => localSettings.widgets.sportsTeams.includes(code)).length;
-                                    const isAllSelected = selectedCount === teamsInLeague.length;
-                                    const isSomeSelected = selectedCount > 0 && !isAllSelected;
-                                    return (
-                                        <div key={league.name} className="border-b border-black/10 dark:border-white/10 last:border-b-0">
-                                            <div className="flex items-center p-3 cursor-pointer hover:bg-black/5 dark:hover:bg-white/5" onClick={() => setOpenLeague(openLeague === league.name ? null : league.name)}>
-                                                {/* FIX: Explicitly type `current` as Set<string> to fix type inference issue. */}
-                                                <input type="checkbox" checked={isAllSelected} ref={el => { if (el) el.indeterminate = isSomeSelected; }} onChange={() => { const current: Set<string> = new Set(localSettings.widgets.sportsTeams); if (isAllSelected) teamsInLeague.forEach(code => current.delete(code)); else teamsInLeague.forEach(code => current.add(code)); handleTeamSelectionChange(Array.from(current)); }} onClick={e => e.stopPropagation()} className="h-4 w-4 rounded border-zinc-400 dark:border-zinc-600 text-orange-600 focus:ring-orange-500 bg-transparent" />
-                                                <span className="ml-3 font-medium text-zinc-900 dark:text-zinc-200 flex-grow">{league.name}</span>
-                                                <ChevronDownIcon className={`w-5 h-5 text-zinc-400 dark:text-zinc-500 transition-transform ${openLeague === league.name ? 'rotate-180' : ''}`} />
-                                            </div>
-                                            {openLeague === league.name && (
-                                                <div className="pl-6 pr-3 pb-3 space-y-1">
-                                                    {league.teams.map(team => {
-                                                        const isSelected = localSettings.widgets.sportsTeams.includes(team.code);
-                                                        return (
-                                                            <label key={team.code} className="flex items-center p-2 rounded-md hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer">
-                                                                {/* FIX: Explicitly type `current` as Set<string> to fix type inference issue. */}
-                                                                <input type="checkbox" checked={isSelected} onChange={() => { const current: Set<string> = new Set(localSettings.widgets.sportsTeams); if (isSelected) current.delete(team.code); else current.add(team.code); handleTeamSelectionChange(Array.from(current)); }} className="h-4 w-4 rounded border-zinc-400 dark:border-zinc-600 text-orange-600 focus:ring-orange-500 bg-transparent" />
-                                                                <div className="ml-3 flex items-center gap-2"><TeamLogo name={team.name} /><span className="text-sm text-zinc-800 dark:text-zinc-300">{team.name}</span></div>
-                                                            </label>
-                                                        );
-                                                    })}
-                                                </div>
-                                            )}
-                                        </div>
-                                    );
-                                })}
-                            </div>
+                            <span className="font-medium text-zinc-800 dark:text-zinc-200">Show Finance Widget</span>
+                            <input type="checkbox" checked={localSettings.widgets.showFinance} onChange={e => handleWidgetChange('showFinance', e.target.checked)} className="h-4 w-4 rounded border-zinc-400 dark:border-zinc-600 text-orange-600 focus:ring-orange-500 bg-transparent" />
                         </div>
                     </>)}
                     {activeTab === 'Data' && (<>

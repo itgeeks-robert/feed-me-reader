@@ -4,7 +4,6 @@ import type { SourceType } from './AddSource';
 import { MenuIcon, SearchIcon, SunIcon, MoonIcon, BookOpenIcon } from './icons';
 import { resilientFetch } from '../services/fetch';
 import { parseRssXml } from '../services/rssParser';
-import { fetchAllSportsData, getCachedSportsData, needsFreshSportsData } from '../services/sportsService';
 import FeaturedStory from './articles/FeaturedStory';
 import ArticleListItem from './articles/ArticleListItem';
 import MagazineArticleListItem from './articles/MagazineArticleListItem';
@@ -71,10 +70,6 @@ const MainContent: React.FC<MainContentProps> = (props) => {
     const [showOnlyUnread, setShowOnlyUnread] = useState(false);
     const [cacheCount, setCacheCount] = useState(0);
     
-    const [sportsResults, setSportsResults] = useState<Map<string, any>>(new Map());
-    const [isSportsLoading, setIsSportsLoading] = useState(false);
-    const isInitialMount = useRef(true);
-
     const handleSearchSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (searchQuery.trim()) onSearch(searchQuery.trim());
@@ -112,25 +107,6 @@ const MainContent: React.FC<MainContentProps> = (props) => {
         };
         fetchRssFeeds(feedsToDisplay);
     }, [feedsToDisplay, refreshKey]);
-
-    useEffect(() => {
-        if (widgetSettings.showSports && widgetSettings.sportsTeams.length > 0) {
-            const fetchSports = async () => {
-                setIsSportsLoading(true);
-                const results = await fetchAllSportsData(widgetSettings.sportsTeams);
-                setSportsResults(results);
-                setIsSportsLoading(false);
-            };
-            const cachedData = getCachedSportsData();
-            if (cachedData) setSportsResults(cachedData);
-            if (isInitialMount.current) {
-                isInitialMount.current = false;
-                if (needsFreshSportsData() || !cachedData) fetchSports();
-            } else {
-                fetchSports();
-            }
-        }
-    }, [widgetSettings, refreshKey]);
 
     const filteredArticles = useMemo(() => {
         let result = articles;
@@ -189,7 +165,6 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                             <h2 className="font-black text-xs md:text-sm text-white italic uppercase tracking-tighter">Transmissions</h2>
                             <UnreadFilterToggle checked={showOnlyUnread} onChange={setShowOnlyUnread} />
                         </div>
-                        {sportsResults.size > 0 && <SportsCarousel results={sportsResults} isLoading={isSportsLoading} onTeamSelect={onSearch} />}
                     </div>
 
                     {loading && filteredArticles.length === 0 && (
@@ -271,23 +246,5 @@ const UnreadFilterToggle: React.FC<any> = ({ checked, onChange }) => (
         <span className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-zinc-500 group-hover:text-white transition-colors font-mono italic">Unread Signals</span>
     </label>
 );
-
-const SportsCarousel: React.FC<any> = ({ results, isLoading, onTeamSelect }) => (
-    <div className="flex gap-4 overflow-x-auto scrollbar-hide max-w-[180px] sm:max-w-none">
-        {Array.from(results.keys()).map((teamCode: any) => (
-            <SportsCard key={teamCode} data={results.get(teamCode)} isLoading={isLoading} onSelect={onTeamSelect} />
-        ))}
-    </div>
-);
-
-const SportsCard: React.FC<any> = ({ data, isLoading, onSelect }) => {
-    if (isLoading) return <div className="w-24 h-10 bg-void-900 animate-pulse flex-shrink-0" />;
-    if (!data || !data.success) return null;
-    return (
-        <button onClick={() => onSelect(data.teamFullName)} className="px-4 py-2.5 bg-void-950 border border-zinc-800 hover:border-pulse-500 transition-all flex items-center flex-shrink-0 shadow-lg">
-            <span className="font-black text-xs md:text-sm text-white font-mono italic">{data.homeScore}-{data.awayScore}</span>
-        </button>
-    );
-};
 
 export default MainContent;

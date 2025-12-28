@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { XIcon, ArrowPathIcon, VoidIcon, SparklesIcon } from './icons';
 import { saveHighScore, getHighScores, HighScoreEntry } from '../services/highScoresService';
@@ -28,6 +27,7 @@ const CipherCorePage: React.FC<CipherCoreProps> = ({ onBackToHub, uptime = 0, se
     const [shakeRow, setShakeRow] = useState<number | null>(null);
     const [highScores, setHighScores] = useState<HighScoreEntry[]>([]);
     const [showCopySuccess, setShowCopySuccess] = useState(false);
+    const [aiSummary, setAiSummary] = useState("");
 
     const daysSinceEpoch = useMemo(() => Math.floor(new Date().getTime() / (1000 * 60 * 60 * 24)), []);
 
@@ -59,6 +59,18 @@ const CipherCorePage: React.FC<CipherCoreProps> = ({ onBackToHub, uptime = 0, se
         return 0; // Absent
     }, []);
 
+    // Procedural Status Generator (Local)
+    const generateNeuralLog = () => {
+        const winPhrases = ["Decryption successful.", "Sequence recompiled.", "Mainframe integrity verified.", "Protocol cracked."];
+        const losePhrases = ["System lockout.", "Decryption failure.", "Logic error in sequence.", "Kernel panic detected."];
+        const atmospheric = ["Packet headers clean.", "Frequency alignment optimal.", "Signal resonance detected.", "Buffer overflow averted."];
+        
+        const phrase = gameState === 'won' ? winPhrases[Math.floor(Math.random() * winPhrases.length)] : losePhrases[Math.floor(Math.random() * losePhrases.length)];
+        const extra = atmospheric[Math.floor(Math.random() * atmospheric.length)];
+        
+        setAiSummary(`${phrase} ${extra} Decoded in ${guesses.length}/6 attempts.`);
+    };
+
     const handleSaveScore = () => {
         if (isPosted) return;
         const sporeGrid = guesses.map(guess => Array.from({ length: 5 }, (_, i) => getStatus(guess, i, solution)));
@@ -72,13 +84,6 @@ const CipherCorePage: React.FC<CipherCoreProps> = ({ onBackToHub, uptime = 0, se
         setIsPosted(true);
         setHighScores(getHighScores('spore_crypt'));
         saveProgress(guesses, gameState, true);
-    };
-
-    const handleBuyBack = () => {
-        if (uptime >= 50 && setUptime) {
-            setUptime(uptime - 50);
-            alert("Signal Sequence Restored! (50 Uptime consumed)");
-        }
     };
 
     const shareResults = () => {
@@ -148,15 +153,6 @@ const CipherCorePage: React.FC<CipherCoreProps> = ({ onBackToHub, uptime = 0, se
             <div className="flex flex-col lg:flex-row gap-8 items-start justify-center w-full max-w-6xl pb-20">
                 <div className="flex-shrink-0 mx-auto lg:mx-0 w-full max-w-[320px] space-y-6">
                     <HighScoreTable entries={highScores} title="CIPHER" />
-                    {uptime >= 50 && (
-                        <button onClick={handleBuyBack} className="w-full p-4 bg-emerald-950/40 border-2 border-emerald-500/30 rounded-2xl flex items-center gap-3 group hover:border-emerald-500 transition-all shadow-xl">
-                            <SparklesIcon className="w-8 h-8 text-emerald-500 animate-pulse" />
-                            <div className="text-left">
-                                <p className="text-[10px] font-black text-white uppercase italic">Sequence Restore</p>
-                                <p className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest">Cost: 50 Uptime</p>
-                            </div>
-                        </button>
-                    )}
                 </div>
 
                 <div className="flex flex-col items-center flex-grow w-full max-w-lg">
@@ -202,11 +198,37 @@ const CipherCorePage: React.FC<CipherCoreProps> = ({ onBackToHub, uptime = 0, se
                             </div>
                         </>
                     ) : (
-                        <div className="w-full max-w-sm bg-zinc-900 p-8 rounded-[3.5rem] border-4 border-emerald-500/30 text-center shadow-[0_0_80px_rgba(16,185,129,0.15)] animate-fade-in relative overflow-hidden">
+                        <div className="w-full max-w-sm bg-zinc-900 p-8 rounded-[3.5rem] border-4 ${gameState === 'won' ? 'border-emerald-500' : 'border-pulse-500'} text-center shadow-[0_0_80px_rgba(0,0,0,0.5)] animate-fade-in relative overflow-hidden">
                             <div className="relative z-10">
-                                <div className="mb-4 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-full w-16 h-16 mx-auto flex items-center justify-center shadow-lg animate-pulse"><VoidIcon className="w-10 h-10 text-emerald-500" /></div>
-                                <h2 className={`text-4xl font-black italic uppercase tracking-tighter mb-6 ${gameState === 'won' ? 'text-emerald-500' : 'text-pulse-500'}`}>{gameState === 'won' ? 'DECODED' : 'SEQUENCE FAILED'}</h2>
+                                <div className="mb-4 p-3 bg-zinc-950 border border-white/5 rounded-full w-16 h-16 mx-auto flex items-center justify-center shadow-lg animate-pulse"><VoidIcon className={`w-10 h-10 ${gameState === 'won' ? 'text-emerald-500' : 'text-pulse-500'}`} /></div>
+                                <h2 className={`text-4xl font-black italic uppercase tracking-tighter mb-4 ${gameState === 'won' ? 'text-emerald-500' : 'text-pulse-500'}`}>{gameState === 'won' ? 'DECODED' : 'SYSTEM LOCK'}</h2>
+                                
+                                {gameState === 'lost' && (
+                                    <div className="mb-6 p-4 bg-black/40 rounded-2xl border border-pulse-500/30">
+                                        <p className="text-[8px] font-black text-zinc-500 uppercase tracking-widest mb-1 italic">// Solution Protocol</p>
+                                        <p className="text-2xl font-black text-white italic tracking-widest">{solution}</p>
+                                    </div>
+                                )}
+
+                                <div className="bg-black/40 p-4 rounded-2xl border border-white/5 mb-6 text-left">
+                                    <p className="text-[8px] font-black text-zinc-500 uppercase tracking-widest mb-2 italic">// Session Report</p>
+                                    <p className="text-xs text-zinc-300 font-mono mb-4">
+                                        Sector ${daysSinceEpoch} - ${guesses.length}/6
+                                    </p>
+                                    {aiSummary ? (
+                                        <p className="text-[10px] text-emerald-400 font-black italic border-l-2 border-emerald-500 pl-3 leading-relaxed animate-fade-in">{aiSummary}</p>
+                                    ) : (
+                                        <button 
+                                            onClick={generateNeuralLog} 
+                                            className="w-full py-2 bg-void-950 border border-white/10 rounded-lg text-[9px] font-black text-zinc-400 uppercase italic tracking-widest hover:text-white flex items-center justify-center gap-2"
+                                        >
+                                            <SparklesIcon className="w-3 h-3" /> Generate Neural Log
+                                        </button>
+                                    )}
+                                </div>
+
                                 <button onClick={shareResults} className="w-full py-3 bg-zinc-800 text-zinc-300 font-black text-[10px] uppercase tracking-widest rounded-full border border-white/10 hover:text-emerald-500 mb-4 transition-all">{showCopySuccess ? "LOG CLONED!" : "TRANSMIT LOG"}</button>
+                                
                                 {gameState === 'won' && !isPosted && (
                                     <div className="pt-2">
                                         <p className="text-[9px] font-black uppercase text-zinc-500 tracking-widest mb-3 italic">Set Signal Identity</p>

@@ -17,7 +17,7 @@ export interface Article { id: string; title: string; link: string; source: stri
 export type Selection = { type: 'all' | 'folder' | 'bookmarks' | 'search' | 'feed' | 'reddit' | 'game_hub' | 'daily_uplink'; id: string | number | null; query?: string; };
 export type Theme = 'light' | 'dark';
 export type ArticleView = 'list' | 'grid' | 'featured';
-export interface WidgetSettings { showWeather: boolean; showSports: boolean; showFinance: boolean; weatherLocation: string; sportsTeams: string[]; }
+export interface WidgetSettings { showWeather: boolean; showFinance: boolean; weatherLocation: string; }
 export interface Settings { feeds: Feed[]; folders: Folder[]; theme: Theme; articleView: ArticleView; widgets: WidgetSettings; }
 export type SudokuDifficulty = 'Easy' | 'Medium' | 'Hard' | 'Expert';
 export type SudokuDifficultyStats = { fastestTime: number | null; gamesPlayed: number; totalTimePlayed: number; };
@@ -50,7 +50,7 @@ const defaultFeeds: Feed[] = [
     { id: 34, url: 'https://feeds.bbci.co.uk/sport/rss.xml', title: 'BBC Sport', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=bbc.co.uk', folderId: 3, sourceType: 'rss' },
     { id: 22, url: 'https://www.reddit.com/r/TheCivilService/.rss', title: 'r/TheCivilService', iconUrl: 'https://www.google.com/s2/favicons?sz=32&domain_url=reddit.com', folderId: null, sourceType: 'reddit' },
 ];
-const defaultWidgetSettings: WidgetSettings = { showWeather: true, showSports: true, showFinance: false, weatherLocation: 'London', sportsTeams: ['MUN', 'LIV', 'MCI', 'ARS'] };
+const defaultWidgetSettings: WidgetSettings = { showWeather: true, showFinance: false, weatherLocation: 'London' };
 const defaultSudokuStats: SudokuStats = { dailyStreak: 0, lastDailyCompletionDate: null, totalWins: 0, easy: { fastestTime: null, gamesPlayed: 0, totalTimePlayed: 0 }, medium: { fastestTime: null, gamesPlayed: 0, totalTimePlayed: 0 }, hard: { fastestTime: null, gamesPlayed: 0, totalTimePlayed: 0 }, expert: { fastestTime: null, gamesPlayed: 0, totalTimePlayed: 0 } };
 const defaultSolitaireStats: SolitaireStats = { gamesPlayed: 0, gamesWon: 0, fastestTime: null, lowestMoves: null, currentStreak: 0, maxStreak: 0, lastGameWasWin: false };
 const defaultSolitaireSettings: SolitaireSettings = { drawCount: 1, theme: null };
