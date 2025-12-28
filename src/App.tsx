@@ -8,13 +8,14 @@ import BottomNavBar from '../components/BottomNavBar';
 import GameHubPage from '../components/GameHubPage';
 import DailyUplinkPage from '../components/DailyUplinkPage';
 import ReaderViewModal from '../components/ReaderViewModal';
+import SplashScreen from '../components/SplashScreen';
 import { resilientFetch } from '../services/fetch';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 
 export interface Folder { id: number; name: string; }
 export interface Feed { id: number; url: string; title: string; iconUrl: string; folderId: number | null; sourceType?: SourceType; }
 export interface Article { id: string; title: string; link: string; source: string; publishedDate: Date | null; snippet: string; imageUrl: string | null; }
-export type Selection = { type: 'all' | 'folder' | 'bookmarks' | 'search' | 'feed' | 'reddit' | 'game_hub' | 'daily_uplink'; id: string | number | null; query?: string; };
+export type Selection = { type: 'splash' | 'all' | 'folder' | 'bookmarks' | 'search' | 'feed' | 'reddit' | 'game_hub' | 'daily_uplink'; id: string | number | null; query?: string; };
 export type Theme = 'light' | 'dark';
 export type ArticleView = 'list' | 'grid' | 'featured';
 export interface WidgetSettings { showWeather: boolean; showFinance: boolean; weatherLocation: string; }
@@ -71,12 +72,7 @@ const App: React.FC = () => {
     const [credits, setCredits] = useLocalStorage<number>(CREDITS_KEY, 100); 
     const [lastUplinkDate, setLastUplinkDate] = useLocalStorage<string | null>(LAST_UPLINK_KEY, null);
 
-    const [selection, setSelection] = useLocalStorage<Selection>(SELECTION_KEY, () => {
-        const today = new Date().toISOString().split('T')[0];
-        const savedUplink = localStorage.getItem(LAST_UPLINK_KEY);
-        if (savedUplink !== JSON.stringify(today)) return { type: 'daily_uplink', id: null };
-        return { type: 'all', id: null };
-    });
+    const [selection, setSelection] = useLocalStorage<Selection>(SELECTION_KEY, { type: 'splash', id: null });
 
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
@@ -103,7 +99,7 @@ const App: React.FC = () => {
             if (historyManagerRef.current.isManualNavigation) return;
             if (closeAllModals()) {
                 window.history.pushState(null, ''); // Swallow the pop and restore state
-            } else if (selection.type !== 'all') {
+            } else if (selection.type !== 'all' && selection.type !== 'splash') {
                 setSelection({ type: 'all', id: null });
                 window.history.pushState(null, '');
             }
@@ -191,6 +187,10 @@ const App: React.FC = () => {
         if (selection.type === 'folder') return folders.find(f => f.id === selection.id)?.name || 'Folder';
         return 'SURVEILLANCE LOG';
     }, [selection, feeds, folders]);
+
+    if (selection.type === 'splash') {
+        return <SplashScreen onEnterFeeds={handleReturnToFeeds} onEnterArcade={handleEnterArcade} />;
+    }
 
     const isGameActive = selection.type === 'game_hub' || selection.type === 'daily_uplink';
 
