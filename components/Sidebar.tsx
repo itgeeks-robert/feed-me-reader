@@ -1,10 +1,9 @@
-
 import React from 'react';
 import type { Feed, Folder, Selection } from '../src/App';
 import type { SourceType } from './AddSource';
 import AddSource from './AddSource';
 import {
-    VoidIcon, ListIcon, PlusIcon, TrashIcon, FolderIcon, BookmarkIcon, SettingsIcon, ControllerIcon, XIcon
+    VoidIcon, ListIcon, PlusIcon, TrashIcon, FolderIcon, BookmarkIcon, SettingsIcon, ControllerIcon, XIcon, SparklesIcon
 } from './icons';
 import { SmartFeedIcon } from './SmartFeedIcon';
 
@@ -22,10 +21,11 @@ interface SidebarProps {
     isSidebarOpen: boolean;
     onClose: () => void;
     onOpenSettings: () => void;
+    credits: number;
 }
 
 const Sidebar: React.FC<SidebarProps> = (props) => {
-    const { feeds, folders, selection, onAddSource, onRemoveFeed, onSelect, onAddFolder, isSidebarOpen, onClose, onOpenSettings } = props;
+    const { feeds, folders, selection, onAddSource, onRemoveFeed, onSelect, onAddFolder, isSidebarOpen, onClose, onOpenSettings, credits } = props;
     
     const NavItem: React.FC<{sel: Selection, label: string, icon: React.ReactNode}> = ({sel, label, icon}) => {
         const isActive = selection.type === sel.type && selection.id === sel.id;
@@ -54,6 +54,21 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                     <button onClick={onClose} className="p-2 -mr-2 rounded-2xl text-zinc-500 hover:bg-zinc-900 md:hidden">
                         <XIcon className="w-7 h-7" />
                     </button>
+                </div>
+
+                {/* SIGNAL CREDITS DISPLAY */}
+                <div className="mb-8 p-4 bg-void-900 border border-pulse-500/20 rounded-2xl flex items-center gap-4 group hover:border-pulse-500/50 transition-colors cursor-help shadow-lg relative overflow-hidden">
+                    <div className="absolute inset-0 bg-pulse-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+                    <div className="p-2 bg-pulse-500/10 rounded-lg">
+                        <SparklesIcon className="w-5 h-5 text-pulse-500 animate-pulse" />
+                    </div>
+                    <div>
+                        <span className="text-[8px] font-black text-zinc-600 uppercase tracking-[0.3em] block mb-0.5">Frequency Assets</span>
+                        <div className="flex items-baseline gap-1">
+                            <span className="text-lg font-black text-white italic tracking-tighter leading-none">{credits.toLocaleString()}</span>
+                            <span className="text-[9px] font-black text-pulse-500 uppercase tracking-tighter italic">SC</span>
+                        </div>
+                    </div>
                 </div>
                 
                 <AddSource onAddSource={onAddSource} />

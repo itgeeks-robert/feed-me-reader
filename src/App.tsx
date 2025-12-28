@@ -109,6 +109,7 @@ const SOLITAIRE_STATS_KEY = `void_solitaire_stats_${GUEST_USER_ID}`;
 const SOLITAIRE_SETTINGS_KEY = `void_solitaire_settings_${GUEST_USER_ID}`;
 const SELECTION_KEY = `void_selection_${GUEST_USER_ID}`;
 const UPTIME_KEY = `void_uptime_${GUEST_USER_ID}`;
+const CREDITS_KEY = `void_credits_${GUEST_USER_ID}`;
 const LAST_UPLINK_KEY = `void_last_uplink_date_${GUEST_USER_ID}`;
 
 const defaultFolders: Folder[] = [
@@ -171,6 +172,7 @@ const App: React.FC = () => {
     const [solitaireStats, setSolitaireStats] = useLocalStorage<SolitaireStats>(SOLITAIRE_STATS_KEY, defaultSolitaireStats);
     const [solitaireSettings, setSolitaireSettings] = useLocalStorage<SolitaireSettings>(SOLITAIRE_SETTINGS_KEY, defaultSolitaireSettings);
     const [uptime, setUptime] = useLocalStorage<number>(UPTIME_KEY, 0);
+    const [credits, setCredits] = useLocalStorage<number>(CREDITS_KEY, 100); // Start with 100 SC
     const [lastUplinkDate, setLastUplinkDate] = useLocalStorage<string | null>(LAST_UPLINK_KEY, null);
 
     const [selection, setSelection] = useLocalStorage<Selection>(SELECTION_KEY, () => {
@@ -206,12 +208,14 @@ const App: React.FC = () => {
         if (!readArticleIds.has(id)) {
             setReadArticleIds(prev => new Set(prev).add(id));
             setUptime(f => Math.min(100, f + 5)); 
+            setCredits(c => c + 10); // Reward for reading
         }
     };
 
     const handlePurgeBuffer = (articleIds: string[]) => {
         setReadArticleIds(prev => new Set([...Array.from(prev), ...articleIds]));
         setUptime(100);
+        setCredits(c => c + 50); // Bonus for bulk clearing
     };
 
     const handleSelectFromSidebar = (sel: Selection) => {
@@ -281,7 +285,9 @@ const App: React.FC = () => {
         return newStats;
       });
       setUptime(f => Math.min(100, f + 15));
-    }, [setSudokuStats, setUptime]);
+      const reward = difficulty === 'Easy' ? 50 : difficulty === 'Medium' ? 100 : 200;
+      setCredits(c => c + reward);
+    }, [setSudokuStats, setUptime, setCredits]);
 
     const handleSolitaireWin = useCallback((time: number, moves: number) => {
       setSolitaireStats(prev => {
@@ -293,7 +299,8 @@ const App: React.FC = () => {
         return newStats;
       });
       setUptime(f => Math.min(100, f + 25));
-    }, [setSolitaireStats, setUptime]);
+      setCredits(c => c + 250);
+    }, [setSolitaireStats, setUptime, setCredits]);
 
     const pageTitle = useMemo(() => {
         if (selection.type === 'search') return `SEARCHING: "${selection.query}"`;
@@ -323,6 +330,7 @@ const App: React.FC = () => {
                 isSidebarOpen={isSidebarOpen}
                 onClose={() => setIsSidebarOpen(false)}
                 onOpenSettings={() => setIsSettingsModalOpen(true)}
+                credits={credits}
             />
             
             <div className="flex-1 flex flex-col min-w-0 md:pl-72 relative pb-20 md:pb-0 h-full overflow-hidden">
@@ -348,6 +356,8 @@ const App: React.FC = () => {
                             onReturnToFeeds={handleReturnToFeeds}
                             uptime={uptime}
                             setUptime={setUptime}
+                            credits={credits}
+                            setCredits={setCredits}
                         />
                     </div>
                 ) : (

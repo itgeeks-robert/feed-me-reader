@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { generateSudoku } from '../services/sudoku';
 import { PencilIcon, LightBulbIcon, EraserIcon, VoidIcon, XIcon, ArrowPathIcon, CpuChipIcon, SparklesIcon } from './icons';
@@ -299,18 +298,18 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
                 .animate-selection { animation: selection-glow 0.6s ease-in-out infinite; }
 
                 @keyframes cross-highlight {
-                    0% { background-color: rgba(225, 29, 72, 0.1); }
-                    50% { background-color: rgba(225, 29, 72, 0.35); box-shadow: inset 0 0 10px rgba(225, 29, 72, 0.2); }
-                    100% { background-color: rgba(225, 29, 72, 0.1); }
+                    0% { background-color: rgba(225, 29, 72, 0.15); }
+                    50% { background-color: rgba(225, 29, 72, 0.5); box-shadow: inset 0 0 15px rgba(225, 29, 72, 0.3); }
+                    100% { background-color: rgba(225, 29, 72, 0.15); }
                 }
-                .animate-cross-highlight { animation: cross-highlight 1.5s ease-in-out infinite; }
+                .animate-cross-highlight { animation: cross-highlight 1s ease-in-out infinite; }
 
                 @keyframes completion-flash {
-                    0% { background-color: white; transform: scale(1); box-shadow: 0 0 50px white; z-index: 50; }
-                    50% { background-color: #22c55e; transform: scale(1.1); box-shadow: 0 0 100px #22c55e; }
+                    0% { background-color: white; transform: scale(1); box-shadow: 0 0 60px white; z-index: 50; }
+                    50% { background-color: #22c55e; transform: scale(1.15); box-shadow: 0 0 120px #22c55e; }
                     100% { background-color: transparent; transform: scale(1); box-shadow: none; }
                 }
-                .animate-completion { animation: completion-flash 0.8s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
+                .animate-completion { animation: completion-flash 0.7s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
             `}</style>
 
             <div className="max-w-md w-full h-full flex flex-col p-4 gap-4 z-10">

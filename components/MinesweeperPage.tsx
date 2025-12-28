@@ -16,9 +16,11 @@ interface Cell {
 
 type Grid = Cell[][];
 
+// Added optional onDefuse callback to props interface
 interface MinesweeperPageProps {
   onBackToHub: () => void;
   onReturnToFeeds: () => void;
+  onDefuse?: () => void;
 }
 
 const settings: Record<Difficulty, { rows: number; cols: number; mines: number }> = {
@@ -27,7 +29,8 @@ const settings: Record<Difficulty, { rows: number; cols: number; mines: number }
     Hard: { rows: 16, cols: 20, mines: 60 },
 };
 
-const MinesweeperPage: React.FC<MinesweeperPageProps> = ({ onBackToHub }) => {
+// Updated component to destructure onReturnToFeeds and onDefuse from props
+const MinesweeperPage: React.FC<MinesweeperPageProps> = ({ onBackToHub, onReturnToFeeds, onDefuse }) => {
   const [difficulty, setDifficulty] = useState<Difficulty>('Easy');
   const [grid, setGrid] = useState<Grid | null>(null);
   const [gameState, setGameState] = useState<GameState>('IDLE');
@@ -129,6 +132,8 @@ const MinesweeperPage: React.FC<MinesweeperPageProps> = ({ onBackToHub }) => {
     if (checkWinCondition(newGrid)) {
       stopTimer();
       setGameState('WON');
+      // Added call to onDefuse if game is won
+      onDefuse?.();
     }
   };
 

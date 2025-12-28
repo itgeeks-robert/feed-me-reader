@@ -7,9 +7,16 @@ const CACHE_PREFIX = 'reader_view_cache_';
 const sanitizeAndEmbedImages = async (html: string, baseUrl: string): Promise<string> => {
     const doc = new DOMParser().parseFromString(html, 'text/html');
     
-    doc.querySelectorAll('script, style, link, meta, iframe, frame, frameset').forEach(el => el.remove());
+    // Aggressively remove non-content elements
+    doc.querySelectorAll('script, style, link, meta, iframe, frame, frameset, noscript, video, audio, source, object, embed').forEach(el => el.remove());
+    
+    // Remove common media player and interactive elements
+    doc.querySelectorAll('button, svg, [role="button"], [class*="player"], [class*="control"], [class*="media-ui"], [class*="social-share"]').forEach(el => el.remove());
 
     doc.querySelectorAll('*').forEach(el => {
+        // Strip inline styles that might force black text
+        el.removeAttribute('style');
+        
         for (const attr of el.attributes) {
             if (attr.name.startsWith('on')) {
                 el.removeAttribute(attr.name);
@@ -27,15 +34,14 @@ const sanitizeAndEmbedImages = async (html: string, baseUrl: string): Promise<st
     const imagePromises = Array.from(doc.querySelectorAll('img[src]')).map(async (img) => {
         try {
             const originalSrc = img.getAttribute('src')!;
-            if (originalSrc.startsWith('data:')) return; // Don't re-process data URIs
+            if (originalSrc.startsWith('data:')) return; 
             
             const absoluteUrl = new URL(originalSrc, baseUrl).href;
             
             const response = await resilientFetch(absoluteUrl);
             const blob = await response.blob();
             
-            if (blob.size > 10 * 1024 * 1024) { // 10MB limit for embedding
-                console.warn(`Image too large to embed: ${absoluteUrl}`);
+            if (blob.size > 10 * 1024 * 1024) { 
                 img.remove();
                 return;
             }
@@ -49,8 +55,7 @@ const sanitizeAndEmbedImages = async (html: string, baseUrl: string): Promise<st
             img.setAttribute('src', dataUrl);
 
         } catch (e) {
-            console.warn('Failed to embed image:', img.getAttribute('src'), e);
-            img.remove(); // Remove images that fail to load
+            img.remove(); 
         }
     });
         
@@ -72,12 +77,15 @@ const parseArticleContent = (html: string): { title: string; content: string } =
         '[class*="promo"]', '[class*="ads"]', '.ad', '#ad',
         '.header', '.footer', '.navbar', '.menu', '.nav',
         '.byline', '.meta', '.author', '.timestamp',
+        'button', 'svg', '.media-player', '.audio-player', '.video-player',
+        '.p-media-player', '.bbc-news-visual-journalism', '.sharing'
     ];
     doc.querySelectorAll(junkSelectors.join(', ')).forEach(el => el.remove());
 
     const selectors = [
         'article', '[role="main"]', 'main', '.post-content', '.article-body',
-        '.entry-content', '#content', '#main', '.story-content', '.article-content'
+        '.entry-content', '#content', '#main', '.story-content', '.article-content',
+        '.ssrcss-11r1m41-RichTextContainer' // BBC specific
     ];
 
     let contentEl: HTMLElement | null = null;
