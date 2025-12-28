@@ -39,7 +39,8 @@ interface MainContentProps {
     uptime: number;
 }
 
-const ARTICLES_PER_PAGE = 10;
+const ARTICLES_PER_PAGE = 10; // Initial 1 featured + 9 grid items
+const LOAD_MORE_BATCH = 9;   // Keep the 3x3 grid perfect
 
 const EnergyScope: React.FC<{ value: number }> = ({ value }) => (
     <div className="w-full flex flex-col gap-1">
@@ -121,12 +122,13 @@ const MainContent: React.FC<MainContentProps> = (props) => {
 
     const unreadCount = useMemo(() => articles.filter(a => !readArticleIds.has(a.id)).length, [articles, readArticleIds]);
 
-    const latestArticle = articleView !== 'featured' && filteredArticles.length > 0 ? filteredArticles[0] : null;
-    const articlesToDisplay = articleView !== 'featured' ? filteredArticles.slice(1) : filteredArticles;
-    const visibleArticlesToDisplay = articlesToDisplay.slice(0, visibleCount);
+    // Force Lead Story + Grid layout as requested
+    const latestArticle = filteredArticles.length > 0 ? filteredArticles[0] : null;
+    const articlesToDisplay = filteredArticles.slice(1);
+    const visibleArticlesToDisplay = articlesToDisplay.slice(0, visibleCount - 1);
 
     return (
-        <main className={`flex-grow overflow-y-auto ${animationClass} bg-void-950 pb-[calc(10rem+env(safe-area-inset-bottom))] scroll-smooth`}>
+        <main className={`flex-grow overflow-y-auto ${animationClass} bg-void-950 pb-[calc(10rem+env(safe-area-inset-bottom))] scroll-smooth scrollbar-hide`}>
             <Header 
                 onSearchSubmit={handleSearchSubmit} 
                 searchQuery={searchQuery} 
@@ -137,7 +139,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                 uptime={uptime}
                 cacheCount={cacheCount}
             />
-            <div className="px-4 md:px-12 pt-32 md:pt-40 max-w-6xl mx-auto">
+            <div className="px-4 md:px-12 pt-32 md:pt-40 max-w-7xl mx-auto">
                  <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b-2 border-pulse-500/10 mb-8">
                     <div>
                         <h1 className="text-xl md:text-2xl font-black text-white italic drop-shadow-[0_0_10px_rgba(225,29,72,0.4)] glitch-text uppercase tracking-widest">{pageTitle}</h1>
@@ -159,10 +161,10 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                     </div>
                 )}
                 
-                <div className="mt-8">
-                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-8 gap-4">
+                <div className="mt-16">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-10 gap-4 border-l-4 border-pulse-500 pl-6">
                         <div className="flex items-center gap-6">
-                            <h2 className="font-black text-xs md:text-sm text-white italic uppercase tracking-tighter">Transmissions</h2>
+                            <h2 className="font-black text-xl md:text-2xl text-white italic uppercase tracking-tighter">Live Transmissions</h2>
                             <UnreadFilterToggle checked={showOnlyUnread} onChange={setShowOnlyUnread} />
                         </div>
                     </div>
@@ -174,28 +176,26 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                         </div>
                     )}
                     
-                    <div className={articleView === 'grid' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10" : "space-y-6 md:space-y-8"}>
-                        {visibleArticlesToDisplay.map(article => {
-                            const commonProps = {
-                                key: article.id,
-                                article: article,
-                                onMarkAsRead: () => onMarkAsRead(article.id),
-                                onReadHere: () => onOpenReader(article),
-                                isRead: readArticleIds.has(article.id),
-                            };
-                            if (articleView === 'featured') return <FeaturedStory {...commonProps} />;
-                            if (articleView === 'grid') return <MagazineArticleListItem {...commonProps} />;
-                            return <ArticleListItem {...commonProps} />;
-                        })}
+                    {/* Fixed 3x3 Grid Layout */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10">
+                        {visibleArticlesToDisplay.map(article => (
+                            <MagazineArticleListItem 
+                                key={article.id}
+                                article={article}
+                                onMarkAsRead={() => onMarkAsRead(article.id)}
+                                onReadHere={() => onOpenReader(article)}
+                                isRead={readArticleIds.has(article.id)}
+                            />
+                        ))}
                     </div>
 
-                    {articlesToDisplay.length > visibleCount && (
+                    {articlesToDisplay.length > visibleArticlesToDisplay.length && (
                         <div className="mt-16 text-center pb-24">
                             <button
-                                onClick={() => setVisibleCount(c => c + ARTICLES_PER_PAGE)}
-                                className="bg-void-950 border-2 border-pulse-500 text-pulse-500 hover:bg-pulse-500 hover:text-white font-black uppercase italic py-4 px-12 rounded-none transition-all shadow-[6px_6px_0px_#e11d48] text-sm md:text-base"
+                                onClick={() => setVisibleCount(c => c + LOAD_MORE_BATCH)}
+                                className="bg-void-950 border-2 border-pulse-500 text-pulse-500 hover:bg-pulse-500 hover:text-white font-black uppercase italic py-4 px-12 rounded-none transition-all shadow-[6px_6px_0px_#e11d48] text-sm md:text-base active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
                             >
-                                Decode More
+                                Decode {LOAD_MORE_BATCH} More
                             </button>
                         </div>
                     )}
