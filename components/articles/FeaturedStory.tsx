@@ -5,7 +5,7 @@ import ImageWithProxy from '../ImageWithProxy';
 
 const CCTVMonitor: React.FC<{ src: string | null; label: string }> = ({ src, label }) => {
     return (
-        <div className="relative w-full h-full bg-black group-hover:grayscale-0 transition-all duration-700 grayscale-[0.5] contrast-125">
+        <div className="relative w-full h-full bg-black transition-all duration-700 saturate-[0.7] contrast-125 brightness-90">
             <ImageWithProxy
                 src={src}
                 alt=""

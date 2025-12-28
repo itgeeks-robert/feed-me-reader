@@ -8,7 +8,7 @@ import { SmartFeedIcon } from '../SmartFeedIcon';
 
 const CCTVThumbnail: React.FC<{ src: string | null; }> = ({ src }) => {
     return (
-        <div className="relative w-full h-full bg-black grayscale contrast-125 group-hover:grayscale-0 transition-all duration-500 overflow-hidden">
+        <div className="relative w-full h-full bg-black saturate-[0.5] contrast-125 brightness-90 transition-all duration-500 overflow-hidden">
             <ImageWithProxy
                 src={src}
                 alt=""

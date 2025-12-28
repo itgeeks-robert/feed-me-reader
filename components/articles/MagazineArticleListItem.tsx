@@ -25,7 +25,7 @@ const MagazineArticleListItem: React.FC<MagazineArticleListItemProps> = ({ artic
                 <ImageWithProxy
                     src={article.imageUrl}
                     alt=""
-                    className="w-full h-full object-cover grayscale contrast-125 group-hover:grayscale-0 transition-all duration-700 opacity-80"
+                    className="w-full h-full object-cover saturate-[0.6] contrast-125 brightness-90 group-hover:saturate-100 transition-all duration-700 opacity-80"
                     wrapperClassName="w-full h-full"
                     fallback={
                         <div className="w-full h-full static-noise flex flex-col items-center justify-center p-4">

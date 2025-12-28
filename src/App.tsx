@@ -9,13 +9,18 @@ import GameHubPage from '../components/GameHubPage';
 import DailyUplinkPage from '../components/DailyUplinkPage';
 import ReaderViewModal from '../components/ReaderViewModal';
 import SplashScreen from '../components/SplashScreen';
+import DeepSyncPage from '../components/DeepSyncPage';
+import SignalScramblerPage from '../components/SignalScramblerPage';
+import UtilityHubPage from '../components/UtilityHubPage';
+import SignalStreamerPage from '../components/SignalStreamerPage';
+import TranscoderPage from '../components/TranscoderPage';
 import { resilientFetch } from '../services/fetch';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 
 export interface Folder { id: number; name: string; }
 export interface Feed { id: number; url: string; title: string; iconUrl: string; folderId: number | null; sourceType?: SourceType; }
 export interface Article { id: string; title: string; link: string; source: string; publishedDate: Date | null; snippet: string; imageUrl: string | null; }
-export type Selection = { type: 'splash' | 'all' | 'folder' | 'bookmarks' | 'search' | 'feed' | 'reddit' | 'game_hub' | 'daily_uplink' | 'grid_reset'; id: string | number | null; query?: string; };
+export type Selection = { type: 'splash' | 'all' | 'folder' | 'bookmarks' | 'search' | 'feed' | 'reddit' | 'game_hub' | 'daily_uplink' | 'grid_reset' | 'deep_sync' | 'signal_scrambler' | 'utility_hub' | 'signal_streamer' | 'transcoder'; id: string | number | null; query?: string; };
 export type Theme = 'light' | 'dark';
 export type ArticleView = 'list' | 'grid' | 'featured';
 export interface WidgetSettings { showWeather: boolean; showFinance: boolean; weatherLocation: string; }
@@ -71,9 +76,6 @@ const App: React.FC = () => {
     const [credits, setCredits] = useLocalStorage<number>(CREDITS_KEY, 100); 
     const [lastUplinkDate, setLastUplinkDate] = useLocalStorage<string | null>(LAST_UPLINK_KEY, null);
 
-    // CHANGED: Use useState instead of useLocalStorage for 'selection'.
-    // This forces the landing page to always be 'splash' on refresh/cold boot,
-    // ensuring the menu screen/boot sequence is always shown as the entry point.
     const [selection, setSelection] = useState<Selection>({ type: 'splash', id: null });
 
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -83,7 +85,6 @@ const App: React.FC = () => {
     const [readerArticle, setReaderArticle] = useState<Article | null>(null);
     const [lastRefresh, setLastRefresh] = useState(() => Date.now());
 
-    // --- History & Back Button Management ---
     const historyManagerRef = useRef({ isManualNavigation: false });
 
     const closeAllModals = useCallback(() => {
@@ -100,7 +101,7 @@ const App: React.FC = () => {
         const handlePopState = (e: PopStateEvent) => {
             if (historyManagerRef.current.isManualNavigation) return;
             if (closeAllModals()) {
-                window.history.pushState(null, ''); // Swallow the pop and restore state
+                window.history.pushState(null, '');
             } else if (selection.type !== 'all' && selection.type !== 'splash') {
                 setSelection({ type: 'all', id: null });
                 window.history.pushState(null, '');
@@ -135,6 +136,7 @@ const App: React.FC = () => {
     const handleSelectFromSidebar = (sel: Selection) => { setSelection(sel); setIsSidebarOpen(false); };
     const handleReturnToFeeds = useCallback(() => { setSelection({ type: 'all', id: null }); setLastUplinkDate(new Date().toISOString().split('T')[0]); }, [setSelection, setLastUplinkDate]);
     const handleEnterArcade = useCallback(() => { setSelection({ type: 'game_hub', id: null }); setLastUplinkDate(new Date().toISOString().split('T')[0]); }, [setSelection, setLastUplinkDate]);
+    const handleEnterUtils = useCallback(() => { setSelection({ type: 'utility_hub', id: null }); }, [setSelection]);
     
     const handleOpenShop = useCallback(() => {
         if (selection.type !== 'game_hub') setSelection({ type: 'game_hub', id: null });
@@ -188,6 +190,11 @@ const App: React.FC = () => {
         if (selection.type === 'bookmarks') return 'SAVED PACKETS';
         if (selection.type === 'game_hub') return 'DARK ARCADE';
         if (selection.type === 'daily_uplink') return 'UPLINK SEQUENCE';
+        if (selection.type === 'deep_sync') return 'DEEP SYNC';
+        if (selection.type === 'signal_scrambler') return 'SIGNAL SCRAMBLER';
+        if (selection.type === 'utility_hub') return 'SECTOR UTILITIES';
+        if (selection.type === 'signal_streamer') return 'SIGNAL STREAMER';
+        if (selection.type === 'transcoder') return 'DATA TRANSCODER';
         if (selection.type === 'feed') return feeds.find(f => f.id === selection.id)?.title || 'Feed';
         if (selection.type === 'folder') return folders.find(f => f.id === selection.id)?.name || 'Folder';
         return 'SURVEILLANCE LOG';
@@ -197,7 +204,7 @@ const App: React.FC = () => {
         return <SplashScreen onEnterFeeds={handleReturnToFeeds} onEnterArcade={handleEnterArcade} />;
     }
 
-    const isGameActive = selection.type === 'game_hub' || selection.type === 'daily_uplink';
+    const isGameActive = selection.type === 'game_hub' || selection.type === 'daily_uplink' || selection.type === 'deep_sync' || selection.type === 'signal_scrambler' || selection.type === 'utility_hub' || selection.type === 'signal_streamer' || selection.type === 'transcoder';
 
     return (
         <div className="h-screen font-sans text-sm relative flex flex-col md:flex-row overflow-hidden bg-void-950">
@@ -206,6 +213,16 @@ const App: React.FC = () => {
             <div className="flex-1 flex flex-col min-w-0 md:pl-72 relative pb-20 md:pb-0 h-full overflow-hidden">
                 {selection.type === 'daily_uplink' ? (
                    <DailyUplinkPage feeds={feeds} onComplete={handleReturnToFeeds} onEnterArcade={handleEnterArcade} onSelectGame={(id) => setSelection({type: 'game_hub', id: null})} uptime={uptime} />
+                ) : selection.type === 'deep_sync' ? (
+                    <DeepSyncPage onBackToHub={handleEnterArcade} />
+                ) : selection.type === 'signal_scrambler' ? (
+                    <SignalScramblerPage onBackToHub={handleEnterArcade} />
+                ) : selection.type === 'utility_hub' ? (
+                    <UtilityHubPage onSelect={(type) => setSelection({type: type as any, id: null})} onBackToHub={handleReturnToFeeds} />
+                ) : selection.type === 'signal_streamer' ? (
+                    <SignalStreamerPage onBackToHub={handleEnterUtils} />
+                ) : selection.type === 'transcoder' ? (
+                    <TranscoderPage onBackToHub={handleEnterUtils} />
                 ) : selection.type === 'game_hub' ? (
                     <div className="flex-1 min-h-0 h-full overflow-hidden">
                         <GameHubPage

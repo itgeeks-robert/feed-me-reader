@@ -257,15 +257,15 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
 
         return (
             <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-950 p-6 overflow-y-auto scrollbar-hide">
-                <div className="w-full max-w-sm text-center bg-zinc-900 p-8 md:p-10 rounded-[3rem] border-4 border-signal-500 shadow-[0_0_50px_rgba(34,197,94,0.1)] mb-6">
-                    <div className="p-3 bg-signal-500/10 border border-signal-500/30 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                        <VoidIcon className="w-10 h-10 text-signal-500" />
+                <div className="w-full max-w-sm text-center bg-zinc-900 p-8 md:p-10 rounded-[3rem] border-4 border-neon-400 shadow-[0_0_50px_rgba(34,211,238,0.1)] mb-6">
+                    <div className="p-3 bg-neon-400/10 border border-neon-400/30 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                        <CpuChipIcon className="w-10 h-10 text-neon-400" />
                     </div>
-                    <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter mb-4">PATTERN ZERO</h2>
+                    <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter mb-4">LOGIC GRID</h2>
                     
                     <div className="flex gap-2 mb-6">
                         {(['Easy', 'Medium', 'Hard'] as Difficulty[]).map(d => (
-                            <button key={d} onClick={() => setDifficulty(d)} className={`flex-1 py-2.5 rounded-xl font-black uppercase italic text-[10px] transition-all border ${difficulty === d ? 'bg-signal-600 border-signal-400 text-white shadow-lg' : 'bg-zinc-800 border-white/5 text-zinc-500'}`}>{d}</button>
+                            <button key={d} onClick={() => setDifficulty(d)} className={`flex-1 py-2.5 rounded-xl font-black uppercase italic text-[10px] transition-all border ${difficulty === d ? 'bg-neon-500 border-neon-400 text-white shadow-lg' : 'bg-zinc-800 border-white/5 text-zinc-500'}`}>{d}</button>
                         ))}
                     </div>
 
@@ -278,10 +278,10 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
                             className={`w-full py-4 rounded-2xl flex items-center justify-center gap-3 font-black uppercase italic transition-all shadow-xl border-2 ${hasDoneDaily ? 'bg-zinc-800 border-zinc-700 text-zinc-600 grayscale' : 'bg-pulse-600 border-pulse-400 text-white hover:scale-[1.02]'}`}
                         >
                             <SparklesIcon className="w-5 h-5" />
-                            <span>{hasDoneDaily ? 'Daily Decoded' : 'Daily Segment'}</span>
+                            <span>{hasDoneDaily ? 'Sector Cleared' : 'Daily Uplink'}</span>
                         </button>
-                        <button onClick={() => startNewGame(difficulty)} className="w-full py-4 bg-white text-black font-black uppercase italic rounded-2xl hover:scale-[1.02] transition-all shadow-xl">Logic Sync</button>
-                        <button onClick={onBackToHub} className="text-zinc-500 font-bold uppercase tracking-widest text-xs hover:text-white transition-colors pt-2 block w-full italic">Back to Hub</button>
+                        <button onClick={() => startNewGame(difficulty)} className="w-full py-4 bg-white text-black font-black uppercase italic rounded-2xl hover:scale-[1.02] transition-all shadow-xl">Initiate Sync</button>
+                        <button onClick={onBackToHub} className="text-zinc-500 font-bold uppercase tracking-widest text-xs hover:text-white transition-colors pt-2 block w-full italic">Abort Link</button>
                     </div>
                 </div>
             </div>
@@ -291,25 +291,28 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
     return (
         <main className="w-full h-full bg-zinc-950 text-white flex flex-col items-center justify-center font-sans overflow-y-auto scrollbar-hide relative">
             <style>{`
-                @keyframes selection-glow {
-                    0%, 100% { box-shadow: 0 0 15px #e11d48, inset 0 0 5px #e11d48; transform: scale(1); }
-                    50% { box-shadow: 0 0 30px #e11d48, inset 0 0 15px #e11d48; transform: scale(1.02); }
-                }
-                .animate-selection { animation: selection-glow 0.6s ease-in-out infinite; }
+                .block-border-h { border-bottom-width: 3px; border-bottom-color: #22d3ee; }
+                .block-border-v { border-right-width: 3px; border-right-color: #22d3ee; }
 
-                @keyframes cross-highlight {
-                    0% { background-color: rgba(225, 29, 72, 0.15); }
-                    50% { background-color: rgba(225, 29, 72, 0.5); box-shadow: inset 0 0 15px rgba(225, 29, 72, 0.3); }
-                    100% { background-color: rgba(225, 29, 72, 0.15); }
+                /* Static TRON Highlights */
+                .tron-axis {
+                    background-color: rgba(34,211,238,0.12);
+                    box-shadow: inset 0 0 5px rgba(34,211,238,0.2);
                 }
-                .animate-cross-highlight { animation: cross-highlight 1s ease-in-out infinite; }
-
-                @keyframes completion-flash {
-                    0% { background-color: white; transform: scale(1); box-shadow: 0 0 60px white; z-index: 50; }
-                    50% { background-color: #22c55e; transform: scale(1.15); box-shadow: 0 0 120px #22c55e; }
+                .tron-axis-both {
+                    background-color: rgba(34,211,238,0.25);
+                    box-shadow: inset 0 0 10px rgba(34,211,238,0.4);
+                }
+                .tron-block {
+                    background-color: rgba(34,211,238,0.03);
+                }
+                
+                @keyframes completion-burst {
+                    0% { background-color: #fff; transform: scale(1); box-shadow: 0 0 50px #fff; z-index: 50; }
+                    50% { background-color: #22d3ee; transform: scale(1.1); box-shadow: 0 0 100px #22d3ee; }
                     100% { background-color: transparent; transform: scale(1); box-shadow: none; }
                 }
-                .animate-completion { animation: completion-flash 0.7s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
+                .animate-completion { animation: completion-burst 0.6s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
             `}</style>
 
             <div className="max-w-md w-full h-full flex flex-col p-4 gap-4 z-10">
@@ -320,8 +323,8 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
                     <div className="flex gap-4 text-center items-center">
                         <button 
                             onClick={() => setIsSmartPad(!isSmartPad)} 
-                            title="Toggle Technical Pad"
-                            className={`p-2 rounded-xl transition-all border ${isSmartPad ? 'bg-signal-600 border-signal-400 text-white shadow-lg' : 'bg-zinc-800 border-white/5 text-zinc-500'}`}
+                            title="Toggle Smart Pad"
+                            className={`p-2 rounded-xl transition-all border ${isSmartPad ? 'bg-neon-500 border-neon-400 text-white shadow-lg' : 'bg-zinc-800 border-white/5 text-zinc-500'}`}
                         >
                             <CpuChipIcon className="w-4 h-4" />
                         </button>
@@ -333,7 +336,7 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
                         </div>
                         <div className="w-px h-8 bg-zinc-800 mx-1" />
                         <div>
-                            <span className="text-[8px] font-black uppercase text-zinc-500 block leading-none mb-1 italic">Time</span>
+                            <span className="text-[8px] font-black uppercase text-zinc-500 block leading-none mb-1 italic">Uptime</span>
                             <span className="text-sm font-black font-mono leading-none">{formatTime(time)}</span>
                         </div>
                     </div>
@@ -344,9 +347,9 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
 
                 <div className="flex-grow flex items-center justify-center min-h-0">
                     {gameState === 'LOADING' ? (
-                        <div className="text-pulse-500 font-black animate-pulse uppercase tracking-[0.3em] italic">Hacking Host...</div>
+                        <div className="text-neon-400 font-black animate-pulse uppercase tracking-[0.4em] italic">Synthesizing...</div>
                     ) : (
-                        <div className="aspect-square w-full max-w-[340px] grid grid-cols-9 bg-zinc-950 rounded-2xl border-2 border-zinc-900 shadow-2xl relative overflow-hidden">
+                        <div className="aspect-square w-full max-w-[350px] grid grid-cols-9 bg-black rounded-xl border-4 border-zinc-900 shadow-[0_0_50px_rgba(0,0,0,0.8)] relative overflow-hidden">
                             {grid?.map((row, r) => row.map((cell, c) => {
                                 const isSelected = selectedCell?.row === r && selectedCell?.col === c;
                                 const selectedCellValue = selectedCell ? grid[selectedCell.row][selectedCell.col].value : null;
@@ -358,7 +361,6 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
                                 const selectedBlockIndex = selectedCell ? Math.floor(selectedCell.row / 3) * 3 + Math.floor(selectedCell.col / 3) : -1;
                                 const isSameBlock = blockIndex === selectedBlockIndex;
 
-                                // Check for recent completion to trigger animation
                                 let isAnimatingCompletion = false;
                                 if (lastCompleted) {
                                     if (lastCompleted.type === 'row' && lastCompleted.index === r) isAnimatingCompletion = true;
@@ -366,36 +368,30 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
                                     else if (lastCompleted.type === 'block' && lastCompleted.index === blockIndex) isAnimatingCompletion = true;
                                 }
 
-                                let baseStyle = "aspect-square flex items-center justify-center text-xl font-normal cursor-pointer transition-all duration-150 relative ";
-                                
-                                if (isSelected) {
-                                    baseStyle += "bg-pulse-500 z-20 text-white animate-selection ";
-                                } else if (isAnimatingCompletion) {
-                                    baseStyle += "animate-completion ";
-                                } else if (isSameValue) {
-                                    baseStyle += "bg-yellow-400/30 text-yellow-100 ";
-                                } else if (isSameRow || isSameCol || isSameBlock) {
-                                    baseStyle += "animate-cross-highlight z-10 "; 
-                                } else {
-                                    baseStyle += "bg-zinc-900/40 ";
-                                }
+                                const borderR = (c + 1) % 3 === 0 && c < 8 ? 'block-border-v' : 'border-r border-white/5';
+                                const borderB = (r + 1) % 3 === 0 && r < 8 ? 'block-border-h' : 'border-b border-white/5';
 
-                                if (cell.isError) {
-                                    baseStyle += "text-pulse-500 font-black ";
-                                } else if (!isSelected && !cell.isPrefilled && cell.value) {
-                                    baseStyle += "text-signal-400 ";
-                                }
-                                
-                                const borderR = (c + 1) % 3 === 0 && c < 8 ? 'border-r-2 border-r-white/10' : 'border-r border-r-white/5';
-                                const borderB = (r + 1) % 3 === 0 && r < 8 ? 'border-b-2 border-b-white/10' : 'border-b border-b-white/5';
+                                let cellBg = "bg-transparent";
+                                if (isSelected) cellBg = "bg-pulse-600 shadow-[inset_0_0_15px_rgba(0,0,0,0.5)]";
+                                else if (isAnimatingCompletion) cellBg = "animate-completion";
+                                else if (isSameValue) cellBg = "bg-neon-400/20";
+                                else if (isSameRow && isSameCol) cellBg = "tron-axis-both";
+                                else if (isSameRow || isSameCol) cellBg = "tron-axis";
+                                else if (isSameBlock) cellBg = "tron-block";
 
                                 return (
-                                    <div key={`${r}-${c}`} onClick={() => handleCellClick(r, c)} className={`${baseStyle} ${borderR} ${borderB}`}>
+                                    <div 
+                                        key={`${r}-${c}`} 
+                                        onClick={() => handleCellClick(r, c)} 
+                                        className={`aspect-square flex items-center justify-center text-xl font-bold cursor-pointer transition-colors duration-150 relative ${cellBg} ${borderR} ${borderB}`}
+                                    >
                                         {cell.value !== null ? (
-                                            <span className="drop-shadow-md">{cell.value}</span>
+                                            <span className={`drop-shadow-md ${cell.isError ? 'text-pulse-500 font-black scale-110' : cell.isPrefilled ? 'text-white' : 'text-signal-400 italic'}`}>
+                                                {cell.value}
+                                            </span>
                                         ) : (cell.notes.size > 0 && (
-                                            <div className="grid grid-cols-3 gap-[1px] p-1 w-full h-full opacity-40">
-                                                {[1,2,3,4,5,6,7,8,9].map(n => <div key={n} className="flex items-center justify-center text-[8px] leading-none font-black">{cell.notes.has(n) ? n : ''}</div>)}
+                                            <div className="grid grid-cols-3 gap-[1px] p-1 w-full h-full opacity-30">
+                                                {[1,2,3,4,5,6,7,8,9].map(n => <div key={n} className="flex items-center justify-center text-[7px] leading-none font-black text-neon-400">{cell.notes.has(n) ? n : ''}</div>)}
                                             </div>
                                         ))}
                                     </div>
@@ -405,50 +401,57 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
                     )}
                 </div>
 
-                <div className="flex-shrink-0 grid grid-cols-6 gap-2 pb-10">
+                <div className="flex-shrink-0 grid grid-cols-6 gap-2 pb-8">
                     {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => {
+                        const isInBlock = cellContext.inBlock.has(num);
                         const isPhysicallyValid = !cellContext.invalid.has(num);
+                        
+                        // Conflict Filter: Dim if in block. Disable if in row/col/block and Smart Pad is active.
+                        const isConflictDimmed = isInBlock;
                         const isPadDisabled = isSmartPad && !isPhysicallyValid;
+                        
                         return (
                             <button key={num} onClick={() => handleNumberInput(num)} 
                                 disabled={isPadDisabled}
-                                className={`aspect-square bg-zinc-900 hover:bg-pulse-600 hover:text-white border border-white/5 rounded-xl text-xl font-black italic transition-all active:scale-90 shadow-md ${isPadDisabled ? 'opacity-10 grayscale' : ''}`}>
+                                className={`aspect-square bg-zinc-900 border border-white/10 rounded-xl text-xl font-black italic transition-all active:scale-90 shadow-lg
+                                    ${isPadDisabled ? 'opacity-5 grayscale pointer-events-none' : 
+                                      isConflictDimmed ? 'opacity-20 grayscale border-zinc-800 bg-zinc-950 text-zinc-700' : 'hover:bg-neon-500 hover:text-black hover:border-neon-300'}`}>
                                 {num}
                             </button>
                         );
                     })}
-                    <button onClick={() => setIsNotesMode(!isNotesMode)} className={`aspect-square rounded-xl flex items-center justify-center transition-all border ${isNotesMode ? 'bg-pulse-600 border-pulse-400 text-white shadow-lg' : 'bg-zinc-800 border-white/5 text-zinc-500'}`}>
+                    <button onClick={() => setIsNotesMode(!isNotesMode)} className={`aspect-square rounded-xl flex items-center justify-center transition-all border-2 ${isNotesMode ? 'bg-neon-400 border-white text-black shadow-[0_0_15px_#22d3ee]' : 'bg-zinc-800 border-white/5 text-zinc-500'}`}>
                         <PencilIcon className="w-6 h-6" />
                     </button>
-                    <button onClick={() => { if (!selectedCell || !grid || !solution) return; handleNumberInput(solution[selectedCell.row][selectedCell.col]); }} className="aspect-square bg-zinc-800 border border-white/5 rounded-xl flex items-center justify-center text-yellow-500 hover:text-yellow-400 active:scale-90 transition-all">
+                    <button onClick={() => { if (!selectedCell || !grid || !solution) return; handleNumberInput(solution[selectedCell.row][selectedCell.col]); }} className="aspect-square bg-zinc-800 border border-white/5 rounded-xl flex items-center justify-center text-yellow-500 hover:bg-yellow-500 hover:text-black active:scale-90 transition-all">
                         <LightBulbIcon className="w-6 h-6" />
                     </button>
-                    <button onClick={() => { if (!selectedCell || !grid) return; const {row, col} = selectedCell; if (grid[row][col].isPrefilled) return; const ng = grid.map(r=>r.map(c=>({...c}))); ng[row][col].value = null; ng[row][col].notes = new Set(); ng[row][col].isError = false; setGrid(ng); checkCompletions(ng); }} className="aspect-square bg-zinc-800 border border-white/5 rounded-xl flex items-center justify-center text-zinc-400 hover:text-white active:scale-90 transition-all">
+                    <button onClick={() => { if (!selectedCell || !grid) return; const {row, col} = selectedCell; if (grid[row][col].isPrefilled) return; const ng = grid.map(r=>r.map(c=>({...c}))); ng[row][col].value = null; ng[row][col].notes = new Set(); ng[row][col].isError = false; setGrid(ng); checkCompletions(ng); }} className="aspect-square bg-zinc-800 border border-white/5 rounded-xl flex items-center justify-center text-zinc-400 hover:bg-white hover:text-black active:scale-90 transition-all">
                         <EraserIcon className="w-6 h-6" />
                     </button>
                 </div>
             </div>
 
             {(gameState === 'WON' || gameState === 'LOST') && (
-                <div className="fixed inset-0 bg-black/95 backdrop-blur-md z-50 flex items-center justify-center p-6">
-                    <div className="max-w-sm w-full bg-zinc-900 p-10 rounded-[3rem] border-4 border-pulse-500 text-center shadow-[0_0_100px_rgba(225,29,72,0.3)]">
-                        <h2 className={`text-4xl font-black italic uppercase tracking-tighter mb-4 ${gameState === 'WON' ? 'text-signal-500' : 'text-pulse-500'}`}>
-                            {gameState === 'WON' ? 'CODE CLEAR' : 'TERMINATED'}
+                <div className="fixed inset-0 bg-black/98 backdrop-blur-xl z-50 flex items-center justify-center p-6">
+                    <div className="max-w-sm w-full bg-zinc-900 p-10 rounded-[3rem] border-4 border-neon-400 text-center shadow-[0_0_120px_rgba(34,211,238,0.2)]">
+                        <h2 className={`text-4xl font-black italic uppercase tracking-tighter mb-4 ${gameState === 'WON' ? 'text-neon-400' : 'text-pulse-500'}`}>
+                            {gameState === 'WON' ? 'SYSTEM_CLEAN' : 'KERNAL_PANIC'}
                         </h2>
                         {gameState === 'WON' ? (
                             <div className="mb-8">
-                                <p className="text-zinc-400 font-bold uppercase tracking-widest text-[10px] mb-4 italic">Post Segment Initials</p>
+                                <p className="text-zinc-500 font-bold uppercase tracking-widest text-[10px] mb-4 italic">Register Sector Operator</p>
                                 <input autoFocus maxLength={3} value={initials} onChange={e => setInitials(e.target.value.toUpperCase())}
-                                    className="bg-black/50 border-2 border-pulse-500 text-white rounded-xl px-4 py-3 text-center text-2xl font-black w-32 outline-none uppercase italic" placeholder="???" />
+                                    className="bg-black/50 border-2 border-neon-400 text-white rounded-xl px-4 py-3 text-center text-2xl font-black w-32 outline-none uppercase italic" placeholder="???" />
                             </div>
                         ) : (
-                            <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs mb-8 italic">Signal lost. Recalibration failed.</p>
+                            <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs mb-8 italic">Memory corrupted. Access denied.</p>
                         )}
                         <div className="flex flex-col gap-3">
                             {gameState === 'WON' ? (
-                                <button onClick={handleSaveScore} className="w-full py-4 bg-pulse-600 text-white font-black text-lg italic uppercase rounded-full hover:scale-105 transition-transform shadow-xl">Transmit Frequency</button>
+                                <button onClick={handleSaveScore} className="w-full py-4 bg-neon-500 text-black font-black text-lg italic uppercase rounded-full hover:scale-105 transition-transform shadow-xl">Transmit Signal</button>
                             ) : (
-                                <button onClick={() => setView('IDLE')} className="w-full py-4 bg-pulse-600 text-white font-black text-lg italic uppercase rounded-full hover:scale-105 transition-transform shadow-xl">Re-Sync Node</button>
+                                <button onClick={() => setView('IDLE')} className="w-full py-4 bg-pulse-600 text-white font-black text-lg italic uppercase rounded-full hover:scale-105 transition-transform shadow-xl">Retry Link</button>
                             )}
                         </div>
                     </div>

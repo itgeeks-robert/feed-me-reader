@@ -3,7 +3,7 @@ import type { Feed, Folder, Selection } from '../src/App';
 import type { SourceType } from './AddSource';
 import AddSource from './AddSource';
 import {
-    VoidIcon, ListIcon, PlusIcon, TrashIcon, FolderIcon, BookmarkIcon, SettingsIcon, ControllerIcon, XIcon, SparklesIcon
+    VoidIcon, ListIcon, PlusIcon, TrashIcon, FolderIcon, BookmarkIcon, SettingsIcon, ControllerIcon, XIcon, SparklesIcon, ClockIcon, ShieldCheckIcon
 } from './icons';
 import { SmartFeedIcon } from './SmartFeedIcon';
 
@@ -39,7 +39,6 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                         ? 'bg-pulse-600 text-white shadow-lg scale-[1.02] z-10' 
                         : 'hover:bg-zinc-900 text-zinc-400 hover:text-zinc-200'}`}
             >
-                {/* Active Indicator Bar */}
                 {isActive && (
                     <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-8 bg-white rounded-r-full shadow-[0_0_10px_rgba(255,255,255,0.8)] animate-pulse" />
                 )}
@@ -72,7 +71,6 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                     </button>
                 </div>
 
-                {/* SIGNAL CREDITS DISPLAY */}
                 <button 
                     onClick={onOpenShop}
                     className="w-full mb-8 p-4 bg-void-900 border border-pulse-500/20 rounded-2xl flex items-center gap-4 group hover:border-pulse-500/50 transition-all cursor-pointer shadow-lg relative overflow-hidden active:scale-95"
@@ -88,27 +86,26 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                             <span className="text-[9px] font-black text-pulse-500 uppercase tracking-tighter italic">SC</span>
                         </div>
                     </div>
-                    <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
-                         <div className="text-[8px] font-black text-pulse-500 uppercase italic">SHOP</div>
-                    </div>
                 </button>
                 
                 <AddSource onAddSource={onAddSource} />
             </div>
             
-            <div className="flex-grow overflow-y-auto px-6 space-y-3 scrollbar-hide pb-12">
+            <div className="flex-grow overflow-y-auto px-6 space-y-1 scrollbar-hide pb-12">
+                <h3 className="px-3 mb-2 text-[9px] font-black text-zinc-600 uppercase tracking-[0.4em]">Core Interface</h3>
                 <NavItem sel={{type: 'game_hub', id: null}} label="The Arcade" icon={<ControllerIcon className="w-5 h-5 flex-shrink-0" />} />
+                <NavItem sel={{type: 'utility_hub', id: null}} label="Tactical Hub" icon={<ShieldCheckIcon className="w-5 h-5 flex-shrink-0" />} />
                 <NavItem sel={{type: 'all', id: null}} label="Frequency" icon={<ListIcon className="w-5 h-5 flex-shrink-0" />} />
                 <NavItem sel={{type: 'bookmarks', id: 'bookmarks'}} label="Saved Signals" icon={<BookmarkIcon className="w-5 h-5 flex-shrink-0" />} />
                 
-                <div className="pt-8 pb-3 border-t border-zinc-900/50 mt-6">
-                    <div className="flex items-center justify-between px-3 mb-5">
-                        <h3 className="text-xs font-black text-zinc-400 uppercase tracking-[0.2em]">Zones</h3>
-                        <button onClick={() => onAddFolder("New Zone")} className="p-1.5 hover:bg-zinc-900 rounded-lg text-zinc-500 transition-colors">
-                            <PlusIcon className="w-5 h-5" />
+                <div className="pt-6 pb-2 border-t border-zinc-900/50 mt-4">
+                    <div className="flex items-center justify-between px-3 mb-3">
+                        <h3 className="text-[9px] font-black text-zinc-600 uppercase tracking-[0.4em]">Zones</h3>
+                        <button onClick={() => onAddFolder("New Zone")} className="p-1 hover:bg-zinc-900 rounded-lg text-zinc-500 transition-colors">
+                            <PlusIcon className="w-4 h-4" />
                         </button>
                     </div>
-                    <nav className="space-y-2">
+                    <nav className="space-y-1">
                         {folders.map(folder => {
                             const isActive = selection.type === 'folder' && selection.id === folder.id;
                             return (
@@ -127,47 +124,6 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                                     <span className={`text-xs uppercase truncate transition-all font-black`}>
                                         {folder.name}
                                     </span>
-                                </div>
-                            );
-                        })}
-                    </nav>
-                </div>
-
-                <div className="pt-8 pb-3">
-                    <div className="flex items-center justify-between px-3 mb-5">
-                        <h3 className="text-xs font-black text-zinc-400 uppercase tracking-[0.2em]">Streams</h3>
-                    </div>
-                    <nav className="space-y-2">
-                        {feeds.map(feed => {
-                            const isActive = selection.type === 'feed' && selection.id === feed.id;
-                            return (
-                                <div 
-                                    key={feed.id} 
-                                    onClick={() => onSelect({type: 'feed', id: feed.id})} 
-                                    className={`relative flex items-center gap-4 px-5 py-3 rounded-xl cursor-pointer transition-all duration-300 group
-                                        ${isActive 
-                                            ? 'bg-pulse-600 text-white shadow-md scale-[1.01]' 
-                                            : 'text-zinc-400 hover:text-white hover:bg-zinc-900/40'}`}
-                                >
-                                    {isActive && (
-                                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-white rounded-r-full" />
-                                    )}
-                                    <SmartFeedIcon 
-                                        iconUrl={feed.iconUrl} 
-                                        feedTitle={feed.title} 
-                                        sourceType={feed.sourceType} 
-                                        className={`w-4.5 h-4.5 transition-all ${isActive ? 'grayscale-0' : 'grayscale group-hover:grayscale-0'}`} 
-                                    />
-                                    <span className={`text-xs uppercase truncate leading-none transition-all font-black`}>
-                                        {feed.title}
-                                    </span>
-                                    <button 
-                                        onClick={(e) => { e.stopPropagation(); onRemoveFeed(feed.id); }}
-                                        className={`ml-auto p-1.5 rounded-lg transition-all ${isActive ? 'text-white/40 hover:text-white' : 'opacity-0 group-hover:opacity-100 text-zinc-600 hover:text-red-500'}`}
-                                        title="Eject Source"
-                                    >
-                                        <TrashIcon className="w-4 h-4" />
-                                    </button>
                                 </div>
                             );
                         })}
