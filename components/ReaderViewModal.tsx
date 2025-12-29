@@ -39,76 +39,87 @@ const ReaderViewModal: React.FC<ReaderViewModalProps> = ({ article, onClose, onM
     }, [parsedContent]);
 
     return (
-        <div className="fixed inset-0 bg-void-950/98 backdrop-blur-2xl z-50 flex items-end md:items-center justify-center p-0 md:p-10" onClick={onClose} role="dialog" aria-modal="true">
-            <div className="bg-void-900 w-full max-w-5xl h-[94vh] md:h-full md:rounded-[3rem] shadow-[0_0_100px_rgba(0,0,0,0.9)] border-t border-x border-white/10 md:border border-white/5 flex flex-col overflow-hidden animate-slide-in-up ring-4 ring-pulse-950/50" onClick={e => e.stopPropagation()}>
-                
-                {/* Header with Safe Area Padding for Mobile Notches */}
-                <header className="flex items-center justify-between p-6 md:p-8 border-b border-white/5 flex-shrink-0 pt-[calc(env(safe-area-inset-top)+1rem)] md:pt-8 bg-void-950/50">
-                    <div className="flex-grow min-w-0 pr-6">
-                        {isLoading ? (
-                            <div className="h-6 bg-zinc-800 rounded-full w-3/4 animate-pulse"></div>
-                        ) : (
-                            <h2 className="text-base md:text-lg font-black text-white truncate uppercase italic tracking-tighter leading-tight drop-shadow-md">{parsedContent?.title || article.title}</h2>
-                        )}
-                        <p className="text-[9px] font-black text-pulse-500 uppercase tracking-[0.4em] mt-1 italic font-mono">{article.source} // DATA INTERCEPT</p>
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-2 md:p-6" onClick={onClose} role="dialog" aria-modal="true">
+            {/* Windows 3.1 Inspired Frame */}
+            <div className="bg-zinc-900 w-full max-w-5xl h-full flex flex-col shadow-[0_0_100px_rgba(0,0,0,0.8)] border-4 border-zinc-800 relative animate-fade-in" onClick={e => e.stopPropagation()}>
+                {/* 3D Inner Bevel */}
+                <div className="absolute inset-0 border-t-2 border-l-2 border-zinc-700 pointer-events-none z-10" />
+                <div className="absolute inset-0 border-b-2 border-r-2 border-black pointer-events-none z-10" />
+
+                {/* Title Bar */}
+                <header className="h-10 bg-pulse-600 flex items-center justify-between px-1 relative z-20 border-b-2 border-black">
+                    <div className="flex items-center gap-2 h-full">
+                        {/* System Button */}
+                        <button onClick={onClose} className="w-8 h-7 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center active:border-t-zinc-600 active:border-l-zinc-600 active:border-white">
+                            <div className="w-4 h-1 bg-black shadow-[0_4px_0_black]" />
+                        </button>
+                        <h2 className="text-white text-[10px] md:text-xs font-black uppercase tracking-widest truncate max-w-[200px] md:max-w-md italic drop-shadow-sm px-2">
+                           SIG_DECODE: {parsedContent?.title || article.title}
+                        </h2>
                     </div>
-                    <button 
-                        onClick={onClose} 
-                        className="p-3 md:p-4 rounded-2xl bg-void-950 text-zinc-400 hover:text-white hover:bg-pulse-600 transition-all flex-shrink-0 active:scale-90 border border-white/10 shadow-lg" 
-                        aria-label="Close"
-                    >
-                        <XIcon className="w-6 h-6 md:w-7 md:h-7" />
-                    </button>
+                    <div className="flex items-center gap-1 h-full py-1">
+                        <div className="px-2 text-[8px] font-black text-white/50 font-mono hidden sm:block">0x00_READ_MOD</div>
+                        <button onClick={onClose} className="w-8 h-7 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center hover:bg-white transition-colors group">
+                            <XIcon className="w-4 h-4 text-black group-hover:scale-110" />
+                        </button>
+                    </div>
                 </header>
                 
-                <div className="p-8 md:p-16 overflow-y-auto flex-grow prose prose-sm md:prose-base prose-invert max-w-none 
-                    text-zinc-100 selection:bg-pulse-500 selection:text-white
-                    prose-h1:text-2xl prose-h1:font-black prose-h1:italic prose-h1:tracking-tighter prose-h1:uppercase prose-h1:text-white
-                    prose-h2:text-xl prose-h2:font-black prose-h2:italic prose-h2:text-white/90
-                    prose-p:text-base prose-p:leading-relaxed prose-p:text-zinc-100 prose-p:font-medium
-                    prose-img:rounded-[2rem] prose-img:shadow-[0_0_50px_rgba(0,0,0,0.5)] prose-img:mx-auto prose-img:border-2 prose-img:border-white/5
-                    prose-a:text-pulse-500 prose-a:italic prose-a:font-black hover:prose-a:text-pulse-400
-                    prose-strong:text-white prose-strong:font-black
-                    scrollbar-hide">
+                {/* Content Area */}
+                <div className="flex-grow overflow-y-auto bg-void-950 p-6 md:p-12 relative scrollbar-hide">
+                    {/* Surveillance Overlay inside content */}
+                    <div className="absolute inset-0 pointer-events-none opacity-5 cctv-overlay z-10" />
                     
-                    {isLoading && (
-                        <div className="flex flex-col items-center justify-center h-full gap-8 py-20">
-                            <div className="w-16 h-16 border-4 border-void-950 border-t-pulse-500 rounded-full animate-spin"></div>
-                            <span className="text-xs font-black uppercase tracking-[0.6em] text-pulse-500 italic animate-pulse font-mono">Decoding Signal Stream...</span>
-                        </div>
-                    )}
-                    
-                    {error && (
-                        <div className="text-center py-20 bg-black/40 rounded-[3rem] border-2 border-red-500/20 m-4">
-                            <div className="text-5xl mb-6 animate-bounce">⚠️</div>
-                            <p className="font-black uppercase tracking-widest text-white text-xl italic mb-4 glitch-text">Frequency Corruption</p>
-                            <p className="text-zinc-500 text-[10px] uppercase font-mono mb-10 max-w-md mx-auto tracking-widest">{error}</p>
-                            <a href={article.link} target="_blank" rel="noopener noreferrer" className="inline-block px-10 py-4 bg-pulse-600 text-white rounded-full font-black uppercase tracking-[0.2em] italic hover:scale-105 transition-transform shadow-xl">
-                                Access Raw Stream
-                            </a>
-                        </div>
-                    )}
-                    
-                    {parsedContent && (
-                        <>
-                            <div ref={contentRef} className="animate-fade-in" />
-                            
-                            {/* Exit button at the bottom of the content */}
-                            <div className="mt-20 pb-20 flex flex-col items-center border-t border-white/5 pt-12">
-                                <p className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.5em] mb-6 italic">End of Transmission</p>
-                                <button 
-                                    onClick={onClose}
-                                    className="w-full max-w-xs py-5 bg-void-950 border-2 border-pulse-500 text-pulse-500 font-black uppercase italic tracking-[0.2em] hover:bg-pulse-500 hover:text-white transition-all shadow-[6px_6px_0px_#e11d48] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
-                                >
-                                    Close Signal
-                                </button>
+                    <div className="relative z-20 prose prose-sm md:prose-base prose-invert max-w-none 
+                        text-zinc-100 selection:bg-pulse-500 selection:text-white font-mono
+                        prose-h1:text-2xl prose-h1:font-black prose-h1:italic prose-h1:tracking-tighter prose-h1:uppercase prose-h1:text-white
+                        prose-h2:text-xl prose-h2:font-black prose-h2:italic prose-h2:text-white/90
+                        prose-p:text-sm prose-p:leading-relaxed prose-p:text-zinc-300
+                        prose-img:border-4 prose-img:border-zinc-800 prose-img:shadow-2xl
+                        prose-a:text-pulse-500 prose-a:italic prose-a:font-black hover:prose-a:text-pulse-400
+                        prose-strong:text-white prose-strong:font-black">
+                        
+                        {isLoading && (
+                            <div className="flex flex-col items-center justify-center h-full gap-8 py-20">
+                                <div className="p-4 border-2 border-pulse-500 animate-pulse">
+                                    <span className="text-xs font-black uppercase tracking-[0.6em] text-pulse-500 italic font-mono">Decoding Signal Sequence...</span>
+                                </div>
                             </div>
-                        </>
-                    )}
+                        )}
+                        
+                        {error && (
+                            <div className="text-center py-20 border-2 border-red-500/20 bg-black/40">
+                                <p className="font-black uppercase tracking-widest text-red-500 text-lg italic mb-4">Signal Corruption</p>
+                                <p className="text-zinc-500 text-[10px] uppercase font-mono mb-10 tracking-widest">{error}</p>
+                                <a href={article.link} target="_blank" rel="noopener noreferrer" className="inline-block px-10 py-3 bg-zinc-300 text-black border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 font-black uppercase tracking-[0.2em] italic active:bg-zinc-400">
+                                    Access Raw Stream
+                                </a>
+                            </div>
+                        )}
+                        
+                        {parsedContent && (
+                            <>
+                                <div ref={contentRef} className="animate-fade-in" />
+                                
+                                <div className="mt-20 pb-10 flex flex-col items-center border-t-2 border-zinc-800 pt-12">
+                                    <p className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.5em] mb-6 italic">Transmission Terminated</p>
+                                    <button 
+                                        onClick={onClose}
+                                        className="w-full max-w-xs py-4 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 text-black font-black uppercase italic tracking-[0.2em] hover:bg-pulse-600 hover:text-white transition-all active:scale-95"
+                                    >
+                                        Eject_Link
+                                    </button>
+                                </div>
+                            </>
+                        )}
+                    </div>
                 </div>
                 
-                {/* Visual Footer Elements */}
-                <div className="h-4 bg-gradient-to-r from-pulse-500 via-neon-400 to-pulse-500 opacity-20 flex-shrink-0"></div>
+                {/* Status Bar */}
+                <footer className="h-6 bg-zinc-300 border-t-2 border-black flex items-center px-4 justify-between shrink-0">
+                    <span className="text-[8px] font-black text-black/60 uppercase tracking-widest font-mono">Sector: {article.source}</span>
+                    <span className="text-[8px] font-black text-black/60 uppercase tracking-widest font-mono">{new Date().toLocaleTimeString()}</span>
+                </footer>
             </div>
         </div>
     );
