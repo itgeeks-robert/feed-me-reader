@@ -78,7 +78,6 @@ const App: React.FC = () => {
     const [isDecoding, setIsDecoding] = useState(false);
     const [lastRefresh, setLastRefresh] = useState(() => Date.now());
 
-    // --- Android Back Button Sync ---
     useEffect(() => {
         const handlePopState = (event: PopStateEvent) => {
             if (event.state && event.state.selection) {
@@ -96,7 +95,6 @@ const App: React.FC = () => {
         window.history.pushState({ selection: newSel }, '');
     }, []);
 
-    // --- Tactical Signal Pre-fetch (Decoding) ---
     const decodeCoreSignals = useCallback(async (targetFeeds: Feed[]) => {
         if (targetFeeds.length === 0) return;
         setIsDecoding(true);
@@ -152,8 +150,15 @@ const App: React.FC = () => {
             
             const newFeed: Feed = { id: Date.now(), title: feedTitle, url: feedUrl, iconUrl, folderId: null, sourceType: type, category: 'GENERAL' };
             setFeeds(prev => [...prev, newFeed]);
-            setPrefetchedArticles([]); // Invalidate pre-fetch on new source
+            setPrefetchedArticles([]); 
         } catch (error) { throw error; }
+    };
+
+    const handleImportOpml = (importedFeeds: Omit<Feed, 'id'>[], importedFolders: Folder[]) => {
+        const feedsWithIds = importedFeeds.map(f => ({ ...f, id: Math.random() + Date.now() }));
+        setFolders(prev => [...prev, ...importedFolders]);
+        setFeeds(prev => [...prev, ...feedsWithIds]);
+        setPrefetchedArticles([]);
     };
 
     const pageTitle = useMemo(() => {
@@ -248,7 +253,7 @@ const App: React.FC = () => {
                 onRenameFolder={(id, n) => setFolders(folders.map(x => x.id === id ? {...x, name: n} : x))}
                 onDeleteFolder={(id) => setFolders(folders.filter(x => x.id !== id))}
                 onRemoveFeed={(id) => setFeeds(feeds.filter(x => x.id !== id))}
-                onImportOpml={() => {}} onExportOpml={() => {}} onImportSettings={() => {}} onExportSettings={() => {}}
+                onImportOpml={handleImportOpml} onExportOpml={() => {}} onImportSettings={() => {}} onExportSettings={() => {}}
                 credits={credits} onOpenShop={() => { setIsSettingsModalOpen(false); setIsShopOpen(true); }} onAddSource={handleAddSource} onEnterUtils={handleEnterUtils}
             />
             <AddSourceModal isOpen={isAddSourceModalOpen} onClose={() => setIsAddSourceModalOpen(false)} onAddSource={handleAddSource} />

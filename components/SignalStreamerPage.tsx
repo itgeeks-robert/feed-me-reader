@@ -23,7 +23,9 @@ const SignalStreamerPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub
         }
     };
 
-    const handleEject = () => {
+    const handleEject = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
         if (mediaUrl) URL.revokeObjectURL(mediaUrl);
         setMediaUrl(null);
         setFileName("");
@@ -34,8 +36,8 @@ const SignalStreamerPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub
         <main className="w-full h-full bg-zinc-950 flex flex-col items-center p-4 md:p-6 font-mono text-white relative overflow-hidden">
             <div className="absolute inset-0 pointer-events-none opacity-5 cctv-overlay" />
             
-            {/* Main Container - Explicit bottom padding to clear Navigation Bar (h-16 + buffer) */}
-            <div className="max-w-4xl w-full flex flex-col h-full relative z-10 pb-24 md:pb-8">
+            {/* Main Container - Explicit bottom margin to push content away from Bottom Nav */}
+            <div className="max-w-4xl w-full flex flex-col h-full relative z-10 pb-28 md:pb-8">
                 
                 {/* Header */}
                 <header className="mb-4 flex justify-between items-center bg-zinc-900/50 p-4 md:p-6 rounded-[1.5rem] md:rounded-[2rem] border border-white/5 backdrop-blur-xl shrink-0">
@@ -50,29 +52,20 @@ const SignalStreamerPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub
                              <h2 className="text-sm md:text-xl font-black italic uppercase text-white tracking-tighter leading-none">SIGNAL STREAMER</h2>
                         </div>
                     </div>
-                    {mediaUrl && (
-                        <div className="hidden xs:flex items-center gap-2 px-3 py-1 bg-pulse-500/10 border border-pulse-500/20 rounded-full">
-                            <div className="w-1.5 h-1.5 rounded-full bg-pulse-500 animate-pulse" />
-                            <span className="text-[7px] font-black text-pulse-500 uppercase italic">LIVE_FEED</span>
-                        </div>
-                    )}
                 </header>
 
                 {/* Content Area */}
-                <div className="flex-1 flex flex-col items-center justify-center min-h-0 py-2 relative">
+                <div className="flex-1 flex flex-col items-center justify-center min-h-0 py-4 relative">
                     {!mediaUrl ? (
-                        /* Android Compatibility Zone: The hidden input is physically on top of the UI elements */
-                        <div className="w-full aspect-square max-w-[320px] md:max-w-[400px] border-4 border-dashed border-zinc-800 rounded-[2.5rem] md:rounded-[3rem] flex flex-col items-center justify-center relative overflow-hidden active:scale-95 transition-transform shadow-2xl bg-void-950/50 group">
-                            
-                            {/* THE MAGIC: Real input stretched to cover the entire button area */}
+                        /* Android Compatibility: Using a 'label' as a wrapper is the standard way to trigger file inputs on mobile reliably */
+                        <label className="w-full aspect-square max-w-[320px] md:max-w-[400px] border-4 border-dashed border-zinc-800 rounded-[2.5rem] md:rounded-[3rem] flex flex-col items-center justify-center relative overflow-hidden active:scale-95 transition-transform shadow-2xl bg-void-950/50 group cursor-pointer">
                             <input 
                                 type="file" 
-                                className="absolute inset-0 opacity-0 cursor-pointer z-50 w-full h-full"
+                                className="sr-only" 
                                 accept="audio/*,video/*" 
                                 onChange={handleFileChange} 
-                                title="Access Device Storage"
                             />
-
+                            
                             <div className="relative z-10 flex flex-col items-center p-8 pointer-events-none">
                                 <div className="p-4 md:p-6 bg-zinc-900 rounded-full border-2 border-zinc-800 mb-4 md:mb-6 group-hover:border-pulse-500 transition-all shadow-xl text-zinc-700 group-hover:text-pulse-500">
                                     <FolderIcon className="w-12 h-12 md:w-16 md:h-16" />
@@ -80,7 +73,7 @@ const SignalStreamerPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub
                                 <p className="text-[10px] md:text-xs font-black uppercase italic tracking-[0.3em] text-zinc-500 group-hover:text-white mb-2 text-center transition-colors">ACCESS DEVICE STORAGE</p>
                                 <p className="text-[7px] md:text-[8px] font-bold uppercase text-zinc-700 tracking-widest font-mono italic">MIME: VIDEO/* | AUDIO/*</p>
                             </div>
-                        </div>
+                        </label>
                     ) : (
                         <div className="w-full h-full flex flex-col items-center justify-center relative bg-black rounded-[2rem] md:rounded-[3rem] border-4 border-zinc-900 overflow-hidden shadow-2xl min-h-0">
                             {mediaType === 'VIDEO' ? (
@@ -106,25 +99,24 @@ const SignalStreamerPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub
                     )}
                 </div>
 
-                {/* Footer Controls - Positioned clearly above the bottom nav */}
-                <div className="mt-4 bg-zinc-900/95 p-4 md:p-6 rounded-[1.5rem] md:rounded-[2rem] border border-white/5 shrink-0 flex flex-col items-center justify-between gap-4 backdrop-blur-md shadow-2xl relative">
+                {/* Footer Controls - Positioned clearly above the bottom nav with added margin */}
+                <div className="mt-6 bg-zinc-900/95 p-5 md:p-6 rounded-[1.5rem] md:rounded-[2rem] border border-white/5 shrink-0 flex flex-col items-center justify-between gap-5 backdrop-blur-md shadow-2xl relative mb-4">
                     <div className="flex flex-col min-w-0 w-full text-center">
                         <span className="text-[7px] md:text-[8px] font-black text-zinc-600 uppercase tracking-widest mb-1 italic">ACTIVE SIGNAL PACKET</span>
                         <span className="text-[10px] md:text-xs font-black text-white italic truncate block px-4">{fileName || "NO_SOURCE_DETECTED"}</span>
                     </div>
                     <div className="flex gap-3 w-full">
-                        <div className="relative flex-1 group">
-                             {/* Invisible input overlaying the SYNC NEW button for instant Android trigger */}
+                        <label className="flex-1 relative group cursor-pointer">
                             <input 
                                 type="file" 
-                                className="absolute inset-0 opacity-0 cursor-pointer z-20 w-full h-full"
+                                className="sr-only" 
                                 accept="audio/*,video/*" 
                                 onChange={handleFileChange} 
                             />
-                            <button className="w-full px-4 py-4 bg-zinc-100 text-black font-black uppercase italic text-[10px] tracking-widest rounded-xl shadow-[0_4px_0_#a1a1aa] group-active:translate-y-1 group-active:shadow-none transition-all">
+                            <div className="w-full px-4 py-4 bg-zinc-100 text-black font-black uppercase italic text-[10px] tracking-widest rounded-xl shadow-[0_4px_0_#a1a1aa] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center">
                                 SYNC NEW
-                            </button>
-                        </div>
+                            </div>
+                        </label>
                         <button 
                             onClick={handleEject}
                             className="px-8 py-4 bg-zinc-800 text-pulse-500 font-black uppercase italic text-[10px] tracking-widest rounded-xl hover:bg-pulse-500 hover:text-white transition-all border border-pulse-500/20 active:scale-95"

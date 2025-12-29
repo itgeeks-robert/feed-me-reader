@@ -11,12 +11,10 @@ const sanitizeAndEmbedImages = async (html: string, baseUrl: string): Promise<st
     doc.querySelectorAll('script, style, link, meta, iframe, frame, frameset, noscript, video, audio, source, object, embed').forEach(el => el.remove());
     
     // Remove common media player and interactive elements
-    doc.querySelectorAll('button, svg, [role="button"], [class*="player"], [class*="control"], [class*="media-ui"], [class*="social-share"]').forEach(el => el.remove());
+    doc.querySelectorAll('button, svg, [role="button"], [class*="player"], [class*="control"], [class*="media-ui"], [class*="social-share"], [class*="consent"], [class*="newsletter"]').forEach(el => el.remove());
 
     doc.querySelectorAll('*').forEach(el => {
-        // Strip inline styles that might force black text
         el.removeAttribute('style');
-        
         for (const attr of el.attributes) {
             if (attr.name.startsWith('on')) {
                 el.removeAttribute(attr.name);
@@ -35,17 +33,13 @@ const sanitizeAndEmbedImages = async (html: string, baseUrl: string): Promise<st
         try {
             const originalSrc = img.getAttribute('src')!;
             if (originalSrc.startsWith('data:')) return; 
-            
             const absoluteUrl = new URL(originalSrc, baseUrl).href;
-            
             const response = await resilientFetch(absoluteUrl);
             const blob = await response.blob();
-            
             if (blob.size > 10 * 1024 * 1024) { 
                 img.remove();
                 return;
             }
-
             const dataUrl = await new Promise<string>((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onloadend = () => resolve(reader.result as string);
@@ -53,17 +47,14 @@ const sanitizeAndEmbedImages = async (html: string, baseUrl: string): Promise<st
                 reader.readAsDataURL(blob);
             });
             img.setAttribute('src', dataUrl);
-
         } catch (e) {
             img.remove(); 
         }
     });
         
     await Promise.all(imagePromises);
-
     return doc.body.innerHTML;
 };
-
 
 const parseArticleContent = (html: string): { title: string; content: string } => {
     const doc = new DOMParser().parseFromString(html, 'text/html');
@@ -78,14 +69,15 @@ const parseArticleContent = (html: string): { title: string; content: string } =
         '.header', '.footer', '.navbar', '.menu', '.nav',
         '.byline', '.meta', '.author', '.timestamp',
         'button', 'svg', '.media-player', '.audio-player', '.video-player',
-        '.p-media-player', '.bbc-news-visual-journalism', '.sharing'
+        '.p-media-player', '.bbc-news-visual-journalism', '.sharing',
+        '.paywall', '#paywall', '.subscribe', '.popup', '.overlay'
     ];
     doc.querySelectorAll(junkSelectors.join(', ')).forEach(el => el.remove());
 
     const selectors = [
         'article', '[role="main"]', 'main', '.post-content', '.article-body',
         '.entry-content', '#content', '#main', '.story-content', '.article-content',
-        '.ssrcss-11r1m41-RichTextContainer' // BBC specific
+        '.ssrcss-11r1m41-RichTextContainer', '.story-body'
     ];
 
     let contentEl: HTMLElement | null = null;
@@ -109,23 +101,16 @@ const parseArticleContent = (html: string): { title: string; content: string } =
         contentEl = bestCandidate;
     }
     
-    if (!contentEl) {
-        return { title, content: doc.body.innerHTML };
-    }
-
+    if (!contentEl) return { title, content: doc.body.innerHTML };
     return { title, content: contentEl.innerHTML };
 };
 
 export const fetchAndCacheArticleContent = async (article: Article): Promise<{ title: string; content: string }> => {
     const cacheKey = `${CACHE_PREFIX}${article.id}`;
-    
     const cachedData = await cacheGet<{ title: string; content: string }>(cacheKey);
-    if (cachedData) {
-        return cachedData;
-    }
+    if (cachedData) return cachedData;
 
     const response = await resilientFetch(article.link);
-
     if (!response.ok) throw new Error(`Failed to fetch article (last status: ${response.status})`);
 
     const html = await response.text();
@@ -133,11 +118,6 @@ export const fetchAndCacheArticleContent = async (article: Article): Promise<{ t
     const sanitizedContent = await sanitizeAndEmbedImages(parsed.content, article.link);
     const result = { title: parsed.title, content: sanitizedContent };
 
-    try {
-        await cacheSet(cacheKey, result);
-    } catch (error) {
-        console.error("Failed to write to IndexedDB cache:", error);
-    }
-
+    try { await cacheSet(cacheKey, result); } catch (error) { console.error("Cache Write Error:", error); }
     return result;
 };

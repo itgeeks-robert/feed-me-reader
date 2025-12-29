@@ -66,22 +66,33 @@
             --text-secondary: #475569;
         }
 
-        /* Nuke all scrollbars globally */
+        /* Global scroll prevention for root to allow internal scroll logic */
         * {
             scrollbar-width: none !important;
             -ms-overflow-style: none !important;
+            box-sizing: border-box;
         }
         *::-webkit-scrollbar {
             display: none !important;
         }
 
-        body {
+        html, body {
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
             background-color: var(--void-950);
+        }
+
+        body {
             color: var(--text-primary);
             transition: background-color 0.3s ease, color 0.3s ease;
-            overflow: hidden;
-            /* Support for Android/iOS Status Bar */
-            padding-top: env(safe-area-inset-top);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
         }
 
         body::before {

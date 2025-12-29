@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import type { Feed, Folder, Selection, WidgetSettings, Article, ArticleView, Theme } from '../src/App';
 import type { SourceType } from './AddSource';
-import { MenuIcon, SearchIcon, SunIcon, MoonIcon, GlobeAltIcon, CpuChipIcon, BeakerIcon, ChartBarIcon, FlagIcon, FireIcon, ControllerIcon, XIcon, ExclamationTriangleIcon } from './icons';
+import { MenuIcon, SearchIcon, SunIcon, MoonIcon, GlobeAltIcon, CpuChipIcon, BeakerIcon, ChartBarIcon, FlagIcon, FireIcon, ControllerIcon, XIcon, ExclamationTriangleIcon, ArrowPathIcon, RadioIcon } from './icons';
 import { resilientFetch } from '../services/fetch';
 import { parseRssXml } from '../services/rssParser';
 import FeaturedStory from './articles/FeaturedStory';
@@ -9,6 +9,7 @@ import MagazineArticleListItem from './articles/MagazineArticleListItem';
 import { getCacheCount } from '../services/cacheService';
 import FeedOnboarding, { PRESETS, Category } from './FeedOnboarding';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import { discoverFeedSignals } from '../services/feedDiscoveryService';
 
 interface MainContentProps {
     feedsToDisplay: Feed[];
@@ -60,8 +61,8 @@ const CATEGORY_MAP = [
 const EnergyScope: React.FC<{ value: number }> = ({ value }) => (
     <div className="w-full flex flex-col gap-1">
         <div className="flex justify-between items-center">
-            <span className="text-[10px] font-black text-pulse-500 uppercase tracking-tighter italic">System Integrity</span>
-            <span className="text-[10px] font-black text-pulse-500 uppercase tracking-tighter italic">{value}%</span>
+            <span className="text-[10px] font-black text-pulse-600 dark:text-pulse-500 uppercase tracking-tighter italic leading-none">System Integrity</span>
+            <span className="text-[10px] font-black text-pulse-600 dark:text-pulse-500 uppercase tracking-tighter italic leading-none">{value}%</span>
         </div>
         <div className="w-full h-1.5 bg-void-950 border border-pulse-500/20 rounded-full overflow-hidden relative">
             <div className="h-full bg-pulse-500 shadow-[0_0_10px_#e11d48] transition-all duration-1000" style={{ width: `${value}%` }} />
@@ -70,7 +71,7 @@ const EnergyScope: React.FC<{ value: number }> = ({ value }) => (
 );
 
 const MainContent: React.FC<MainContentProps> = (props) => {
-    const { selection, onSelectCategory, readArticleIds, bookmarkedArticleIds, onMarkAsRead, onPurgeBuffer, onSearch, onOpenReader, refreshKey, onOpenSidebar, theme, onToggleTheme, animationClass, pageTitle, uptime, allFeeds, onSetFeeds, onSetFolders, initialArticles } = props;
+    const { selection, onSelectCategory, readArticleIds, bookmarkedArticleIds, onMarkAsRead, onPurgeBuffer, onSearch, onOpenReader, refreshKey, onOpenSidebar, theme, onToggleTheme, animationClass, pageTitle, uptime, allFeeds, onSetFeeds, onSetFolders, initialArticles, onAddSource, onRefresh } = props;
     
     const [articles, setArticles] = useState<Article[]>(initialArticles || []);
     const [loading, setLoading] = useState(false);
@@ -79,6 +80,8 @@ const MainContent: React.FC<MainContentProps> = (props) => {
     const [showOnlyUnread, setShowOnlyUnread] = useState(false);
     const [cacheCount, setCacheCount] = useState(0);
     const [pendingCategory, setPendingCategory] = useState<string | null>(null);
+    const [isSniffing, setIsSniffing] = useState(false);
+    const [sniffError, setSniffError] = useState<string | null>(null);
     const [rememberGlobalWarning, setRememberGlobalWarning] = useLocalStorage<boolean>('void_remember_global_warning', false);
     
     useEffect(() => { getCacheCount().then(setCacheCount); }, [refreshKey]);
@@ -156,10 +159,43 @@ const MainContent: React.FC<MainContentProps> = (props) => {
         }
     };
 
+    const handleSniffSignal = async () => {
+        if (!searchQuery || isSniffing) return;
+        setIsSniffing(true);
+        setSniffError(null);
+        try {
+            const discovered = await discoverFeedSignals(searchQuery);
+            if (discovered && discovered.length > 0) {
+                await onAddSource(discovered[0].url, 'rss');
+                setSearchQuery('');
+                onRefresh();
+                alert(`SUCCESS: Node ${discovered[0].title} synchronized.`);
+            } else {
+                throw new Error("No usable signal detected on this host.");
+            }
+        } catch (err) {
+            setSniffError(err instanceof Error ? err.message : "Intercept Failed.");
+        } finally {
+            setIsSniffing(false);
+        }
+    };
+
     if (allFeeds.length === 0 && selection.type === 'all' && onSetFeeds && onSetFolders) {
         return (
-            <main className={`flex-grow overflow-y-auto scrollbar-hide ${animationClass} bg-void-950 pb-40 pt-32`}>
-                <Header onSearchSubmit={() => onSearch(searchQuery)} searchQuery={searchQuery} setSearchQuery={setSearchQuery} onOpenSidebar={onOpenSidebar} theme={theme} onToggleTheme={onToggleTheme} uptime={uptime} cacheCount={cacheCount} />
+            <main className={`flex-grow overflow-y-auto scrollbar-hide ${animationClass} bg-void-950 pb-40 pt-40`}>
+                <Header 
+                    onSearchSubmit={() => onSearch(searchQuery)} 
+                    searchQuery={searchQuery} 
+                    setSearchQuery={setSearchQuery} 
+                    onOpenSidebar={onOpenSidebar} 
+                    theme={theme} 
+                    onToggleTheme={onToggleTheme} 
+                    uptime={uptime} 
+                    cacheCount={cacheCount}
+                    isSniffing={isSniffing}
+                    onSniff={handleSniffSignal}
+                    error={sniffError}
+                />
                 <FeedOnboarding onComplete={(f, fld) => { onSetFolders(fld); onSetFeeds(f); }} />
             </main>
         );
@@ -170,24 +206,36 @@ const MainContent: React.FC<MainContentProps> = (props) => {
     const visibleArticlesToDisplay = articlesToDisplay.slice(0, visibleCount - 1);
 
     return (
-        <main className={`flex-grow overflow-y-auto scrollbar-hide ${animationClass} bg-void-950 pb-40 scroll-smooth`}>
-            <Header onSearchSubmit={(e: any) => { e.preventDefault(); onSearch(searchQuery); }} searchQuery={searchQuery} setSearchQuery={setSearchQuery} onOpenSidebar={onOpenSidebar} theme={theme} onToggleTheme={onToggleTheme} uptime={uptime} cacheCount={cacheCount} />
+        <main className={`flex-grow overflow-y-auto scrollbar-hide ${animationClass} bg-void-950 pb-[calc(10rem+env(safe-area-inset-bottom))] md:pb-32 scroll-smooth`}>
+            <Header 
+                onSearchSubmit={(e: any) => { e.preventDefault(); onSearch(searchQuery); }} 
+                searchQuery={searchQuery} 
+                setSearchQuery={setSearchQuery} 
+                onOpenSidebar={onOpenSidebar} 
+                theme={theme} 
+                onToggleTheme={onToggleTheme} 
+                uptime={uptime} 
+                cacheCount={cacheCount} 
+                isSniffing={isSniffing}
+                onSniff={handleSniffSignal}
+                error={sniffError}
+            />
             
-            <nav className="fixed top-[env(safe-area-inset-top)] mt-16 md:mt-24 left-0 right-0 z-20 bg-void-900/80 backdrop-blur-md border-b border-pulse-500/10 flex items-center h-12 md:h-14 overflow-x-auto scrollbar-hide px-4 md:px-12 gap-2">
-                <button onClick={() => onSelectCategory(null)} className={`shrink-0 px-4 py-1.5 rounded-full text-[9px] font-black uppercase italic transition-all border ${!selection.category ? 'bg-pulse-500 border-pulse-400 text-white shadow-lg' : 'bg-void-950 border-zinc-800 text-zinc-500 hover:text-terminal'}`}>INCOMING INTEL</button>
+            <nav className="fixed top-[env(safe-area-inset-top)] mt-20 md:mt-28 left-0 right-0 z-20 bg-void-900/90 backdrop-blur-md border-b border-zinc-200 dark:border-white/5 flex items-center h-14 overflow-x-auto scrollbar-hide px-4 md:px-12 gap-3 shadow-xl">
+                <button onClick={() => onSelectCategory(null)} className={`shrink-0 px-4 py-2 rounded-full text-[9px] md:text-[10px] font-black uppercase italic transition-all border ${!selection.category ? 'bg-pulse-500 border-pulse-400 text-white shadow-lg shadow-pulse-500/20' : 'bg-void-950 border-zinc-300 dark:border-zinc-800 text-zinc-500 hover:text-terminal'}`}>INCOMING INTEL</button>
                 {CATEGORY_MAP.map(cat => (
-                    <button key={cat.id} onClick={() => handleCategoryClick(cat.id)} className={`shrink-0 flex items-center gap-2 px-4 py-1.5 rounded-full text-[9px] font-black uppercase italic transition-all border ${selection.category === cat.id ? 'bg-pulse-500 border-pulse-400 text-white shadow-lg' : 'bg-void-950 border-zinc-800 text-zinc-500 hover:text-terminal'}`}>{cat.icon}<span>{cat.id}</span></button>
+                    <button key={cat.id} onClick={() => handleCategoryClick(cat.id)} className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-full text-[9px] md:text-[10px] font-black uppercase italic transition-all border ${selection.category === cat.id ? 'bg-pulse-500 border-pulse-400 text-white shadow-lg shadow-pulse-500/20' : 'bg-void-950 border-zinc-300 dark:border-zinc-800 text-zinc-500 hover:text-terminal'}`}>{cat.icon}<span>{cat.id}</span></button>
                 ))}
             </nav>
 
-            <div className="px-4 md:px-8 pt-44 md:pt-60 max-w-[1800px] mx-auto">
-                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b-2 border-pulse-500/10 mb-8">
+            <div className="px-4 md:px-8 pt-[calc(8.5rem+env(safe-area-inset-top))] md:pt-[calc(11rem+env(safe-area-inset-top))] max-w-[1800px] mx-auto">
+                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-pulse-500/20 mb-8">
                     <div>
-                        <h1 className="text-xl md:text-2xl font-black text-terminal italic glitch-text uppercase tracking-widest">{pageTitle}</h1>
-                        <p className="text-[10px] md:text-xs font-black text-zinc-600 uppercase tracking-[0.4em] mt-2 font-mono">{unreadCount} SIGS DETECTED</p>
+                        <h1 className="text-xl md:text-3xl font-black text-terminal italic glitch-text uppercase tracking-widest leading-none">{pageTitle}</h1>
+                        <p className="text-[9px] md:text-[11px] font-black text-zinc-500 dark:text-zinc-600 uppercase tracking-[0.4em] mt-3 font-mono">{unreadCount} SIGS DETECTED</p>
                     </div>
                     {unreadCount > 5 && (
-                        <button onClick={() => onPurgeBuffer(filteredArticles.map(a => a.id))} className="px-6 py-2.5 bg-void-900 border border-pulse-500 text-pulse-500 hover:bg-pulse-500 hover:text-white font-black uppercase italic text-xs transition-all shadow-[4px_4px_0_#e11d48]">Clear Frequency</button>
+                        <button onClick={() => onPurgeBuffer(filteredArticles.map(a => a.id))} className="px-6 py-2 bg-void-900 border border-pulse-500 text-pulse-600 dark:text-pulse-500 hover:bg-pulse-500 hover:text-white font-black uppercase italic text-[10px] md:text-[11px] transition-all shadow-[4px_4px_0_#e11d48] active:translate-x-1 active:translate-y-1 active:shadow-none">Clear Frequency</button>
                     )}
                 </div>
                 
@@ -198,13 +246,13 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                 )}
                 
                 <div className="mt-8">
-                    <div className="flex items-center gap-6 mb-10 border-l-4 border-pulse-500 pl-6">
-                        <h2 className="font-black text-xl md:text-2xl text-terminal italic uppercase tracking-tighter">Live Transmissions</h2>
+                    <div className="flex items-center gap-6 mb-8 border-l-4 border-pulse-500 pl-6">
+                        <h2 className="font-black text-lg md:text-2xl text-terminal italic uppercase tracking-tighter">Live Transmissions</h2>
                         <UnreadFilterToggle checked={showOnlyUnread} onChange={setShowOnlyUnread} />
                     </div>
 
                     {loading && filteredArticles.length === 0 ? (
-                        <div className="text-center py-20 flex flex-col items-center gap-4"><div className="w-10 h-10 border-t-2 border-pulse-500 rounded-full animate-spin"></div><span className="text-pulse-500 font-mono text-xs uppercase tracking-widest animate-pulse">Decrypting Signal...</span></div>
+                        <div className="text-center py-24 flex flex-col items-center gap-6"><div className="w-10 h-10 border-t-2 border-pulse-500 rounded-full animate-spin"></div><span className="text-pulse-600 dark:text-pulse-500 font-mono text-[11px] uppercase tracking-widest animate-pulse italic">Decrypting Signal...</span></div>
                     ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 md:gap-8">
                             {visibleArticlesToDisplay.map(article => (
@@ -214,53 +262,53 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                     )}
 
                     {articlesToDisplay.length > visibleArticlesToDisplay.length && (
-                        <div className="mt-16 text-center pb-24">
-                            <button onClick={() => setVisibleCount(c => c + LOAD_MORE_BATCH)} className="bg-void-950 border-2 border-pulse-500 text-pulse-500 hover:bg-pulse-500 hover:text-white font-black uppercase italic py-4 px-12 transition-all shadow-[6px_6px_0_#e11d48] text-sm md:text-base">Decode {LOAD_MORE_BATCH} More</button>
+                        <div className="mt-16 text-center">
+                            <button onClick={() => setVisibleCount(c => c + LOAD_MORE_BATCH)} className="bg-void-950 border-2 border-pulse-500 text-pulse-600 dark:text-pulse-500 hover:bg-pulse-500 hover:text-white font-black uppercase italic py-4 px-12 transition-all shadow-[5px_5px_0_#e11d48] text-[11px] md:text-sm active:translate-x-1 active:translate-y-1 active:shadow-none">Decode {LOAD_MORE_BATCH} More</button>
                         </div>
                     )}
                 </div>
             </div>
 
             {pendingCategory && (
-                <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[100] flex items-center justify-center p-4 font-mono">
+                <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[100] flex items-center justify-center p-6 font-mono">
                     <div className="bg-zinc-900 border-4 border-zinc-800 shadow-2xl w-full max-w-md relative overflow-hidden flex flex-col">
                         <div className="absolute inset-0 border-t-2 border-l-2 border-zinc-700 pointer-events-none z-10" />
                         <div className="absolute inset-0 border-b-2 border-r-2 border-black pointer-events-none z-10" />
                         
-                        <header className="h-10 bg-zinc-800 flex items-center justify-between px-1 relative z-20 border-b-2 border-black">
-                            <div className="flex items-center gap-2 h-full">
-                                <div className="w-8 h-7 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center">
-                                   <div className="w-4 h-1 bg-black shadow-[0_4px_0_black]" />
+                        <header className="h-12 bg-zinc-800 flex items-center justify-between px-2 relative z-20 border-b-2 border-black">
+                            <div className="flex items-center gap-3 h-full">
+                                <div className="w-10 h-8 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center">
+                                   <div className="w-5 h-1.5 bg-black shadow-[0_5px_0_black]" />
                                 </div>
-                                <h2 className="text-white text-[11px] font-black uppercase tracking-[0.2em] italic px-2">SYST_WARNING.EXE</h2>
+                                <h2 className="text-white text-xs font-black uppercase tracking-[0.2em] italic px-2">SYST_WARNING.EXE</h2>
                             </div>
-                            <button onClick={() => setPendingCategory(null)} className="w-8 h-7 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center active:bg-zinc-400">
-                                <XIcon className="w-4 h-4 text-black" />
+                            <button onClick={() => setPendingCategory(null)} className="w-10 h-8 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center active:bg-zinc-400">
+                                <XIcon className="w-5 h-5 text-black" />
                             </button>
                         </header>
 
-                        <div className="p-8 bg-void-950 text-center space-y-6">
-                            <div className="mx-auto w-16 h-16 bg-pulse-500/10 rounded-full flex items-center justify-center border-2 border-pulse-500 animate-pulse">
-                                <ExclamationTriangleIcon className="w-8 h-8 text-pulse-500" />
+                        <div className="p-10 bg-void-950 text-center space-y-8">
+                            <div className="mx-auto w-20 h-20 bg-pulse-500/10 rounded-full flex items-center justify-center border-2 border-pulse-500 animate-pulse">
+                                <ExclamationTriangleIcon className="w-10 h-10 text-pulse-500" />
                             </div>
-                            <h3 className="text-lg font-black text-white italic uppercase tracking-tighter">Mass Signal Establishment</h3>
-                            <p className="text-[10px] text-zinc-500 leading-relaxed uppercase tracking-widest">establishing a link to <span className="text-pulse-500 font-black">ALL GLOBAL {pendingCategory} NODES</span> concurrently may result in system lag, packet loss, or high bandwidth consumption. establish link?</p>
+                            <h3 className="text-xl font-black text-white italic uppercase tracking-tighter leading-none">Mass Signal Establishment</h3>
+                            <p className="text-xs text-zinc-500 leading-relaxed uppercase tracking-widest">establishing a link to <span className="text-pulse-500 font-black">ALL GLOBAL {pendingCategory} NODES</span> concurrently may result in system lag, packet loss, or high bandwidth consumption. establish link?</p>
                             
-                            <label className="flex items-center justify-center gap-3 cursor-pointer group pt-4">
+                            <label className="flex items-center justify-center gap-4 cursor-pointer group pt-4">
                                 <input 
                                     type="checkbox" 
                                     className="sr-only" 
                                     checked={rememberGlobalWarning}
                                     onChange={(e) => setRememberGlobalWarning(e.target.checked)}
                                 />
-                                <div className={`w-4 h-4 border-2 flex-shrink-0 transition-colors ${rememberGlobalWarning ? 'bg-pulse-500 border-pulse-400 shadow-[0_0_8px_#e11d48]' : 'bg-transparent border-zinc-700'}`} />
-                                <span className="text-[9px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-terminal italic">Do not warn again</span>
+                                <div className={`w-5 h-5 border-2 flex-shrink-0 transition-colors ${rememberGlobalWarning ? 'bg-pulse-500 border-pulse-400 shadow-[0_0_10px_#e11d48]' : 'bg-transparent border-zinc-700'}`} />
+                                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-terminal italic">Do not warn again</span>
                             </label>
                         </div>
 
-                        <footer className="p-4 bg-zinc-300 border-t-2 border-black flex gap-2">
-                            <button onClick={() => setPendingCategory(null)} className="flex-1 py-3 bg-zinc-100 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-400 text-[10px] font-black uppercase italic text-zinc-600 active:bg-zinc-200">ABORT</button>
-                            <button onClick={() => { onSelectCategory(pendingCategory); setPendingCategory(null); }} className="flex-1 py-3 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 text-[10px] font-black uppercase italic text-black hover:bg-white active:bg-zinc-400">ESTABLISH</button>
+                        <footer className="p-6 bg-zinc-300 border-t-2 border-black flex gap-3">
+                            <button onClick={() => setPendingCategory(null)} className="flex-1 py-4 bg-zinc-100 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-400 text-xs font-black uppercase italic text-zinc-600 active:bg-zinc-200">ABORT</button>
+                            <button onClick={() => { onSelectCategory(pendingCategory); setPendingCategory(null); }} className="flex-1 py-4 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 text-xs font-black uppercase italic text-black hover:bg-white active:bg-zinc-400">ESTABLISH</button>
                         </footer>
                     </div>
                 </div>
@@ -269,30 +317,74 @@ const MainContent: React.FC<MainContentProps> = (props) => {
     );
 };
 
-const Header: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuery, onOpenSidebar, theme, onToggleTheme, uptime, cacheCount }) => (
-    <header className="fixed top-[env(safe-area-inset-top)] left-0 right-0 z-30 h-16 md:h-24 transition-colors">
-        <div className="w-full h-full bg-void-950/90 backdrop-blur-xl border-b border-pulse-500/30 flex items-center justify-between px-4 md:px-10 shadow-2xl">
-            <button onClick={onOpenSidebar} className="p-2 text-pulse-500 transition-all flex-shrink-0"><MenuIcon className="w-7 h-7 md:w-9 md:h-9" /></button>
-            <div className="flex-grow flex flex-col items-center mx-3 md:mx-12 max-w-2xl">
-                <form onSubmit={onSearchSubmit} className="relative w-full mb-2 md:mb-3">
-                    <SearchIcon className="w-5 h-5 text-zinc-700 absolute top-1/2 left-4 md:left-6 -translate-y-1/2" />
-                    <input type="search" placeholder="Scan Frequencies..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full bg-void-900 border border-zinc-800 focus:border-pulse-500 placeholder-zinc-700 text-terminal rounded-none py-2 md:py-3 pl-10 md:pl-14 pr-4 text-xs md:text-sm font-mono uppercase tracking-widest outline-none" />
-                </form>
-                <div className="w-full px-1 md:px-6"><EnergyScope value={uptime} /></div>
+const Header: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuery, onOpenSidebar, theme, onToggleTheme, uptime, cacheCount, isSniffing, onSniff, error }) => {
+    
+    const isUrl = useMemo(() => {
+        return /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([\/\w .-]*)*\/?$/.test(searchQuery);
+    }, [searchQuery]);
+
+    return (
+        <header className="fixed top-[env(safe-area-inset-top)] left-0 right-0 z-30 h-20 md:h-28 transition-colors">
+            <div className="w-full h-full bg-void-950/90 backdrop-blur-xl border-b border-pulse-500/30 flex items-center justify-between px-4 md:px-12 shadow-2xl">
+                <button onClick={onOpenSidebar} className="p-3 text-pulse-600 dark:text-pulse-500 transition-all flex-shrink-0 active:scale-90"><MenuIcon className="w-8 h-8 md:w-10 md:h-10" /></button>
+                <div className="flex-grow flex flex-col items-center mx-4 md:mx-16 max-w-2xl relative">
+                    <form onSubmit={onSearchSubmit} className="relative w-full mb-2 md:mb-4">
+                        <div className={`absolute top-1/2 left-4 md:left-8 -translate-y-1/2 transition-colors duration-300 ${isSniffing ? 'text-emerald-600 dark:text-emerald-500' : 'text-zinc-400 dark:text-zinc-700'}`}>
+                            {isSniffing ? <ArrowPathIcon className="w-5 h-5 md:w-6 md:h-6 animate-spin" /> : <SearchIcon className="w-5 h-5 md:w-6 md:h-6" />}
+                        </div>
+                        
+                        <input 
+                            type="search" 
+                            placeholder="Scan Frequencies or Website URL..." 
+                            value={searchQuery} 
+                            onChange={e => setSearchQuery(e.target.value)} 
+                            className={`w-full bg-void-900 border focus:border-pulse-500 placeholder-zinc-400 dark:placeholder-zinc-700 text-terminal rounded-none py-2.5 md:py-4 pl-12 md:pl-16 pr-24 md:pr-32 text-[11px] md:text-base font-mono uppercase tracking-widest outline-none shadow-inner transition-all
+                                ${isUrl ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-zinc-300 dark:border-zinc-800'}`} 
+                        />
+
+                        {isUrl && !isSniffing && (
+                            <button 
+                                type="button"
+                                onClick={onSniff}
+                                className="absolute top-1/2 right-2 -translate-y-1/2 bg-emerald-600 hover:bg-emerald-500 text-white font-black uppercase italic text-[8px] md:text-[10px] px-3 md:px-4 py-1.5 md:py-2 shadow-lg animate-fade-in border border-emerald-400/50"
+                            >
+                                [SNIFF_SIGNAL]
+                            </button>
+                        )}
+                    </form>
+                    
+                    {/* Inline Status/Error Overlay for Search Bar */}
+                    {error && (
+                        <div className="absolute top-full left-0 right-0 mt-1 text-center">
+                            <span className="text-[8px] font-black text-pulse-600 dark:text-pulse-500 uppercase tracking-widest animate-pulse italic bg-black/80 px-4 py-1 rounded-full border border-pulse-500/20">
+                                0x004_ERR: {error}
+                            </span>
+                        </div>
+                    )}
+                    {isSniffing && (
+                        <div className="absolute top-full left-0 right-0 mt-1 text-center">
+                            <span className="text-[8px] font-black text-emerald-600 dark:text-emerald-500 uppercase tracking-[0.4em] animate-pulse italic bg-black/80 px-4 py-1 rounded-full border border-emerald-500/20">
+                                INTERCEPTING_METADATA...
+                            </span>
+                        </div>
+                    )}
+
+                    <div className="w-full px-2 md:px-10"><EnergyScope value={uptime} /></div>
+                </div>
+                <div className="flex items-center gap-4 md:gap-12 flex-shrink-0">
+                    <div className="hidden lg:flex flex-col items-end"><span className="text-[10px] font-black text-zinc-500 dark:text-zinc-600 uppercase tracking-tighter italic">Data Cache</span><span className="text-xs font-black text-pulse-600 dark:text-pulse-500 uppercase tracking-tighter italic">{cacheCount} SIGS</span></div>
+                    <button onClick={onToggleTheme} className="p-3 text-pulse-600 dark:text-pulse-500 hover:text-terminal transition-all active:scale-90">{theme === 'dark' ? <SunIcon className="w-6 h-6 md:w-9 md:h-9" /> : <MoonIcon className="w-6 h-6 md:w-9 md:h-9" />}</button>
+                </div>
             </div>
-            <div className="flex items-center gap-4 md:gap-10 flex-shrink-0">
-                <div className="hidden lg:flex flex-col items-end"><span className="text-[10px] font-black text-zinc-600 uppercase tracking-tighter italic">Data Cache</span><span className="text-xs font-black text-pulse-500 uppercase tracking-tighter italic">{cacheCount} SIGS</span></div>
-                <button onClick={onToggleTheme} className="p-2 text-pulse-500 hover:text-terminal transition-all">{theme === 'dark' ? <SunIcon className="w-6 h-6 md:w-8 md:h-8" /> : <MoonIcon className="w-6 h-6 md:w-8 md:h-8" />}</button>
-            </div>
-        </div>
-    </header>
-);
+        </header>
+    );
+};
 
 const UnreadFilterToggle: React.FC<any> = ({ checked, onChange }) => (
-    <label className="flex items-center cursor-pointer group bg-void-900 px-4 py-2 border border-zinc-800 transition-all hover:border-pulse-500">
+    <label className="flex items-center cursor-pointer group bg-void-900 px-4 py-2 border border-zinc-300 dark:border-zinc-800 transition-all hover:border-pulse-500 shadow-sm active:scale-95">
         <input type="checkbox" className="sr-only" checked={checked} onChange={(e) => onChange(e.target.checked)} />
-        <div className={`w-4 h-4 border-2 flex-shrink-0 mr-3 transition-colors ${checked ? 'bg-pulse-500 border-pulse-400 shadow-[0_0_8px_#e11d48]' : 'bg-transparent border-zinc-700'}`} />
-        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 group-hover:text-terminal font-mono italic">Unread</span>
+        <div className={`w-4 h-4 border flex-shrink-0 mr-3 transition-colors ${checked ? 'bg-pulse-500 border-pulse-400 shadow-[0_0_10px_#e11d48]' : 'bg-transparent border-zinc-300 dark:border-zinc-700'}`} />
+        <span className="text-[9px] md:text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500 group-hover:text-terminal font-mono italic leading-none">Unread</span>
     </label>
 );
 

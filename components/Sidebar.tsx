@@ -3,7 +3,7 @@ import type { Feed, Folder, Selection } from '../src/App';
 import type { SourceType } from './AddSource';
 import AddSource from './AddSource';
 import {
-    VoidIcon, ListIcon, PlusIcon, TrashIcon, FolderIcon, BookmarkIcon, SettingsIcon, ControllerIcon, XIcon, SparklesIcon, ClockIcon, ShieldCheckIcon
+    VoidIcon, ListIcon, PlusIcon, TrashIcon, FolderIcon, BookmarkIcon, SettingsIcon, ControllerIcon, XIcon, SparklesIcon, ClockIcon, ShieldCheckIcon, RadioIcon
 } from './icons';
 import { SmartFeedIcon } from './SmartFeedIcon';
 
@@ -73,7 +73,7 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
 
                 <button 
                     onClick={onOpenShop}
-                    className="w-full mb-8 p-4 bg-void-900 border border-pulse-500/20 rounded-2xl flex items-center gap-4 group hover:border-pulse-500/50 transition-all cursor-pointer shadow-lg relative overflow-hidden active:scale-95"
+                    className="w-full mb-6 p-4 bg-void-900 border border-pulse-500/20 rounded-2xl flex items-center gap-4 group hover:border-pulse-500/50 transition-all cursor-pointer shadow-lg relative overflow-hidden active:scale-95"
                 >
                     <div className="absolute inset-0 bg-pulse-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
                     <div className="p-2 bg-pulse-500/10 rounded-lg">
@@ -88,7 +88,13 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                     </div>
                 </button>
                 
-                <AddSource onAddSource={onAddSource} />
+                <div className="mb-2 px-1 flex items-center justify-between">
+                    <span className="text-[9px] font-black text-zinc-600 uppercase tracking-[0.4em]">Establish Uplink</span>
+                    <RadioIcon className="w-3 h-3 text-pulse-500 animate-pulse" />
+                </div>
+                <div className="bg-void-900/40 p-3 rounded-2xl border border-zinc-900 mb-6">
+                    <AddSource onAddSource={onAddSource} />
+                </div>
             </div>
             
             <div className="flex-grow overflow-y-auto px-6 space-y-1 scrollbar-hide pb-12">
