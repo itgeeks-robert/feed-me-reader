@@ -39,16 +39,8 @@ export type ArticleView = 'list' | 'grid' | 'featured';
 export interface WidgetSettings { showWeather: boolean; showFinance: boolean; weatherLocation: string; }
 export interface Settings { feeds: Feed[]; folders: Folder[]; theme: Theme; articleView: ArticleView; widgets: WidgetSettings; }
 
-// Add missing game-related types
-/**
- * SUDOKU TYPES
- */
 export type SudokuDifficulty = 'Easy' | 'Medium' | 'Hard' | 'Expert';
 export interface SudokuStats { totalWins: number; lastDailyCompletionDate?: string; }
-
-/**
- * SOLITAIRE TYPES
- */
 export interface SolitaireStats { gamesWon: number; currentStreak: number; }
 export interface SolitaireSettings { drawThree: boolean; }
 
@@ -61,30 +53,21 @@ const FOLDERS_KEY = `void_folders_${GUEST_USER_ID}`;
 const THEME_KEY = `void_theme_${GUEST_USER_ID}`;
 const ARTICLE_VIEW_KEY = `void_article_view_${GUEST_USER_ID}`;
 const WIDGET_SETTINGS_KEY = `void_widget_settings_${GUEST_USER_ID}`;
-const SUDOKU_STATS_KEY = `void_sudoku_stats_${GUEST_USER_ID}`;
-const SOLITAIRE_STATS_KEY = `void_solitaire_stats_${GUEST_USER_ID}`;
-const SOLITAIRE_SETTINGS_KEY = `void_solitaire_settings_${GUEST_USER_ID}`;
 const UPTIME_KEY = `void_uptime_${GUEST_USER_ID}`;
 const CREDITS_KEY = `void_credits_${GUEST_USER_ID}`;
-const LAST_UPLINK_KEY = `void_last_uplink_date_${GUEST_USER_ID}`;
-
-const defaultFolders: Folder[] = [];
-const defaultFeeds: Feed[] = [];
 
 const App: React.FC = () => {
     const [theme, setTheme] = useLocalStorage<Theme>(THEME_KEY, 'dark');
     const [articleView, setArticleView] = useLocalStorage<ArticleView>(ARTICLE_VIEW_KEY, 'list');
     const [widgetSettings, setWidgetSettings] = useLocalStorage<WidgetSettings>(WIDGET_SETTINGS_KEY, { showWeather: true, showFinance: false, weatherLocation: 'London' });
-    const [folders, setFolders] = useLocalStorage<Folder[]>(FOLDERS_KEY, defaultFolders);
-    const [feeds, setFeeds] = useLocalStorage<Feed[]>(FEEDS_KEY, defaultFeeds);
+    const [folders, setFolders] = useLocalStorage<Folder[]>(FOLDERS_KEY, []);
+    const [feeds, setFeeds] = useLocalStorage<Feed[]>(FEEDS_KEY, []);
     const [readArticleIds, setReadArticleIds] = useLocalStorage<Set<string>>(READ_ARTICLES_KEY, () => new Set());
     const [bookmarkedArticleIds, setBookmarkedArticleIds] = useLocalStorage<Set<string>>(BOOKMARKED_ARTICLES_KEY, () => new Set());
-    const [articleTags, setArticleTags] = useLocalStorage<Map<string, Set<string>>>(ARTICLE_TAGS_KEY, () => new Map());
     const [uptime, setUptime] = useLocalStorage<number>(UPTIME_KEY, 0);
     const [credits, setCredits] = useLocalStorage<number>(CREDITS_KEY, 100); 
 
     const [selection, setSelection] = useState<Selection>({ type: 'splash', id: null });
-
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
     const [isAddSourceModalOpen, setIsAddSourceModalOpen] = useState(false);
     const [readerArticle, setReaderArticle] = useState<Article | null>(null);
@@ -122,7 +105,6 @@ const App: React.FC = () => {
             const siteLink = xml.querySelector('channel > link')?.textContent || url;
             const iconUrl = `https://www.google.com/s2/favicons?sz=32&domain_url=${new URL(siteLink).hostname}`;
             
-            // SMART CATEGORY DETECTION
             let detectedCategory = 'GENERAL';
             const titleUpper = feedTitle.toUpperCase();
             const urlUpper = feedUrl.toUpperCase();
@@ -152,21 +134,32 @@ const App: React.FC = () => {
         return <SplashScreen onEnterFeeds={handleReturnToFeeds} onEnterArcade={handleEnterArcade} />;
     }
 
-    return (
-        <div className="h-screen font-sans text-sm relative flex flex-col overflow-hidden bg-void-950">
-            <div className="flex-1 flex flex-col min-w-0 relative pb-20 md:pb-0 h-full overflow-hidden">
-                {selection.type === 'utility_hub' ? (
-                    <UtilityHubPage onSelect={(type) => setSelection({type: type as any, id: null})} onBackToHub={handleReturnToFeeds} />
-                ) : selection.type === 'game_hub' ? (
-                    <GameHubPage
-                        sudokuStats={{totalWins: 0}} solitaireStats={{gamesWon: 0, currentStreak: 0}}
-                        onReturnToFeeds={handleReturnToFeeds}
-                        uptime={uptime} setUptime={setUptime}
-                        credits={credits} setCredits={setCredits}
-                        showShop={false} setShowShop={() => {}}
-                        onSelect={(type: any) => setSelection({ type, id: null })}
-                    />
-                ) : (
+    const renderCurrentPage = () => {
+        switch (selection.type) {
+            case 'utility_hub':
+                return <UtilityHubPage onSelect={(id) => setSelection({ type: id as any, id: null })} onBackToHub={handleReturnToFeeds} />;
+            case 'game_hub':
+                return <GameHubPage sudokuStats={{totalWins: 0}} solitaireStats={{gamesWon: 0, currentStreak: 0}} onReturnToFeeds={handleReturnToFeeds} uptime={uptime} setUptime={setUptime} credits={credits} setCredits={setCredits} showShop={false} setShowShop={() => {}} onSelect={(type: any) => setSelection({ type, id: null })} />;
+            
+            // Simulation Pages (Arcade)
+            case 'sudoku': return <SudokuPage stats={{totalWins: 0}} onGameWin={() => {}} onGameLoss={() => {}} onBackToHub={handleEnterArcade} onReturnToFeeds={handleReturnToFeeds} />;
+            case 'solitaire': return <SolitairePage stats={{gamesWon: 0, currentStreak: 0}} onGameWin={() => {}} onGameStart={() => {}} settings={{drawThree: true}} onUpdateSettings={() => {}} onBackToHub={handleEnterArcade} onReturnToFeeds={handleReturnToFeeds} />;
+            case 'minesweeper': return <MinesweeperPage onBackToHub={handleEnterArcade} onReturnToFeeds={handleReturnToFeeds} />;
+            case 'tetris': return <TetrisPage onBackToHub={handleEnterArcade} onReturnToFeeds={handleReturnToFeeds} />;
+            case 'pool': return <PoolGamePage onBackToHub={handleEnterArcade} onReturnToFeeds={handleReturnToFeeds} />;
+            case 'cipher_core': return <CipherCorePage onBackToHub={handleEnterArcade} uptime={uptime} setUptime={setUptime} />;
+            case 'void_runner': return <VoidRunnerPage onBackToHub={handleEnterArcade} onReturnToFeeds={handleReturnToFeeds} />;
+            case 'synapse_link': return <SynapseLinkPage onBackToHub={handleEnterArcade} />;
+            case 'grid_reset': return <GridResetPage onBackToHub={handleEnterArcade} />;
+
+            // Utility Pages (Media)
+            case 'signal_streamer': return <SignalStreamerPage onBackToHub={handleEnterUtils} />;
+            case 'transcoder': return <TranscoderPage onBackToHub={handleEnterUtils} />;
+            case 'deep_sync': return <DeepSyncPage onBackToHub={handleEnterUtils} />;
+
+            // Default fallback is Feeds/MainContent
+            default:
+                return (
                     <MainContent
                         key={selection.type + String(selection.id) + (selection.category || '')}
                         animationClass="animate-fade-in"
@@ -181,7 +174,7 @@ const App: React.FC = () => {
                         onSelectCategory={(cat) => setSelection(cat ? { type: 'all', id: null, category: cat } : { type: 'all', id: null })}
                         readArticleIds={readArticleIds}
                         bookmarkedArticleIds={bookmarkedArticleIds}
-                        articleTags={articleTags}
+                        articleTags={new Map()}
                         onMarkAsRead={handleMarkAsRead}
                         onPurgeBuffer={(ids) => setReadArticleIds(new Set([...Array.from(readArticleIds), ...ids]))}
                         onMarkAsUnread={(id) => { const n = new Set(readArticleIds); n.delete(id); setReadArticleIds(n); }}
@@ -204,7 +197,15 @@ const App: React.FC = () => {
                         onOpenSidebar={() => setIsSettingsModalOpen(true)}
                         uptime={uptime}
                     />
-                )}
+                );
+        }
+    };
+
+    return (
+        <div className="h-screen w-full font-sans text-sm relative flex flex-col overflow-hidden bg-void-950">
+            {/* Main Application Frame with Top Safe Inset */}
+            <div className="flex-1 flex flex-col min-w-0 relative pb-20 md:pb-0 h-full overflow-hidden">
+                {renderCurrentPage()}
             </div>
 
             <BottomNavBar selection={selection} onSelect={setSelection} onOpenSettings={() => setIsSettingsModalOpen(true)} />

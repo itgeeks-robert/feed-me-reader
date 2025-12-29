@@ -82,7 +82,6 @@ const MainContent: React.FC<MainContentProps> = (props) => {
     
     useEffect(() => { getCacheCount().then(setCacheCount); }, [refreshKey]);
 
-    // Target calculation: Use all user feeds if no category, otherwise use the global preset pool for that category
     const activeFeeds = useMemo(() => {
         if (!selection.category) return allFeeds;
         const presets = PRESETS.filter(p => p.category === selection.category);
@@ -128,7 +127,6 @@ const MainContent: React.FC<MainContentProps> = (props) => {
              result = result.filter(a => a.title.toLowerCase().includes(filter) || a.snippet.toLowerCase().includes(filter));
         }
         
-        // Final sanity filter: Ensure category matches if in a sector node
         if (selection.category) {
             const catLower = selection.category.toLowerCase();
             result = result.filter(a => 
@@ -155,7 +153,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
 
     if (allFeeds.length === 0 && selection.type === 'all' && onSetFeeds && onSetFolders) {
         return (
-            <main className={`flex-grow overflow-y-auto ${animationClass} bg-void-950 pb-40 pt-32`}>
+            <main className={`flex-grow overflow-y-auto scrollbar-hide ${animationClass} bg-void-950 pb-40 pt-32`}>
                 <Header onSearchSubmit={() => onSearch(searchQuery)} searchQuery={searchQuery} setSearchQuery={setSearchQuery} onOpenSidebar={onOpenSidebar} theme={theme} onToggleTheme={onToggleTheme} uptime={uptime} cacheCount={cacheCount} />
                 <FeedOnboarding onComplete={(f, fld) => { onSetFolders(fld); onSetFeeds(f); }} />
             </main>
@@ -167,20 +165,20 @@ const MainContent: React.FC<MainContentProps> = (props) => {
     const visibleArticlesToDisplay = articlesToDisplay.slice(0, visibleCount - 1);
 
     return (
-        <main className={`flex-grow overflow-y-auto ${animationClass} bg-void-950 pb-40 scroll-smooth scrollbar-hide`}>
+        <main className={`flex-grow overflow-y-auto scrollbar-hide ${animationClass} bg-void-950 pb-40 scroll-smooth`}>
             <Header onSearchSubmit={(e: any) => { e.preventDefault(); onSearch(searchQuery); }} searchQuery={searchQuery} setSearchQuery={setSearchQuery} onOpenSidebar={onOpenSidebar} theme={theme} onToggleTheme={onToggleTheme} uptime={uptime} cacheCount={cacheCount} />
             
-            <nav className="fixed top-16 md:top-24 left-0 right-0 z-20 bg-void-900/80 backdrop-blur-md border-b border-pulse-500/10 flex items-center h-12 md:h-14 overflow-x-auto scrollbar-hide px-4 md:px-12 gap-2">
-                <button onClick={() => onSelectCategory(null)} className={`shrink-0 px-4 py-1.5 rounded-full text-[9px] font-black uppercase italic transition-all border ${!selection.category ? 'bg-pulse-500 border-pulse-400 text-white shadow-lg' : 'bg-void-950 border-zinc-800 text-zinc-500 hover:text-white'}`}>YOUR_SIGS</button>
+            <nav className="fixed top-[calc(4rem+env(safe-area-inset-top))] md:top-[calc(6rem+env(safe-area-inset-top))] left-0 right-0 z-20 bg-void-900/80 backdrop-blur-md border-b border-pulse-500/10 flex items-center h-12 md:h-14 overflow-x-auto scrollbar-hide px-4 md:px-12 gap-2">
+                <button onClick={() => onSelectCategory(null)} className={`shrink-0 px-4 py-1.5 rounded-full text-[9px] font-black uppercase italic transition-all border ${!selection.category ? 'bg-pulse-500 border-pulse-400 text-white shadow-lg' : 'bg-void-950 border-zinc-800 text-zinc-500 hover:text-terminal'}`}>YOUR_SIGS</button>
                 {CATEGORY_MAP.map(cat => (
-                    <button key={cat.id} onClick={() => handleCategoryClick(cat.id)} className={`shrink-0 flex items-center gap-2 px-4 py-1.5 rounded-full text-[9px] font-black uppercase italic transition-all border ${selection.category === cat.id ? 'bg-pulse-500 border-pulse-400 text-white shadow-lg' : 'bg-void-950 border-zinc-800 text-zinc-500 hover:text-white'}`}>{cat.icon}<span>{cat.id}</span></button>
+                    <button key={cat.id} onClick={() => handleCategoryClick(cat.id)} className={`shrink-0 flex items-center gap-2 px-4 py-1.5 rounded-full text-[9px] font-black uppercase italic transition-all border ${selection.category === cat.id ? 'bg-pulse-500 border-pulse-400 text-white shadow-lg' : 'bg-void-950 border-zinc-800 text-zinc-500 hover:text-terminal'}`}>{cat.icon}<span>{cat.id}</span></button>
                 ))}
             </nav>
 
-            <div className="px-4 md:px-8 pt-32 md:pt-44 max-w-[1800px] mx-auto">
+            <div className="px-4 md:px-8 pt-44 md:pt-60 max-w-[1800px] mx-auto">
                  <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b-2 border-pulse-500/10 mb-8">
                     <div>
-                        <h1 className="text-xl md:text-2xl font-black text-white italic glitch-text uppercase tracking-widest">{pageTitle}</h1>
+                        <h1 className="text-xl md:text-2xl font-black text-terminal italic glitch-text uppercase tracking-widest">{pageTitle}</h1>
                         <p className="text-[10px] md:text-xs font-black text-zinc-600 uppercase tracking-[0.4em] mt-2 font-mono">{unreadCount} SIGS DETECTED</p>
                     </div>
                     {unreadCount > 5 && (
@@ -196,7 +194,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                 
                 <div className="mt-8">
                     <div className="flex items-center gap-6 mb-10 border-l-4 border-pulse-500 pl-6">
-                        <h2 className="font-black text-xl md:text-2xl text-white italic uppercase tracking-tighter">Live Transmissions</h2>
+                        <h2 className="font-black text-xl md:text-2xl text-terminal italic uppercase tracking-tighter">Live Transmissions</h2>
                         <UnreadFilterToggle checked={showOnlyUnread} onChange={setShowOnlyUnread} />
                     </div>
 
@@ -218,7 +216,6 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                 </div>
             </div>
 
-            {/* Global Signal Warning Modal */}
             {pendingCategory && (
                 <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[100] flex items-center justify-center p-4 font-mono">
                     <div className="bg-zinc-900 border-4 border-zinc-800 shadow-2xl w-full max-w-md relative overflow-hidden flex flex-col">
@@ -252,7 +249,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                                     onChange={(e) => setRememberGlobalWarning(e.target.checked)}
                                 />
                                 <div className={`w-4 h-4 border-2 flex-shrink-0 transition-colors ${rememberGlobalWarning ? 'bg-pulse-500 border-pulse-400 shadow-[0_0_8px_#e11d48]' : 'bg-transparent border-zinc-700'}`} />
-                                <span className="text-[9px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-white italic">Do not warn again</span>
+                                <span className="text-[9px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-terminal italic">Do not warn again</span>
                             </label>
                         </div>
 
@@ -268,19 +265,19 @@ const MainContent: React.FC<MainContentProps> = (props) => {
 };
 
 const Header: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuery, onOpenSidebar, theme, onToggleTheme, uptime, cacheCount }) => (
-    <header className="fixed top-0 left-0 right-0 z-30 h-16 md:h-24">
+    <header className="fixed top-[env(safe-area-inset-top)] left-0 right-0 z-30 h-16 md:h-24 transition-colors">
         <div className="w-full h-full bg-void-950/90 backdrop-blur-xl border-b border-pulse-500/30 flex items-center justify-between px-4 md:px-10 shadow-2xl">
             <button onClick={onOpenSidebar} className="p-2 text-pulse-500 transition-all flex-shrink-0"><MenuIcon className="w-7 h-7 md:w-9 md:h-9" /></button>
             <div className="flex-grow flex flex-col items-center mx-3 md:mx-12 max-w-2xl">
                 <form onSubmit={onSearchSubmit} className="relative w-full mb-2 md:mb-3">
                     <SearchIcon className="w-5 h-5 text-zinc-700 absolute top-1/2 left-4 md:left-6 -translate-y-1/2" />
-                    <input type="search" placeholder="Scan Frequencies..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full bg-void-900 border border-zinc-800 focus:border-pulse-500 placeholder-zinc-700 text-white rounded-none py-2 md:py-3 pl-10 md:pl-14 pr-4 text-xs md:text-sm font-mono uppercase tracking-widest outline-none" />
+                    <input type="search" placeholder="Scan Frequencies..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full bg-void-900 border border-zinc-800 focus:border-pulse-500 placeholder-zinc-700 text-terminal rounded-none py-2 md:py-3 pl-10 md:pl-14 pr-4 text-xs md:text-sm font-mono uppercase tracking-widest outline-none" />
                 </form>
                 <div className="w-full px-1 md:px-6"><EnergyScope value={uptime} /></div>
             </div>
             <div className="flex items-center gap-4 md:gap-10 flex-shrink-0">
                 <div className="hidden lg:flex flex-col items-end"><span className="text-[10px] font-black text-zinc-600 uppercase tracking-tighter italic">Data Cache</span><span className="text-xs font-black text-pulse-500 uppercase tracking-tighter italic">{cacheCount} SIGS</span></div>
-                <button onClick={onToggleTheme} className="p-2 text-pulse-500 hover:text-white transition-all">{theme === 'dark' ? <SunIcon className="w-6 h-6 md:w-8 md:h-8" /> : <MoonIcon className="w-6 h-6 md:w-8 md:h-8" />}</button>
+                <button onClick={onToggleTheme} className="p-2 text-pulse-500 hover:text-terminal transition-all">{theme === 'dark' ? <SunIcon className="w-6 h-6 md:w-8 md:h-8" /> : <MoonIcon className="w-6 h-6 md:w-8 md:h-8" />}</button>
             </div>
         </div>
     </header>
@@ -290,7 +287,7 @@ const UnreadFilterToggle: React.FC<any> = ({ checked, onChange }) => (
     <label className="flex items-center cursor-pointer group bg-void-900 px-4 py-2 border border-zinc-800 transition-all hover:border-pulse-500">
         <input type="checkbox" className="sr-only" checked={checked} onChange={(e) => onChange(e.target.checked)} />
         <div className={`w-4 h-4 border-2 flex-shrink-0 mr-3 transition-colors ${checked ? 'bg-pulse-500 border-pulse-400 shadow-[0_0_8px_#e11d48]' : 'bg-transparent border-zinc-700'}`} />
-        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 group-hover:text-white font-mono italic">Unread</span>
+        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 group-hover:text-terminal font-mono italic">Unread</span>
     </label>
 );
 
