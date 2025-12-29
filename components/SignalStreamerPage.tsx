@@ -126,7 +126,7 @@ const SignalStreamerPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub
                     onChange={handleFileChange} 
                 />
             </div>
-        </div>
+        </main>
     );
 };
 

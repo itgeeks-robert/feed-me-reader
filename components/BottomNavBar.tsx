@@ -11,7 +11,7 @@ interface BottomNavBarProps {
 const BottomNavBar: React.FC<BottomNavBarProps> = ({ selection, onSelect, onOpenSettings }) => {
     const navItems = [
         { type: 'game_hub', label: 'Arcade', icon: <VoidIcon className="w-6 h-6" /> },
-        { type: 'all', label: 'Feeds', icon: <ListIcon className="w-6 h-6" /> },
+        { type: 'all', label: 'Intel', icon: <ListIcon className="w-6 h-6" /> },
         { type: 'utility_hub', label: 'Media', icon: <PlayPauseIcon className="w-6 h-6" /> },
         { type: 'settings', label: 'Terminal', icon: <SettingsIcon className="w-6 h-6" /> },
     ];
