@@ -86,7 +86,8 @@ const GridResetPage: React.FC<{ onBackToHub: () => void; onComplete?: () => void
         if (gameState !== 'playing' || scramblePath.size === 0) return;
         const remaining = Array.from(scramblePath);
         const randomTarget = remaining[Math.floor(Math.random() * remaining.length)];
-        const [r, c] = randomTarget.split(',').map(Number);
+        // FIX: Cast randomTarget to string to address TS error "Property 'split' does not exist on type 'unknown'"
+        const [r, c] = (randomTarget as string).split(',').map(Number);
         setHintNode({ r, c });
         setTimeout(() => setHintNode(null), 3000);
     };

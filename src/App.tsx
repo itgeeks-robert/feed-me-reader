@@ -23,11 +23,18 @@ import VoidRunnerPage from '../components/VoidRunnerPage';
 import SynapseLinkPage from '../components/SynapseLinkPage';
 import GridResetPage from '../components/GridResetPage';
 import { resilientFetch } from '../services/fetch';
+import { parseRssXml } from '../services/rssParser';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 
 export interface Folder { id: number; name: string; }
 export interface Feed { id: number; url: string; title: string; iconUrl: string; folderId: number | null; sourceType?: SourceType; category?: string; }
 export interface Article { id: string; title: string; link: string; source: string; publishedDate: Date | null; snippet: string; imageUrl: string | null; feedCategory?: string; }
+
+export type SudokuDifficulty = 'Easy' | 'Medium' | 'Hard' | 'Expert';
+export interface SudokuStats { totalWins: number; lastDailyCompletionDate?: string; }
+export interface SolitaireStats { gamesWon: number; currentStreak: number; }
+export interface SolitaireSettings { drawThree: boolean; }
+
 export type Selection = { 
     type: 'splash' | 'all' | 'folder' | 'bookmarks' | 'search' | 'feed' | 'reddit' | 'game_hub' | 'daily_uplink' | 'grid_reset' | 'deep_sync' | 'signal_scrambler' | 'utility_hub' | 'signal_streamer' | 'transcoder' | 'sudoku' | 'solitaire' | 'minesweeper' | 'tetris' | 'pool' | 'cipher_core' | 'void_runner' | 'synapse_link'; 
     id: string | number | null; 
@@ -39,15 +46,9 @@ export type ArticleView = 'list' | 'grid' | 'featured';
 export interface WidgetSettings { showWeather: boolean; showFinance: boolean; weatherLocation: string; }
 export interface Settings { feeds: Feed[]; folders: Folder[]; theme: Theme; articleView: ArticleView; widgets: WidgetSettings; }
 
-export type SudokuDifficulty = 'Easy' | 'Medium' | 'Hard' | 'Expert';
-export interface SudokuStats { totalWins: number; lastDailyCompletionDate?: string; }
-export interface SolitaireStats { gamesWon: number; currentStreak: number; }
-export interface SolitaireSettings { drawThree: boolean; }
-
 const GUEST_USER_ID = 'survivor';
 const READ_ARTICLES_KEY = `void_read_articles_${GUEST_USER_ID}`;
 const BOOKMARKED_ARTICLES_KEY = `void_bookmarked_articles_${GUEST_USER_ID}`;
-const ARTICLE_TAGS_KEY = `void_article_tags_${GUEST_USER_ID}`;
 const FEEDS_KEY = `void_feeds_${GUEST_USER_ID}`;
 const FOLDERS_KEY = `void_folders_${GUEST_USER_ID}`;
 const THEME_KEY = `void_theme_${GUEST_USER_ID}`;
@@ -71,7 +72,49 @@ const App: React.FC = () => {
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
     const [isAddSourceModalOpen, setIsAddSourceModalOpen] = useState(false);
     const [readerArticle, setReaderArticle] = useState<Article | null>(null);
+    const [prefetchedArticles, setPrefetchedArticles] = useState<Article[]>([]);
+    const [isDecoding, setIsDecoding] = useState(false);
     const [lastRefresh, setLastRefresh] = useState(() => Date.now());
+
+    // --- Android Back Button Sync ---
+    useEffect(() => {
+        const handlePopState = (event: PopStateEvent) => {
+            if (event.state && event.state.selection) {
+                setSelection(event.state.selection);
+            } else {
+                setSelection({ type: 'all', id: null });
+            }
+        };
+        window.addEventListener('popstate', handlePopState);
+        return () => window.removeEventListener('popstate', handlePopState);
+    }, []);
+
+    const updateSelection = useCallback((newSel: Selection) => {
+        setSelection(newSel);
+        window.history.pushState({ selection: newSel }, '');
+    }, []);
+
+    // --- Tactical Signal Pre-fetch (Decoding) ---
+    const decodeCoreSignals = useCallback(async (targetFeeds: Feed[]) => {
+        if (targetFeeds.length === 0) return;
+        setIsDecoding(true);
+        const promises = targetFeeds.map(feed => 
+            resilientFetch(feed.url, { timeout: 10000 })
+                .then(res => res.text())
+                .then(xml => parseRssXml(xml, feed.title, feed.url).map(a => ({ ...a, feedCategory: feed.category || 'GENERAL' })))
+                .catch(() => [])
+        );
+        const results = await Promise.all(promises);
+        const all = results.flat().sort((a, b) => (b.publishedDate?.getTime() || 0) - (a.publishedDate?.getTime() || 0));
+        setPrefetchedArticles(Array.from(new Map(all.map(a => [a.id, a])).values()));
+        setIsDecoding(false);
+    }, []);
+
+    useEffect(() => {
+        if (feeds.length > 0 && prefetchedArticles.length === 0) {
+            decodeCoreSignals(feeds);
+        }
+    }, [feeds, decodeCoreSignals, prefetchedArticles.length]);
 
     useEffect(() => {
         const root = document.documentElement;
@@ -87,9 +130,9 @@ const App: React.FC = () => {
         }
     };
 
-    const handleReturnToFeeds = useCallback(() => { setSelection({ type: 'all', id: null }); }, []);
-    const handleEnterArcade = useCallback(() => { setSelection({ type: 'game_hub', id: null }); }, []);
-    const handleEnterUtils = useCallback(() => { setSelection({ type: 'utility_hub', id: null }); }, []);
+    const handleReturnToFeeds = useCallback(() => { updateSelection({ type: 'all', id: null }); }, [updateSelection]);
+    const handleEnterArcade = useCallback(() => { updateSelection({ type: 'game_hub', id: null }); }, [updateSelection]);
+    const handleEnterUtils = useCallback(() => { updateSelection({ type: 'utility_hub', id: null }); }, [updateSelection]);
 
     const handleAddSource = async (url: string, type: SourceType) => {
         let feedUrl = url.trim();
@@ -105,18 +148,9 @@ const App: React.FC = () => {
             const siteLink = xml.querySelector('channel > link')?.textContent || url;
             const iconUrl = `https://www.google.com/s2/favicons?sz=32&domain_url=${new URL(siteLink).hostname}`;
             
-            let detectedCategory = 'GENERAL';
-            const titleUpper = feedTitle.toUpperCase();
-            const urlUpper = feedUrl.toUpperCase();
-            if (titleUpper.includes('SPORT') || urlUpper.includes('SPORT')) detectedCategory = 'SPORTS';
-            else if (titleUpper.includes('TECH') || urlUpper.includes('VERGE') || urlUpper.includes('WIRED')) detectedCategory = 'TECH';
-            else if (titleUpper.includes('NEWS') || urlUpper.includes('BBC') || urlUpper.includes('REUTERS')) detectedCategory = 'NEWS';
-            else if (titleUpper.includes('GAME') || urlUpper.includes('IGN') || urlUpper.includes('KOTAKU')) detectedCategory = 'GAMING';
-            else if (titleUpper.includes('FINANCE') || urlUpper.includes('BLOOMBERG') || urlUpper.includes('MONEY')) detectedCategory = 'FINANCE';
-            else if (titleUpper.includes('SCIENCE') || urlUpper.includes('NASA') || urlUpper.includes('NATURE')) detectedCategory = 'SCIENCE';
-            else if (titleUpper.includes('CULTURE') || urlUpper.includes('MUSIC') || urlUpper.includes('FILM')) detectedCategory = 'CULTURE';
-
-            setFeeds(prev => [...prev, { id: Date.now(), title: feedTitle, url: feedUrl, iconUrl, folderId: null, sourceType: type, category: detectedCategory }]);
+            const newFeed: Feed = { id: Date.now(), title: feedTitle, url: feedUrl, iconUrl, folderId: null, sourceType: type, category: 'GENERAL' };
+            setFeeds(prev => [...prev, newFeed]);
+            setPrefetchedArticles([]); // Invalidate pre-fetch on new source
         } catch (error) { throw error; }
     };
 
@@ -127,21 +161,19 @@ const App: React.FC = () => {
         if (selection.type === 'utility_hub') return 'SECTOR UTILITIES';
         if (selection.category) return `${selection.category} NODE`;
         if (selection.type === 'feed') return feeds.find(f => f.id === selection.id)?.title || 'Feed';
-        return 'PERSONAL SIGS';
+        return 'INCOMING INTEL';
     }, [selection, feeds]);
 
     if (selection.type === 'splash') {
-        return <SplashScreen onEnterFeeds={handleReturnToFeeds} onEnterArcade={handleEnterArcade} />;
+        return <SplashScreen onEnterFeeds={handleReturnToFeeds} onEnterArcade={handleEnterArcade} isDecoding={isDecoding} />;
     }
 
     const renderCurrentPage = () => {
         switch (selection.type) {
             case 'utility_hub':
-                return <UtilityHubPage onSelect={(id) => setSelection({ type: id as any, id: null })} onBackToHub={handleReturnToFeeds} />;
+                return <UtilityHubPage onSelect={(id) => updateSelection({ type: id as any, id: null })} onBackToHub={handleReturnToFeeds} />;
             case 'game_hub':
-                return <GameHubPage sudokuStats={{totalWins: 0}} solitaireStats={{gamesWon: 0, currentStreak: 0}} onReturnToFeeds={handleReturnToFeeds} uptime={uptime} setUptime={setUptime} credits={credits} setCredits={setCredits} showShop={false} setShowShop={() => {}} onSelect={(type: any) => setSelection({ type, id: null })} />;
-            
-            // Simulation Pages (Arcade)
+                return <GameHubPage sudokuStats={{totalWins: 0}} solitaireStats={{gamesWon: 0, currentStreak: 0}} onReturnToFeeds={handleReturnToFeeds} uptime={uptime} setUptime={setUptime} credits={credits} setCredits={setCredits} showShop={false} setShowShop={() => {}} onSelect={(type: any) => updateSelection({ type, id: null })} />;
             case 'sudoku': return <SudokuPage stats={{totalWins: 0}} onGameWin={() => {}} onGameLoss={() => {}} onBackToHub={handleEnterArcade} onReturnToFeeds={handleReturnToFeeds} />;
             case 'solitaire': return <SolitairePage stats={{gamesWon: 0, currentStreak: 0}} onGameWin={() => {}} onGameStart={() => {}} settings={{drawThree: true}} onUpdateSettings={() => {}} onBackToHub={handleEnterArcade} onReturnToFeeds={handleReturnToFeeds} />;
             case 'minesweeper': return <MinesweeperPage onBackToHub={handleEnterArcade} onReturnToFeeds={handleReturnToFeeds} />;
@@ -151,27 +183,23 @@ const App: React.FC = () => {
             case 'void_runner': return <VoidRunnerPage onBackToHub={handleEnterArcade} onReturnToFeeds={handleReturnToFeeds} />;
             case 'synapse_link': return <SynapseLinkPage onBackToHub={handleEnterArcade} />;
             case 'grid_reset': return <GridResetPage onBackToHub={handleEnterArcade} />;
-
-            // Utility Pages (Media)
             case 'signal_streamer': return <SignalStreamerPage onBackToHub={handleEnterUtils} />;
             case 'transcoder': return <TranscoderPage onBackToHub={handleEnterUtils} />;
             case 'deep_sync': return <DeepSyncPage onBackToHub={handleEnterUtils} />;
-
-            // Default fallback is Feeds/MainContent
             default:
                 return (
                     <MainContent
                         key={selection.type + String(selection.id) + (selection.category || '')}
                         animationClass="animate-fade-in"
                         pageTitle={pageTitle}
-                        onSearch={(query: string) => setSelection({ type: 'search', id: null, query })}
+                        onSearch={(query: string) => updateSelection({ type: 'search', id: null, query })}
                         feedsToDisplay={
                             selection.category ? feeds.filter(f => f.category === selection.category) :
                             selection.type === 'folder' ? feeds.filter(f => f.folderId === selection.id) : 
                             (selection.type === 'feed' ? feeds.filter(f => f.id === selection.id) : feeds)
                         }
                         selection={selection}
-                        onSelectCategory={(cat) => setSelection(cat ? { type: 'all', id: null, category: cat } : { type: 'all', id: null })}
+                        onSelectCategory={(cat) => updateSelection(cat ? { type: 'all', id: null, category: cat } : { type: 'all', id: null })}
                         readArticleIds={readArticleIds}
                         bookmarkedArticleIds={bookmarkedArticleIds}
                         articleTags={new Map()}
@@ -186,7 +214,7 @@ const App: React.FC = () => {
                         onSetFeeds={setFeeds}
                         onSetFolders={setFolders}
                         refreshKey={lastRefresh}
-                        onRefresh={() => setLastRefresh(Date.now())}
+                        onRefresh={() => { setPrefetchedArticles([]); setLastRefresh(Date.now()); }}
                         widgetSettings={widgetSettings}
                         articleView={articleView}
                         theme={theme}
@@ -196,6 +224,7 @@ const App: React.FC = () => {
                         onAddSource={handleAddSource}
                         onOpenSidebar={() => setIsSettingsModalOpen(true)}
                         uptime={uptime}
+                        initialArticles={prefetchedArticles}
                     />
                 );
         }
@@ -203,19 +232,16 @@ const App: React.FC = () => {
 
     return (
         <div className="h-screen w-full font-sans text-sm relative flex flex-col overflow-hidden bg-void-950">
-            {/* Main Application Frame with Top Safe Inset */}
             <div className="flex-1 flex flex-col min-w-0 relative pb-20 md:pb-0 h-full overflow-hidden">
                 {renderCurrentPage()}
             </div>
-
-            <BottomNavBar selection={selection} onSelect={setSelection} onOpenSettings={() => setIsSettingsModalOpen(true)} />
-
+            <BottomNavBar selection={selection} onSelect={updateSelection} onOpenSettings={() => setIsSettingsModalOpen(true)} />
             <SettingsModal 
                 isOpen={isSettingsModalOpen} 
                 onClose={() => setIsSettingsModalOpen(false)} 
                 settings={{ feeds, folders, theme, articleView, widgets: widgetSettings }} 
                 onUpdateSettings={(s) => { if(s.theme) setTheme(s.theme); if(s.articleView) setArticleView(s.articleView); }} 
-                onSelect={(s) => { setSelection(s); setIsSettingsModalOpen(false); }}
+                onSelect={(s) => { updateSelection(s); setIsSettingsModalOpen(false); }}
                 onAddFolder={(n) => setFolders([...folders, {id: Date.now(), name: n}])}
                 onRenameFolder={(id, n) => setFolders(folders.map(x => x.id === id ? {...x, name: n} : x))}
                 onDeleteFolder={(id) => setFolders(folders.filter(x => x.id !== id))}

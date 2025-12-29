@@ -41,6 +41,7 @@ interface MainContentProps {
     animationClass: string;
     pageTitle: string;
     uptime: number;
+    initialArticles?: Article[];
 }
 
 const ARTICLES_PER_PAGE = 25;
@@ -69,9 +70,9 @@ const EnergyScope: React.FC<{ value: number }> = ({ value }) => (
 );
 
 const MainContent: React.FC<MainContentProps> = (props) => {
-    const { selection, onSelectCategory, readArticleIds, bookmarkedArticleIds, onMarkAsRead, onPurgeBuffer, onSearch, onOpenReader, refreshKey, onOpenSidebar, theme, onToggleTheme, animationClass, pageTitle, uptime, allFeeds, onSetFeeds, onSetFolders } = props;
+    const { selection, onSelectCategory, readArticleIds, bookmarkedArticleIds, onMarkAsRead, onPurgeBuffer, onSearch, onOpenReader, refreshKey, onOpenSidebar, theme, onToggleTheme, animationClass, pageTitle, uptime, allFeeds, onSetFeeds, onSetFolders, initialArticles } = props;
     
-    const [articles, setArticles] = useState<Article[]>([]);
+    const [articles, setArticles] = useState<Article[]>(initialArticles || []);
     const [loading, setLoading] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [visibleCount, setVisibleCount] = useState(ARTICLES_PER_PAGE);
@@ -96,6 +97,10 @@ const MainContent: React.FC<MainContentProps> = (props) => {
     }, [selection.category, allFeeds]);
 
     useEffect(() => {
+        if (initialArticles && initialArticles.length > 0 && !selection.category && articles.length === initialArticles.length) {
+            return;
+        }
+
         const fetchRssFeeds = async (targetFeeds: Feed[]) => {
             if (targetFeeds.length === 0) { setArticles([]); return; };
             setLoading(true);
@@ -116,7 +121,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
             } finally { setLoading(false); }
         };
         fetchRssFeeds(activeFeeds);
-    }, [activeFeeds, refreshKey]);
+    }, [activeFeeds, refreshKey, initialArticles]);
 
     const filteredArticles = useMemo(() => {
         let result = articles;
@@ -168,8 +173,8 @@ const MainContent: React.FC<MainContentProps> = (props) => {
         <main className={`flex-grow overflow-y-auto scrollbar-hide ${animationClass} bg-void-950 pb-40 scroll-smooth`}>
             <Header onSearchSubmit={(e: any) => { e.preventDefault(); onSearch(searchQuery); }} searchQuery={searchQuery} setSearchQuery={setSearchQuery} onOpenSidebar={onOpenSidebar} theme={theme} onToggleTheme={onToggleTheme} uptime={uptime} cacheCount={cacheCount} />
             
-            <nav className="fixed top-[calc(4rem+env(safe-area-inset-top))] md:top-[calc(6rem+env(safe-area-inset-top))] left-0 right-0 z-20 bg-void-900/80 backdrop-blur-md border-b border-pulse-500/10 flex items-center h-12 md:h-14 overflow-x-auto scrollbar-hide px-4 md:px-12 gap-2">
-                <button onClick={() => onSelectCategory(null)} className={`shrink-0 px-4 py-1.5 rounded-full text-[9px] font-black uppercase italic transition-all border ${!selection.category ? 'bg-pulse-500 border-pulse-400 text-white shadow-lg' : 'bg-void-950 border-zinc-800 text-zinc-500 hover:text-terminal'}`}>YOUR_SIGS</button>
+            <nav className="fixed top-[env(safe-area-inset-top)] mt-16 md:mt-24 left-0 right-0 z-20 bg-void-900/80 backdrop-blur-md border-b border-pulse-500/10 flex items-center h-12 md:h-14 overflow-x-auto scrollbar-hide px-4 md:px-12 gap-2">
+                <button onClick={() => onSelectCategory(null)} className={`shrink-0 px-4 py-1.5 rounded-full text-[9px] font-black uppercase italic transition-all border ${!selection.category ? 'bg-pulse-500 border-pulse-400 text-white shadow-lg' : 'bg-void-950 border-zinc-800 text-zinc-500 hover:text-terminal'}`}>INCOMING INTEL</button>
                 {CATEGORY_MAP.map(cat => (
                     <button key={cat.id} onClick={() => handleCategoryClick(cat.id)} className={`shrink-0 flex items-center gap-2 px-4 py-1.5 rounded-full text-[9px] font-black uppercase italic transition-all border ${selection.category === cat.id ? 'bg-pulse-500 border-pulse-400 text-white shadow-lg' : 'bg-void-950 border-zinc-800 text-zinc-500 hover:text-terminal'}`}>{cat.icon}<span>{cat.id}</span></button>
                 ))}
@@ -182,7 +187,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                         <p className="text-[10px] md:text-xs font-black text-zinc-600 uppercase tracking-[0.4em] mt-2 font-mono">{unreadCount} SIGS DETECTED</p>
                     </div>
                     {unreadCount > 5 && (
-                        <button onClick={() => onPurgeBuffer(filteredArticles.map(a => a.id))} className="px-6 py-2.5 bg-void-900 border border-pulse-500 text-pulse-500 hover:bg-pulse-500 hover:text-white font-black uppercase italic text-xs transition-all shadow-[4px_4px_0px_#e11d48]">Clear Frequency</button>
+                        <button onClick={() => onPurgeBuffer(filteredArticles.map(a => a.id))} className="px-6 py-2.5 bg-void-900 border border-pulse-500 text-pulse-500 hover:bg-pulse-500 hover:text-white font-black uppercase italic text-xs transition-all shadow-[4px_4px_0_#e11d48]">Clear Frequency</button>
                     )}
                 </div>
                 
@@ -210,7 +215,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
 
                     {articlesToDisplay.length > visibleArticlesToDisplay.length && (
                         <div className="mt-16 text-center pb-24">
-                            <button onClick={() => setVisibleCount(c => c + LOAD_MORE_BATCH)} className="bg-void-950 border-2 border-pulse-500 text-pulse-500 hover:bg-pulse-500 hover:text-white font-black uppercase italic py-4 px-12 transition-all shadow-[6px_6px_0px_#e11d48] text-sm md:text-base">Decode {LOAD_MORE_BATCH} More</button>
+                            <button onClick={() => setVisibleCount(c => c + LOAD_MORE_BATCH)} className="bg-void-950 border-2 border-pulse-500 text-pulse-500 hover:bg-pulse-500 hover:text-white font-black uppercase italic py-4 px-12 transition-all shadow-[6px_6px_0_#e11d48] text-sm md:text-base">Decode {LOAD_MORE_BATCH} More</button>
                         </div>
                     )}
                 </div>

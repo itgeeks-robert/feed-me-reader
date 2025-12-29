@@ -33,16 +33,16 @@ const ShopItem: React.FC<{ name: string, cost: number, icon: React.ReactNode, de
 
 const VHSCard: React.FC<{ game: GameInfo; onPlay: () => void }> = ({ game, onPlay }) => {
     return (
-        <div onClick={onPlay} className="group relative bg-void-900 border-2 border-zinc-800 hover:border-pulse-500 transition-all duration-300 cursor-pointer h-[380px] shadow-[10px_10px_0px_black] hover:translate-x-[-4px] hover:translate-y-[-4px]">
+        <div className="group relative bg-void-900 border-2 border-zinc-800 hover:border-pulse-500/40 transition-all duration-300 h-[420px] shadow-[10px_10px_0px_black] hover:translate-x-[-2px] hover:translate-y-[-2px] flex flex-col">
             <div className="h-40 w-full bg-void-950 flex items-center justify-center relative overflow-hidden border-b-2 border-zinc-800">
                 <div className="absolute top-0 left-0 bg-pulse-500 text-white px-3 py-1 text-[8px] font-black uppercase font-mono tracking-widest">VOID-SIM</div>
-                <div className="opacity-20 group-hover:opacity-100 group-hover:scale-125 transition-all duration-700 text-pulse-500">
+                <div className="opacity-20 group-hover:opacity-40 transition-all duration-700 text-pulse-500 scale-110">
                     {React.cloneElement(game.icon, { className: "w-24 h-24" })}
                 </div>
-                <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-pulse-500 via-neon-400 to-pulse-500 animate-pulse"></div>
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-pulse-500/30"></div>
             </div>
 
-            <div className="p-6 flex flex-col justify-between h-[calc(380px-10rem)]">
+            <div className="p-6 flex flex-col flex-grow justify-between bg-void-950/20">
                 <div>
                     <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter mb-1 group-hover:text-pulse-500 transition-colors">{game.title}</h3>
                     
@@ -50,13 +50,29 @@ const VHSCard: React.FC<{ game: GameInfo; onPlay: () => void }> = ({ game, onPla
                         <span className="text-[8px] font-black text-neon-400 uppercase tracking-widest font-mono">Protocol: {game.protocol}</span>
                     </div>
 
-                    <p className="text-[9px] text-zinc-500 uppercase font-bold tracking-widest font-mono leading-relaxed">{game.description}</p>
+                    <p className="text-[9px] text-zinc-500 uppercase font-bold tracking-widest font-mono leading-relaxed line-clamp-3">{game.description}</p>
                 </div>
-                <div className="flex justify-between items-center mt-4">
-                     <div className="px-4 py-1 border border-pulse-500/40 text-pulse-500 text-[9px] font-black uppercase tracking-tighter group-hover:bg-pulse-500 group-hover:text-white transition-all">Enter Simulation</div>
-                     {game.stats && <span className="text-[9px] font-bold text-zinc-700 uppercase font-mono">{game.stats}</span>}
+
+                <div className="flex flex-col items-center gap-4 mt-6">
+                     <button 
+                        onClick={(e) => { e.stopPropagation(); onPlay(); }}
+                        className="w-full py-4 bg-white text-black font-black uppercase italic text-xs tracking-widest rounded-xl shadow-[4px_4px_0px_#e11d48] transition-all hover:bg-pulse-500 hover:text-white active:scale-95 active:shadow-[0_0_25px_#e11d48] flex items-center justify-center gap-2 group/btn"
+                     >
+                        <SparklesIcon className="w-4 h-4 animate-pulse group-active/btn:scale-125 transition-transform" />
+                        <span>Enter Simulation</span>
+                     </button>
+                     {game.stats && (
+                        <div className="flex items-center gap-2">
+                             <div className="w-1 h-1 rounded-full bg-zinc-700" />
+                             <span className="text-[8px] font-bold text-zinc-700 uppercase font-mono tracking-[0.2em]">{game.stats}</span>
+                             <div className="w-1 h-1 rounded-full bg-zinc-700" />
+                        </div>
+                     )}
                 </div>
             </div>
+            
+            {/* Gloss Overlay */}
+            <div className="absolute inset-0 pointer-events-none opacity-5 bg-gradient-to-tr from-transparent via-white to-transparent" />
         </div>
     );
 };
@@ -139,6 +155,19 @@ const GameHubPage: React.FC<any> = (props) => {
 
     return (
         <main className="h-full min-h-0 flex-grow overflow-y-auto bg-void-950 p-8 md:p-16 pt-[calc(2rem+env(safe-area-inset-top))] pb-[calc(10rem+env(safe-area-inset-bottom))] animate-fade-in relative scrollbar-hide">
+            <style>{`
+                @keyframes subtle-glow {
+                    0%, 100% { filter: drop-shadow(0 0 2px rgba(225,29,72,0.2)); }
+                    50% { filter: drop-shadow(0 0 8px rgba(225,29,72,0.4)); }
+                }
+                .active-glow:active {
+                    animation: none;
+                    background-color: #e11d48 !important;
+                    box-shadow: 0 0 30px #e11d48 !important;
+                    color: white !important;
+                }
+            `}</style>
+            
             <div className="max-w-7xl mx-auto">
                 <header className="mb-20 flex flex-col lg:flex-row lg:items-center justify-between gap-12 border-b-2 border-pulse-500/20 pb-12">
                     <div className="flex items-center gap-8">
@@ -153,7 +182,7 @@ const GameHubPage: React.FC<any> = (props) => {
                     <div className="flex items-center gap-6">
                         <div 
                             onClick={() => setShowShop(true)}
-                            className="group flex items-center gap-4 bg-void-900 px-6 py-4 border-2 border-pulse-500/30 hover:border-pulse-500 transition-all cursor-pointer shadow-[10px_10px_0px_black] active:scale-95"
+                            className="group flex items-center gap-4 bg-void-900 px-6 py-4 border-2 border-pulse-500/30 hover:border-pulse-500 transition-all cursor-pointer shadow-[10px_10px_0px_black] active:scale-95 active:shadow-pulse-500/20"
                         >
                             <div className="p-2 bg-pulse-500/10 rounded-lg group-hover:scale-110 transition-transform">
                                 <SparklesIcon className="w-6 h-6 text-pulse-500 animate-pulse" />
@@ -163,7 +192,7 @@ const GameHubPage: React.FC<any> = (props) => {
                                 <span className="text-2xl font-black italic text-white leading-none">{credits.toLocaleString()} <span className="text-xs text-pulse-500">SC</span></span>
                             </div>
                         </div>
-                        <button onClick={props.onReturnToFeeds} className="px-8 py-3 bg-white text-black text-xs font-black uppercase italic tracking-widest hover:bg-pulse-500 hover:text-white transition-all shadow-[4px_4px_0px_#e11d48]">Abort Session</button>
+                        <button onClick={props.onReturnToFeeds} className="px-8 py-3 bg-white text-black text-xs font-black uppercase italic tracking-widest hover:bg-pulse-500 hover:text-white transition-all shadow-[4px_4px_0px_#e11d48] active:scale-95 active:bg-pulse-500">Abort Session</button>
                     </div>
                 </header>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-12">
@@ -175,7 +204,7 @@ const GameHubPage: React.FC<any> = (props) => {
                 <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[100] flex items-center justify-center p-6 animate-fade-in" onClick={() => setShowShop(false)}>
                     <div className="max-w-2xl w-full bg-void-900 border-4 border-pulse-500 rounded-[3rem] p-8 md:p-12 shadow-[0_0_120px_rgba(225,29,72,0.4)] overflow-hidden relative" onClick={e => e.stopPropagation()}>
                          <div className="absolute top-6 right-6">
-                            <button onClick={() => setShowShop(false)} className="group p-5 bg-void-950 border-2 border-pulse-500/40 rounded-full text-pulse-500 hover:bg-pulse-500 hover:text-white transition-all shadow-lg active:scale-90">
+                            <button onClick={() => setShowShop(false)} className="group p-5 bg-void-950 border-2 border-pulse-500/40 rounded-full text-pulse-500 hover:bg-pulse-500 hover:text-white transition-all shadow-lg active:scale-90 active:bg-pulse-500">
                                 <XIcon className="w-8 h-8 group-hover:rotate-90 transition-transform" />
                             </button>
                          </div>
@@ -217,7 +246,7 @@ const GameHubPage: React.FC<any> = (props) => {
                                 <span className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.3em] mb-1">Operator Balance</span>
                                 <span className="text-4xl font-black italic text-pulse-500 drop-shadow-[0_0_15px_rgba(225,29,72,0.6)]">{credits.toLocaleString()} <span className="text-sm">SC</span></span>
                             </div>
-                            <button onClick={() => setShowShop(false)} className="w-full sm:w-auto px-12 py-5 bg-pulse-600 border-2 border-pulse-400 text-white font-black uppercase italic tracking-widest text-sm hover:bg-white hover:text-black transition-all shadow-[8px_8px_0px_#111]">Confirm Assets</button>
+                            <button onClick={() => setShowShop(false)} className="w-full sm:w-auto px-12 py-5 bg-pulse-600 border-2 border-pulse-400 text-white font-black uppercase italic tracking-widest text-sm hover:bg-white hover:text-black transition-all shadow-[8px_8px_0px_#111] active:scale-95">Confirm Assets</button>
                          </div>
                     </div>
                 </div>

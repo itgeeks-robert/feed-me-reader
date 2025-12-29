@@ -95,7 +95,7 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                 <h3 className="px-3 mb-2 text-[9px] font-black text-zinc-600 uppercase tracking-[0.4em]">Core Interface</h3>
                 <NavItem sel={{type: 'game_hub', id: null}} label="The Arcade" icon={<ControllerIcon className="w-5 h-5 flex-shrink-0" />} />
                 <NavItem sel={{type: 'utility_hub', id: null}} label="Tactical Hub" icon={<ShieldCheckIcon className="w-5 h-5 flex-shrink-0" />} />
-                <NavItem sel={{type: 'all', id: null}} label="Frequency" icon={<ListIcon className="w-5 h-5 flex-shrink-0" />} />
+                <NavItem sel={{type: 'all', id: null}} label="Incoming Intel" icon={<ListIcon className="w-5 h-5 flex-shrink-0" />} />
                 <NavItem sel={{type: 'bookmarks', id: 'bookmarks'}} label="Saved Signals" icon={<BookmarkIcon className="w-5 h-5 flex-shrink-0" />} />
                 
                 <div className="pt-6 pb-2 border-t border-zinc-900/50 mt-4">
