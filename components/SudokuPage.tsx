@@ -30,6 +30,17 @@ const HeartIcon: React.FC<{ filled: boolean; animated?: boolean }> = ({ filled, 
     </svg>
 );
 
+const LogicGraphic: React.FC = () => (
+    <div className="relative w-48 h-48 mx-auto flex items-center justify-center">
+        <div className="absolute inset-0 bg-neon-400/10 rounded-full animate-ping" />
+        <div className="absolute inset-4 bg-neon-400/20 rounded-full animate-pulse" />
+        <div className="relative z-10 p-8 bg-zinc-900 rounded-[2rem] border-4 border-neon-400 shadow-[0_0_30px_rgba(34,211,238,0.4)]">
+            <CpuChipIcon className="w-16 h-16 text-neon-400" />
+        </div>
+        <div className="absolute -top-4 -left-4 text-[8px] font-mono text-neon-400 uppercase tracking-widest animate-pulse font-black italic">ANALYSIS_ACTIVE</div>
+    </div>
+);
+
 interface SudokuPageProps {
   stats: SudokuStats;
   onGameWin: (difficulty: Difficulty, time: number, isDaily: boolean) => void;
@@ -51,12 +62,22 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
     const [mistakes, setMistakes] = useState(0);
     const [time, setTime] = useState(0);
     const [initials, setInitials] = useState("");
+    const [showScores, setShowScores] = useState(false);
     const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     const [completedRows, setCompletedRows] = useState<Set<number>>(new Set());
     const [completedCols, setCompletedCols] = useState<Set<number>>(new Set());
     const [completedBlocks, setCompletedBlocks] = useState<Set<number>>(new Set());
     const [lastCompleted, setLastCompleted] = useState<{type: 'row' | 'col' | 'block', index: number} | null>(null);
+
+    useEffect(() => {
+        if (view === 'IDLE') {
+            const interval = setInterval(() => {
+                setShowScores(prev => !prev);
+            }, 5000);
+            return () => clearInterval(interval);
+        }
+    }, [view]);
 
     const stringToGrid = (puzzleString: string): Grid =>
         Array.from({ length: 9 }, (_, r) =>
@@ -257,31 +278,48 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
 
         return (
             <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-950 p-6 overflow-y-auto scrollbar-hide">
+                <style>{`
+                    @keyframes glitch-in {
+                        0% { opacity: 0; transform: scale(0.9) skew(0deg); }
+                        10% { opacity: 0.8; transform: scale(1.05) skew(5deg); filter: hue-rotate(90deg); }
+                        20% { opacity: 1; transform: scale(1) skew(0deg); filter: hue-rotate(0deg); }
+                    }
+                    .animate-glitch-in { animation: glitch-in 0.4s ease-out forwards; }
+                `}</style>
+                
                 <div className="w-full max-w-sm text-center bg-zinc-900 p-8 md:p-10 rounded-[3rem] border-4 border-neon-400 shadow-[0_0_50px_rgba(34,211,238,0.1)] mb-6">
-                    <div className="p-3 bg-neon-400/10 border border-neon-400/30 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                        <CpuChipIcon className="w-10 h-10 text-neon-400" />
-                    </div>
-                    <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter mb-4">LOGIC GRID</h2>
+                    <header className="mb-8">
+                        <span className="text-[10px] font-black uppercase text-neon-400 tracking-[0.3em] italic block mb-1">Logic Analysis</span>
+                        <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter leading-none">PATTERN ZERO</h2>
+                    </header>
                     
-                    <div className="flex gap-2 mb-6">
+                    <div className="flex gap-1.5 mb-8">
                         {(['Easy', 'Medium', 'Hard'] as Difficulty[]).map(d => (
-                            <button key={d} onClick={() => setDifficulty(d)} className={`flex-1 py-2.5 rounded-xl font-black uppercase italic text-[10px] transition-all border ${difficulty === d ? 'bg-neon-500 border-neon-400 text-white shadow-lg' : 'bg-zinc-800 border-white/5 text-zinc-500'}`}>{d}</button>
+                            <button key={d} onClick={() => setDifficulty(d)} className={`flex-1 py-2 rounded-xl font-black uppercase italic text-[9px] transition-all border ${difficulty === d ? 'bg-neon-500 border-neon-400 text-white shadow-lg' : 'bg-zinc-800 border-white/5 text-zinc-500'}`}>{d}</button>
                         ))}
                     </div>
 
-                    <HighScoreTable entries={topScores} title={difficulty} />
+                    <div className="h-[240px] flex items-center justify-center mb-8 overflow-hidden relative">
+                        <div key={showScores ? 'scores' : 'graphic'} className="w-full animate-glitch-in">
+                            {showScores ? (
+                                <HighScoreTable entries={topScores} title={difficulty} />
+                            ) : (
+                                <LogicGraphic />
+                            )}
+                        </div>
+                    </div>
 
-                    <div className="mt-8 space-y-3">
+                    <div className="space-y-3">
                         <button 
                             onClick={() => startNewGame('Hard', true)} 
                             disabled={hasDoneDaily}
-                            className={`w-full py-4 rounded-2xl flex items-center justify-center gap-3 font-black uppercase italic transition-all shadow-xl border-2 ${hasDoneDaily ? 'bg-zinc-800 border-zinc-700 text-zinc-600 grayscale' : 'bg-pulse-600 border-pulse-400 text-white hover:scale-[1.02]'}`}
+                            className={`w-full py-4 rounded-2xl flex items-center justify-center gap-3 font-black uppercase italic transition-all shadow-xl border-2 ${hasDoneDaily ? 'bg-zinc-800 border-zinc-700 text-zinc-600 grayscale' : 'bg-pulse-600 border-pulse-400 text-white hover:scale-[1.02] active:scale-95'}`}
                         >
                             <SparklesIcon className="w-5 h-5" />
                             <span>{hasDoneDaily ? 'Sector Cleared' : 'Daily Uplink'}</span>
                         </button>
-                        <button onClick={() => startNewGame(difficulty)} className="w-full py-4 bg-white text-black font-black uppercase italic rounded-2xl hover:scale-[1.02] transition-all shadow-xl">Initiate Sync</button>
-                        <button onClick={onBackToHub} className="text-zinc-500 font-bold uppercase tracking-widest text-xs hover:text-white transition-colors pt-2 block w-full italic">Abort Link</button>
+                        <button onClick={() => startNewGame(difficulty)} className="w-full py-4 bg-white text-black font-black uppercase italic rounded-2xl hover:scale-[1.02] transition-all shadow-xl active:scale-95">Initiate Sync</button>
+                        <button onClick={onBackToHub} className="text-zinc-500 font-bold uppercase tracking-widest text-xs hover:text-white transition-colors pt-2 block w-full italic tracking-[0.2em]">Abort Link</button>
                     </div>
                 </div>
             </div>

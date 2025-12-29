@@ -79,7 +79,7 @@ const SynapseLinkPage: React.FC<{ onBackToHub: () => void; onComplete?: () => vo
         if (gameState === 'idle') {
             const interval = setInterval(() => {
                 setShowScores(prev => !prev);
-            }, 7000);
+            }, 5000); // Updated: Cycles every 5 seconds for more dynamic UI
             return () => clearInterval(interval);
         }
     }, [gameState]);

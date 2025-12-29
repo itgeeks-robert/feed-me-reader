@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { ArrowPathIcon, XIcon, VoidIcon } from './icons';
+import { ArrowPathIcon, XIcon, VoidIcon, RadioIcon } from './icons';
 import type { SolitaireStats, SolitaireSettings } from '../src/App';
 import { saveHighScore, getHighScores } from '../services/highScoresService';
 import HighScoreTable from './HighScoreTable';
@@ -65,6 +64,17 @@ const CardFace = ({ card }: { card: Card }) => {
     );
 };
 
+const AlignmentGraphic: React.FC = () => (
+    <div className="relative w-48 h-48 mx-auto flex items-center justify-center">
+        <div className="absolute inset-0 bg-emerald-500/10 rounded-full animate-ping" />
+        <div className="absolute inset-4 bg-emerald-500/20 rounded-full animate-pulse" />
+        <div className="relative z-10 p-8 bg-zinc-900 rounded-[2rem] border-4 border-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.4)]">
+            <RadioIcon className="w-16 h-16 text-emerald-500" />
+        </div>
+        <div className="absolute -top-4 -left-4 text-[8px] font-mono text-emerald-500 uppercase tracking-widest animate-pulse font-black italic">PROTOCOL_STABLE</div>
+    </div>
+);
+
 const SolitairePage: React.FC<SolitairePageProps> = (props) => {
   const { onBackToHub, stats, onGameWin, onGameStart } = props;
   const [gamePhase, setGamePhase] = useState<GamePhase>('intro');
@@ -72,8 +82,18 @@ const SolitairePage: React.FC<SolitairePageProps> = (props) => {
   const [history, setHistory] = useState<GameState[]>([]);
   const [time, setTime] = useState(0);
   const [initials, setInitials] = useState("");
+  const [showScores, setShowScores] = useState(false);
   const timerRef = useRef<number | null>(null);
   const [selectedInfo, setSelectedInfo] = useState<{ type: string; pileIndex: number; cardIndex: number; } | null>(null);
+
+  useEffect(() => {
+    if (gamePhase === 'intro') {
+        const interval = setInterval(() => {
+            setShowScores(prev => !prev);
+        }, 5000);
+        return () => clearInterval(interval);
+    }
+  }, [gamePhase]);
 
   const startTimer = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
@@ -290,7 +310,7 @@ const SolitairePage: React.FC<SolitairePageProps> = (props) => {
             .card-animate { transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         `}</style>
         {gamePhase === 'intro' ? 
-            <IntroScreen onStart={startNewGame} onBackToHub={onBackToHub} stats={stats} /> : 
+            <IntroScreen onStart={startNewGame} onBackToHub={onBackToHub} stats={stats} showScores={showScores} /> : 
             <div className="w-full h-full alley-bg p-4 flex flex-col items-center">
                  <div className="w-full max-w-5xl flex justify-between items-center mb-8 px-2 game-content">
                     <div className="flex gap-4">
@@ -410,18 +430,34 @@ const SolitairePage: React.FC<SolitairePageProps> = (props) => {
   );
 };
 
-const IntroScreen = ({ onStart, onBackToHub, stats }: any) => {
+const IntroScreen = ({ onStart, onBackToHub, stats, showScores }: any) => {
     const topScores = getHighScores('solitaire');
     return (
         <div className="w-full h-full flex items-center justify-center bg-zinc-950 p-6 overflow-y-auto scrollbar-hide">
+             <style>{`
+                @keyframes glitch-in {
+                    0% { opacity: 0; transform: scale(0.9) skew(0deg); }
+                    10% { opacity: 0.8; transform: scale(1.05) skew(5deg); filter: hue-rotate(90deg); }
+                    20% { opacity: 1; transform: scale(1) skew(0deg); filter: hue-rotate(0deg); }
+                }
+                .animate-glitch-in { animation: glitch-in 0.4s ease-out forwards; }
+            `}</style>
+            
             <div className="w-full max-w-sm text-center bg-zinc-900 p-10 rounded-[3rem] border-4 border-emerald-500 shadow-[0_0_60px_rgba(16,185,129,0.2)]">
-                <div className="mb-6 mx-auto w-20 h-20 bg-emerald-500/10 rounded-full flex items-center justify-center border border-emerald-500/30">
-                    <VoidIcon className="w-12 h-12 text-emerald-500 animate-pulse" />
+                <header className="mb-8">
+                    <span className="text-[10px] font-black uppercase text-emerald-500 tracking-[0.3em] italic block mb-1">Sorting Logic</span>
+                    <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter leading-none">SIGNAL ALIGNMENT</h2>
+                </header>
+
+                <div className="h-[240px] flex items-center justify-center mb-8 overflow-hidden relative">
+                    <div key={showScores ? 'scores' : 'graphic'} className="w-full animate-glitch-in">
+                        {showScores ? (
+                            <HighScoreTable entries={topScores} title="ALIGNMENT" />
+                        ) : (
+                            <AlignmentGraphic />
+                        )}
+                    </div>
                 </div>
-                <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter mb-2 leading-none">Void Patience</h2>
-                <p className="text-zinc-500 font-bold uppercase tracking-widest text-[10px] mb-8 italic">Signal Alignment Protocol</p>
-                
-                <HighScoreTable entries={topScores} title="ALIGNMENT" />
 
                 <div className="grid grid-cols-2 gap-4 mt-8 mb-8">
                     <div className="bg-black/60 p-4 rounded-2xl border border-white/10 shadow-inner">

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { XIcon, ArrowPathIcon, VoidIcon, SparklesIcon } from './icons';
+import { XIcon, ArrowPathIcon, VoidIcon, SparklesIcon, WalkieTalkieIcon } from './icons';
 import { saveHighScore, getHighScores, HighScoreEntry } from '../services/highScoresService';
 import HighScoreTable from './HighScoreTable';
 
@@ -17,19 +17,40 @@ interface CipherCoreProps {
     setUptime?: (v: number) => void;
 }
 
+const CipherGraphic: React.FC = () => (
+    <div className="relative w-48 h-48 mx-auto flex items-center justify-center">
+        <div className="absolute inset-0 bg-pulse-500/10 rounded-full animate-ping" />
+        <div className="absolute inset-4 bg-pulse-500/20 rounded-full animate-pulse" />
+        <div className="relative z-10 p-8 bg-zinc-900 rounded-[2rem] border-4 border-pulse-500 shadow-[0_0_30px_rgba(225,29,72,0.4)]">
+            <WalkieTalkieIcon className="w-16 h-16 text-pulse-500" />
+        </div>
+        <div className="absolute -top-4 -left-4 text-[8px] font-mono text-pulse-500 uppercase tracking-widest animate-pulse font-black italic">DECRYPT_SEQUENCE_v4</div>
+    </div>
+);
+
 const CipherCorePage: React.FC<CipherCoreProps> = ({ onBackToHub, uptime = 0, setUptime }) => {
     const [solution, setSolution] = useState("");
     const [guesses, setGuesses] = useState<string[]>([]);
     const [currentGuess, setCurrentGuess] = useState("");
-    const [gameState, setGameState] = useState<'playing' | 'won' | 'lost'>('playing');
+    const [gameState, setGameState] = useState<'idle' | 'playing' | 'won' | 'lost'>('idle');
     const [isPosted, setIsPosted] = useState(false);
     const [initials, setInitials] = useState("");
     const [shakeRow, setShakeRow] = useState<number | null>(null);
     const [highScores, setHighScores] = useState<HighScoreEntry[]>([]);
     const [showCopySuccess, setShowCopySuccess] = useState(false);
     const [aiSummary, setAiSummary] = useState("");
+    const [showScores, setShowScores] = useState(false);
 
     const daysSinceEpoch = useMemo(() => Math.floor(new Date().getTime() / (1000 * 60 * 60 * 24)), []);
+
+    useEffect(() => {
+        if (gameState === 'idle') {
+            const interval = setInterval(() => {
+                setShowScores(prev => !prev);
+            }, 5000);
+            return () => clearInterval(interval);
+        }
+    }, [gameState]);
 
     useEffect(() => {
         const wordIndex = daysSinceEpoch % WORDS.length;
@@ -38,13 +59,14 @@ const CipherCorePage: React.FC<CipherCoreProps> = ({ onBackToHub, uptime = 0, se
         if (saved) {
             const data = JSON.parse(saved);
             setGuesses(data.guesses || []);
-            setGameState(data.gameState || 'playing');
+            const st = data.gameState || 'idle';
+            setGameState(st === 'playing' ? 'playing' : st);
             setIsPosted(!!data.isPosted);
         }
         setHighScores(getHighScores('spore_crypt'));
     }, [daysSinceEpoch]);
 
-    const saveProgress = useCallback((newGuesses: string[], newState: 'playing' | 'won' | 'lost', posted: boolean = false) => {
+    const saveProgress = useCallback((newGuesses: string[], newState: string, posted: boolean = false) => {
         localStorage.setItem(`cipher_core_${daysSinceEpoch}`, JSON.stringify({
             guesses: newGuesses,
             gameState: newState,
@@ -54,20 +76,17 @@ const CipherCorePage: React.FC<CipherCoreProps> = ({ onBackToHub, uptime = 0, se
 
     const getStatus = useCallback((guess: string, index: number, sol: string) => {
         const letter = guess[index];
-        if (sol[index] === letter) return 2; // Correct
-        if (sol.includes(letter)) return 1; // Present
-        return 0; // Absent
+        if (sol[index] === letter) return 2; 
+        if (sol.includes(letter)) return 1; 
+        return 0; 
     }, []);
 
-    // Procedural Status Generator (Local)
     const generateNeuralLog = () => {
         const winPhrases = ["Decryption successful.", "Sequence recompiled.", "Mainframe integrity verified.", "Protocol cracked."];
         const losePhrases = ["System lockout.", "Decryption failure.", "Logic error in sequence.", "Kernel panic detected."];
         const atmospheric = ["Packet headers clean.", "Frequency alignment optimal.", "Signal resonance detected.", "Buffer overflow averted."];
-        
         const phrase = gameState === 'won' ? winPhrases[Math.floor(Math.random() * winPhrases.length)] : losePhrases[Math.floor(Math.random() * losePhrases.length)];
         const extra = atmospheric[Math.floor(Math.random() * atmospheric.length)];
-        
         setAiSummary(`${phrase} ${extra} Decoded in ${guesses.length}/6 attempts.`);
     };
 
@@ -129,6 +148,43 @@ const CipherCorePage: React.FC<CipherCoreProps> = ({ onBackToHub, uptime = 0, se
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [onKey, gameState]);
 
+    if (gameState === 'idle') {
+        return (
+            <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-950 p-6 overflow-y-auto scrollbar-hide">
+                <style>{`
+                    @keyframes glitch-in {
+                        0% { opacity: 0; transform: scale(0.9) skew(0deg); }
+                        10% { opacity: 0.8; transform: scale(1.05) skew(5deg); filter: hue-rotate(90deg); }
+                        20% { opacity: 1; transform: scale(1) skew(0deg); filter: hue-rotate(0deg); }
+                    }
+                    .animate-glitch-in { animation: glitch-in 0.4s ease-out forwards; }
+                `}</style>
+                
+                <div className="w-full max-w-sm text-center bg-zinc-900 p-10 rounded-[3rem] border-4 border-pulse-500 shadow-[0_0_50px_rgba(225,29,72,0.1)] mb-6">
+                    <header className="mb-8">
+                        <span className="text-[10px] font-black uppercase text-pulse-500 tracking-[0.3em] italic block mb-1">Decryption Ritual</span>
+                        <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter leading-none">CIPHER CORE</h2>
+                    </header>
+
+                    <div className="h-[240px] flex items-center justify-center mb-8 overflow-hidden relative">
+                        <div key={showScores ? 'scores' : 'graphic'} className="w-full animate-glitch-in">
+                            {showScores ? (
+                                <HighScoreTable entries={highScores} title="CIPHER" />
+                            ) : (
+                                <CipherGraphic />
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="space-y-4">
+                        <button onClick={() => { setGameState('playing'); saveProgress([], 'playing'); }} className="w-full py-5 bg-white text-black font-black uppercase italic rounded-2xl hover:scale-[1.02] transition-all shadow-xl active:scale-95 text-lg">Establish Link</button>
+                        <button onClick={onBackToHub} className="text-zinc-500 font-bold uppercase tracking-widest text-xs hover:text-white transition-colors pt-2 block w-full italic tracking-[0.2em]">Abort Sync</button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <main className="w-full h-full bg-zinc-950 flex flex-col items-center p-4 overflow-y-auto scrollbar-hide">
             <style>{`
@@ -142,7 +198,7 @@ const CipherCorePage: React.FC<CipherCoreProps> = ({ onBackToHub, uptime = 0, se
             `}</style>
 
             <header className="w-full max-w-lg flex justify-between items-center mb-8 bg-zinc-900/50 p-4 rounded-3xl border border-white/5 flex-shrink-0">
-                <button onClick={onBackToHub} className="p-2 bg-zinc-800 rounded-xl text-zinc-400 hover:text-white transition-colors"><XIcon className="w-6 h-6" /></button>
+                <button onClick={onBackToHub} className="p-2 bg-zinc-800 rounded-xl text-zinc-400 hover:text-white transition-colors active:scale-95"><XIcon className="w-6 h-6" /></button>
                 <div className="text-center">
                     <span className="text-[10px] font-black uppercase text-emerald-500 tracking-[0.3em] italic">Frequency Segment</span>
                     <h1 className="text-2xl font-black italic uppercase text-white tracking-tighter leading-none">CIPHER CORE</h1>
@@ -151,10 +207,6 @@ const CipherCorePage: React.FC<CipherCoreProps> = ({ onBackToHub, uptime = 0, se
             </header>
 
             <div className="flex flex-col lg:flex-row gap-8 items-start justify-center w-full max-w-6xl pb-20">
-                <div className="flex-shrink-0 mx-auto lg:mx-0 w-full max-w-[320px] space-y-6">
-                    <HighScoreTable entries={highScores} title="CIPHER" />
-                </div>
-
                 <div className="flex flex-col items-center flex-grow w-full max-w-lg">
                     {gameState === 'playing' ? (
                         <>
@@ -198,7 +250,7 @@ const CipherCorePage: React.FC<CipherCoreProps> = ({ onBackToHub, uptime = 0, se
                             </div>
                         </>
                     ) : (
-                        <div className="w-full max-w-sm bg-zinc-900 p-8 rounded-[3.5rem] border-4 ${gameState === 'won' ? 'border-emerald-500' : 'border-pulse-500'} text-center shadow-[0_0_80px_rgba(0,0,0,0.5)] animate-fade-in relative overflow-hidden">
+                        <div className={`w-full max-w-sm bg-zinc-900 p-8 rounded-[3.5rem] border-4 ${gameState === 'won' ? 'border-emerald-500' : 'border-pulse-500'} text-center shadow-[0_0_80px_rgba(0,0,0,0.5)] animate-fade-in relative overflow-hidden`}>
                             <div className="relative z-10">
                                 <div className="mb-4 p-3 bg-zinc-950 border border-white/5 rounded-full w-16 h-16 mx-auto flex items-center justify-center shadow-lg animate-pulse"><VoidIcon className={`w-10 h-10 ${gameState === 'won' ? 'text-emerald-500' : 'text-pulse-500'}`} /></div>
                                 <h2 className={`text-4xl font-black italic uppercase tracking-tighter mb-4 ${gameState === 'won' ? 'text-emerald-500' : 'text-pulse-500'}`}>{gameState === 'won' ? 'DECODED' : 'SYSTEM LOCK'}</h2>
@@ -212,18 +264,11 @@ const CipherCorePage: React.FC<CipherCoreProps> = ({ onBackToHub, uptime = 0, se
 
                                 <div className="bg-black/40 p-4 rounded-2xl border border-white/5 mb-6 text-left">
                                     <p className="text-[8px] font-black text-zinc-500 uppercase tracking-widest mb-2 italic">// Session Report</p>
-                                    <p className="text-xs text-zinc-300 font-mono mb-4">
-                                        Sector ${daysSinceEpoch} - ${guesses.length}/6
-                                    </p>
+                                    <p className="text-xs text-zinc-300 font-mono mb-4">Sector ${daysSinceEpoch} - ${guesses.length}/6</p>
                                     {aiSummary ? (
                                         <p className="text-[10px] text-emerald-400 font-black italic border-l-2 border-emerald-500 pl-3 leading-relaxed animate-fade-in">{aiSummary}</p>
                                     ) : (
-                                        <button 
-                                            onClick={generateNeuralLog} 
-                                            className="w-full py-2 bg-void-950 border border-white/10 rounded-lg text-[9px] font-black text-zinc-400 uppercase italic tracking-widest hover:text-white flex items-center justify-center gap-2"
-                                        >
-                                            <SparklesIcon className="w-3 h-3" /> Generate Neural Log
-                                        </button>
+                                        <button onClick={generateNeuralLog} className="w-full py-2 bg-void-950 border border-white/10 rounded-lg text-[9px] font-black text-zinc-400 uppercase italic tracking-widest hover:text-white flex items-center justify-center gap-2"><SparklesIcon className="w-3 h-3" /> Generate Neural Log</button>
                                     )}
                                 </div>
 
@@ -236,7 +281,7 @@ const CipherCorePage: React.FC<CipherCoreProps> = ({ onBackToHub, uptime = 0, se
                                         <button onClick={handleSaveScore} className="w-full py-4 bg-emerald-600 text-white font-black text-lg italic uppercase rounded-full shadow-xl">Post Records</button>
                                     </div>
                                 )}
-                                <button onClick={onBackToHub} className="w-full py-3 bg-zinc-800 text-zinc-400 hover:text-white font-black text-[10px] uppercase tracking-widest rounded-full transition-colors border border-white/5 mt-4">Back to Hub</button>
+                                <button onClick={() => { setGameState('idle'); setGuesses([]); setCurrentGuess(""); }} className="w-full py-3 bg-zinc-800 text-zinc-400 hover:text-white font-black text-[10px] uppercase tracking-widest rounded-full transition-colors border border-white/5 mt-4">Return to Intro</button>
                             </div>
                         </div>
                     )}

@@ -7,6 +7,17 @@ type Grid = boolean[][];
 
 const SIZE = 5;
 
+const ResetGraphic: React.FC = () => (
+    <div className="relative w-48 h-48 mx-auto flex items-center justify-center">
+        <div className="absolute inset-0 bg-pulse-500/10 rounded-full animate-ping" />
+        <div className="absolute inset-4 bg-pulse-500/20 rounded-full animate-pulse" />
+        <div className="relative z-10 p-8 bg-zinc-900 rounded-[2rem] border-4 border-pulse-500 shadow-[0_0_30px_rgba(225,29,72,0.4)]">
+            <CpuChipIcon className="w-16 h-16 text-pulse-500" />
+        </div>
+        <div className="absolute -top-4 -left-4 text-[8px] font-mono text-pulse-500 uppercase tracking-widest animate-pulse font-black italic">CALIBRATING_GRID...</div>
+    </div>
+);
+
 const GridResetPage: React.FC<{ onBackToHub: () => void; onComplete?: () => void }> = ({ onBackToHub, onComplete }) => {
     const [grid, setGrid] = useState<Grid>([]);
     const [moves, setMoves] = useState(0);
@@ -15,12 +26,16 @@ const GridResetPage: React.FC<{ onBackToHub: () => void; onComplete?: () => void
     const [hintNode, setHintNode] = useState<{ r: number, c: number } | null>(null);
     const [hoverNode, setHoverNode] = useState<{ r: number, c: number } | null>(null);
     const [showHelp, setShowHelp] = useState(false);
-
-    // Track the 'solution' via the scramble path
+    const [showScores, setShowScores] = useState(false);
     const [scramblePath, setScramblePath] = useState<Set<string>>(new Set());
 
     useEffect(() => {
-        if (gameState === 'idle') setHintNode(null);
+        if (gameState === 'idle') {
+            const interval = setInterval(() => {
+                setShowScores(prev => !prev);
+            }, 5000);
+            return () => clearInterval(interval);
+        }
     }, [gameState]);
 
     const generateSolvableLevel = useCallback(() => {
@@ -86,7 +101,6 @@ const GridResetPage: React.FC<{ onBackToHub: () => void; onComplete?: () => void
         if (gameState !== 'playing' || scramblePath.size === 0) return;
         const remaining = Array.from(scramblePath);
         const randomTarget = remaining[Math.floor(Math.random() * remaining.length)];
-        // FIX: Cast randomTarget to string to address TS error "Property 'split' does not exist on type 'unknown'"
         const [r, c] = (randomTarget as string).split(',').map(Number);
         setHintNode({ r, c });
         setTimeout(() => setHintNode(null), 3000);
@@ -118,16 +132,34 @@ const GridResetPage: React.FC<{ onBackToHub: () => void; onComplete?: () => void
     if (gameState === 'idle') {
         return (
             <div className="w-full h-full bg-zinc-950 flex flex-col items-center justify-center p-6 font-mono">
-                <div className="w-full max-sm text-center bg-zinc-900 p-10 rounded-[3rem] border-4 border-pulse-500 shadow-[0_0_60px_rgba(225,29,72,0.2)]">
-                    <div className="p-4 bg-pulse-500/10 rounded-full w-20 h-20 mx-auto mb-6 flex items-center justify-center border border-pulse-500/30">
-                        <CpuChipIcon className="w-12 h-12 text-pulse-500 animate-pulse" />
+                <style>{`
+                    @keyframes glitch-in {
+                        0% { opacity: 0; transform: scale(0.9) skew(0deg); }
+                        10% { opacity: 0.8; transform: scale(1.05) skew(5deg); filter: hue-rotate(90deg); }
+                        20% { opacity: 1; transform: scale(1) skew(0deg); filter: hue-rotate(0deg); }
+                    }
+                    .animate-glitch-in { animation: glitch-in 0.4s ease-out forwards; }
+                `}</style>
+                
+                <div className="w-full max-w-sm text-center bg-zinc-900 p-10 rounded-[3rem] border-4 border-pulse-500 shadow-[0_0_60px_rgba(225,29,72,0.2)]">
+                    <header className="mb-8">
+                        <span className="text-[10px] font-black uppercase text-pulse-500 tracking-[0.3em] italic block mb-1">Grid Integrity</span>
+                        <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter leading-none">GRID RESET</h2>
+                    </header>
+
+                    <div className="h-[240px] flex items-center justify-center mb-8 overflow-hidden relative">
+                        <div key={showScores ? 'scores' : 'graphic'} className="w-full animate-glitch-in">
+                            {showScores ? (
+                                <HighScoreTable entries={getHighScores('grid_reset')} title="CLEAN_UP" />
+                            ) : (
+                                <ResetGraphic />
+                            )}
+                        </div>
                     </div>
-                    <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter mb-2 leading-none">GRID RESET</h2>
-                    <p className="text-zinc-500 font-bold uppercase tracking-widest text-[10px] mb-10 italic">Sector Alignment Logic</p>
-                    <HighScoreTable entries={getHighScores('grid_reset')} title="CLEAN_UP" />
+
                     <div className="mt-10 space-y-4">
                         <button onClick={generateSolvableLevel} className="w-full py-5 bg-white text-black font-black uppercase italic rounded-2xl hover:scale-[1.02] transition-all shadow-xl active:scale-95 text-lg">Sync Sector</button>
-                        <button onClick={onBackToHub} className="text-zinc-500 font-bold uppercase tracking-widest text-xs hover:text-white transition-colors pt-4 block w-full italic tracking-[0.2em]">Back to Hub</button>
+                        <button onClick={onBackToHub} className="text-zinc-500 font-bold uppercase tracking-widest text-xs hover:text-white transition-colors pt-4 block w-full italic tracking-[0.2em]">Return to Hub</button>
                     </div>
                 </div>
             </div>
@@ -166,7 +198,7 @@ const GridResetPage: React.FC<{ onBackToHub: () => void; onComplete?: () => void
             <div className="max-w-md w-full space-y-6">
                 <header className="flex justify-between items-center bg-zinc-900/50 p-6 rounded-3xl border border-white/5 backdrop-blur-xl">
                     <div className="flex items-center gap-4">
-                        <button onClick={onBackToHub} className="p-3 bg-zinc-800 rounded-2xl text-zinc-400 hover:text-white transition-all border border-white/5"><XIcon className="w-6 h-6" /></button>
+                        <button onClick={onBackToHub} className="p-3 bg-zinc-800 rounded-2xl text-zinc-400 hover:text-white transition-all border border-white/5 active:scale-95"><XIcon className="w-6 h-6" /></button>
                         <div>
                              <span className="text-[9px] font-black text-pulse-500 uppercase tracking-[0.4em] block mb-1">Status: MALFUNCTION</span>
                              <h2 className="text-xl font-black italic uppercase text-white tracking-tighter leading-none">GRID RESET</h2>
@@ -303,7 +335,7 @@ const GridResetPage: React.FC<{ onBackToHub: () => void; onComplete?: () => void
                             <p className="text-zinc-500 font-black uppercase tracking-[0.3em] text-[9px] mb-4 italic">Post Record Initials</p>
                             <input autoFocus maxLength={3} value={initials} onChange={e => setInitials(e.target.value.toUpperCase())} className="bg-black/50 border-2 border-signal-500 text-white rounded-xl px-4 py-3 text-center text-3xl font-black w-36 outline-none uppercase italic" placeholder="???" />
                         </div>
-                        <button onClick={handleSaveScore} className="w-full py-5 bg-signal-600 text-black font-black text-xl italic uppercase rounded-full hover:scale-105 transition-all shadow-xl">TRANSMIT DATA</button>
+                        <button onClick={handleSaveScore} className="w-full py-5 bg-signal-600 text-black font-black text-xl italic uppercase rounded-full hover:scale-105 transition-all shadow-xl active:scale-95">TRANSMIT DATA</button>
                     </div>
                 </div>
             )}

@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { ArrowPathIcon, FlagIcon, XIcon, VoidIcon } from './icons';
+import { ArrowPathIcon, FlagIcon, XIcon, VoidIcon, EntityIcon } from './icons';
 import { saveHighScore, getHighScores, ScoreCategory } from '../services/highScoresService';
 import HighScoreTable from './HighScoreTable';
 
@@ -16,7 +15,6 @@ interface Cell {
 
 type Grid = Cell[][];
 
-// Added optional onDefuse callback to props interface
 interface MinesweeperPageProps {
   onBackToHub: () => void;
   onReturnToFeeds: () => void;
@@ -29,7 +27,17 @@ const settings: Record<Difficulty, { rows: number; cols: number; mines: number }
     Hard: { rows: 16, cols: 20, mines: 60 },
 };
 
-// Updated component to destructure onReturnToFeeds and onDefuse from props
+const AnomalyGraphic: React.FC = () => (
+    <div className="relative w-48 h-48 mx-auto flex items-center justify-center">
+        <div className="absolute inset-0 bg-signal-500/10 rounded-full animate-ping" />
+        <div className="absolute inset-4 bg-signal-500/20 rounded-full animate-pulse" />
+        <div className="relative z-10 p-8 bg-zinc-900 rounded-[2rem] border-4 border-signal-500 shadow-[0_0_30px_rgba(34,197,94,0.4)]">
+            <EntityIcon className="w-16 h-16 text-signal-500" />
+        </div>
+        <div className="absolute -top-4 -left-4 text-[8px] font-mono text-signal-500 uppercase tracking-widest animate-pulse font-black italic">SCANNING_GRID...</div>
+    </div>
+);
+
 const MinesweeperPage: React.FC<MinesweeperPageProps> = ({ onBackToHub, onReturnToFeeds, onDefuse }) => {
   const [difficulty, setDifficulty] = useState<Difficulty>('Easy');
   const [grid, setGrid] = useState<Grid | null>(null);
@@ -38,11 +46,21 @@ const MinesweeperPage: React.FC<MinesweeperPageProps> = ({ onBackToHub, onReturn
   const [flagsLeft, setFlagsLeft] = useState(0);
   const [isFlagMode, setIsFlagMode] = useState(false);
   const [initials, setInitials] = useState("");
+  const [showScores, setShowScores] = useState(false);
   const timerRef = useRef<number | null>(null);
 
   useEffect(() => { 
     setFlagsLeft(settings[difficulty].mines); 
   }, [difficulty]);
+
+  useEffect(() => {
+    if (gameState === 'IDLE') {
+        const interval = setInterval(() => {
+            setShowScores(prev => !prev);
+        }, 5000);
+        return () => clearInterval(interval);
+    }
+  }, [gameState]);
 
   const startTimer = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
@@ -132,7 +150,6 @@ const MinesweeperPage: React.FC<MinesweeperPageProps> = ({ onBackToHub, onReturn
     if (checkWinCondition(newGrid)) {
       stopTimer();
       setGameState('WON');
-      // Added call to onDefuse if game is won
       onDefuse?.();
     }
   };
@@ -188,6 +205,49 @@ const MinesweeperPage: React.FC<MinesweeperPageProps> = ({ onBackToHub, onReturn
     setFlagsLeft(settings[difficulty].mines);
   };
 
+  if (gameState === 'IDLE') {
+    return (
+        <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-950 p-6 overflow-y-auto scrollbar-hide">
+            <style>{`
+                @keyframes glitch-in {
+                    0% { opacity: 0; transform: scale(0.9) skew(0deg); }
+                    10% { opacity: 0.8; transform: scale(1.05) skew(5deg); filter: hue-rotate(90deg); }
+                    20% { opacity: 1; transform: scale(1) skew(0deg); filter: hue-rotate(0deg); }
+                }
+                .animate-glitch-in { animation: glitch-in 0.4s ease-out forwards; }
+            `}</style>
+            
+            <div className="w-full max-w-sm text-center bg-zinc-900 p-8 md:p-10 rounded-[3rem] border-4 border-signal-500 shadow-[0_0_50px_rgba(34,197,94,0.1)] mb-6">
+                <header className="mb-8">
+                    <span className="text-[10px] font-black uppercase text-signal-500 tracking-[0.3em] italic block mb-1">Hazard Intel</span>
+                    <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter leading-none">ANOMALY DETECTOR</h2>
+                </header>
+                
+                <div className="flex gap-1.5 mb-8">
+                    {(['Easy', 'Medium', 'Hard'] as Difficulty[]).map(d => (
+                        <button key={d} onClick={() => setDifficulty(d)} className={`flex-1 py-2 rounded-xl font-black uppercase italic text-[9px] transition-all border ${difficulty === d ? 'bg-signal-600 border-signal-400 text-white shadow-lg' : 'bg-zinc-800 border-white/5 text-zinc-500'}`}>{d}</button>
+                    ))}
+                </div>
+
+                <div className="h-[240px] flex items-center justify-center mb-8 overflow-hidden relative">
+                    <div key={showScores ? 'scores' : 'graphic'} className="w-full animate-glitch-in">
+                        {showScores ? (
+                            <HighScoreTable entries={getHighScores(`minesweeper_${difficulty.toLowerCase()}` as ScoreCategory)} title={difficulty} />
+                        ) : (
+                            <AnomalyGraphic />
+                        )}
+                    </div>
+                </div>
+
+                <div className="space-y-3">
+                    <button onClick={() => setGameState('PLAYING')} className="w-full py-5 bg-white text-black font-black uppercase italic rounded-2xl hover:scale-[1.02] transition-all shadow-xl active:scale-95 text-lg">Initialize Scan</button>
+                    <button onClick={onBackToHub} className="text-zinc-500 font-bold uppercase tracking-widest text-xs hover:text-white transition-colors pt-2 block w-full italic tracking-[0.2em]">Abort Mission</button>
+                </div>
+            </div>
+        </div>
+    );
+  }
+
   return (
     <div className="w-full h-full bg-void-950 flex flex-col items-center p-4 overflow-y-auto scrollbar-hide">
         <style>{`
@@ -238,8 +298,8 @@ const MinesweeperPage: React.FC<MinesweeperPageProps> = ({ onBackToHub, onReturn
                 </div>
             </header>
 
-            <div className="grid grid-cols-1 lg:grid-cols-[1fr,300px] gap-8">
-                <div className="bg-void-900/40 p-4 rounded-[2.5rem] border-4 border-zinc-900 shadow-2xl relative overflow-hidden grid-crt">
+            <div className="flex flex-col lg:flex-row gap-8">
+                <div className="bg-void-900/40 p-4 rounded-[2.5rem] border-4 border-zinc-900 shadow-2xl relative overflow-hidden grid-crt flex-grow">
                     <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${settings[difficulty].cols}, 1fr)` }}>
                       {grid?.map((row, r) => row.map((cell, c) => (
                         <div 
@@ -273,34 +333,23 @@ const MinesweeperPage: React.FC<MinesweeperPageProps> = ({ onBackToHub, onReturn
                     </div>
                 </div>
 
-                <div className="flex flex-col gap-6">
-                    <div className="bg-void-900/50 p-6 rounded-3xl border border-white/5 shadow-xl">
-                        <div className="flex justify-between gap-2 mb-6">
-                            {(['Easy', 'Medium', 'Hard'] as Difficulty[]).map(d => (
-                                <button key={d} onClick={() => { setDifficulty(d); reset(); }} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase italic transition-all border-2 ${difficulty === d ? 'bg-signal-600 border-signal-400 text-white shadow-lg' : 'bg-zinc-900 border-transparent text-zinc-500 hover:text-zinc-300'}`}>{d}</button>
-                            ))}
-                        </div>
-                        <HighScoreTable entries={getHighScores(`minesweeper_${difficulty.toLowerCase()}` as ScoreCategory)} title={difficulty} />
-                    </div>
-
-                    <div className="flex flex-col gap-3">
-                        <button 
-                            onClick={() => setIsFlagMode(!isFlagMode)} 
-                            className={`w-full py-5 rounded-2xl font-black uppercase text-xs italic tracking-widest border-2 transition-all shadow-xl group
-                                ${isFlagMode 
-                                    ? 'bg-pulse-600 border-pulse-400 text-white shadow-[0_0_30px_rgba(225,29,72,0.3)]' 
-                                    : 'bg-void-900 border-white/10 text-zinc-500 hover:text-white'
-                                }`}
-                        >
-                            <span className="flex items-center justify-center gap-3">
-                                <FlagIcon className={`w-5 h-5 ${isFlagMode ? 'animate-bounce' : ''}`} />
-                                {isFlagMode ? 'PLACING BEACONS' : 'ANALYSIS MODE'}
-                            </span>
-                        </button>
-                        <p className="text-[9px] text-zinc-600 uppercase font-bold text-center tracking-widest font-mono">
-                            {isFlagMode ? 'Tap to mark anomalies' : 'Tap to reveal grid data'}
-                        </p>
-                    </div>
+                <div className="flex flex-col gap-6 w-full lg:w-[300px] shrink-0">
+                    <button 
+                        onClick={() => setIsFlagMode(!isFlagMode)} 
+                        className={`w-full py-5 rounded-2xl font-black uppercase text-xs italic tracking-widest border-2 transition-all shadow-xl group
+                            ${isFlagMode 
+                                ? 'bg-pulse-600 border-pulse-400 text-white shadow-[0_0_30px_rgba(225,29,72,0.3)]' 
+                                : 'bg-void-900 border-white/10 text-zinc-500 hover:text-white'
+                            }`}
+                    >
+                        <span className="flex items-center justify-center gap-3">
+                            <FlagIcon className={`w-5 h-5 ${isFlagMode ? 'animate-bounce' : ''}`} />
+                            {isFlagMode ? 'PLACING BEACONS' : 'ANALYSIS MODE'}
+                        </span>
+                    </button>
+                    <p className="text-[9px] text-zinc-600 uppercase font-bold text-center tracking-widest font-mono">
+                        {isFlagMode ? 'Tap to mark anomalies' : 'Tap to reveal grid data'}
+                    </p>
                 </div>
             </div>
         </div>
