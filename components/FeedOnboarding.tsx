@@ -7,10 +7,10 @@ import {
     ExclamationTriangleIcon
 } from './icons';
 
-type Category = 'NEWS' | 'TECH' | 'SCIENCE' | 'CULTURE' | 'SPORTS' | 'FINANCE' | 'GAMING';
+export type Category = 'NEWS' | 'TECH' | 'SCIENCE' | 'CULTURE' | 'SPORTS' | 'FINANCE' | 'GAMING';
 type Region = 'GLOBAL' | 'UK' | 'US' | 'EU';
 
-interface Preset {
+export interface Preset {
     id: string;
     title: string;
     url: string;
@@ -19,7 +19,7 @@ interface Preset {
     description: string;
 }
 
-const PRESETS: Preset[] = [
+export const PRESETS: Preset[] = [
     // NEWS
     { id: 'bbc', title: 'BBC World', url: 'https://feeds.bbci.co.uk/news/world/rss.xml', category: 'NEWS', region: 'UK', description: 'Global surveillance of current geopolitical events.' },
     { id: 'guardian', title: 'The Guardian', url: 'https://www.theguardian.com/world/rss', category: 'NEWS', region: 'UK', description: 'Comprehensive reporting from the UK node.' },
@@ -133,7 +133,8 @@ const FeedOnboarding: React.FC<FeedOnboardingProps> = ({ onComplete }) => {
                 title: p.title,
                 iconUrl: `https://www.google.com/s2/favicons?sz=32&domain_url=${new URL(p.url).hostname}`,
                 folderId,
-                sourceType: 'rss'
+                sourceType: 'rss',
+                category: p.category
             };
         });
         onComplete(selectedFeeds, folders);
@@ -188,7 +189,6 @@ const FeedOnboarding: React.FC<FeedOnboardingProps> = ({ onComplete }) => {
                 </div>
             </header>
 
-            {/* Protocol Advisory Banner */}
             <div className="mb-10 bg-void-900 border-l-4 border-amber-500/50 p-4 rounded-r-xl max-w-4xl mx-auto flex items-start gap-4">
                 <ExclamationTriangleIcon className="w-5 h-5 text-amber-500 shrink-0 mt-0.5 animate-pulse" />
                 <div>
@@ -198,7 +198,6 @@ const FeedOnboarding: React.FC<FeedOnboardingProps> = ({ onComplete }) => {
             </div>
 
             <div className="flex flex-col md:flex-row gap-6 flex-grow pb-48">
-                {/* Category Sidebar */}
                 <div className="w-full md:w-56 flex flex-row md:flex-col gap-2 shrink-0 overflow-x-auto md:overflow-x-visible scrollbar-hide pb-2 md:pb-0">
                     {CATEGORIES.map(cat => {
                         const countInSelected = PRESETS.filter(p => p.category === cat.id && selectedIds.has(p.id)).length;
@@ -223,7 +222,6 @@ const FeedOnboarding: React.FC<FeedOnboardingProps> = ({ onComplete }) => {
                     })}
                 </div>
 
-                {/* Signals Grid */}
                 <div className="flex-grow grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {filteredPresets.length === 0 ? (
                         <div className="col-span-full py-16 text-center border-2 border-dashed border-zinc-900 rounded-[2rem]">
@@ -259,7 +257,6 @@ const FeedOnboarding: React.FC<FeedOnboardingProps> = ({ onComplete }) => {
                 </div>
             </div>
 
-            {/* Sticky Action Bar */}
             <div className="fixed bottom-6 left-0 right-0 md:left-72 z-[60] px-4 pointer-events-none">
                 <div className="max-w-xl mx-auto pointer-events-auto">
                     <button 

@@ -121,7 +121,20 @@ const App: React.FC = () => {
             const feedTitle = xml.querySelector('channel > title, feed > title')?.textContent || new URL(url).hostname;
             const siteLink = xml.querySelector('channel > link')?.textContent || url;
             const iconUrl = `https://www.google.com/s2/favicons?sz=32&domain_url=${new URL(siteLink).hostname}`;
-            setFeeds(prev => [...prev, { id: Date.now(), title: feedTitle, url: feedUrl, iconUrl, folderId: null, sourceType: type, category: 'GENERAL' }]);
+            
+            // SMART CATEGORY DETECTION
+            let detectedCategory = 'GENERAL';
+            const titleUpper = feedTitle.toUpperCase();
+            const urlUpper = feedUrl.toUpperCase();
+            if (titleUpper.includes('SPORT') || urlUpper.includes('SPORT')) detectedCategory = 'SPORTS';
+            else if (titleUpper.includes('TECH') || urlUpper.includes('VERGE') || urlUpper.includes('WIRED')) detectedCategory = 'TECH';
+            else if (titleUpper.includes('NEWS') || urlUpper.includes('BBC') || urlUpper.includes('REUTERS')) detectedCategory = 'NEWS';
+            else if (titleUpper.includes('GAME') || urlUpper.includes('IGN') || urlUpper.includes('KOTAKU')) detectedCategory = 'GAMING';
+            else if (titleUpper.includes('FINANCE') || urlUpper.includes('BLOOMBERG') || urlUpper.includes('MONEY')) detectedCategory = 'FINANCE';
+            else if (titleUpper.includes('SCIENCE') || urlUpper.includes('NASA') || urlUpper.includes('NATURE')) detectedCategory = 'SCIENCE';
+            else if (titleUpper.includes('CULTURE') || urlUpper.includes('MUSIC') || urlUpper.includes('FILM')) detectedCategory = 'CULTURE';
+
+            setFeeds(prev => [...prev, { id: Date.now(), title: feedTitle, url: feedUrl, iconUrl, folderId: null, sourceType: type, category: detectedCategory }]);
         } catch (error) { throw error; }
     };
 
@@ -132,7 +145,7 @@ const App: React.FC = () => {
         if (selection.type === 'utility_hub') return 'SECTOR UTILITIES';
         if (selection.category) return `${selection.category} NODE`;
         if (selection.type === 'feed') return feeds.find(f => f.id === selection.id)?.title || 'Feed';
-        return 'SURVEILLANCE LOG';
+        return 'PERSONAL SIGS';
     }, [selection, feeds]);
 
     if (selection.type === 'splash') {
