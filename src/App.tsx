@@ -22,6 +22,7 @@ import CipherCorePage from '../components/SporeCryptPage';
 import VoidRunnerPage from '../components/VoidRunnerPage';
 import SynapseLinkPage from '../components/SynapseLinkPage';
 import GridResetPage from '../components/GridResetPage';
+import BlackMarket from '../components/BlackMarket';
 import { resilientFetch } from '../services/fetch';
 import { parseRssXml } from '../services/rssParser';
 import { useLocalStorage } from '../hooks/useLocalStorage';
@@ -71,6 +72,7 @@ const App: React.FC = () => {
     const [selection, setSelection] = useState<Selection>({ type: 'splash', id: null });
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
     const [isAddSourceModalOpen, setIsAddSourceModalOpen] = useState(false);
+    const [isShopOpen, setIsShopOpen] = useState(false);
     const [readerArticle, setReaderArticle] = useState<Article | null>(null);
     const [prefetchedArticles, setPrefetchedArticles] = useState<Article[]>([]);
     const [isDecoding, setIsDecoding] = useState(false);
@@ -173,7 +175,7 @@ const App: React.FC = () => {
             case 'utility_hub':
                 return <UtilityHubPage onSelect={(id) => updateSelection({ type: id as any, id: null })} onBackToHub={handleReturnToFeeds} />;
             case 'game_hub':
-                return <GameHubPage sudokuStats={{totalWins: 0}} solitaireStats={{gamesWon: 0, currentStreak: 0}} onReturnToFeeds={handleReturnToFeeds} uptime={uptime} setUptime={setUptime} credits={credits} setCredits={setCredits} showShop={false} setShowShop={() => {}} onSelect={(type: any) => updateSelection({ type, id: null })} />;
+                return <GameHubPage sudokuStats={{totalWins: 0}} solitaireStats={{gamesWon: 0, currentStreak: 0}} onReturnToFeeds={handleReturnToFeeds} uptime={uptime} setUptime={setUptime} credits={credits} setCredits={setCredits} showShop={isShopOpen} setShowShop={setIsShopOpen} onSelect={(type: any) => updateSelection({ type, id: null })} />;
             case 'sudoku': return <SudokuPage stats={{totalWins: 0}} onGameWin={() => {}} onGameLoss={() => {}} onBackToHub={handleEnterArcade} onReturnToFeeds={handleReturnToFeeds} />;
             case 'solitaire': return <SolitairePage stats={{gamesWon: 0, currentStreak: 0}} onGameWin={() => {}} onGameStart={() => {}} settings={{drawThree: true}} onUpdateSettings={() => {}} onBackToHub={handleEnterArcade} onReturnToFeeds={handleReturnToFeeds} />;
             case 'minesweeper': return <MinesweeperPage onBackToHub={handleEnterArcade} onReturnToFeeds={handleReturnToFeeds} />;
@@ -247,9 +249,10 @@ const App: React.FC = () => {
                 onDeleteFolder={(id) => setFolders(folders.filter(x => x.id !== id))}
                 onRemoveFeed={(id) => setFeeds(feeds.filter(x => x.id !== id))}
                 onImportOpml={() => {}} onExportOpml={() => {}} onImportSettings={() => {}} onExportSettings={() => {}}
-                credits={credits} onOpenShop={() => {}} onAddSource={handleAddSource} onEnterUtils={handleEnterUtils}
+                credits={credits} onOpenShop={() => { setIsSettingsModalOpen(false); setIsShopOpen(true); }} onAddSource={handleAddSource} onEnterUtils={handleEnterUtils}
             />
             <AddSourceModal isOpen={isAddSourceModalOpen} onClose={() => setIsAddSourceModalOpen(false)} onAddSource={handleAddSource} />
+            <BlackMarket isOpen={isShopOpen} onClose={() => setIsShopOpen(false)} credits={credits} setCredits={setCredits} uptime={uptime} setUptime={setUptime} />
             {readerArticle && <ReaderViewModal article={readerArticle} onClose={() => setReaderArticle(null)} onMarkAsRead={handleMarkAsRead} />}
         </div>
     );

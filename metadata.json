@@ -1,7 +1,10 @@
+
 {
   "name": "The Void",
   "description": "A technical noir signal reader and dark arcade for offline surveillance and decryption.",
   "requestFramePermissions": [
-    "geolocation"
+    "geolocation",
+    "camera",
+    "microphone"
   ]
 }

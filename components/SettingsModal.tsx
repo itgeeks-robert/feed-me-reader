@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { Settings, Theme, ArticleView, WidgetSettings, Feed, Folder, Selection } from '../src/App';
-import { XIcon, SunIcon, MoonIcon, CloudArrowUpIcon, CloudArrowDownIcon, TrashIcon, BookmarkIcon, ListIcon, PlusIcon, FolderIcon, ShieldCheckIcon, SparklesIcon } from './icons';
+import { XIcon, SunIcon, MoonIcon, CloudArrowUpIcon, CloudArrowDownIcon, TrashIcon, BookmarkIcon, ListIcon, PlusIcon, FolderIcon, ShieldCheckIcon, SparklesIcon, CpuChipIcon } from './icons';
 import AddSource, { SourceType } from './AddSource';
 
 interface SettingsModalProps {
@@ -23,7 +23,7 @@ interface SettingsModalProps {
     onEnterUtils: () => void;
 }
 
-type Tab = 'Navigation' | 'Zones' | 'Feeds' | 'Config' | 'Data';
+type Tab = 'CORE' | 'NODES' | 'DISPLAY' | 'MEMORY';
 
 const hiddenInputStyle: React.CSSProperties = { display: 'none' };
 
@@ -33,7 +33,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     onImportOpml, onExportOpml, onImportSettings, onExportSettings,
     credits, onOpenShop, onAddSource, onEnterUtils
 }) => {
-    const [activeTab, setActiveTab] = useState<Tab>('Navigation');
+    const [activeTab, setActiveTab] = useState<Tab>('CORE');
     const [localSettings, setLocalSettings] = useState({ ...settings });
     const opmlInputRef = useRef<HTMLInputElement>(null);
 
@@ -64,15 +64,15 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         }
     };
 
-    const TabButton: React.FC<{ name: Tab }> = ({ name }) => (
+    const TabButton: React.FC<{ name: Tab, label: string }> = ({ name, label }) => (
         <button
             onClick={() => setActiveTab(name)}
-            className={`flex-1 py-2 text-[9px] font-black uppercase tracking-widest transition-all
+            className={`flex-1 py-3 text-[8px] md:text-[9px] font-black uppercase tracking-tighter transition-all border-b-2
                 ${activeTab === name 
-                    ? 'bg-void-950 text-white border-t-2 border-l-2 border-black border-b-2 border-r-2 border-zinc-700' 
-                    : 'text-zinc-600 hover:text-zinc-400 border-2 border-transparent'}`}
+                    ? 'bg-void-950 text-white border-pulse-500' 
+                    : 'text-zinc-600 hover:text-zinc-400 border-zinc-800'}`}
         >
-            {name}
+            {label}
         </button>
     );
     
@@ -90,160 +90,172 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     );
 
     return (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 font-mono" onClick={onClose} role="dialog" aria-modal="true">
-            {/* Windows 3.1 Terminal Frame */}
-            <div className="bg-zinc-900 border-4 border-zinc-800 shadow-2xl w-full max-w-xl max-h-[90vh] flex flex-col relative overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-2 md:p-4 font-mono" onClick={onClose} role="dialog" aria-modal="true">
+            <div className="bg-zinc-900 border-4 border-zinc-800 shadow-2xl w-full max-w-xl max-h-[85vh] flex flex-col relative overflow-hidden" onClick={e => e.stopPropagation()}>
                 {/* 3D Frame Highlighting */}
                 <div className="absolute inset-0 border-t-2 border-l-2 border-zinc-700 pointer-events-none z-10" />
                 <div className="absolute inset-0 border-b-2 border-r-2 border-black pointer-events-none z-10" />
 
                 {/* Title Bar */}
-                <header className="h-10 bg-zinc-800 flex items-center justify-between px-1 relative z-20 border-b-2 border-black">
+                <header className="h-10 bg-zinc-800 flex items-center justify-between px-1 relative z-20 border-b-2 border-black shrink-0">
                     <div className="flex items-center gap-2 h-full">
-                        <button onClick={onClose} className="w-8 h-7 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center active:bg-zinc-400">
-                           <div className="w-4 h-1 bg-black shadow-[0_4px_0_black]" />
-                        </button>
-                        <h2 className="text-white text-[11px] font-black uppercase tracking-[0.2em] italic px-2">TERMINAL_HUB v1.8.4</h2>
+                        <div className="w-8 h-7 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center">
+                           <CpuChipIcon className="w-4 h-4 text-black" />
+                        </div>
+                        <h2 className="text-white text-[10px] font-black uppercase tracking-[0.2em] italic px-2 truncate max-w-[200px] md:max-w-none">SYSTEM_DIAGNOSTICS v1.8.4</h2>
                     </div>
                     <button onClick={onClose} className="w-8 h-7 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center active:bg-zinc-400">
                         <XIcon className="w-4 h-4 text-black" />
                     </button>
                 </header>
                 
-                {/* Windows 3.1 Tabs Container */}
-                <div className="px-2 pt-2 bg-zinc-900 border-b-2 border-black z-20">
-                    <nav className="flex space-x-0.5">
-                        <TabButton name="Navigation" />
-                        <TabButton name="Zones" />
-                        <TabButton name="Feeds" />
-                        <TabButton name="Config" />
-                        <TabButton name="Data" />
+                {/* Tabs Container */}
+                <div className="bg-zinc-900 border-b-2 border-black z-20 shrink-0">
+                    <nav className="flex">
+                        <TabButton name="CORE" label="0x00_CORE" />
+                        <TabButton name="NODES" label="0x01_NODES" />
+                        <TabButton name="DISPLAY" label="0x02_VISUAL" />
+                        <TabButton name="MEMORY" label="0x03_DATA" />
                     </nav>
                 </div>
 
-                <div className="p-6 md:p-8 overflow-y-auto flex-grow space-y-6 bg-void-950 relative scrollbar-hide">
+                <div className="p-4 md:p-8 overflow-y-auto flex-grow space-y-6 bg-void-950 relative scrollbar-hide pb-24 md:pb-8">
                     {/* Subtle Scanlines */}
                     <div className="absolute inset-0 pointer-events-none opacity-5 cctv-overlay" />
 
-                    {activeTab === 'Navigation' && (<>
+                    {activeTab === 'CORE' && (<div className="space-y-6 animate-fade-in">
+                        <div className="p-6 bg-zinc-900 border-t-2 border-l-2 border-white/10 border-b-2 border-r-2 border-black">
+                            <span className="text-[8px] font-black text-zinc-500 uppercase block mb-4 italic tracking-widest border-b border-zinc-800 pb-2">Terminal Metrics</span>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <span className="text-[7px] text-zinc-600 uppercase block mb-1">Signal Assets</span>
+                                    <span className="text-xl font-black text-pulse-500 italic">{credits.toLocaleString()} SC</span>
+                                </div>
+                                <div>
+                                    <span className="text-[7px] text-zinc-600 uppercase block mb-1">Packet Integrity</span>
+                                    <span className="text-xl font-black text-emerald-500 italic">NOMINAL</span>
+                                </div>
+                            </div>
+                        </div>
+
                         <button 
                             onClick={onOpenShop}
-                            className="w-full p-4 bg-zinc-900 border-t-2 border-l-2 border-white/10 border-b-2 border-r-2 border-black flex items-center gap-4 group transition-all"
+                            className="w-full p-5 bg-pulse-600 border-t-2 border-l-2 border-white/30 border-b-2 border-r-2 border-pulse-900 flex items-center justify-between group hover:bg-pulse-500 transition-all shadow-lg active:scale-95"
                         >
-                            <div className="p-2 bg-pulse-500/10 rounded-lg border border-pulse-500/30"><SparklesIcon className="w-6 h-6 text-pulse-500 animate-pulse" /></div>
-                            <div className="text-left">
-                                <span className="text-[8px] font-black text-zinc-500 uppercase block mb-0.5 italic">Frequency Assets</span>
-                                <span className="text-xl font-black text-pulse-500 italic drop-shadow-sm">{credits.toLocaleString()} SC</span>
+                            <div className="flex items-center gap-4">
+                                <SparklesIcon className="w-6 h-6 text-white animate-pulse" />
+                                <div className="text-left">
+                                    <span className="text-lg font-black text-white italic uppercase tracking-tighter block leading-none">Access Black Market</span>
+                                    <span className="text-[8px] text-white/60 font-black uppercase tracking-widest">Exchange SC for Augments</span>
+                                </div>
                             </div>
+                            <div className="w-8 h-8 bg-black/20 rounded-full flex items-center justify-center">&rarr;</div>
                         </button>
-                        
-                        <div className="grid grid-cols-1 gap-3">
-                            <button onClick={() => onSelect({type: 'bookmarks', id: null})} className="flex items-center gap-4 p-4 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 text-black active:bg-zinc-400 transition-all">
-                                <BookmarkIcon className="w-5 h-5" />
-                                <span className="font-black uppercase italic tracking-widest text-[10px]">Access Saved Packets</span>
-                            </button>
-                            <button onClick={() => { onEnterUtils(); onClose(); }} className="flex items-center gap-4 p-4 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 text-black active:bg-zinc-400 transition-all">
-                                <ShieldCheckIcon className="w-5 h-5" />
-                                <span className="font-black uppercase italic tracking-widest text-[10px]">Tactical Infrastructure</span>
-                            </button>
-                        </div>
-                    </>)}
 
-                    {activeTab === 'Zones' && (<>
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
-                                <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-widest italic">Node Clusters</h3>
+                        <div className="p-4 bg-zinc-800/20 border border-zinc-800 rounded-xl">
+                            <p className="text-[9px] text-zinc-500 uppercase leading-relaxed italic">
+                                Operator Note: The core menu facilitates high-level system configuration. For operational tasks (Media, Games, Intel), utilize the persistent bottom synchronization bar.
+                            </p>
+                        </div>
+                    </div>)}
+
+                    {activeTab === 'NODES' && (<div className="space-y-8 animate-fade-in">
+                        <div>
+                            <div className="flex items-center justify-between border-b border-zinc-800 pb-2 mb-4">
+                                <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-widest italic">Established Zones</h3>
                                 <button onClick={() => onAddFolder("NEW_ZONE")} className="w-8 h-8 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center text-black active:bg-zinc-400">
                                     <PlusIcon className="w-4 h-4" />
                                 </button>
                             </div>
-                            <div className="space-y-2">
+                            <div className="space-y-2 max-h-[200px] overflow-y-auto scrollbar-hide">
                                 {settings.folders.map(f => (
-                                    <div key={f.id} className="flex items-center justify-between p-3 bg-zinc-900 border border-zinc-800">
-                                        <div className="flex items-center gap-3">
+                                    <div key={f.id} className="flex items-center justify-between p-3 bg-zinc-900 border border-zinc-800 group">
+                                        <div className="flex items-center gap-3 flex-1">
                                             <FolderIcon className="w-4 h-4 text-zinc-600" />
                                             <input 
                                                 value={f.name} 
                                                 onChange={e => onRenameFolder(f.id, e.target.value)}
-                                                className="bg-transparent text-white font-black uppercase italic text-xs outline-none focus:text-pulse-500"
+                                                className="bg-transparent text-white font-black uppercase italic text-xs outline-none focus:text-pulse-500 w-full"
                                             />
                                         </div>
-                                        <div className="flex gap-2">
-                                            <button onClick={() => onSelect({type: 'folder', id: f.id})} className="text-[8px] font-black uppercase text-zinc-400 px-2 py-1 bg-zinc-800 border border-zinc-700">Access</button>
-                                            <button onClick={() => onDeleteFolder(f.id)} className="text-zinc-600 hover:text-pulse-500"><TrashIcon className="w-4 h-4" /></button>
-                                        </div>
+                                        <button onClick={() => onDeleteFolder(f.id)} className="text-zinc-600 hover:text-pulse-500 ml-4 opacity-0 group-hover:opacity-100 transition-opacity"><TrashIcon className="w-4 h-4" /></button>
                                     </div>
                                 ))}
                             </div>
                         </div>
-                    </>)}
 
-                    {activeTab === 'Feeds' && (<>
-                        <div className="bg-zinc-900 p-4 border-2 border-zinc-800 mb-6">
-                            <AddSource onAddSource={onAddSource} />
-                        </div>
-                        <div className="space-y-2">
-                            <h3 className="text-[9px] font-black text-zinc-500 uppercase tracking-widest italic mb-2">Established Links</h3>
-                            {settings.feeds.map(f => (
-                                <div key={f.id} className="flex items-center justify-between p-2 bg-zinc-900 border border-zinc-800">
-                                    <div className="flex items-center gap-3 min-w-0">
-                                        <img src={f.iconUrl} className="w-3 h-3 grayscale" alt="" />
-                                        <span className="text-[9px] font-black text-zinc-400 uppercase italic truncate">{f.title}</span>
+                        <div>
+                            <div className="flex items-center justify-between border-b border-zinc-800 pb-2 mb-4">
+                                <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-widest italic">Signal Transmissions</h3>
+                            </div>
+                            <div className="bg-zinc-900 p-4 border-2 border-zinc-800 mb-4">
+                                <AddSource onAddSource={onAddSource} />
+                            </div>
+                            <div className="space-y-2 max-h-[250px] overflow-y-auto scrollbar-hide">
+                                {settings.feeds.map(f => (
+                                    <div key={f.id} className="flex items-center justify-between p-2 bg-zinc-900 border border-zinc-800">
+                                        <div className="flex items-center gap-3 min-w-0">
+                                            <img src={f.iconUrl} className="w-3 h-3 grayscale" alt="" />
+                                            <span className="text-[9px] font-black text-zinc-400 uppercase italic truncate">{f.title}</span>
+                                        </div>
+                                        <button onClick={() => onRemoveFeed(f.id)} className="text-zinc-600 hover:text-pulse-500"><TrashIcon className="w-4 h-4" /></button>
                                     </div>
-                                    <button onClick={() => onRemoveFeed(f.id)} className="text-zinc-600 hover:text-pulse-500"><TrashIcon className="w-4 h-4" /></button>
-                                </div>
-                            ))}
+                                ))}
+                            </div>
                         </div>
-                    </>)}
+                    </div>)}
 
-                    {activeTab === 'Config' && (<>
+                    {activeTab === 'DISPLAY' && (<div className="space-y-6 animate-fade-in">
                         <div className="space-y-6">
                             <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
-                                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest italic">Interface Theme</label>
+                                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest italic">Luminance Protocol</label>
                                 <div className="flex bg-zinc-900 p-1 border border-zinc-800">
-                                    <button onClick={() => setLocalSettings(s => ({...s, theme: 'light'}))} className={`p-2 transition-all ${localSettings.theme === 'light' ? 'bg-pulse-600 text-white' : 'text-zinc-600'}`}><SunIcon className="w-4 h-4"/></button>
-                                    <button onClick={() => setLocalSettings(s => ({...s, theme: 'dark'}))} className={`p-2 transition-all ${localSettings.theme === 'dark' ? 'bg-pulse-600 text-white' : 'text-zinc-600'}`}><MoonIcon className="w-4 h-4"/></button>
+                                    <button onClick={() => setLocalSettings(s => ({...s, theme: 'light'}))} className={`p-2 transition-all ${localSettings.theme === 'light' ? 'bg-pulse-600 text-white shadow-lg' : 'text-zinc-600'}`} title="Light Mode"><SunIcon className="w-4 h-4"/></button>
+                                    <button onClick={() => setLocalSettings(s => ({...s, theme: 'dark'}))} className={`p-2 transition-all ${localSettings.theme === 'dark' ? 'bg-pulse-600 text-white shadow-lg' : 'text-zinc-600'}`} title="Dark Mode"><MoonIcon className="w-4 h-4"/></button>
                                 </div>
                             </div>
                             <div>
-                                <label htmlFor="articleView" className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-3 italic">Display Protocol</label>
-                                <select id="articleView" value={localSettings.articleView} onChange={e => setLocalSettings(s => ({...s, articleView: e.target.value as ArticleView}))} className="w-full bg-zinc-900 border-2 border-zinc-800 text-white py-3 px-4 text-[10px] font-black uppercase italic outline-none focus:border-pulse-500">
-                                    <option value="list">Log_List</option>
-                                    <option value="grid">Compressed_Packets</option>
-                                    <option value="featured">Prime_Signals</option>
+                                <label htmlFor="articleView" className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-3 italic">Rasterization Mode</label>
+                                <select id="articleView" value={localSettings.articleView} onChange={e => setLocalSettings(s => ({...s, articleView: e.target.value as ArticleView}))} className="w-full bg-zinc-900 border-2 border-zinc-800 text-white py-3 px-4 text-[10px] font-black uppercase italic outline-none focus:border-pulse-500 appearance-none">
+                                    <option value="list">LOG_LIST_V2</option>
+                                    <option value="grid">COMPRESSED_CELLS</option>
+                                    <option value="featured">PRIME_INTEL_FOCUS</option>
                                 </select>
                             </div>
-                            <div className="bg-zinc-900 p-4 border-2 border-zinc-800">
+                            <div className="bg-zinc-900 p-6 border-2 border-zinc-800">
                                 <div className="flex items-center justify-between mb-4">
                                     <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest italic">Atmospheric Probe</span>
-                                    <input type="checkbox" checked={localSettings.widgets.showWeather} onChange={e => handleWidgetChange('showWeather', e.target.checked)} className="h-4 w-4 bg-black border-zinc-800 text-pulse-600" />
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" checked={localSettings.widgets.showWeather} onChange={e => handleWidgetChange('showWeather', e.target.checked)} className="sr-only peer" />
+                                        <div className="w-9 h-5 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-pulse-600"></div>
+                                    </label>
                                 </div>
-                                <input type="text" value={localSettings.widgets.weatherLocation} onChange={e => handleWidgetChange('weatherLocation', e.target.value)} className="w-full bg-void-950 border border-zinc-800 text-white p-2 text-[10px] font-black italic outline-none" placeholder="Sector Location..." />
+                                <input type="text" value={localSettings.widgets.weatherLocation} onChange={e => handleWidgetChange('weatherLocation', e.target.value)} className="w-full bg-void-950 border border-zinc-800 text-white p-3 text-[10px] font-black italic outline-none focus:border-pulse-500" placeholder="Sector Coordinates (Location)..." />
                             </div>
                         </div>
-                    </>)}
+                    </div>)}
 
-                    {activeTab === 'Data' && (<>
-                        <div className="space-y-6">
-                            <div>
-                                <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-4 italic">Packet Archives (OPML)</h3>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <input type="file" ref={opmlInputRef} onChange={(e) => handleFileChange(e, onImportOpml)} style={hiddenInputStyle} accept=".opml,.xml" />
-                                    <ActionButton icon={<CloudArrowUpIcon className="w-4 h-4" />} onClick={() => opmlInputRef.current?.click()}>Import</ActionButton>
-                                    <ActionButton icon={<CloudArrowDownIcon className="w-4 h-4" />} onClick={onExportOpml}>Export</ActionButton>
-                                </div>
-                            </div>
-                            <div className="pt-6 border-t border-zinc-800">
-                                <h3 className="text-[10px] font-black text-pulse-500 uppercase tracking-widest mb-4 italic">Emergency Protocol</h3>
-                                <ActionButton variant="danger" icon={<TrashIcon className="w-4 h-4" />} onClick={handleCutTheFeed}>Purge All Signals</ActionButton>
+                    {activeTab === 'MEMORY' && (<div className="space-y-8 animate-fade-in">
+                        <div>
+                            <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-4 italic border-b border-zinc-800 pb-2">Packet Backup (OPML)</h3>
+                            <div className="grid grid-cols-2 gap-4">
+                                <input type="file" ref={opmlInputRef} onChange={(e) => handleFileChange(e, onImportOpml)} style={hiddenInputStyle} accept=".opml,.xml" />
+                                <ActionButton icon={<CloudArrowUpIcon className="w-4 h-4" />} onClick={() => opmlInputRef.current?.click()}>Import_Dat</ActionButton>
+                                <ActionButton icon={<CloudArrowDownIcon className="w-4 h-4" />} onClick={onExportOpml}>Export_Dat</ActionButton>
                             </div>
                         </div>
-                    </>)}
+                        
+                        <div className="p-6 bg-red-950/10 border-2 border-pulse-600/30 rounded-3xl">
+                            <h3 className="text-[10px] font-black text-pulse-500 uppercase tracking-widest mb-4 italic">Emergency Protocol</h3>
+                            <p className="text-[8px] text-zinc-600 uppercase mb-6 leading-relaxed">Warning: Severing all established uplinks will purge local signal cache. This action is irreversible.</p>
+                            <ActionButton variant="danger" icon={<TrashIcon className="w-4 h-4" />} onClick={handleCutTheFeed}>Purge_Memory_Dump</ActionButton>
+                        </div>
+                    </div>)}
                 </div>
 
-                <footer className="p-4 bg-zinc-300 border-t-2 border-black flex gap-2 shrink-0">
-                    <button onClick={onClose} className="flex-1 py-3 bg-zinc-100 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-400 text-[10px] font-black uppercase italic text-zinc-600 active:bg-zinc-200">Cancel</button>
-                    <button onClick={handleSave} className="flex-1 py-3 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 text-[10px] font-black uppercase italic text-black hover:bg-white active:bg-zinc-400">Save_Config</button>
+                <footer className="p-4 bg-zinc-300 border-t-2 border-black flex gap-2 shrink-0 z-20">
+                    <button onClick={onClose} className="flex-1 py-3 bg-zinc-100 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-400 text-[10px] font-black uppercase italic text-zinc-600 active:bg-zinc-200">ABORT</button>
+                    <button onClick={handleSave} className="flex-1 py-3 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 text-[10px] font-black uppercase italic text-black hover:bg-white active:bg-zinc-400">COMMIT_CHANGES</button>
                 </footer>
             </div>
         </div>
