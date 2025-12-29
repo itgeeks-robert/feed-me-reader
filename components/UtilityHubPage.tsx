@@ -54,22 +54,22 @@ const UtilityHubPage: React.FC<{ onSelect: (id: string) => void; onBackToHub: ()
                     {utils.map(util => (
                         <div 
                             key={util.id}
-                            className="group relative bg-void-900 border-2 border-zinc-800 hover:border-pulse-500/30 transition-all duration-300 p-10 shadow-[10px_10px_0px_black] hover:translate-x-[-2px] hover:translate-y-[-2px] flex flex-col"
+                            className="group relative bg-void-900 border-2 border-zinc-800 hover:border-pulse-500/30 transition-all duration-300 p-10 shadow-[10px_10px_0px_black] hover:translate-x-[-2px] hover:translate-y-[-2px] flex flex-col items-center text-center"
                         >
-                            <div className="p-4 bg-pulse-500/10 rounded-2xl text-pulse-500 w-fit mb-8 group-hover:scale-105 transition-transform">
-                                {React.cloneElement(util.icon, { className: "w-12 h-12" })}
+                            <div className="p-4 bg-pulse-500/10 rounded-2xl text-pulse-500 mb-8 group-hover:scale-110 transition-transform">
+                                {React.cloneElement(util.icon, { className: "w-16 h-16" })}
                             </div>
                             
                             <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter mb-2 group-hover:text-pulse-500 transition-colors">{util.title}</h3>
                             <p className="text-[8px] font-black text-neon-400 uppercase tracking-widest font-mono mb-6 italic">Protocol: {util.protocol}</p>
-                            <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest leading-relaxed mb-10 flex-grow">{util.description}</p>
+                            <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest leading-relaxed mb-12 flex-grow max-w-[200px]">{util.description}</p>
                             
-                            <div className="mt-auto">
+                            <div className="mt-auto w-full flex justify-center">
                                 <button 
                                     onClick={() => onSelect(util.id)}
-                                    className="w-full py-4 bg-white text-black font-black uppercase italic text-xs tracking-widest rounded-xl shadow-[4px_4px_0px_#e11d48] transition-all hover:bg-pulse-500 hover:text-white active:scale-95 active:shadow-[0_0_20px_#e11d48] flex items-center justify-center gap-2 group/btn"
+                                    className="w-[90%] py-5 bg-white text-black font-black uppercase italic text-xs tracking-[0.2em] rounded-2xl shadow-[5px_5px_0px_#e11d48] transition-all hover:bg-pulse-500 hover:text-white active:scale-90 active:bg-pulse-600 active:shadow-[0_0_30px_#e11d48] flex items-center justify-center gap-3 group/btn"
                                 >
-                                    <SparklesIcon className="w-4 h-4 animate-pulse group-active/btn:scale-125 transition-transform" />
+                                    <SparklesIcon className="w-5 h-5 group-active/btn:animate-ping transition-transform" />
                                     <span>Establish Link</span>
                                 </button>
                             </div>

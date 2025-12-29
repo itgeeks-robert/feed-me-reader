@@ -106,16 +106,16 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onEnterFeeds, onEnterArcade
                     <div className="w-full grid grid-cols-1 gap-5 animate-fade-in">
                         <button 
                             onClick={onEnterFeeds}
-                            className="group relative py-6 bg-white text-black font-black uppercase italic text-xl rounded-2xl shadow-[8px_8px_0px_#e11d48] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all active:scale-95 active:bg-pulse-500 active:text-white active:shadow-[0_0_30px_#e11d48] flex items-center justify-center gap-4"
+                            className="group relative py-6 bg-white text-black font-black uppercase italic text-xl rounded-2xl shadow-[8px_8px_0px_#e11d48] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all active:scale-95 active:bg-pulse-500 active:text-white active:shadow-[0_0_50px_#e11d48] flex items-center justify-center gap-4"
                         >
-                            <ListIcon className="w-6 h-6" />
+                            <ListIcon className="w-6 h-6 group-active:animate-ping" />
                             <span>SIGNAL ACQUISITION</span>
                         </button>
                         <button 
                             onClick={onEnterArcade}
-                            className="group py-6 bg-void-900 border-2 border-pulse-500 text-pulse-500 font-black uppercase italic text-xl rounded-2xl shadow-[8px_8px_0px_rgba(0,0,0,0.5)] hover:bg-pulse-500 hover:text-white transition-all active:scale-95 active:shadow-[0_0_30px_#e11d48] flex items-center justify-center gap-4"
+                            className="group py-6 bg-void-900 border-2 border-pulse-500 text-pulse-500 font-black uppercase italic text-xl rounded-2xl shadow-[8px_8px_0px_rgba(0,0,0,0.5)] hover:bg-pulse-500 hover:text-white transition-all active:scale-95 active:shadow-[0_0_50px_#e11d48] flex items-center justify-center gap-4"
                         >
-                            <ControllerIcon className="w-6 h-6" />
+                            <ControllerIcon className="w-6 h-6 group-active:animate-ping" />
                             <span>ENTER ARCADE CORE</span>
                         </button>
                     </div>

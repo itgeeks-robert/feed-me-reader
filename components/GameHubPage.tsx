@@ -31,35 +31,43 @@ const ShopItem: React.FC<{ name: string, cost: number, icon: React.ReactNode, de
     </div>
 );
 
-const VHSCard: React.FC<{ game: GameInfo; onPlay: () => void }> = ({ game, onPlay }) => {
+const VHSCard: React.FC<{ game: GameInfo; onPlay: () => void; isHighlighted?: boolean }> = ({ game, onPlay, isHighlighted }) => {
     return (
-        <div className="group relative bg-void-900 border-2 border-zinc-800 hover:border-pulse-500/40 transition-all duration-300 h-[420px] shadow-[10px_10px_0px_black] hover:translate-x-[-2px] hover:translate-y-[-2px] flex flex-col">
+        <div className={`group relative bg-void-900 border-2 ${isHighlighted ? 'border-pulse-500 shadow-[0_0_30px_rgba(225,29,72,0.2)]' : 'border-zinc-800'} hover:border-pulse-500 transition-all duration-300 h-[460px] shadow-[10px_10px_0px_black] hover:translate-x-[-2px] hover:translate-y-[-2px] flex flex-col`}>
+            {isHighlighted && (
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-pulse-500 text-white px-4 py-1 rounded-full text-[7px] font-black uppercase tracking-[0.3em] z-20 shadow-[0_0_15px_#e11d48] animate-bounce">
+                    Priority_Link
+                </div>
+            )}
+            
             <div className="h-40 w-full bg-void-950 flex items-center justify-center relative overflow-hidden border-b-2 border-zinc-800">
                 <div className="absolute top-0 left-0 bg-pulse-500 text-white px-3 py-1 text-[8px] font-black uppercase font-mono tracking-widest">VOID-SIM</div>
-                <div className="opacity-20 group-hover:opacity-40 transition-all duration-700 text-pulse-500 scale-110">
+                <div className={`opacity-20 group-hover:opacity-60 transition-all duration-700 ${isHighlighted ? 'text-pulse-500 scale-125 opacity-40' : 'text-zinc-600'} scale-110`}>
                     {React.cloneElement(game.icon, { className: "w-24 h-24" })}
                 </div>
-                <div className="absolute bottom-0 left-0 right-0 h-1 bg-pulse-500/30"></div>
+                <div className={`absolute bottom-0 left-0 right-0 h-1 ${isHighlighted ? 'bg-pulse-500' : 'bg-pulse-500/30'} animate-pulse`}></div>
             </div>
 
             <div className="p-6 flex flex-col flex-grow justify-between bg-void-950/20">
-                <div>
+                <div className="text-center">
                     <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter mb-1 group-hover:text-pulse-500 transition-colors">{game.title}</h3>
                     
-                    <div className="inline-block px-2 py-0.5 bg-neon-500/10 border border-neon-500/30 mb-3">
+                    <div className="inline-block px-2 py-0.5 bg-neon-500/10 border border-neon-500/30 mb-4">
                         <span className="text-[8px] font-black text-neon-400 uppercase tracking-widest font-mono">Protocol: {game.protocol}</span>
                     </div>
 
-                    <p className="text-[9px] text-zinc-500 uppercase font-bold tracking-widest font-mono leading-relaxed line-clamp-3">{game.description}</p>
+                    <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest font-mono leading-relaxed line-clamp-3 mx-auto max-w-[200px]">{game.description}</p>
                 </div>
 
-                <div className="flex flex-col items-center gap-4 mt-6">
+                <div className="flex flex-col items-center gap-5 mt-6">
                      <button 
                         onClick={(e) => { e.stopPropagation(); onPlay(); }}
-                        className="w-full py-4 bg-white text-black font-black uppercase italic text-xs tracking-widest rounded-xl shadow-[4px_4px_0px_#e11d48] transition-all hover:bg-pulse-500 hover:text-white active:scale-95 active:shadow-[0_0_25px_#e11d48] flex items-center justify-center gap-2 group/btn"
+                        className={`w-[85%] py-5 bg-white text-black font-black uppercase italic text-sm tracking-[0.2em] rounded-2xl shadow-[6px_6px_0px_#e11d48] transition-all hover:bg-pulse-500 hover:text-white active:scale-90 active:bg-pulse-600 active:shadow-[0_0_40px_#e11d48] flex items-center justify-center gap-3 group/btn relative overflow-hidden`}
                      >
-                        <SparklesIcon className="w-4 h-4 animate-pulse group-active/btn:scale-125 transition-transform" />
+                        <SparklesIcon className="w-5 h-5 group-active/btn:animate-ping transition-transform" />
                         <span>Enter Simulation</span>
+                        {/* Scanning beam effect on hover */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[scan_1.5s_infinite]" />
                      </button>
                      {game.stats && (
                         <div className="flex items-center gap-2">
@@ -160,11 +168,9 @@ const GameHubPage: React.FC<any> = (props) => {
                     0%, 100% { filter: drop-shadow(0 0 2px rgba(225,29,72,0.2)); }
                     50% { filter: drop-shadow(0 0 8px rgba(225,29,72,0.4)); }
                 }
-                .active-glow:active {
-                    animation: none;
-                    background-color: #e11d48 !important;
-                    box-shadow: 0 0 30px #e11d48 !important;
-                    color: white !important;
+                @keyframes scan {
+                    0% { transform: translateX(-100%); }
+                    100% { transform: translateX(100%); }
                 }
             `}</style>
             
@@ -196,7 +202,7 @@ const GameHubPage: React.FC<any> = (props) => {
                     </div>
                 </header>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-12">
-                    {games.map(game => <VHSCard key={game.id} game={game} onPlay={() => onSelect(game.id)} />)}
+                    {games.map(game => <VHSCard key={game.id} game={game} onPlay={() => onSelect(game.id)} isHighlighted={game.id === 'synapse_link'} />)}
                 </div>
             </div>
 
