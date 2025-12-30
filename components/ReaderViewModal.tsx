@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import type { Article } from '../src/App';
 import { XIcon } from './icons';
@@ -39,7 +40,7 @@ const ReaderViewModal: React.FC<ReaderViewModalProps> = ({ article, onClose, onM
     }, [parsedContent]);
 
     return (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-2 md:p-6" onClick={onClose} role="dialog" aria-modal="true">
+        <div className="fixed inset-0 bg-black/95 backdrop-blur-sm z-50 flex items-center justify-center pt-[calc(1rem+var(--safe-top))] pb-[calc(1rem+var(--safe-bottom))] px-2 md:px-6" onClick={onClose} role="dialog" aria-modal="true">
             <div className="bg-void-950 w-full max-w-5xl h-full flex flex-col shadow-[0_0_100px_rgba(0,0,0,0.8)] border-4 border-zinc-800 relative animate-fade-in" onClick={e => e.stopPropagation()}>
                 <div className="absolute inset-0 border-t-2 border-l-2 border-zinc-700/30 pointer-events-none z-10" />
                 <div className="absolute inset-0 border-b-2 border-r-2 border-black/40 pointer-events-none z-10" />

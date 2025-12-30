@@ -3,18 +3,13 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { XIcon, RadioIcon, BoltIcon, SparklesIcon, VoidIcon, ShieldCheckIcon, GlobeAltIcon, ControllerIcon, FireIcon, CpuChipIcon } from './icons';
 import { HANGMAN_DATA, HangmanWord } from '../services/hangmanData';
 import { saveHighScore, getHighScores } from '../services/highScoresService';
+import { useLocalStorage } from '../hooks/useLocalStorage';
 
 const MAX_MISTAKES = 7;
 const INITIAL_TIME = 60; 
 
-type GameMode = 'SOLO' | 'VERSUS';
 type GameState = 'LOBBY' | 'ROUND_TRANSITION' | 'PLAYING' | 'WON' | 'LOST' | 'FINAL_RESULTS';
 type CategoryFilter = 'ALL' | 'FILM' | 'MUSIC' | 'SPORT' | 'TECH' | 'FASHION' | 'GAMING';
-
-interface PlayerStats {
-    score: number;
-    totalTime: number;
-}
 
 const CATEGORY_MAP: Record<CategoryFilter, string[]> = {
     ALL: ['ACTOR', 'FILM', 'ARTIST', 'SONG', 'TECH', 'GAMING', 'SPORT', 'FASHION'],
@@ -158,17 +153,20 @@ const HieroglyphicHangmanVisual: React.FC<{ mistakes: number; isShaking: boolean
 };
 
 const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => {
-    const [gameState, setGameState] = useState<GameState>('LOBBY');
-    const [category, setCategory] = useState<CategoryFilter>('ALL');
-    const [usedWords, setUsedWords] = useState<Set<string>>(new Set());
-    const [level, setLevel] = useState(1);
-    const [target, setTarget] = useState<HangmanWord | null>(null);
-    const [guessedLetters, setGuessedLetters] = useState<Set<string>>(new Set());
-    const [mistakes, setMistakes] = useState(0);
+    // PERSISTENT STATE: Using useLocalStorage to ensure rotation doesn't reset the game
+    const [gameState, setGameState] = useLocalStorage<GameState>('void_hangman_state', 'LOBBY');
+    const [category, setCategory] = useLocalStorage<CategoryFilter>('void_hangman_category', 'ALL');
+    const [usedWords, setUsedWords] = useLocalStorage<Set<string>>('void_hangman_used_words', () => new Set());
+    const [level, setLevel] = useLocalStorage<number>('void_hangman_level', 1);
+    const [target, setTarget] = useLocalStorage<HangmanWord | null>('void_hangman_target', null);
+    const [guessedLetters, setGuessedLetters] = useLocalStorage<Set<string>>('void_hangman_guesses', () => new Set());
+    const [mistakes, setMistakes] = useLocalStorage<number>('void_hangman_mistakes', 0);
+    const [timeLeft, setTimeLeft] = useLocalStorage<number>('void_hangman_time', INITIAL_TIME);
+    
+    // Transient UI states
     const [isShocking, setIsShocking] = useState(false);
-    const [timeLeft, setTimeLeft] = useState(INITIAL_TIME);
-    const timerRef = useRef<number | null>(null);
     const [initials, setInitials] = useState("");
+    const timerRef = useRef<number | null>(null);
 
     const handleSaveScore = () => {
         saveHighScore('hangman', {
@@ -178,6 +176,11 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
             date: new Date().toISOString()
         });
         setGameState('LOBBY');
+        // Clear session
+        setTarget(null);
+        setGuessedLetters(new Set());
+        setMistakes(0);
+        setTimeLeft(INITIAL_TIME);
     };
 
     const startRound = useCallback((lvl: number) => {
@@ -188,45 +191,65 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
             !usedWords.has(d.word)
         );
         const random = (pool.length > 0 ? pool : HANGMAN_DATA)[Math.floor(Math.random() * (pool.length || HANGMAN_DATA.length))];
-        setUsedWords(prev => new Set(prev).add(random.word));
+        
+        setUsedWords(prev => {
+            const next = new Set(prev);
+            next.add(random.word);
+            return next;
+        });
+        
         setTarget(random);
         setGuessedLetters(new Set());
         setMistakes(0);
         setTimeLeft(INITIAL_TIME);
         setGameState('PLAYING');
-    }, [usedWords, category]);
+    }, [category, usedWords, setUsedWords, setTarget, setGuessedLetters, setMistakes, setTimeLeft, setGameState]);
 
     const handleGuess = useCallback((letter: string) => {
         if (gameState !== 'PLAYING' || !target || guessedLetters.has(letter)) return;
-        setGuessedLetters(prev => new Set(prev).add(letter));
+        
+        const newGuessed = new Set(guessedLetters);
+        newGuessed.add(letter);
+        setGuessedLetters(newGuessed);
+
         if (!target.word.toUpperCase().includes(letter)) {
-            setMistakes(m => {
-                const next = m + 1;
-                if (next >= MAX_MISTAKES) setGameState('LOST');
-                return next;
-            });
+            const nextMistakes = mistakes + 1;
+            setMistakes(nextMistakes);
             setIsShocking(true);
             setTimeout(() => setIsShocking(false), 200);
+            
+            if (nextMistakes >= MAX_MISTAKES) {
+                setGameState('LOST');
+            }
         } else {
-            const isWon = target.word.toUpperCase().split('').every(char => char === ' ' || !/[A-Z]/.test(char) || guessedLetters.has(char) || char === letter);
+            const isWon = target.word.toUpperCase().split('').every(char => 
+                char === ' ' || !/[A-Z]/.test(char) || newGuessed.has(char)
+            );
             if (isWon) setGameState('WON');
         }
-    }, [gameState, target, guessedLetters]);
+    }, [gameState, target, guessedLetters, mistakes, setGuessedLetters, setMistakes, setGameState]);
 
     useEffect(() => {
         if (gameState === 'PLAYING') {
             timerRef.current = window.setInterval(() => {
                 setTimeLeft(t => {
-                    if (t <= 1) { setGameState('LOST'); return 0; }
+                    if (t <= 1) { 
+                        setGameState('LOST'); 
+                        return 0; 
+                    }
                     return t - 1;
                 });
             }, 1000);
+        } else {
+            if (timerRef.current) clearInterval(timerRef.current);
         }
         return () => { if (timerRef.current) clearInterval(timerRef.current); };
-    }, [gameState]);
+    }, [gameState, setGameState, setTimeLeft]);
 
     useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => { if (/^[a-zA-Z]$/.test(e.key)) handleGuess(e.key.toUpperCase()); };
+        const handleKeyDown = (e: KeyboardEvent) => { 
+            if (/^[a-zA-Z]$/.test(e.key)) handleGuess(e.key.toUpperCase()); 
+        };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [handleGuess]);

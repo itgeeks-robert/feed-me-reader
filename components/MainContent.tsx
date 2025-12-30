@@ -64,7 +64,7 @@ const CATEGORY_MAP = [
 ];
 
 const EnergyScope: React.FC<{ value: number, onClick?: () => void }> = ({ value, onClick }) => (
-    <div className="w-full flex flex-col gap-0.5 cursor-help group" onClick={onClick}>
+    <div className="w-full flex flex-col gap-1 cursor-help group" onClick={onClick}>
         <div className="flex justify-between items-center">
             <span className="text-[9px] font-black text-pulse-600 dark:text-pulse-500 uppercase tracking-tighter italic leading-none group-hover:text-white transition-colors">System Integrity</span>
             <span className="text-[9px] font-black text-pulse-600 dark:text-pulse-500 uppercase tracking-tighter italic leading-none">{value}%</span>
@@ -232,7 +232,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                     onOpenSearchExplainer={onOpenSearchExplainer}
                     onOpenIntegrityBriefing={onOpenIntegrityBriefing}
                 />
-                <div className="pt-20 md:pt-24 landscape:pt-14">
+                <div className="pt-24 md:pt-32">
                     <FeedOnboarding onComplete={(f, fld) => { onSetFolders(fld); onSetFeeds(f); }} />
                 </div>
             </main>
@@ -260,15 +260,14 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                 onOpenIntegrityBriefing={onOpenIntegrityBriefing}
             />
             
-            {/* Category Nav - Relative to its container to respect the header above it and safe areas */}
-            <nav className="fixed top-[calc(3rem+var(--safe-top))] md:top-[calc(4rem+var(--safe-top))] landscape:top-[calc(2.5rem+var(--safe-top))] left-0 right-0 z-20 bg-void-900/90 backdrop-blur-md border-b border-zinc-200 dark:border-white/5 flex items-center h-10 landscape:h-8 overflow-x-auto scrollbar-hide px-4 md:px-12 gap-2 shadow-xl transition-all">
+            <nav className="fixed top-[calc(4.5rem+var(--safe-top))] md:top-[calc(6rem+var(--safe-top))] landscape:top-[calc(4rem+var(--safe-top))] left-0 right-0 z-20 bg-void-900/90 backdrop-blur-md border-b border-zinc-200 dark:border-white/5 flex items-center h-11 landscape:h-9 overflow-x-auto scrollbar-hide px-4 md:px-12 gap-2 shadow-xl transition-all">
                 <button onClick={() => onSelectCategory(null)} className={`shrink-0 px-3 py-1 landscape:py-0.5 rounded-full text-[8px] landscape:text-[7px] font-black uppercase italic transition-all border ${!selection.category ? 'bg-pulse-500 border-pulse-400 text-white shadow-lg shadow-pulse-500/20' : 'bg-void-950 border-zinc-300 dark:border-zinc-800 text-zinc-500 hover:text-terminal'}`}>INCOMING INTEL</button>
                 {CATEGORY_MAP.map(cat => (
                     <button key={cat.id} onClick={() => handleCategoryClick(cat.id)} className={`shrink-0 flex items-center gap-1.5 px-3 py-1 landscape:py-0.5 rounded-full text-[8px] landscape:text-[7px] font-black uppercase italic transition-all border ${selection.category === cat.id ? 'bg-pulse-500 border-pulse-400 text-white shadow-lg shadow-pulse-500/20' : 'bg-void-950 border-zinc-300 dark:border-zinc-800 text-zinc-500 hover:text-terminal'}`}>{cat.icon}<span>{cat.id}</span></button>
                 ))}
             </nav>
 
-            <div className="px-4 md:px-8 pt-[calc(6.5rem+var(--safe-top))] md:pt-[calc(7.5rem+var(--safe-top))] landscape:pt-[calc(5rem+var(--safe-top))] max-w-[1800px] mx-auto transition-all">
+            <div className="px-4 md:px-8 pt-[calc(8rem+var(--safe-top))] md:pt-[calc(10rem+var(--safe-top))] landscape:pt-[calc(7rem+var(--safe-top))] max-w-[1800px] mx-auto transition-all">
                  <div className="flex flex-col md:flex-row md:items-end justify-between gap-2 pb-4 border-b border-pulse-500/20 mb-6">
                     <div>
                         <h1 className="text-xl md:text-2xl font-black text-terminal italic glitch-text uppercase tracking-widest leading-none">{pageTitle}</h1>
@@ -366,13 +365,13 @@ const Header: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuery, on
     }, [searchQuery]);
 
     return (
-        <header className="fixed top-0 left-0 right-0 z-30 h-[calc(3rem+var(--safe-top))] md:h-[calc(4rem+var(--safe-top))] landscape:h-[calc(2.5rem+var(--safe-top))] transition-all">
+        <header className="fixed top-0 left-0 right-0 z-30 h-[calc(4.5rem+var(--safe-top))] md:h-[calc(6rem+var(--safe-top))] landscape:h-[calc(4rem+var(--safe-top))] transition-all">
             <div className="w-full h-full bg-void-950/90 backdrop-blur-xl border-b border-pulse-500/30 flex items-center justify-between px-4 md:px-12 shadow-2xl pt-[var(--safe-top)]">
-                <button onClick={onOpenSidebar} className="p-1.5 text-pulse-600 dark:text-pulse-500 transition-all flex-shrink-0 active:scale-90"><MenuIcon className="w-6 h-6 md:w-7 md:h-7 landscape:w-5 landscape:h-5" /></button>
+                <button onClick={onOpenSidebar} className="p-1.5 text-pulse-600 dark:text-pulse-500 transition-all flex-shrink-0 active:scale-90"><MenuIcon className="w-6 h-6 md:w-8 md:h-8 landscape:w-6 landscape:h-6" /></button>
                 <div className="flex-grow flex flex-col items-center mx-3 md:mx-16 max-w-2xl relative">
-                    <form onSubmit={onSearchSubmit} className="relative w-full mb-0.5 group">
+                    <form onSubmit={onSearchSubmit} className="relative w-full mb-2 md:mb-3 group">
                         <div className={`absolute top-1/2 left-3 md:left-5 -translate-y-1/2 transition-colors duration-300 ${isSniffing ? 'text-emerald-600 dark:text-emerald-500' : 'text-zinc-400 dark:text-zinc-700'}`}>
-                            {isSniffing ? <ArrowPathIcon className="w-3.5 h-3.5 md:w-4 md:h-4 landscape:w-3 landscape:h-3 animate-spin" /> : <SearchIcon className="w-3.5 h-3.5 md:w-4 md:h-4 landscape:w-3 landscape:h-3" />}
+                            {isSniffing ? <ArrowPathIcon className="w-3.5 h-3.5 md:w-5 md:h-5 landscape:w-4 landscape:h-4 animate-spin" /> : <SearchIcon className="w-3.5 h-3.5 md:w-5 md:h-5 landscape:w-4 landscape:h-4" />}
                         </div>
                         
                         <input 
@@ -381,7 +380,7 @@ const Header: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuery, on
                             value={searchQuery} 
                             onFocus={onOpenSearchExplainer}
                             onChange={e => setSearchQuery(e.target.value)} 
-                            className={`w-full bg-void-900 border focus:border-pulse-500 placeholder-zinc-500 dark:placeholder-zinc-700 text-terminal rounded-none py-1.5 md:py-2 landscape:py-1 pl-9 md:pl-12 landscape:pl-8 pr-16 md:pr-24 text-[9px] md:text-sm landscape:text-[8px] font-mono uppercase tracking-widest outline-none shadow-inner transition-all
+                            className={`w-full bg-void-900 border focus:border-pulse-500 placeholder-zinc-500 dark:placeholder-zinc-700 text-terminal rounded-none py-2 md:py-3 landscape:py-1.5 pl-9 md:pl-14 landscape:pl-10 pr-16 md:pr-24 text-[9px] md:text-sm landscape:text-[8px] font-mono uppercase tracking-widest outline-none shadow-inner transition-all
                                 ${isUrl ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-zinc-300 dark:border-zinc-800'}`} 
                         />
 
@@ -389,7 +388,7 @@ const Header: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuery, on
                             <button 
                                 type="button"
                                 onClick={onSniff}
-                                className="absolute top-1/2 right-1 -translate-y-1/2 bg-emerald-600 hover:bg-emerald-500 text-white font-black uppercase italic text-[6px] md:text-[8px] px-2 py-1 shadow-lg animate-fade-in border border-emerald-400/50"
+                                className="absolute top-1/2 right-1 -translate-y-1/2 bg-emerald-600 hover:bg-emerald-500 text-white font-black uppercase italic text-[6px] md:text-[9px] px-2 py-1 shadow-lg animate-fade-in border border-emerald-400/50"
                             >
                                 [SNIFF]
                             </button>
@@ -401,7 +400,7 @@ const Header: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuery, on
                     </div>
                 </div>
                 <div className="flex items-center gap-2 md:gap-6 flex-shrink-0">
-                    <button onClick={onToggleTheme} className="p-1.5 text-pulse-600 dark:text-pulse-500 hover:text-terminal transition-all active:scale-90">{theme === 'dark' ? <SunIcon className="w-4 h-4 md:w-6 md:h-6 landscape:w-4 landscape:h-4" /> : <MoonIcon className="w-4 h-4 md:w-6 md:h-6 landscape:w-4 landscape:h-4" />}</button>
+                    <button onClick={onToggleTheme} className="p-1.5 text-pulse-600 dark:text-pulse-500 hover:text-terminal transition-all active:scale-90">{theme === 'dark' ? <SunIcon className="w-5 h-5 md:w-7 md:h-7 landscape:w-5 landscape:h-5" /> : <MoonIcon className="w-5 h-5 md:w-7 md:h-7 landscape:w-5 landscape:h-5" />}</button>
                 </div>
             </div>
         </header>
