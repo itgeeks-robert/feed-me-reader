@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import MainContent from '../components/MainContent';
 import type { SourceType } from '../components/AddSource';
@@ -22,6 +23,7 @@ import CipherCorePage from '../components/SporeCryptPage';
 import VoidRunnerPage from '../components/VoidRunnerPage';
 import SynapseLinkPage from '../components/SynapseLinkPage';
 import GridResetPage from '../components/GridResetPage';
+import HangmanPage from '../components/HangmanPage';
 import BlackMarket from '../components/BlackMarket';
 import { resilientFetch } from '../services/fetch';
 import { parseRssXml } from '../services/rssParser';
@@ -38,7 +40,7 @@ export interface SolitaireStats { gamesWon: number; currentStreak: number; }
 export interface SolitaireSettings { drawThree: boolean; }
 
 export type Selection = { 
-    type: 'splash' | 'all' | 'folder' | 'bookmarks' | 'search' | 'feed' | 'reddit' | 'game_hub' | 'daily_uplink' | 'grid_reset' | 'deep_sync' | 'signal_scrambler' | 'utility_hub' | 'signal_streamer' | 'transcoder' | 'sudoku' | 'solitaire' | 'minesweeper' | 'tetris' | 'pool' | 'cipher_core' | 'void_runner' | 'synapse_link'; 
+    type: 'splash' | 'all' | 'folder' | 'bookmarks' | 'search' | 'feed' | 'reddit' | 'game_hub' | 'daily_uplink' | 'grid_reset' | 'deep_sync' | 'signal_scrambler' | 'utility_hub' | 'signal_streamer' | 'transcoder' | 'sudoku' | 'solitaire' | 'minesweeper' | 'tetris' | 'pool' | 'cipher_core' | 'void_runner' | 'synapse_link' | 'hangman'; 
     id: string | number | null; 
     query?: string;
     category?: string;
@@ -73,7 +75,13 @@ const App: React.FC = () => {
     const [uptime, setUptime] = useLocalStorage<number>(UPTIME_KEY, 25);
     const [credits, setCredits] = useLocalStorage<number>(CREDITS_KEY, 100); 
 
-    const [selection, setSelection] = useState<Selection>({ type: 'splash', id: null });
+    const [selection, setSelection] = useState<Selection>(() => {
+        if (typeof window !== 'undefined' && window.history.state?.selection) {
+            return window.history.state.selection;
+        }
+        return { type: 'splash', id: null };
+    });
+
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
     const [isAddSourceModalOpen, setIsAddSourceModalOpen] = useState(false);
     const [isShopOpen, setIsShopOpen] = useState(false);
@@ -94,9 +102,9 @@ const App: React.FC = () => {
     useEffect(() => {
         const handlePopState = (event: PopStateEvent) => {
             if (event.state?.isReader) {
-                // Reader handled via state
+                // Modal reader view handled
             } else if (event.state?.isOutbound || event.state?.isExplainer || event.state?.isIntegrity) {
-                // Modals handled via their states
+                // Modals handled
             } else if (readerArticle) {
                 setReaderArticle(null);
             } else if (outboundLink) {
@@ -115,9 +123,13 @@ const App: React.FC = () => {
         return () => window.removeEventListener('popstate', handlePopState);
     }, [readerArticle, outboundLink, showSearchExplainer, showIntegrityBriefing]);
 
-    const updateSelection = useCallback((newSel: Selection) => {
+    const updateSelection = useCallback((newSel: Selection, replace: boolean = false) => {
         setSelection(newSel);
-        window.history.pushState({ selection: newSel }, '');
+        if (replace) {
+            window.history.replaceState({ selection: newSel }, '');
+        } else {
+            window.history.pushState({ selection: newSel }, '');
+        }
     }, []);
 
     const openReader = useCallback((article: Article) => {
@@ -138,8 +150,6 @@ const App: React.FC = () => {
                 setReadArticleIds(prev => new Set(prev).add(id));
                 setCredits(c => c + 10);
             }
-            // window.open is often blocked on Android in certain contexts. 
-            // assign() is the absolute fallback for severing the session to view raw stream.
             if (isMobile()) {
                 window.location.assign(url);
             } else {
@@ -164,9 +174,6 @@ const App: React.FC = () => {
                 setReadArticleIds(prev => new Set(prev).add(outboundLink.id));
                 setCredits(c => c + 10);
             }
-            
-            // For Android/iOS stability in PWA or standard browser, location assignment
-            // is more robust than window.open when triggered inside a state-driven modal.
             if (isMobile()) {
                 window.location.assign(outboundLink.url);
             } else {
@@ -225,8 +232,8 @@ const App: React.FC = () => {
         }
     };
 
-    const handleReturnToFeeds = useCallback(() => { updateSelection({ type: 'all', id: null }); }, [updateSelection]);
-    const handleEnterArcade = useCallback(() => { updateSelection({ type: 'game_hub', id: null }); }, [updateSelection]);
+    const handleReturnToFeeds = useCallback(() => { updateSelection({ type: 'all', id: null }, selection.type === 'splash'); }, [updateSelection, selection.type]);
+    const handleEnterArcade = useCallback(() => { updateSelection({ type: 'game_hub', id: null }, selection.type === 'splash'); }, [updateSelection, selection.type]);
     const handleEnterUtils = useCallback(() => { updateSelection({ type: 'utility_hub', id: null }); }, [updateSelection]);
 
     const handleAddSource = async (url: string, type: SourceType) => {
@@ -285,6 +292,7 @@ const App: React.FC = () => {
             case 'void_runner': return <VoidRunnerPage onBackToHub={handleEnterArcade} onReturnToFeeds={handleReturnToFeeds} />;
             case 'synapse_link': return <SynapseLinkPage onBackToHub={handleEnterArcade} />;
             case 'grid_reset': return <GridResetPage onBackToHub={handleEnterArcade} />;
+            case 'hangman': return <HangmanPage onBackToHub={handleEnterArcade} />;
             case 'signal_streamer': return <SignalStreamerPage onBackToHub={handleEnterUtils} />;
             case 'transcoder': return <TranscoderPage onBackToHub={handleEnterUtils} />;
             case 'deep_sync': return <DeepSyncPage onBackToHub={handleEnterUtils} />;
@@ -337,13 +345,14 @@ const App: React.FC = () => {
         }
     };
 
+    // SAFE ZONE LOCK: Root container enforces safe area padding to respect system bars globally
     return (
-        <div className="h-screen w-full font-sans text-sm relative flex flex-col overflow-hidden bg-void-950">
+        <div className="h-screen w-full font-sans text-sm relative flex flex-col overflow-hidden bg-void-950 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
             <div className="flex-1 flex flex-col min-w-0 relative pb-20 md:pb-0 h-full overflow-hidden">
                 {renderCurrentPage()}
             </div>
             
-            <BottomNavBar selection={selection} onSelect={updateSelection} onOpenSettings={() => setIsSettingsModalOpen(true)} />
+            <BottomNavBar selection={selection} onSelect={(s) => updateSelection(s)} onOpenSettings={() => setIsSettingsModalOpen(true)} />
             
             <SettingsModal 
                 isOpen={isSettingsModalOpen} 
@@ -360,12 +369,10 @@ const App: React.FC = () => {
             />
             
             <AddSourceModal isOpen={isAddSourceModalOpen} onClose={() => setIsAddSourceModalOpen(false)} onAddSource={handleAddSource} />
-            
             <BlackMarket isOpen={isShopOpen} onClose={() => setIsShopOpen(false)} credits={credits} setCredits={setCredits} uptime={uptime} setUptime={setUptime} />
-            
             {readerArticle && <ReaderViewModal article={readerArticle} onClose={closeReader} onMarkAsRead={handleMarkAsRead} />}
 
-            {/* SEARCH EXPLAINER MODAL */}
+            {/* Global Overlays remain absolute but interactive content respects safe area */}
             {showSearchExplainer && (
                 <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-[200] flex items-center justify-center p-4 md:p-6 font-mono animate-fade-in pointer-events-auto">
                     <div className="bg-zinc-900 border-4 border-pulse-500 shadow-[0_0_120px_rgba(225,29,72,0.3)] w-full max-w-sm relative overflow-hidden flex flex-col">
@@ -380,162 +387,17 @@ const App: React.FC = () => {
                                 <XIcon className="w-4 h-4 text-black" />
                             </button>
                         </header>
-
                         <div className="p-10 bg-void-950 space-y-8 text-center">
                             <div className="mx-auto w-20 h-20 bg-pulse-500/10 rounded-full flex items-center justify-center border-2 border-pulse-500 animate-pulse">
                                 <SearchIcon className="w-10 h-10 text-pulse-500" />
                             </div>
                             <div className="space-y-4">
                                 <h3 className="text-xl font-black text-white italic uppercase tracking-tighter leading-none">Frequency Sniffer</h3>
-                                <p className="text-[10px] text-zinc-500 leading-relaxed uppercase tracking-widest italic">
-                                    The terminal allows for <span className="text-white font-black">Keyword Search</span> or <span className="text-white font-black">Live URL Probing</span>. 
-                                    <br/><br/>
-                                    Decryption depends on the target node having established <span className="text-pulse-500 font-black">RSS broadcast protocols</span>. If a site lacks an RSS feed, the sniffer cannot intercept its signal.
-                                </p>
+                                <p className="text-[10px] text-zinc-500 leading-relaxed uppercase tracking-widest italic">Interception depends on target node RSS broadcast protocols.</p>
                             </div>
-                            
-                            <label className="flex items-center justify-center gap-3 cursor-pointer group pt-2">
-                                <input 
-                                    type="checkbox" 
-                                    className="sr-only" 
-                                    checked={skipSearchExplainer}
-                                    onChange={(e) => setSkipSearchExplainer(e.target.checked)}
-                                />
-                                <div className={`w-5 h-5 border-2 flex-shrink-0 transition-colors ${skipSearchExplainer ? 'bg-pulse-500 border-pulse-400 shadow-[0_0_10px_#e11d48]' : 'bg-transparent border-zinc-700'}`} />
-                                <span className="text-[9px] font-black uppercase tracking-widest text-zinc-600 group-hover:text-zinc-300 italic">Dismiss permanently</span>
-                            </label>
                         </div>
-
                         <footer className="p-4 bg-zinc-300 border-t-2 border-black">
                             <button onClick={() => setShowSearchExplainer(false)} className="w-full py-4 bg-zinc-100 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-400 text-xs font-black uppercase italic text-black active:bg-zinc-200">PROCEED_WITH_SCAN</button>
-                        </footer>
-                    </div>
-                </div>
-            )}
-
-            {/* SYSTEM INTEGRITY BRIEFING MODAL */}
-            {showIntegrityBriefing && (
-                <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-[200] flex items-center justify-center p-4 md:p-6 font-mono animate-fade-in pointer-events-auto">
-                    <div className="bg-zinc-900 border-4 border-emerald-500 shadow-[0_0_120px_rgba(16,185,129,0.3)] w-full max-w-sm relative overflow-hidden flex flex-col">
-                        <header className="h-10 bg-emerald-600 flex items-center justify-between px-1 border-b-2 border-black">
-                            <div className="flex items-center gap-2 h-full">
-                                <div className="w-8 h-7 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center">
-                                   <div className="w-4 h-1 bg-black shadow-[0_4px_0_black]" />
-                                </div>
-                                <h2 className="text-white text-[10px] font-black uppercase tracking-[0.2em] italic px-2">SYST_INTEGRITY.EXE</h2>
-                            </div>
-                            <button onClick={() => setShowIntegrityBriefing(false)} className="w-8 h-7 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center active:bg-zinc-400">
-                                <XIcon className="w-4 h-4 text-black" />
-                            </button>
-                        </header>
-
-                        <div className="p-10 bg-void-950 space-y-8 text-center">
-                            <div className="mx-auto w-20 h-20 bg-emerald-500/10 rounded-full flex items-center justify-center border-2 border-emerald-500 animate-pulse">
-                                <ShieldCheckIcon className="w-10 h-10 text-emerald-500" />
-                            </div>
-                            <div className="space-y-4">
-                                <h3 className="text-xl font-black text-white italic uppercase tracking-tighter leading-none">Kernel Stability & Rewards</h3>
-                                <p className="text-[10px] text-zinc-500 leading-relaxed uppercase tracking-widest italic">
-                                    Maintaining <span className="text-emerald-500">System Integrity</span> ensures smooth uplink performance. 
-                                    <br/><br/>
-                                    <span className="text-white font-black">Earning Node Points (SC):</span> Every <span className="text-pulse-500 font-black">10 article reads</span> generates <span className="text-pulse-500 font-black">100 SC</span>. 
-                                    <br/><br/>
-                                    Maintaining activity via <span className="text-white">Reading Transmissions</span> or <span className="text-white">Clearing Arcade Sectors</span> restores stability. High integrity prevents signal drift and keeps the terminal responsive.
-                                </p>
-                            </div>
-                            
-                            <label className="flex items-center justify-center gap-3 cursor-pointer group pt-2">
-                                <input 
-                                    type="checkbox" 
-                                    className="sr-only" 
-                                    checked={skipIntegrityBriefing}
-                                    onChange={(e) => setSkipIntegrityBriefing(e.target.checked)}
-                                />
-                                <div className={`w-5 h-5 border-2 flex-shrink-0 transition-colors ${skipIntegrityBriefing ? 'bg-emerald-500 border-emerald-400 shadow-[0_0_10px_#10b981]' : 'bg-transparent border-zinc-700'}`} />
-                                <span className="text-[9px] font-black uppercase tracking-widest text-zinc-600 group-hover:text-zinc-300 italic">Do not show help again</span>
-                            </label>
-                        </div>
-
-                        <footer className="p-4 bg-zinc-300 border-t-2 border-black">
-                            <button onClick={() => setShowIntegrityBriefing(false)} className="w-full py-4 bg-zinc-100 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-400 text-xs font-black uppercase italic text-black active:bg-zinc-200">ACKNOWLEDGE</button>
-                        </footer>
-                    </div>
-                </div>
-            )}
-
-            {/* EXTERNAL REDIRECT WARNING MODAL */}
-            {outboundLink && (
-                <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-[200] flex items-center justify-center p-4 md:p-6 font-mono animate-fade-in pointer-events-auto">
-                    <div className="bg-zinc-900 border-4 border-amber-500 shadow-[0_0_120px_rgba(245,158,11,0.3)] w-full max-w-sm relative overflow-hidden flex flex-col">
-                        <header className="h-10 bg-amber-600 flex items-center justify-between px-1 border-b-2 border-black">
-                            <div className="flex items-center gap-2 h-full">
-                                <div className="w-8 h-7 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center">
-                                   <div className="w-4 h-1 bg-black shadow-[0_4px_0_black]" />
-                                </div>
-                                <h2 className="text-white text-[10px] font-black uppercase tracking-[0.2em] italic px-2">OUTBOUND_LINK.EXE</h2>
-                            </div>
-                            <button onClick={closeExternalWarning} className="w-8 h-7 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center active:bg-zinc-400">
-                                <XIcon className="w-4 h-4 text-black" />
-                            </button>
-                        </header>
-
-                        <div className="p-10 bg-void-950 text-center space-y-8">
-                            <div className="mx-auto w-20 h-20 bg-amber-500/10 rounded-full flex items-center justify-center border-2 border-amber-500 animate-pulse">
-                                <GlobeAltIcon className="w-10 h-10 text-amber-500" />
-                            </div>
-                            <div className="space-y-4">
-                                <h3 className="text-xl font-black text-white italic uppercase tracking-tighter leading-none">Exiting Secure Core</h3>
-                                <p className="text-[10px] text-zinc-500 leading-relaxed uppercase tracking-widest italic">Warning: You are attempting to sever the local link and proceed to a raw external stream. This action occurs outside the system sandbox.</p>
-                            </div>
-                            
-                            <label className="flex items-center justify-center gap-3 cursor-pointer group pt-2">
-                                <input 
-                                    type="checkbox" 
-                                    className="sr-only" 
-                                    checked={skipExternalWarning}
-                                    onChange={(e) => setSkipExternalWarning(e.target.checked)}
-                                />
-                                <div className={`w-5 h-5 border-2 flex-shrink-0 transition-colors ${skipExternalWarning ? 'bg-amber-500 border-amber-400 shadow-[0_0_10px_#f59e0b]' : 'bg-transparent border-zinc-700'}`} />
-                                <span className="text-[9px] font-black uppercase tracking-widest text-zinc-600 group-hover:text-zinc-300 italic">Deactivate Warning</span>
-                            </label>
-                        </div>
-
-                        <footer className="p-4 bg-zinc-300 border-t-2 border-black flex gap-3">
-                            <button onClick={closeExternalWarning} className="flex-1 py-4 bg-zinc-100 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-400 text-xs font-black uppercase italic text-zinc-600 active:bg-zinc-200">ABORT</button>
-                            <button onClick={proceedExternal} className="flex-1 py-4 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 text-xs font-black uppercase italic text-black hover:bg-white active:bg-zinc-400">PROCEED</button>
-                        </footer>
-                    </div>
-                </div>
-            )}
-
-            {/* Global Sniffer Error Modal */}
-            {showSniffErrorModal && (
-                <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-[200] flex items-center justify-center p-4 md:p-6 font-mono pointer-events-auto">
-                    <div className="bg-zinc-900 border-4 border-pulse-500 shadow-[0_0_120px_rgba(225,29,72,0.4)] w-full max-w-sm relative overflow-hidden flex flex-col animate-fade-in">
-                        <header className="h-10 bg-pulse-600 flex items-center justify-between px-1 border-b-2 border-black">
-                            <div className="flex items-center gap-2 h-full">
-                                <div className="w-8 h-7 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center">
-                                   <div className="w-4 h-1 bg-black shadow-[0_4px_0_black]" />
-                                </div>
-                                <h2 className="text-white text-[10px] font-black uppercase tracking-[0.2em] italic px-2">SYST_FAULT.EXE</h2>
-                            </div>
-                            <button onClick={() => setShowSniffErrorModal(false)} className="w-8 h-7 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center active:bg-zinc-400">
-                                <XIcon className="w-4 h-4 text-black" />
-                            </button>
-                        </header>
-
-                        <div className="p-10 bg-void-950 text-center space-y-8">
-                            <div className="mx-auto w-20 h-20 bg-pulse-500/10 rounded-full flex items-center justify-center border-2 border-pulse-500 animate-pulse">
-                                <RadioIcon className="w-10 h-10 text-pulse-500" />
-                            </div>
-                            <div className="space-y-4">
-                                <h3 className="text-xl font-black text-white italic uppercase tracking-tighter leading-none">Connection field silent</h3>
-                                <p className="text-[10px] text-zinc-500 leading-relaxed uppercase tracking-widest italic">The sector scanner returned 0x404. No usable RSS signals were detected on the targeted node. Verify frequency and try again later.</p>
-                            </div>
-                        </div>
-
-                        <footer className="p-4 bg-zinc-300 border-t-2 border-black">
-                            <button onClick={() => setShowSniffErrorModal(false)} className="w-full py-4 bg-zinc-100 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-400 text-xs font-black uppercase italic text-black active:bg-zinc-200">CLOSE_TERMINAL</button>
                         </footer>
                     </div>
                 </div>

@@ -28,11 +28,6 @@ const TechnicalBlueprint: React.FC = () => (
             <rect width="100%" height="100%" fill="url(#grid)" />
             <g stroke="rgba(225,29,72,0.3)" fill="none" strokeWidth="1">
                 <circle cx="10%" cy="10%" r="50" />
-                <circle cx="10%" cy="10%" r="40" strokeDasharray="5,5" />
-                <path d="M 0 10% L 20% 10% M 10% 0 L 10% 20%" />
-                <rect x="80%" y="70%" width="120" height="180" />
-                <path d="M 80% 75% L 90% 75% M 80% 80% L 90% 80%" />
-                <text x="81%" y="73%" fill="rgba(225,29,72,0.5)" fontSize="8" fontFamily="monospace">MODULE_B12</text>
                 <path d="M 50% 0 L 50% 100%" strokeDasharray="10,10" />
                 <path d="M 0 50% L 100% 50%" strokeDasharray="10,10" />
             </g>
@@ -52,7 +47,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onEnterFeeds, onEnterArcade
 
         const timer = setInterval(() => {
             setLoadingProgress(prev => {
-                if (prev >= 95 && isDecoding) return 95; // Wait for decoding at 95%
+                if (prev >= 95 && isDecoding) return 95;
                 if (prev >= 100) {
                     clearInterval(timer);
                     setIsBootComplete(true);
@@ -69,18 +64,19 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onEnterFeeds, onEnterArcade
     }, [isDecoding]);
 
     return (
-        <div className="fixed inset-0 z-[100] bg-void-950 flex flex-col items-center justify-center overflow-hidden font-mono pt-[env(safe-area-inset-top)]">
+        <div className="fixed inset-0 z-[100] bg-void-950 flex flex-col items-center justify-center overflow-hidden font-mono">
             <TechnicalBlueprint />
             <div className="absolute inset-0 z-10 pointer-events-none cctv-overlay opacity-30" />
             
             <div className="relative z-20 w-full max-w-lg px-8 flex flex-col items-center text-center">
-                <div className="mb-12 group">
+                {/* Visual Header - Balanced for Mobile Top System Bar */}
+                <div className="mb-10 mt-12 group">
                     <div className="p-6 bg-pulse-500 rounded-[2.5rem] shadow-[0_0_80px_rgba(225,29,72,0.5)] border-4 border-white/20 animate-pulse">
-                        <VoidIcon className="w-24 h-24 text-white" />
+                        <VoidIcon className="w-20 h-20 text-white" />
                     </div>
                 </div>
 
-                <div className="mb-12">
+                <div className="mb-10">
                     <h1 className="text-6xl md:text-7xl font-black text-white italic uppercase tracking-tighter mb-4 glitch-text">THE VOID</h1>
                     <div className="flex items-center justify-center gap-4">
                         <div className="h-px w-12 bg-pulse-500"></div>
@@ -103,26 +99,28 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onEnterFeeds, onEnterArcade
                         </div>
                     </div>
                 ) : (
-                    <div className="w-full grid grid-cols-1 gap-5 animate-fade-in">
+                    /* ACTION BUTTONS: Centered in the middle-third to avoid Android navigation zones */
+                    <div className="w-full grid grid-cols-1 gap-5 animate-fade-in mb-16">
                         <button 
                             onClick={onEnterFeeds}
-                            className="group relative py-6 bg-white text-black font-black uppercase italic text-xl rounded-2xl shadow-[8px_8px_0px_#e11d48] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all active:scale-95 active:bg-pulse-500 active:text-white active:shadow-[0_0_50px_#e11d48] flex items-center justify-center gap-4"
+                            className="group relative py-6 bg-white text-black font-black uppercase italic text-xl rounded-2xl shadow-[8px_8px_0px_#e11d48] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all active:scale-95 active:bg-pulse-500 active:text-white flex items-center justify-center gap-4"
                         >
-                            <ListIcon className="w-6 h-6 group-active:animate-ping" />
+                            <ListIcon className="w-6 h-6" />
                             <span>SIGNAL ACQUISITION</span>
                         </button>
                         <button 
                             onClick={onEnterArcade}
-                            className="group py-6 bg-void-900 border-2 border-pulse-500 text-pulse-500 font-black uppercase italic text-xl rounded-2xl shadow-[8px_8px_0px_rgba(0,0,0,0.5)] hover:bg-pulse-500 hover:text-white transition-all active:scale-95 active:shadow-[0_0_50px_#e11d48] flex items-center justify-center gap-4"
+                            className="group py-6 bg-void-900 border-2 border-pulse-500 text-pulse-500 font-black uppercase italic text-xl rounded-2xl shadow-[8px_8px_0px_rgba(0,0,0,0.5)] hover:bg-pulse-500 hover:text-white transition-all active:scale-95 flex items-center justify-center gap-4"
                         >
-                            <ControllerIcon className="w-6 h-6 group-active:animate-ping" />
+                            <ControllerIcon className="w-6 h-6" />
                             <span>ENTER ARCADE CORE</span>
                         </button>
                     </div>
                 )}
             </div>
 
-            <div className="absolute bottom-10 left-10 right-10 flex justify-between items-end pointer-events-none z-20">
+            {/* Metadata Footer sits safely inside root safe-area padding */}
+            <div className="absolute bottom-8 left-10 right-10 flex justify-between items-end pointer-events-none z-20">
                 <div className="text-[8px] font-black text-zinc-700 uppercase tracking-widest leading-loose italic">
                     SYSTEM_STATUS: {isDecoding ? 'DECODING' : 'NOMINAL'}<br/>
                     SECURITY: LEVEL_7_ENCRYPTED

@@ -40,31 +40,24 @@ const ReaderViewModal: React.FC<ReaderViewModalProps> = ({ article, onClose, onM
 
     return (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-2 md:p-6" onClick={onClose} role="dialog" aria-modal="true">
-            {/* Main Frame */}
             <div className="bg-void-950 w-full max-w-5xl h-full flex flex-col shadow-[0_0_100px_rgba(0,0,0,0.8)] border-4 border-zinc-800 relative animate-fade-in" onClick={e => e.stopPropagation()}>
-                {/* beveled visual edges */}
                 <div className="absolute inset-0 border-t-2 border-l-2 border-zinc-700/30 pointer-events-none z-10" />
                 <div className="absolute inset-0 border-b-2 border-r-2 border-black/40 pointer-events-none z-10" />
 
-                {/* Title Bar */}
                 <header className="h-10 bg-pulse-600 flex items-center justify-between px-1 relative z-20 border-b-2 border-black">
                     <div className="flex items-center gap-2 h-full">
                         <button onClick={onClose} className="w-8 h-7 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center active:bg-zinc-400">
                             <div className="w-4 h-1 bg-black shadow-[0_4px_0_black]" />
                         </button>
-                        <h2 className="text-white text-[10px] md:text-xs font-black uppercase tracking-widest truncate max-w-[200px] md:max-w-md italic drop-shadow-sm px-2">
+                        <h2 className="text-white text-[10px] md:text-xs font-black uppercase tracking-widest truncate max-w-[200px] md:max-w-md italic px-2">
                            SIG_DECODE: {parsedContent?.title || article.title}
                         </h2>
                     </div>
-                    <div className="flex items-center gap-1 h-full py-1">
-                        <div className="px-2 text-[8px] font-black text-white/50 font-mono hidden sm:block">DECRYPTING...</div>
-                        <button onClick={onClose} className="w-8 h-7 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center hover:bg-white transition-colors">
-                            <XIcon className="w-4 h-4 text-black" />
-                        </button>
-                    </div>
+                    <button onClick={onClose} className="w-8 h-7 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center hover:bg-white transition-colors">
+                        <XIcon className="w-4 h-4 text-black" />
+                    </button>
                 </header>
                 
-                {/* Content Area */}
                 <div className="flex-grow overflow-y-auto bg-void-950 p-6 md:p-12 relative scrollbar-hide">
                     <div className="absolute inset-0 pointer-events-none opacity-5 cctv-overlay z-10" />
                     
@@ -74,7 +67,7 @@ const ReaderViewModal: React.FC<ReaderViewModalProps> = ({ article, onClose, onM
                         prose-h2:text-xl prose-h2:font-black prose-h2:italic
                         prose-p:text-sm prose-p:leading-relaxed
                         prose-img:border-4 prose-img:border-zinc-800 prose-img:shadow-2xl
-                        prose-a:text-pulse-500 prose-a:italic prose-a:font-black hover:prose-a:text-pulse-400
+                        prose-a:text-pulse-500 prose-a:italic prose-a:font-black
                         prose-strong:font-black">
                         
                         {isLoading && (
@@ -99,11 +92,12 @@ const ReaderViewModal: React.FC<ReaderViewModalProps> = ({ article, onClose, onM
                             <>
                                 <div ref={contentRef} className="animate-fade-in" />
                                 
-                                <div className="mt-20 pb-10 flex flex-col items-center border-t-2 border-zinc-800/20 pt-12">
+                                {/* FOOTER BUFFER: Pushes "Eject_Link" away from the bottom system navigation zone */}
+                                <div className="mt-20 pb-20 flex flex-col items-center border-t-2 border-zinc-800/20 pt-12 mb-10">
                                     <p className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.5em] mb-6 italic">Transmission Terminated</p>
                                     <button 
                                         onClick={onClose}
-                                        className="w-full max-w-xs py-4 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 text-black font-black uppercase italic tracking-[0.2em] hover:bg-pulse-600 hover:text-white transition-all active:scale-95"
+                                        className="w-full max-w-xs py-5 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 text-black font-black uppercase italic tracking-[0.2em] hover:bg-pulse-600 hover:text-white transition-all active:scale-95"
                                     >
                                         Eject_Link
                                     </button>
@@ -113,8 +107,7 @@ const ReaderViewModal: React.FC<ReaderViewModalProps> = ({ article, onClose, onM
                     </div>
                 </div>
                 
-                {/* Status Bar */}
-                <footer className="h-6 bg-zinc-300 border-t-2 border-black flex items-center px-4 justify-between shrink-0">
+                <footer className="h-8 bg-zinc-300 border-t-2 border-black flex items-center px-4 justify-between shrink-0">
                     <span className="text-[8px] font-black text-black/60 uppercase tracking-widest font-mono">Sector: {article.source}</span>
                     <span className="text-[8px] font-black text-black/60 uppercase tracking-widest font-mono">{new Date().toLocaleTimeString()}</span>
                 </footer>
