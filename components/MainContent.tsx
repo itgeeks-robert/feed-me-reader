@@ -54,22 +54,22 @@ const ARTICLES_PER_PAGE = 25;
 const LOAD_MORE_BATCH = 15;
 
 const CATEGORY_MAP = [
-    { id: 'NEWS', icon: <GlobeAltIcon className="w-3 h-3" /> },
-    { id: 'TECH', icon: <CpuChipIcon className="w-3 h-3" /> },
-    { id: 'SCIENCE', icon: <BeakerIcon className="w-3 h-3" /> },
-    { id: 'FINANCE', icon: <ChartBarIcon className="w-3 h-3" /> },
-    { id: 'SPORTS', icon: <FlagIcon className="w-3 h-3" /> },
-    { id: 'CULTURE', icon: <FireIcon className="w-3 h-3" /> },
-    { id: 'GAMING', icon: <ControllerIcon className="w-3 h-3" /> }
+    { id: 'NEWS', icon: <GlobeAltIcon className="w-3.5 h-3.5" /> },
+    { id: 'TECH', icon: <CpuChipIcon className="w-3.5 h-3.5" /> },
+    { id: 'SCIENCE', icon: <BeakerIcon className="w-3.5 h-3.5" /> },
+    { id: 'FINANCE', icon: <ChartBarIcon className="w-3.5 h-3.5" /> },
+    { id: 'SPORTS', icon: <FlagIcon className="w-3.5 h-3.5" /> },
+    { id: 'CULTURE', icon: <FireIcon className="w-3.5 h-3.5" /> },
+    { id: 'GAMING', icon: <ControllerIcon className="w-3.5 h-3.5" /> }
 ];
 
 const EnergyScope: React.FC<{ value: number, onClick?: () => void }> = ({ value, onClick }) => (
-    <div className="w-full flex flex-col gap-1 cursor-help group" onClick={onClick}>
+    <div className="w-full flex flex-col gap-1.5 cursor-help group" onClick={onClick}>
         <div className="flex justify-between items-center">
-            <span className="text-[9px] font-black text-pulse-600 dark:text-pulse-500 uppercase tracking-tighter italic leading-none group-hover:text-white transition-colors">System Integrity</span>
-            <span className="text-[9px] font-black text-pulse-600 dark:text-pulse-500 uppercase tracking-tighter italic leading-none">{value}%</span>
+            <span className="text-[10px] font-black text-pulse-600 dark:text-pulse-500 uppercase tracking-tighter italic leading-none group-hover:text-terminal transition-colors">System Integrity</span>
+            <span className="text-[10px] font-black text-pulse-600 dark:text-pulse-500 uppercase tracking-tighter italic leading-none">{value}%</span>
         </div>
-        <div className="w-full h-1 bg-void-950 border border-pulse-500/20 rounded-full overflow-hidden relative">
+        <div className="w-full h-1.5 bg-void-950 border border-pulse-500/20 rounded-full overflow-hidden relative">
             <div className="h-full bg-pulse-500 shadow-[0_0_10px_#e11d48] transition-all duration-1000" style={{ width: `${value}%` }} />
         </div>
     </div>
@@ -260,46 +260,46 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                 onOpenIntegrityBriefing={onOpenIntegrityBriefing}
             />
             
-            <nav className="fixed top-[calc(4.5rem+var(--safe-top))] md:top-[calc(6rem+var(--safe-top))] landscape:top-[calc(4rem+var(--safe-top))] left-0 right-0 z-20 bg-void-900/90 backdrop-blur-md border-b border-zinc-200 dark:border-white/5 flex items-center h-11 landscape:h-9 overflow-x-auto scrollbar-hide px-4 md:px-12 gap-2 shadow-xl transition-all">
-                <button onClick={() => onSelectCategory(null)} className={`shrink-0 px-3 py-1 landscape:py-0.5 rounded-full text-[8px] landscape:text-[7px] font-black uppercase italic transition-all border ${!selection.category ? 'bg-pulse-500 border-pulse-400 text-white shadow-lg shadow-pulse-500/20' : 'bg-void-950 border-zinc-300 dark:border-zinc-800 text-zinc-500 hover:text-terminal'}`}>INCOMING INTEL</button>
+            <nav className="fixed top-[calc(4.5rem+var(--safe-top))] md:top-[calc(6rem+var(--safe-top))] landscape:top-[calc(4rem+var(--safe-top))] left-0 right-0 z-20 bg-void-900/90 backdrop-blur-md border-b border-zinc-300 dark:border-white/5 flex items-center h-12 landscape:h-10 overflow-x-auto scrollbar-hide px-4 md:px-12 gap-2.5 shadow-xl transition-all">
+                <button onClick={() => onSelectCategory(null)} className={`shrink-0 px-4 py-1.5 landscape:py-1 rounded-full text-[9px] landscape:text-[8px] font-black uppercase italic transition-all border ${!selection.category ? 'bg-pulse-500 border-pulse-400 text-white shadow-lg shadow-pulse-500/20' : 'bg-void-950 border-zinc-300 dark:border-zinc-800 text-zinc-700 dark:text-zinc-400 hover:text-terminal'}`}>ALL_INTEL</button>
                 {CATEGORY_MAP.map(cat => (
-                    <button key={cat.id} onClick={() => handleCategoryClick(cat.id)} className={`shrink-0 flex items-center gap-1.5 px-3 py-1 landscape:py-0.5 rounded-full text-[8px] landscape:text-[7px] font-black uppercase italic transition-all border ${selection.category === cat.id ? 'bg-pulse-500 border-pulse-400 text-white shadow-lg shadow-pulse-500/20' : 'bg-void-950 border-zinc-300 dark:border-zinc-800 text-zinc-500 hover:text-terminal'}`}>{cat.icon}<span>{cat.id}</span></button>
+                    <button key={cat.id} onClick={() => handleCategoryClick(cat.id)} className={`shrink-0 flex items-center gap-2 px-4 py-1.5 landscape:py-1 rounded-full text-[9px] landscape:text-[8px] font-black uppercase italic transition-all border ${selection.category === cat.id ? 'bg-pulse-500 border-pulse-400 text-white shadow-lg shadow-pulse-500/20' : 'bg-void-950 border-zinc-300 dark:border-zinc-800 text-zinc-700 dark:text-zinc-400 hover:text-terminal'}`}>{cat.icon}<span>{cat.id}</span></button>
                 ))}
             </nav>
 
-            <div className="px-4 md:px-8 pt-[calc(8rem+var(--safe-top))] md:pt-[calc(10rem+var(--safe-top))] landscape:pt-[calc(7rem+var(--safe-top))] max-w-[1800px] mx-auto transition-all">
-                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-2 pb-4 border-b border-pulse-500/20 mb-6">
+            <div className="px-4 md:px-8 pt-[calc(9rem+var(--safe-top))] md:pt-[calc(11rem+var(--safe-top))] landscape:pt-[calc(8rem+var(--safe-top))] max-w-[1800px] mx-auto transition-all">
+                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 pb-5 border-b border-pulse-500/20 mb-8">
                     <div>
-                        <h1 className="text-xl md:text-2xl font-black text-terminal italic glitch-text uppercase tracking-widest leading-none">{pageTitle}</h1>
-                        <p className="text-[8px] md:text-[9px] font-black text-zinc-500 dark:text-zinc-600 uppercase tracking-[0.4em] mt-2 font-mono">{unreadCount} SIGS DETECTED</p>
+                        <h1 className="text-2xl md:text-4xl font-black text-terminal italic glitch-text uppercase tracking-widest leading-none">{pageTitle}</h1>
+                        <p className="text-[10px] md:text-[11px] font-black text-zinc-600 dark:text-zinc-500 uppercase tracking-[0.4em] mt-3 font-mono">{unreadCount} SIGS DETECTED</p>
                     </div>
                     {unreadCount > 5 && (
-                        <button onClick={() => onPurgeBuffer(filteredArticles.map(a => a.id))} className="px-4 py-1.5 bg-void-900 border border-pulse-500 text-pulse-600 dark:text-pulse-500 hover:bg-pulse-500 hover:text-white font-black uppercase italic text-[9px] transition-all shadow-[3px_3px_0_#e11d48] active:translate-x-1 active:translate-y-1 active:shadow-none">Clear Frequency</button>
+                        <button onClick={() => onPurgeBuffer(filteredArticles.map(a => a.id))} className="px-5 py-2 bg-void-900 border border-pulse-500 text-pulse-600 dark:text-pulse-500 hover:bg-pulse-500 hover:text-white font-black uppercase italic text-[10px] transition-all shadow-[4px_4px_0_#e11d48] active:translate-x-1 active:translate-y-1 active:shadow-none">Clear Node</button>
                     )}
                 </div>
                 
                 {latestArticle && !selection.category && (
-                    <div className="mb-10 landscape:mb-6">
+                    <div className="mb-12 landscape:mb-8">
                         <FeaturedStory article={latestArticle} onReadHere={() => onOpenReader(latestArticle)} onReadExternal={() => onOpenExternal(latestArticle.link, latestArticle.id)} isRead={readArticleIds.has(latestArticle.id)} />
                     </div>
                 )}
                 
-                <div className="mt-6 landscape:mt-4">
-                    <div className="flex items-center gap-4 mb-6 landscape:mb-4 border-l-4 border-pulse-500 pl-4">
-                        <h2 className="font-black text-base md:text-xl text-terminal italic uppercase tracking-tighter">Live Transmissions</h2>
+                <div className="mt-8 landscape:mt-6">
+                    <div className="flex items-center gap-5 mb-8 landscape:mb-6 border-l-[6px] border-pulse-500 pl-5">
+                        <h2 className="font-black text-xl md:text-3xl text-terminal italic uppercase tracking-tighter">Live Transmissions</h2>
                         <UnreadFilterToggle checked={showOnlyUnread} onChange={setShowOnlyUnread} />
                     </div>
 
                     {loading && filteredArticles.length === 0 ? (
-                        <div className="text-center py-20 flex flex-col items-center gap-4"><div className="w-8 h-8 border-t-2 border-pulse-500 rounded-full animate-spin"></div><span className="text-pulse-600 dark:text-pulse-500 font-mono text-[10px] uppercase tracking-widest animate-pulse italic">Decrypting Signal...</span></div>
+                        <div className="text-center py-24 flex flex-col items-center gap-6"><div className="w-12 h-12 border-t-4 border-pulse-500 rounded-full animate-spin"></div><span className="text-pulse-600 dark:text-pulse-500 font-mono text-xs uppercase tracking-widest animate-pulse italic">Decrypting Frequency...</span></div>
                     ) : filteredArticles.length === 0 ? (
-                        <div className="text-center py-20 border-2 border-dashed border-zinc-800 rounded-[2rem] bg-void-900/20">
-                            <ExclamationTriangleIcon className="w-10 h-10 text-zinc-700 mx-auto mb-4" />
-                            <h3 className="text-lg font-black text-zinc-600 uppercase italic mb-2 tracking-tighter">Local Frequency Silent</h3>
-                            <p className="text-[9px] text-zinc-700 uppercase tracking-widest mb-6 font-mono italic">No matches found in established nodes for "{selection.query}".</p>
+                        <div className="text-center py-24 border-4 border-dashed border-zinc-300 dark:border-zinc-800 rounded-[3rem] bg-void-900/20">
+                            <ExclamationTriangleIcon className="w-14 h-14 text-zinc-500 dark:text-zinc-700 mx-auto mb-6" />
+                            <h3 className="text-2xl font-black text-zinc-600 dark:text-zinc-700 uppercase italic mb-3 tracking-tighter">Frequency Silent</h3>
+                            <p className="text-[11px] text-zinc-600 dark:text-zinc-700 uppercase tracking-widest mb-8 font-mono italic">No matches detected for "{selection.query}".</p>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 md:gap-8">
                             {visibleArticlesToDisplay.map(article => (
                                 <MagazineArticleListItem key={article.id} article={article} onMarkAsRead={() => onMarkAsRead(article.id)} onReadHere={() => onOpenReader(article)} onReadExternal={() => onOpenExternal(article.link, article.id)} isRead={readArticleIds.has(article.id)} />
                             ))}
@@ -307,8 +307,8 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                     )}
 
                     {articlesToDisplay.length > visibleArticlesToDisplay.length && (
-                        <div className="mt-12 text-center">
-                            <button onClick={() => setVisibleCount(c => c + LOAD_MORE_BATCH)} className="bg-void-950 border-2 border-pulse-500 text-pulse-600 dark:text-pulse-500 hover:bg-pulse-500 hover:text-white font-black uppercase italic py-3 px-10 transition-all shadow-[4px_4px_0_#e11d48] text-[10px] active:translate-x-1 active:translate-y-1 active:shadow-none">Decode {LOAD_MORE_BATCH} More</button>
+                        <div className="mt-16 text-center">
+                            <button onClick={() => setVisibleCount(c => c + LOAD_MORE_BATCH)} className="bg-void-950 border-4 border-pulse-500 text-pulse-600 dark:text-pulse-500 hover:bg-pulse-500 hover:text-white font-black uppercase italic py-4 px-12 transition-all shadow-[6px_6px_0_#e11d48] text-xs active:translate-x-1 active:translate-y-1 active:shadow-none">Decode {LOAD_MORE_BATCH} More</button>
                         </div>
                     )}
                 </div>
@@ -367,11 +367,11 @@ const Header: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuery, on
     return (
         <header className="fixed top-0 left-0 right-0 z-30 h-[calc(4.5rem+var(--safe-top))] md:h-[calc(6rem+var(--safe-top))] landscape:h-[calc(4rem+var(--safe-top))] transition-all">
             <div className="w-full h-full bg-void-950/90 backdrop-blur-xl border-b border-pulse-500/30 flex items-center justify-between px-4 md:px-12 shadow-2xl pt-[var(--safe-top)]">
-                <button onClick={onOpenSidebar} className="p-1.5 text-pulse-600 dark:text-pulse-500 transition-all flex-shrink-0 active:scale-90"><MenuIcon className="w-6 h-6 md:w-8 md:h-8 landscape:w-6 landscape:h-6" /></button>
+                <button onClick={onOpenSidebar} className="p-2 text-pulse-600 dark:text-pulse-500 transition-all flex-shrink-0 active:scale-90"><MenuIcon className="w-7 h-7 md:w-9 md:h-9 landscape:w-7 landscape:h-7" /></button>
                 <div className="flex-grow flex flex-col items-center mx-3 md:mx-16 max-w-2xl relative">
-                    <form onSubmit={onSearchSubmit} className="relative w-full mb-2 md:mb-3 group">
-                        <div className={`absolute top-1/2 left-3 md:left-5 -translate-y-1/2 transition-colors duration-300 ${isSniffing ? 'text-emerald-600 dark:text-emerald-500' : 'text-zinc-400 dark:text-zinc-700'}`}>
-                            {isSniffing ? <ArrowPathIcon className="w-3.5 h-3.5 md:w-5 md:h-5 landscape:w-4 landscape:h-4 animate-spin" /> : <SearchIcon className="w-3.5 h-3.5 md:w-5 md:h-5 landscape:w-4 landscape:h-4" />}
+                    <form onSubmit={onSearchSubmit} className="relative w-full mb-2 md:mb-4 group">
+                        <div className={`absolute top-1/2 left-3 md:left-6 -translate-y-1/2 transition-colors duration-300 ${isSniffing ? 'text-emerald-600 dark:text-emerald-500' : 'text-zinc-500 dark:text-zinc-700'}`}>
+                            {isSniffing ? <ArrowPathIcon className="w-4 h-4 md:w-6 md:h-6 landscape:w-4 landscape:h-4 animate-spin" /> : <SearchIcon className="w-4 h-4 md:w-6 md:h-6 landscape:w-4 landscape:h-4" />}
                         </div>
                         
                         <input 
@@ -380,7 +380,7 @@ const Header: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuery, on
                             value={searchQuery} 
                             onFocus={onOpenSearchExplainer}
                             onChange={e => setSearchQuery(e.target.value)} 
-                            className={`w-full bg-void-900 border focus:border-pulse-500 placeholder-zinc-500 dark:placeholder-zinc-700 text-terminal rounded-none py-2 md:py-3 landscape:py-1.5 pl-9 md:pl-14 landscape:pl-10 pr-16 md:pr-24 text-[9px] md:text-sm landscape:text-[8px] font-mono uppercase tracking-widest outline-none shadow-inner transition-all
+                            className={`w-full bg-void-900 border-2 focus:border-pulse-500 placeholder-zinc-500 dark:placeholder-zinc-700 text-terminal rounded-none py-2.5 md:py-4 landscape:py-2 pl-10 md:pl-16 landscape:pl-12 pr-16 md:pr-24 text-[10px] md:text-base landscape:text-[9px] font-mono uppercase tracking-widest outline-none shadow-inner transition-all
                                 ${isUrl ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-zinc-300 dark:border-zinc-800'}`} 
                         />
 
@@ -388,19 +388,19 @@ const Header: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuery, on
                             <button 
                                 type="button"
                                 onClick={onSniff}
-                                className="absolute top-1/2 right-1 -translate-y-1/2 bg-emerald-600 hover:bg-emerald-500 text-white font-black uppercase italic text-[6px] md:text-[9px] px-2 py-1 shadow-lg animate-fade-in border border-emerald-400/50"
+                                className="absolute top-1/2 right-1.5 -translate-y-1/2 bg-emerald-600 hover:bg-emerald-500 text-white font-black uppercase italic text-[7px] md:text-[10px] px-3 py-1.5 shadow-lg animate-fade-in border border-emerald-400/50"
                             >
                                 [SNIFF]
                             </button>
                         )}
                     </form>
                     
-                    <div className="w-full px-1 md:px-6 landscape:px-0">
+                    <div className="w-full px-2 md:px-8 landscape:px-0">
                         <EnergyScope value={uptime} onClick={() => onOpenIntegrityBriefing()} />
                     </div>
                 </div>
-                <div className="flex items-center gap-2 md:gap-6 flex-shrink-0">
-                    <button onClick={onToggleTheme} className="p-1.5 text-pulse-600 dark:text-pulse-500 hover:text-terminal transition-all active:scale-90">{theme === 'dark' ? <SunIcon className="w-5 h-5 md:w-7 md:h-7 landscape:w-5 landscape:h-5" /> : <MoonIcon className="w-5 h-5 md:w-7 md:h-7 landscape:w-5 landscape:h-5" />}</button>
+                <div className="flex items-center gap-3 md:gap-8 flex-shrink-0">
+                    <button onClick={onToggleTheme} className="p-2 text-pulse-600 dark:text-pulse-500 hover:text-terminal transition-all active:scale-90">{theme === 'dark' ? <SunIcon className="w-6 h-6 md:w-8 md:h-8 landscape:w-6 landscape:h-6" /> : <MoonIcon className="w-6 h-6 md:w-8 md:h-8 landscape:w-6 landscape:h-6" />}</button>
                 </div>
             </div>
         </header>
@@ -408,10 +408,10 @@ const Header: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuery, on
 };
 
 const UnreadFilterToggle: React.FC<any> = ({ checked, onChange }) => (
-    <label className="flex items-center cursor-pointer group bg-void-900 px-2 py-1 landscape:py-0.5 border border-zinc-300 dark:border-zinc-800 transition-all hover:border-pulse-500 shadow-sm active:scale-95">
+    <label className="flex items-center cursor-pointer group bg-void-900 px-3 py-1.5 landscape:py-1 border border-zinc-300 dark:border-zinc-800 transition-all hover:border-pulse-500 shadow-sm active:scale-95">
         <input type="checkbox" className="sr-only" checked={checked} onChange={(e) => onChange(e.target.checked)} />
-        <div className={`w-3 h-3 landscape:w-2 landscape:h-2 border flex-shrink-0 mr-2 transition-colors ${checked ? 'bg-pulse-500 border-pulse-400 shadow-[0_0_10px_#e11d48]' : 'bg-transparent border-zinc-300 dark:border-zinc-700'}`} />
-        <span className="text-[8px] landscape:text-[7px] font-black uppercase tracking-[0.2em] text-zinc-500 group-hover:text-terminal font-mono italic leading-none">Unread</span>
+        <div className={`w-4 h-4 landscape:w-3 landscape:h-3 border-2 flex-shrink-0 mr-3 transition-colors ${checked ? 'bg-pulse-500 border-pulse-400 shadow-[0_0_10px_#e11d48]' : 'bg-transparent border-zinc-400 dark:border-zinc-700'}`} />
+        <span className="text-[10px] landscape:text-[9px] font-black uppercase tracking-[0.2em] text-zinc-700 dark:text-zinc-500 group-hover:text-terminal font-mono italic leading-none">Unread</span>
     </label>
 );
 

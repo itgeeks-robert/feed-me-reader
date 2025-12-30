@@ -1,3 +1,4 @@
+
 import type { Article } from '../src/App';
 import { resilientFetch } from './fetch';
 import { get as cacheGet, set as cacheSet } from './cacheService';
@@ -56,10 +57,20 @@ const sanitizeAndEmbedImages = async (html: string, baseUrl: string): Promise<st
     return doc.body.innerHTML;
 };
 
-const parseArticleContent = (html: string): { title: string; content: string } => {
+const parseArticleContent = (html: string): { title: string; content: string; category: string } => {
     const doc = new DOMParser().parseFromString(html, 'text/html');
     const title = doc.querySelector('h1')?.textContent || doc.title || 'Untitled';
     
+    // HEURISTIC CATEGORY EXTRACTION
+    const extractedCategory = (
+        doc.querySelector('meta[property="article:section"]')?.getAttribute('content') ||
+        doc.querySelector('meta[name="category"]')?.getAttribute('content') ||
+        doc.querySelector('meta[property="og:section"]')?.getAttribute('content') ||
+        doc.querySelector('meta[name="keywords"]')?.getAttribute('content')?.split(',')[0] ||
+        doc.querySelector('.breadcrumb li:last-child')?.textContent?.trim() ||
+        ''
+    ).toUpperCase();
+
     const junkSelectors = [
         'header', 'footer', 'nav', 'aside', '.sidebar', '#sidebar',
         'script', 'style', 'noscript', 'link', 'meta',
@@ -101,13 +112,13 @@ const parseArticleContent = (html: string): { title: string; content: string } =
         contentEl = bestCandidate;
     }
     
-    if (!contentEl) return { title, content: doc.body.innerHTML };
-    return { title, content: contentEl.innerHTML };
+    const contentHtml = contentEl ? contentEl.innerHTML : doc.body.innerHTML;
+    return { title, content: contentHtml, category: extractedCategory };
 };
 
-export const fetchAndCacheArticleContent = async (article: Article): Promise<{ title: string; content: string }> => {
+export const fetchAndCacheArticleContent = async (article: Article): Promise<{ title: string; content: string; category: string }> => {
     const cacheKey = `${CACHE_PREFIX}${article.id}`;
-    const cachedData = await cacheGet<{ title: string; content: string }>(cacheKey);
+    const cachedData = await cacheGet<{ title: string; content: string; category: string }>(cacheKey);
     if (cachedData) return cachedData;
 
     const response = await resilientFetch(article.link);
@@ -116,7 +127,7 @@ export const fetchAndCacheArticleContent = async (article: Article): Promise<{ t
     const html = await response.text();
     const parsed = parseArticleContent(html);
     const sanitizedContent = await sanitizeAndEmbedImages(parsed.content, article.link);
-    const result = { title: parsed.title, content: sanitizedContent };
+    const result = { title: parsed.title, content: sanitizedContent, category: parsed.category };
 
     try { await cacheSet(cacheKey, result); } catch (error) { console.error("Cache Write Error:", error); }
     return result;

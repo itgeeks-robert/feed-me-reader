@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import type { Feed, Article } from '../src/App';
 import { WalkieTalkieIcon, RadioIcon, EntityIcon, SparklesIcon, ChevronRightIcon } from './icons';
@@ -77,10 +76,11 @@ const DailyRationPage: React.FC<DailyRationPageProps> = ({ feeds, fertilizer, on
                             <div className="space-y-10 md:space-y-16">
                                 {articles.map(article => (
                                     <div key={article.id} className="relative group">
+                                        {/* Fix: Replaced onMarkAsRead with onReadExternal to match FeaturedStory component interface */}
                                         <FeaturedStory 
                                             article={article} 
                                             onReadHere={() => setReaderArticle(article)} 
-                                            onMarkAsRead={() => {}}
+                                            onReadExternal={() => window.open(article.link, '_blank')}
                                             isRead={false} 
                                         />
                                     </div>
@@ -131,10 +131,12 @@ const DailyRationPage: React.FC<DailyRationPageProps> = ({ feeds, fertilizer, on
                 </div>
             </div>
             {readerArticle && (
+                /* Fix: Added missing onOpenExternal prop to ReaderViewModal to match its required interface */
                 <ReaderViewModal 
                     article={readerArticle} 
                     onClose={() => setReaderArticle(null)} 
                     onMarkAsRead={() => {}} 
+                    onOpenExternal={(url) => window.open(url, '_blank')}
                 />
             )}
         </main>

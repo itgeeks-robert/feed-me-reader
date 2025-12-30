@@ -54,7 +54,8 @@ const DailyUplinkPage: React.FC<DailyUplinkPageProps> = ({ feeds, uptime, onComp
                 <div className="grid grid-cols-1 lg:grid-cols-[1fr,320px] gap-12 md:gap-20">
                     <section className="space-y-10 md:space-y-16">
                         {loading ? <div className="h-40 bg-void-900 border-2 border-zinc-800 animate-pulse" /> : articles.map(article => (
-                            <FeaturedStory key={article.id} article={article} onReadHere={() => setReaderArticle(article)} onMarkAsRead={() => {}} isRead={false} />
+                            /* Fix: Replaced onMarkAsRead with onReadExternal to correctly link to source as required by FeaturedStory */
+                            <FeaturedStory key={article.id} article={article} onReadHere={() => setReaderArticle(article)} onReadExternal={() => window.open(article.link, '_blank')} isRead={false} />
                         ))}
                         <button onClick={onComplete} className="group flex items-center gap-4 px-12 py-5 bg-white text-black font-black uppercase italic text-sm tracking-widest hover:bg-emerald-500 hover:text-white transition-all shadow-[8px_8px_0px_#10b981]"><span>Intercept Main Signal</span><ChevronRightIcon className="w-5 h-5 transition-transform group-hover:translate-x-2" /></button>
                     </section>
@@ -79,7 +80,8 @@ const DailyUplinkPage: React.FC<DailyUplinkPageProps> = ({ feeds, uptime, onComp
                     </aside>
                 </div>
             </div>
-            {readerArticle && <ReaderViewModal article={readerArticle} onClose={() => setReaderArticle(null)} onMarkAsRead={() => {}} />}
+            {/* Fix: Added missing onOpenExternal prop to ReaderViewModal to resolve TypeScript error */}
+            {readerArticle && <ReaderViewModal article={readerArticle} onClose={() => setReaderArticle(null)} onMarkAsRead={() => {}} onOpenExternal={(url) => window.open(url, '_blank')} />}
         </main>
     );
 };
