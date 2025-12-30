@@ -90,7 +90,6 @@ const App: React.FC = () => {
     const [isDecoding, setIsDecoding] = useState(false);
     const [lastRefresh, setLastRefresh] = useState(() => Date.now());
 
-    // Global Modal States
     const [outboundLink, setOutboundLink] = useState<{url: string, id: string} | null>(null);
     const [showSniffErrorModal, setShowSniffErrorModal] = useState(false);
     const [showSearchExplainer, setShowSearchExplainer] = useState(false);
@@ -99,12 +98,14 @@ const App: React.FC = () => {
     const [skipSearchExplainer, setSkipSearchExplainer] = useLocalStorage<boolean>('void_skip_search_explainer', false);
     const [skipIntegrityBriefing, setSkipIntegrityBriefing] = useLocalStorage<boolean>('void_skip_integrity_briefing', false);
 
+    const isGameActive = useMemo(() => {
+        return ['sudoku', 'solitaire', 'minesweeper', 'tetris', 'pool', 'cipher_core', 'void_runner', 'synapse_link', 'grid_reset', 'hangman'].includes(selection.type);
+    }, [selection.type]);
+
     useEffect(() => {
         const handlePopState = (event: PopStateEvent) => {
             if (event.state?.isReader) {
-                // Modal reader view handled
             } else if (event.state?.isOutbound || event.state?.isExplainer || event.state?.isIntegrity) {
-                // Modals handled
             } else if (readerArticle) {
                 setReaderArticle(null);
             } else if (outboundLink) {
@@ -345,14 +346,15 @@ const App: React.FC = () => {
         }
     };
 
-    // SAFE ZONE LOCK: Root container enforces safe area padding to respect system bars globally
     return (
         <div className="h-screen w-full font-sans text-sm relative flex flex-col overflow-hidden bg-void-950 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
             <div className="flex-1 flex flex-col min-w-0 relative pb-20 md:pb-0 h-full overflow-hidden">
                 {renderCurrentPage()}
             </div>
             
-            <BottomNavBar selection={selection} onSelect={(s) => updateSelection(s)} onOpenSettings={() => setIsSettingsModalOpen(true)} />
+            {!isGameActive && selection.type !== 'splash' && (
+                <BottomNavBar selection={selection} onSelect={(s) => updateSelection(s)} onOpenSettings={() => setIsSettingsModalOpen(true)} />
+            )}
             
             <SettingsModal 
                 isOpen={isSettingsModalOpen} 
@@ -372,7 +374,6 @@ const App: React.FC = () => {
             <BlackMarket isOpen={isShopOpen} onClose={() => setIsShopOpen(false)} credits={credits} setCredits={setCredits} uptime={uptime} setUptime={setUptime} />
             {readerArticle && <ReaderViewModal article={readerArticle} onClose={closeReader} onMarkAsRead={handleMarkAsRead} />}
 
-            {/* Global Overlays remain absolute but interactive content respects safe area */}
             {showSearchExplainer && (
                 <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-[200] flex items-center justify-center p-4 md:p-6 font-mono animate-fade-in pointer-events-auto">
                     <div className="bg-zinc-900 border-4 border-pulse-500 shadow-[0_0_120px_rgba(225,29,72,0.3)] w-full max-w-sm relative overflow-hidden flex flex-col">

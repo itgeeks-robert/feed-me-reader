@@ -434,7 +434,7 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
                 </div>
 
                 {gameState === 'PLAYING' && (
-                    <div className="w-full max-w-lg flex flex-col gap-2 md:gap-3 p-3 md:p-5 bg-void-900/60 rounded-3xl md:rounded-[3rem] border border-white/10 backdrop-blur-xl shadow-2xl relative overflow-hidden z-20 shrink-0 mt-auto">
+                    <div className="w-full max-w-lg flex flex-col gap-2 md:gap-3 p-3 md:p-5 bg-void-900/60 rounded-3xl md:rounded-[3rem] border border-white/10 backdrop-blur-xl shadow-2xl relative overflow-hidden z-20 shrink-0 mt-auto mb-6">
                         <div className="absolute inset-0 bg-cyan-400/5 opacity-50 pointer-events-none" />
                         {KEYBOARD_ROWS.map((row, rowIndex) => (
                             <div key={rowIndex} className="flex justify-center gap-2 md:gap-4">

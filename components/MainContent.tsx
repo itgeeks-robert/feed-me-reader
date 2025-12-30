@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import type { Feed, Folder, Selection, WidgetSettings, Article, ArticleView, Theme } from '../src/App';
 import type { SourceType } from './AddSource';
@@ -257,14 +258,14 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                 onOpenIntegrityBriefing={onOpenIntegrityBriefing}
             />
             
-            <nav className="fixed top-[env(safe-area-inset-top)] mt-20 md:mt-28 left-0 right-0 z-20 bg-void-900/90 backdrop-blur-md border-b border-zinc-200 dark:border-white/5 flex items-center h-14 overflow-x-auto scrollbar-hide px-4 md:px-12 gap-3 shadow-xl">
-                <button onClick={() => onSelectCategory(null)} className={`shrink-0 px-4 py-2 rounded-full text-[9px] md:text-[10px] font-black uppercase italic transition-all border ${!selection.category ? 'bg-pulse-500 border-pulse-400 text-white shadow-lg shadow-pulse-500/20' : 'bg-void-950 border-zinc-300 dark:border-zinc-800 text-zinc-500 hover:text-terminal'}`}>INCOMING INTEL</button>
+            <nav className="fixed top-[env(safe-area-inset-top)] mt-16 md:mt-24 left-0 right-0 z-20 bg-void-900/90 backdrop-blur-md border-b border-zinc-200 dark:border-white/5 flex items-center h-12 overflow-x-auto scrollbar-hide px-4 md:px-12 gap-3 shadow-xl">
+                <button onClick={() => onSelectCategory(null)} className={`shrink-0 px-3 py-1.5 rounded-full text-[9px] font-black uppercase italic transition-all border ${!selection.category ? 'bg-pulse-500 border-pulse-400 text-white shadow-lg shadow-pulse-500/20' : 'bg-void-950 border-zinc-300 dark:border-zinc-800 text-zinc-500 hover:text-terminal'}`}>INCOMING INTEL</button>
                 {CATEGORY_MAP.map(cat => (
-                    <button key={cat.id} onClick={() => handleCategoryClick(cat.id)} className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-full text-[9px] md:text-[10px] font-black uppercase italic transition-all border ${selection.category === cat.id ? 'bg-pulse-500 border-pulse-400 text-white shadow-lg shadow-pulse-500/20' : 'bg-void-950 border-zinc-300 dark:border-zinc-800 text-zinc-500 hover:text-terminal'}`}>{cat.icon}<span>{cat.id}</span></button>
+                    <button key={cat.id} onClick={() => handleCategoryClick(cat.id)} className={`shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-full text-[9px] font-black uppercase italic transition-all border ${selection.category === cat.id ? 'bg-pulse-500 border-pulse-400 text-white shadow-lg shadow-pulse-500/20' : 'bg-void-950 border-zinc-300 dark:border-zinc-800 text-zinc-500 hover:text-terminal'}`}>{cat.icon}<span>{cat.id}</span></button>
                 ))}
             </nav>
 
-            <div className="px-4 md:px-8 pt-[calc(8.5rem+env(safe-area-inset-top))] md:pt-[calc(11rem+env(safe-area-inset-top))] max-w-[1800px] mx-auto">
+            <div className="px-4 md:px-8 pt-[calc(7.5rem+env(safe-area-inset-top))] md:pt-[calc(9.5rem+env(safe-area-inset-top))] max-w-[1800px] mx-auto">
                  <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-pulse-500/20 mb-8">
                     <div>
                         <h1 className="text-xl md:text-3xl font-black text-terminal italic glitch-text uppercase tracking-widest leading-none">{pageTitle}</h1>
@@ -366,13 +367,13 @@ const Header: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuery, on
     }, [searchQuery]);
 
     return (
-        <header className="fixed top-[env(safe-area-inset-top)] left-0 right-0 z-30 h-20 md:h-28 transition-colors">
+        <header className="fixed top-[env(safe-area-inset-top)] left-0 right-0 z-30 h-16 md:h-24 transition-colors">
             <div className="w-full h-full bg-void-950/90 backdrop-blur-xl border-b border-pulse-500/30 flex items-center justify-between px-4 md:px-12 shadow-2xl">
-                <button onClick={onOpenSidebar} className="p-3 text-pulse-600 dark:text-pulse-500 transition-all flex-shrink-0 active:scale-90"><MenuIcon className="w-8 h-8 md:w-10 md:h-10" /></button>
+                <button onClick={onOpenSidebar} className="p-2 text-pulse-600 dark:text-pulse-500 transition-all flex-shrink-0 active:scale-90"><MenuIcon className="w-7 h-7 md:w-8 md:h-8" /></button>
                 <div className="flex-grow flex flex-col items-center mx-4 md:mx-16 max-w-2xl relative">
-                    <form onSubmit={onSearchSubmit} className="relative w-full mb-2 md:mb-4 group">
-                        <div className={`absolute top-1/2 left-4 md:left-8 -translate-y-1/2 transition-colors duration-300 ${isSniffing ? 'text-emerald-600 dark:text-emerald-500' : 'text-zinc-400 dark:text-zinc-700'}`}>
-                            {isSniffing ? <ArrowPathIcon className="w-5 h-5 md:w-6 md:h-6 animate-spin" /> : <SearchIcon className="w-5 h-5 md:w-6 md:h-6" />}
+                    <form onSubmit={onSearchSubmit} className="relative w-full mb-1 md:mb-2 group">
+                        <div className={`absolute top-1/2 left-3 md:left-6 -translate-y-1/2 transition-colors duration-300 ${isSniffing ? 'text-emerald-600 dark:text-emerald-500' : 'text-zinc-400 dark:text-zinc-700'}`}>
+                            {isSniffing ? <ArrowPathIcon className="w-4 h-4 md:w-5 md:h-5 animate-spin" /> : <SearchIcon className="w-4 h-4 md:w-5 md:h-5" />}
                         </div>
                         
                         <input 
@@ -381,7 +382,7 @@ const Header: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuery, on
                             value={searchQuery} 
                             onFocus={onOpenSearchExplainer}
                             onChange={e => setSearchQuery(e.target.value)} 
-                            className={`w-full bg-void-900 border focus:border-pulse-500 placeholder-zinc-400 dark:placeholder-zinc-700 text-terminal rounded-none py-2.5 md:py-4 pl-12 md:pl-16 pr-24 md:pr-32 text-[11px] md:text-base font-mono uppercase tracking-widest outline-none shadow-inner transition-all
+                            className={`w-full bg-void-900 border focus:border-pulse-500 placeholder-zinc-500 dark:placeholder-zinc-700 text-terminal rounded-none py-2 md:py-3 pl-10 md:pl-14 pr-20 md:pr-28 text-[10px] md:text-sm font-mono uppercase tracking-widest outline-none shadow-inner transition-all
                                 ${isUrl ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-zinc-300 dark:border-zinc-800'}`} 
                         />
 
@@ -389,38 +390,28 @@ const Header: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuery, on
                             <button 
                                 type="button"
                                 onClick={onSniff}
-                                className="absolute top-1/2 right-2 -translate-y-1/2 bg-emerald-600 hover:bg-emerald-500 text-white font-black uppercase italic text-[8px] md:text-[10px] px-3 md:px-4 py-1.5 md:py-2 shadow-lg animate-fade-in border border-emerald-400/50"
+                                className="absolute top-1/2 right-1.5 -translate-y-1/2 bg-emerald-600 hover:bg-emerald-500 text-white font-black uppercase italic text-[7px] md:text-[9px] px-2 md:px-3 py-1 md:py-1.5 shadow-lg animate-fade-in border border-emerald-400/50"
                             >
-                                [SNIFF_SIGNAL]
+                                [SNIFF]
                             </button>
                         )}
                         
-                        {/* Information Icon for Search */}
                         <button 
                             type="button" 
                             onClick={onOpenSearchExplainer}
-                            className="absolute -right-8 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-white transition-colors p-2 md:hidden lg:block"
+                            className="absolute -right-6 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-white transition-colors p-1 md:hidden lg:block"
                         >
-                            <BeakerIcon className="w-4 h-4 opacity-50" />
+                            <BeakerIcon className="w-3 h-3 opacity-50" />
                         </button>
                     </form>
                     
-                    {/* Inline Status Overlay for Search Bar */}
-                    {isSniffing && (
-                        <div className="absolute top-full left-0 right-0 mt-1 text-center">
-                            <span className="text-[8px] font-black text-emerald-600 dark:text-emerald-500 uppercase tracking-[0.4em] animate-pulse italic bg-black/80 px-4 py-1 rounded-full border border-emerald-500/20">
-                                INTERCEPTING_METADATA...
-                            </span>
-                        </div>
-                    )}
-
-                    <div className="w-full px-2 md:px-10">
+                    <div className="w-full px-1 md:px-8">
                         <EnergyScope value={uptime} onClick={() => onOpenIntegrityBriefing()} />
                     </div>
                 </div>
-                <div className="flex items-center gap-4 md:gap-12 flex-shrink-0">
-                    <div className="hidden lg:flex flex-col items-end"><span className="text-[10px] font-black text-zinc-500 dark:text-zinc-600 uppercase tracking-tighter italic">Data Cache</span><span className="text-xs font-black text-pulse-600 dark:text-pulse-500 uppercase tracking-tighter italic">{cacheCount} SIGS</span></div>
-                    <button onClick={onToggleTheme} className="p-3 text-pulse-600 dark:text-pulse-500 hover:text-terminal transition-all active:scale-90">{theme === 'dark' ? <SunIcon className="w-6 h-6 md:w-9 md:h-9" /> : <MoonIcon className="w-6 h-6 md:w-9 md:h-9" />}</button>
+                <div className="flex items-center gap-3 md:gap-8 flex-shrink-0">
+                    <div className="hidden lg:flex flex-col items-end"><span className="text-[8px] font-black text-zinc-500 dark:text-zinc-600 uppercase tracking-tighter italic">Data Cache</span><span className="text-[10px] font-black text-pulse-600 dark:text-pulse-500 uppercase tracking-tighter italic">{cacheCount} SIGS</span></div>
+                    <button onClick={onToggleTheme} className="p-2 text-pulse-600 dark:text-pulse-500 hover:text-terminal transition-all active:scale-90">{theme === 'dark' ? <SunIcon className="w-5 h-5 md:w-7 md:h-7" /> : <MoonIcon className="w-5 h-5 md:w-7 md:h-7" />}</button>
                 </div>
             </div>
         </header>
@@ -428,10 +419,10 @@ const Header: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuery, on
 };
 
 const UnreadFilterToggle: React.FC<any> = ({ checked, onChange }) => (
-    <label className="flex items-center cursor-pointer group bg-void-900 px-4 py-2 border border-zinc-300 dark:border-zinc-800 transition-all hover:border-pulse-500 shadow-sm active:scale-95">
+    <label className="flex items-center cursor-pointer group bg-void-900 px-3 py-1.5 border border-zinc-300 dark:border-zinc-800 transition-all hover:border-pulse-500 shadow-sm active:scale-95">
         <input type="checkbox" className="sr-only" checked={checked} onChange={(e) => onChange(e.target.checked)} />
-        <div className={`w-4 h-4 border flex-shrink-0 mr-3 transition-colors ${checked ? 'bg-pulse-500 border-pulse-400 shadow-[0_0_10px_#e11d48]' : 'bg-transparent border-zinc-300 dark:border-zinc-700'}`} />
-        <span className="text-[9px] md:text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500 group-hover:text-terminal font-mono italic leading-none">Unread</span>
+        <div className={`w-3.5 h-3.5 border flex-shrink-0 mr-2.5 transition-colors ${checked ? 'bg-pulse-500 border-pulse-400 shadow-[0_0_10px_#e11d48]' : 'bg-transparent border-zinc-300 dark:border-zinc-700'}`} />
+        <span className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 group-hover:text-terminal font-mono italic leading-none">Unread</span>
     </label>
 );
 

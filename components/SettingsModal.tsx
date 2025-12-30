@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import type { Settings, Theme, ArticleView, WidgetSettings, Feed, Folder, Selection } from '../src/App';
-import { XIcon, SunIcon, MoonIcon, CloudArrowUpIcon, CloudArrowDownIcon, TrashIcon, BookmarkIcon, ListIcon, PlusIcon, FolderIcon, ShieldCheckIcon, SparklesIcon, CpuChipIcon } from './icons';
+import { XIcon, SunIcon, MoonIcon, CloudArrowUpIcon, CloudArrowDownIcon, TrashIcon, BookmarkIcon, ListIcon, PlusIcon, FolderIcon, ShieldCheckIcon, SparklesIcon, CpuChipIcon, ExclamationTriangleIcon } from './icons';
 import AddSource, { SourceType } from './AddSource';
 import { exportToOpml, parseOpml } from '../services/opmlService';
 
@@ -77,14 +78,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         URL.revokeObjectURL(url);
     };
 
-    const handleWidgetChange = (key: keyof WidgetSettings, value: any) => {
-        setLocalSettings(prev => ({ ...prev, widgets: { ...prev.widgets, [key]: value } }));
-    };
-
-    const handleCutTheFeed = () => {
-        if (confirm("CRITICAL WARNING: This will sever all established uplinks and purge your local signal cache. All folders and feeds will be lost. Re-calibrate system?")) {
+    const handleSystemWipe = () => {
+        if (confirm("CRITICAL PROTOCOL: PERFORM SYSTEM WIPE?\n\nThis will permanently delete all feeds, folders, bookmarks, high scores, and credits. The terminal will revert to original installation settings. PROCEED?")) {
             localStorage.clear();
-            window.location.reload();
+            // Clear IndexedDB cache as well for a true wipe
+            const req = indexedDB.deleteDatabase('SeeMoreCache');
+            req.onsuccess = () => window.location.reload();
+            req.onerror = () => window.location.reload();
+            req.onblocked = () => window.location.reload();
         }
     };
 
@@ -105,7 +106,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
             onClick={onClick} 
             className={`w-full flex items-center justify-center gap-3 py-3 px-4 text-[9px] font-black uppercase tracking-widest transition-all border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 active:bg-zinc-400
                 ${variant === 'danger' 
-                    ? 'bg-pulse-600 text-white border-white/50' 
+                    ? 'bg-pulse-600 text-white border-white/50 shadow-[4px_4px_0_#450a0a]' 
                     : 'bg-zinc-300 text-black'}`}
         >
             {icon}
@@ -189,6 +190,22 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                         </div>
                     </div>)}
 
+                    {activeTab === 'DISPLAY' && (<div className="space-y-8 animate-fade-in">
+                        <div>
+                            <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-4 italic border-b border-zinc-800 pb-2">Visual Theme</h3>
+                            <div className="flex gap-4">
+                                <button onClick={() => setLocalSettings(p => ({...p, theme: 'dark'}))} className={`flex-1 py-4 flex flex-col items-center gap-2 border-2 rounded-2xl transition-all ${localSettings.theme === 'dark' ? 'bg-void-900 border-pulse-500 text-white shadow-lg' : 'bg-zinc-900 border-transparent text-zinc-600'}`}>
+                                    <MoonIcon className="w-6 h-6" />
+                                    <span className="text-[8px] font-black uppercase">0x00_NOIR</span>
+                                </button>
+                                <button onClick={() => setLocalSettings(p => ({...p, theme: 'light'}))} className={`flex-1 py-4 flex flex-col items-center gap-2 border-2 rounded-2xl transition-all ${localSettings.theme === 'light' ? 'bg-zinc-100 border-pulse-500 text-zinc-900 shadow-lg' : 'bg-zinc-900 border-transparent text-zinc-600'}`}>
+                                    <SunIcon className="w-6 h-6" />
+                                    <span className="text-[8px] font-black uppercase">0x01_LIGHT</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>)}
+
                     {activeTab === 'MEMORY' && (<div className="space-y-8 animate-fade-in">
                         <div>
                             <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-4 italic border-b border-zinc-800 pb-2">Packet Backup (OPML)</h3>
@@ -198,9 +215,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                 <ActionButton icon={<CloudArrowDownIcon className="w-4 h-4" />} onClick={handleOpmlExport}>Export_Dat</ActionButton>
                             </div>
                         </div>
-                        <div className="p-6 bg-red-950/10 border-2 border-pulse-600/30 rounded-3xl">
-                            <h3 className="text-[10px] font-black text-pulse-500 uppercase tracking-widest mb-4 italic">Emergency Protocol</h3>
-                            <ActionButton variant="danger" icon={<TrashIcon className="w-4 h-4" />} onClick={handleCutTheFeed}>Purge_Memory_Dump</ActionButton>
+                        <div className="p-6 bg-red-950/10 border-2 border-pulse-600/30 rounded-3xl relative overflow-hidden">
+                            <div className="absolute top-0 right-0 p-2 opacity-10">
+                                <ExclamationTriangleIcon className="w-12 h-12 text-pulse-500" />
+                            </div>
+                            <h3 className="text-[10px] font-black text-pulse-500 uppercase tracking-widest mb-2 italic">Terminal Reset</h3>
+                            <p className="text-[8px] text-zinc-600 uppercase mb-6 font-black leading-tight italic">Warning: Reverts system to original installation state. Irreversible.</p>
+                            <ActionButton variant="danger" icon={<TrashIcon className="w-4 h-4" />} onClick={handleSystemWipe}>PERFORM_SYSTEM_WIPE</ActionButton>
                         </div>
                     </div>)}
                 </div>

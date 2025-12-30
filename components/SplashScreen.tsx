@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { VoidIcon, ControllerIcon, ListIcon } from './icons';
 
@@ -68,8 +69,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onEnterFeeds, onEnterArcade
             <TechnicalBlueprint />
             <div className="absolute inset-0 z-10 pointer-events-none cctv-overlay opacity-30" />
             
-            <div className="relative z-20 w-full max-w-lg px-8 flex flex-col items-center text-center">
-                {/* Visual Header - Balanced for Mobile Top System Bar */}
+            <div className="relative z-20 w-full max-w-lg px-8 flex flex-col items-center text-center pb-24">
                 <div className="mb-10 mt-12 group">
                     <div className="p-6 bg-pulse-500 rounded-[2.5rem] shadow-[0_0_80px_rgba(225,29,72,0.5)] border-4 border-white/20 animate-pulse">
                         <VoidIcon className="w-20 h-20 text-white" />
@@ -99,8 +99,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onEnterFeeds, onEnterArcade
                         </div>
                     </div>
                 ) : (
-                    /* ACTION BUTTONS: Centered in the middle-third to avoid Android navigation zones */
-                    <div className="w-full grid grid-cols-1 gap-5 animate-fade-in mb-16">
+                    <div className="w-full grid grid-cols-1 gap-5 animate-fade-in mb-8">
                         <button 
                             onClick={onEnterFeeds}
                             className="group relative py-6 bg-white text-black font-black uppercase italic text-xl rounded-2xl shadow-[8px_8px_0px_#e11d48] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all active:scale-95 active:bg-pulse-500 active:text-white flex items-center justify-center gap-4"
@@ -119,8 +118,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onEnterFeeds, onEnterArcade
                 )}
             </div>
 
-            {/* Metadata Footer sits safely inside root safe-area padding */}
-            <div className="absolute bottom-8 left-10 right-10 flex justify-between items-end pointer-events-none z-20">
+            <div className="absolute bottom-14 left-10 right-10 flex justify-between items-end pointer-events-none z-20">
                 <div className="text-[8px] font-black text-zinc-700 uppercase tracking-widest leading-loose italic">
                     SYSTEM_STATUS: {isDecoding ? 'DECODING' : 'NOMINAL'}<br/>
                     SECURITY: LEVEL_7_ENCRYPTED
