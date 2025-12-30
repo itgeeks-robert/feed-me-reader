@@ -105,13 +105,13 @@ const LinkIntegrityCounter: React.FC<{ mistakes: number }> = ({ mistakes }) => {
                     animation: bar-shimmer-red 0.8s infinite linear;
                 }
             `}</style>
-            <span className="text-[6px] font-black text-zinc-500 uppercase tracking-widest italic leading-none">Link_Integrity</span>
-            <div className="flex gap-1 relative z-10">
+            <span className="text-[7px] font-black text-zinc-500 uppercase tracking-widest italic leading-none">Link_Integrity</span>
+            <div className="flex gap-1.5 relative z-10">
                 {[...Array(MAX_MISTAKES)].map((_, i) => {
                     const isActive = i < (MAX_MISTAKES - mistakes);
                     const isLastLife = isCritical && i === 0;
                     return (
-                        <div key={i} className={`w-2 h-4 md:w-2.5 md:h-5 border-2 transition-all duration-300 
+                        <div key={i} className={`w-3 h-5 md:w-4 md:h-6 border-2 transition-all duration-300 
                             ${isActive 
                                 ? isLastLife 
                                     ? 'shimmer-last-bar border-white shadow-[0_0_15px_#e11d48]' 
@@ -120,11 +120,11 @@ const LinkIntegrityCounter: React.FC<{ mistakes: number }> = ({ mistakes }) => {
                     );
                 })}
             </div>
-            <div className="flex justify-between w-full mt-1 px-1">
-                <span className={`text-[8px] font-black uppercase ${mistakes > 5 ? 'text-pulse-500 animate-pulse' : 'text-zinc-500'}`}>
+            <div className="flex justify-between w-full mt-1.5 px-1">
+                <span className={`text-[10px] font-black uppercase ${mistakes > 5 ? 'text-pulse-500 animate-pulse' : 'text-zinc-500'}`}>
                     ERRORS: {mistakes}
                 </span>
-                <span className="text-[8px] font-black text-zinc-600 uppercase ml-4">LIMIT: {MAX_MISTAKES}</span>
+                <span className="text-[10px] font-black text-zinc-600 uppercase ml-4">LIMIT: {MAX_MISTAKES}</span>
             </div>
         </div>
     );
@@ -136,7 +136,7 @@ const HieroglyphicHangmanVisual: React.FC<{ mistakes: number; isShaking: boolean
     const drawPart = (threshold: number) => mistakes >= threshold ? 'opacity-100 scale-100' : 'opacity-0 scale-90 pointer-events-none';
 
     return (
-        <div className={`relative w-48 h-56 md:w-64 md:h-72 mx-auto flex items-center justify-center transition-all duration-75 z-10 shrink-0
+        <div className={`relative w-40 h-48 md:w-56 md:h-64 mx-auto flex items-center justify-center transition-all duration-75 z-10 shrink-0
             ${isShaking ? 'translate-x-2 -translate-y-1' : ''}
             ${isCritical ? 'animate-[shake_0.1s_infinite] scale-110' : ''}`}>
             
@@ -209,11 +209,20 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
     const startRound = useCallback((lvl: number, isVersus: boolean = false) => {
         const difficulty = isVersus ? (round === 1 ? 1 : round === 2 ? 2 : 3) : (lvl <= 3 ? 1 : lvl <= 7 ? 2 : 3);
         const allowedCats = CATEGORY_MAP[category];
-        const available = HANGMAN_DATA.filter(d => d.difficulty === difficulty && allowedCats.includes(d.category) && !usedWords.has(d.word));
+        const available = HANGMAN_DATA.filter(d => 
+            d.difficulty <= difficulty && 
+            allowedCats.includes(d.category) && 
+            !usedWords.has(d.word)
+        );
+        
         const pool = available.length > 0 ? available : HANGMAN_DATA.filter(d => allowedCats.includes(d.category));
         const random = pool[Math.floor(Math.random() * pool.length)];
         
-        setUsedWords(prev => { const next = new Set(prev); next.add(random.word); return next; });
+        setUsedWords(prev => { 
+            const next = new Set(prev); 
+            next.add(random.word); 
+            return next; 
+        });
         setTarget(random);
         setGuessedLetters(new Set());
         setMistakes(0);
@@ -304,15 +313,6 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [handleGuess]);
 
-    const displayWord = useMemo(() => {
-        if (!target) return "";
-        return target.word.toUpperCase().split('').map(char => {
-            if (char === ' ') return ' ';
-            if (!/[A-Z]/.test(char)) return char;
-            return guessedLetters.has(char) ? char : '_';
-        }).join('');
-    }, [target, guessedLetters]);
-
     if (gameState === 'LOBBY') {
         const topScores = getHighScores('hangman');
         return (
@@ -337,12 +337,12 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
                         <p className="text-[8px] font-black text-zinc-500 uppercase tracking-widest mb-3 italic">// Sector Categories</p>
                         <div className="flex flex-wrap justify-center gap-2">
                             {(Object.keys(CATEGORY_MAP) as CategoryFilter[]).map(cat => (
-                                <button key={cat} onClick={() => setCategory(cat)} className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase border transition-all ${category === cat ? 'bg-cyan-500 border-cyan-400 text-black shadow-[0_0_10px_#22d3ee]' : 'bg-zinc-800 border-zinc-700 text-zinc-500'}`}>{cat}</button>
+                                <button key={cat} onClick={() => setCategory(cat)} className={`px-4 py-2 rounded-full text-[10px] font-black uppercase border transition-all ${category === cat ? 'bg-cyan-500 border-cyan-400 text-black shadow-[0_0_10px_#22d3ee]' : 'bg-zinc-800 border-zinc-700 text-zinc-500'}`}>{cat}</button>
                             ))}
                         </div>
                     </div>
                     <div className="space-y-4">
-                        <button onClick={() => { setUsedWords(new Set()); setMode('SOLO'); setLevel(1); setTotalSessionTime(0); startRound(1); }} className="w-full py-5 bg-white text-black font-black uppercase italic rounded-2xl shadow-xl text-lg hover:scale-[1.02] active:scale-95 transition-all">Solo Arcade</button>
+                        <button onClick={() => { setUsedWords(new Set()); setMode('SOLO'); setLevel(1); setTotalSessionTime(0); startRound(1); }} className="w-full py-6 bg-white text-black font-black uppercase italic rounded-2xl shadow-xl text-xl hover:scale-[1.02] active:scale-95 transition-all">Solo Arcade</button>
                         <button onClick={() => { setUsedWords(new Set()); setMode('VERSUS'); setRound(1); setCurrentPlayer(1); setP1Stats({score:0, totalTime:0}); setP2Stats({score:0, totalTime:0}); setGameState('ROUND_TRANSITION'); }} className="w-full py-5 bg-zinc-800 text-cyan-400 border-2 border-cyan-400/30 font-black uppercase italic rounded-2xl hover:bg-cyan-400 hover:text-black transition-all active:scale-95">Dual Link Battle</button>
                         <button onClick={onBackToHub} className="text-zinc-600 font-bold uppercase tracking-widest text-[10px] hover:text-white transition-colors pt-4 block w-full italic">Abort Link</button>
                     </div>
@@ -382,43 +382,62 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
 
     return (
         <main className={`w-full h-full bg-zinc-950 flex flex-col items-center p-2 md:p-4 overflow-hidden font-mono text-white transition-all duration-75 relative ${isShocking ? 'invert' : ''}`}>
+            <style>{`
+                @keyframes revealed-shimmer {
+                    0%, 100% { color: #f43f5e; text-shadow: 0 0 10px #e11d48; opacity: 0.7; }
+                    50% { color: #fff; text-shadow: 0 0 25px #fff, 0 0 40px #e11d48; opacity: 1; }
+                }
+                .animate-shimmer-char {
+                    animation: revealed-shimmer 2s infinite ease-in-out;
+                }
+            `}</style>
             <UrgencyOverlay timeLeft={timeLeft} />
             <MassiveShockOverlay active={isShocking} />
             
-            <header className="w-full max-w-lg flex justify-between items-center mb-2 md:mb-4 bg-zinc-900/50 p-3 md:p-4 rounded-2xl md:rounded-3xl border border-white/5 flex-shrink-0 relative z-20">
-                <button onClick={resetSession} className="p-2 bg-zinc-800 rounded-xl text-zinc-400 hover:text-white transition-all"><XIcon className="w-5 h-5" /></button>
+            <header className="w-full max-w-lg flex justify-between items-center mb-2 md:mb-4 bg-zinc-900/50 p-3 md:p-5 rounded-2xl md:rounded-3xl border border-white/5 flex-shrink-0 relative z-20">
+                <button onClick={resetSession} className="p-2 md:p-3 bg-zinc-800 rounded-xl text-zinc-400 hover:text-white transition-all active:scale-95 shadow-md"><XIcon className="w-6 h-6" /></button>
                 <div className="text-center">
-                    <span className={`text-[8px] md:text-[9px] font-black uppercase tracking-[0.3em] italic ${mode === 'VERSUS' ? (currentPlayer === 1 ? 'text-blue-500' : 'text-pink-500') : 'text-cyan-400'}`}>
+                    <span className={`text-[10px] md:text-[11px] font-black uppercase tracking-[0.3em] italic ${mode === 'VERSUS' ? (currentPlayer === 1 ? 'text-blue-500' : 'text-pink-500') : 'text-cyan-400'}`}>
                         {mode === 'SOLO' ? `SECTOR 0${level}` : `ROUND ${round} - P${currentPlayer}`}
                     </span>
-                    <h1 className="text-lg md:text-xl font-black italic uppercase tracking-tighter leading-none">SIGNAL BREACH</h1>
+                    <h1 className="text-xl md:text-2xl font-black italic uppercase tracking-tighter leading-none">SIGNAL BREACH</h1>
                 </div>
-                <div className="flex flex-col items-end">
-                    <span className="text-[6px] font-black text-zinc-500 uppercase">Uptime</span>
-                    <span className={`text-xs md:text-sm font-black font-mono transition-colors duration-500 ${timeLeft <= 10 ? 'text-red-500 animate-pulse' : timeLeft <= 20 ? 'text-orange-500' : 'text-white'}`}>
+                <div className="flex flex-col items-end min-w-[60px]">
+                    <span className="text-[7px] md:text-[8px] font-black text-zinc-500 uppercase">Uptime</span>
+                    <span className={`text-sm md:text-lg font-black font-mono transition-colors duration-500 ${timeLeft <= 10 ? 'text-red-500 animate-pulse' : timeLeft <= 20 ? 'text-orange-500' : 'text-white'}`}>
                         {timeLeft}s
                     </span>
                 </div>
             </header>
 
-            <div className="w-full max-w-xl flex flex-col items-center gap-2 md:gap-4 flex-grow min-h-0 relative z-10 pb-4">
+            <div className="w-full max-w-2xl flex flex-col items-center gap-3 md:gap-6 flex-grow min-h-0 relative z-10 pb-4">
                 <HieroglyphicHangmanVisual mistakes={mistakes} isShaking={isShocking} />
                 <LinkIntegrityCounter mistakes={mistakes} />
 
-                <div className="text-center space-y-1 md:space-y-2 relative z-20 shrink-0">
-                    <div className={`inline-block px-3 py-0.5 bg-opacity-10 border rounded-full ${mode === 'VERSUS' ? (currentPlayer === 1 ? 'bg-blue-500 border-blue-500 text-blue-500' : 'bg-pink-500 border-pink-500 text-pink-500') : 'bg-cyan-400 border-cyan-400 text-cyan-400'}`}>
-                        <span className="text-[8px] font-black uppercase tracking-widest italic leading-none">{target?.category} SIGNAL INTERCEPT</span>
+                <div className="text-center space-y-3 md:space-y-4 relative z-20 shrink-0 px-4">
+                    <div className={`inline-block px-4 py-1 bg-opacity-10 border rounded-full ${mode === 'VERSUS' ? (currentPlayer === 1 ? 'bg-blue-500 border-blue-500 text-blue-500' : 'bg-pink-500 border-pink-500 text-pink-500') : 'bg-cyan-400 border-cyan-400 text-cyan-400'}`}>
+                        <span className="text-[10px] md:text-xs font-black uppercase tracking-widest italic leading-none">{target?.category} SIGNAL INTERCEPT</span>
                     </div>
-                    <div className="text-2xl md:text-5xl font-black tracking-[0.2em] md:tracking-[0.3em] text-white italic transition-all duration-500 whitespace-pre-wrap leading-tight font-horror drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
-                        {displayWord}
+                    <div className="text-5xl md:text-8xl font-black tracking-[0.25em] md:tracking-[0.4em] text-white italic transition-all duration-500 whitespace-pre-wrap leading-snug font-horror drop-shadow-[0_0_20px_rgba(255,255,255,0.4)] flex flex-wrap justify-center">
+                        {target?.word.toUpperCase().split('').map((char, idx) => {
+                            if (char === ' ') return <span key={idx} className="w-[0.5em]">&nbsp;</span>;
+                            if (!/[A-Z]/.test(char)) return <span key={idx}>{char}</span>;
+                            
+                            const isGuessed = guessedLetters.has(char);
+                            const isRevealedOnLoss = gameState === 'LOST' && !isGuessed;
+                            
+                            if (isGuessed) return <span key={idx} className="text-white">{char}</span>;
+                            if (isRevealedOnLoss) return <span key={idx} className="animate-shimmer-char">{char}</span>;
+                            return <span key={idx} className="opacity-30">_</span>;
+                        })}
                     </div>
                 </div>
 
                 {gameState === 'PLAYING' && (
-                    <div className="w-full max-w-md flex flex-col gap-1.5 md:gap-2 p-2 md:p-3 bg-void-900/40 rounded-2xl md:rounded-3xl border border-white/5 backdrop-blur-sm shadow-2xl relative overflow-hidden z-20 shrink-0 mt-auto">
+                    <div className="w-full max-w-lg flex flex-col gap-2 md:gap-3 p-3 md:p-5 bg-void-900/60 rounded-3xl md:rounded-[3rem] border border-white/10 backdrop-blur-xl shadow-2xl relative overflow-hidden z-20 shrink-0 mt-auto">
                         <div className="absolute inset-0 bg-cyan-400/5 opacity-50 pointer-events-none" />
                         {KEYBOARD_ROWS.map((row, rowIndex) => (
-                            <div key={rowIndex} className="flex justify-center gap-1 md:gap-1.5">
+                            <div key={rowIndex} className="flex justify-center gap-2 md:gap-4">
                                 {row.map(char => {
                                     const isGuessed = guessedLetters.has(char);
                                     const isCorrect = target?.word.toUpperCase().includes(char);
@@ -427,12 +446,12 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
                                             key={char}
                                             onClick={() => handleGuess(char)}
                                             disabled={isGuessed}
-                                            className={`h-9 md:h-11 w-8 md:w-10 relative z-10 rounded-lg font-black text-[10px] md:text-sm flex items-center justify-center transition-all active:scale-90
+                                            className={`h-12 md:h-20 w-10 md:w-16 relative z-10 rounded-xl md:rounded-2xl font-black text-sm md:text-3xl flex items-center justify-center transition-all active:scale-90
                                                 ${!isGuessed 
-                                                    ? 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700 shadow-md border-b-2 border-black' 
+                                                    ? 'bg-zinc-800 text-zinc-100 hover:bg-zinc-700 shadow-[0_5px_0_black] hover:shadow-[0_2px_0_black] hover:translate-y-[3px] border-b-2 border-black' 
                                                     : isCorrect 
-                                                        ? 'bg-emerald-600/20 text-emerald-500 opacity-40' 
-                                                        : 'bg-red-600/20 text-red-500 opacity-40'}`}
+                                                        ? 'bg-emerald-600/30 text-emerald-400 border border-emerald-500/50 opacity-60' 
+                                                        : 'bg-red-600/30 text-red-400 border border-red-500/50 opacity-60'}`}
                                         >
                                             {char}
                                         </button>
@@ -444,33 +463,40 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
                 )}
 
                 {(gameState === 'WON' || gameState === 'LOST') && (
-                    <div className="animate-fade-in w-full max-w-sm bg-zinc-900 p-6 md:p-8 rounded-[2.5rem] md:rounded-[3.5rem] border-4 border-pulse-500 text-center shadow-[0_0_100px_rgba(0,0,0,1)] relative overflow-hidden z-30 my-auto">
+                    <div className="animate-fade-in w-full max-w-sm bg-zinc-900 p-8 md:p-12 rounded-[3.5rem] md:rounded-[4rem] border-4 border-pulse-500 text-center shadow-[0_0_120px_rgba(0,0,0,1)] relative overflow-hidden z-30 my-auto">
                         <div className="relative z-10">
-                            <h2 className={`text-2xl md:text-3xl font-black italic uppercase tracking-tighter mb-4 ${gameState === 'WON' ? 'text-emerald-500' : 'text-pulse-500'}`}>
+                            <h2 className={`text-4xl md:text-5xl font-black italic uppercase tracking-tighter mb-6 ${gameState === 'WON' ? 'text-emerald-500' : 'text-pulse-500'}`}>
                                 {gameState === 'WON' ? 'SIGNAL CLEAR' : 'LINK SEVERED'}
                             </h2>
-                            <div className="mb-4 md:mb-6 p-3 md:p-4 bg-black/40 rounded-2xl border border-white/5 text-left">
-                                <p className="text-lg md:text-xl font-black text-white italic tracking-widest uppercase truncate">{target?.word}</p>
-                                <p className="text-[8px] md:text-[9px] text-zinc-600 font-mono mt-1 md:mt-2 uppercase italic leading-tight">{target?.hint}</p>
+                            <div className="mb-6 md:mb-8 p-6 md:p-8 bg-black/60 rounded-[2rem] border-2 border-white/10 text-left shadow-inner">
+                                <p className="text-[10px] md:text-xs font-black text-zinc-500 uppercase tracking-widest mb-3 italic">
+                                    {gameState === 'LOST' ? '// Correct Signal Reveal' : '// Target Signal'}
+                                </p>
+                                <p className={`text-2xl md:text-3xl font-black italic tracking-wider uppercase mb-2 ${gameState === 'LOST' ? 'text-red-500 animate-pulse' : 'text-white'}`}>
+                                    {target?.word}
+                                </p>
+                                <p className="text-[10px] md:text-xs text-zinc-400 font-mono uppercase italic leading-tight border-t border-white/5 pt-3 mt-3">
+                                    {target?.hint}
+                                </p>
                             </div>
                             
                             {mode === 'SOLO' ? (
                                 gameState === 'WON' ? (
-                                    <button onClick={handleSoloWin} className="w-full py-4 bg-emerald-500 text-black font-black uppercase italic rounded-full text-xs md:text-sm tracking-widest hover:scale-105 transition-all shadow-xl">Advance to Sector {level + 1}</button>
+                                    <button onClick={handleSoloWin} className="w-full py-5 bg-emerald-500 text-black font-black uppercase italic rounded-full text-sm md:text-lg tracking-widest hover:scale-105 transition-all shadow-xl">Advance to Sector {level + 1}</button>
                                 ) : (
-                                    <div className="space-y-4">
-                                        <p className="text-[8px] md:text-[9px] font-black uppercase text-zinc-500 tracking-widest mb-2 italic">Establish Record ID</p>
-                                        <input autoFocus maxLength={3} value={initials} onChange={e => setInitials(e.target.value.toUpperCase())} className="bg-black/50 border-2 border-pulse-500 text-white rounded-xl px-4 py-2 text-center text-xl md:text-2xl font-black w-28 md:w-32 outline-none uppercase italic mb-4" placeholder="???" />
-                                        <button onClick={handleSaveScore} className="w-full py-4 bg-white text-black font-black uppercase italic rounded-full text-xs md:text-sm tracking-widest hover:bg-cyan-400 transition-all shadow-xl">Post Records</button>
+                                    <div className="space-y-6">
+                                        <p className="text-[10px] md:text-xs font-black uppercase text-zinc-500 tracking-widest italic">Establish Record ID</p>
+                                        <input autoFocus maxLength={3} value={initials} onChange={e => setInitials(e.target.value.toUpperCase())} className="bg-black/50 border-2 border-pulse-500 text-white rounded-2xl px-6 py-4 text-center text-3xl font-black w-32 md:w-40 outline-none uppercase italic mb-6" placeholder="???" />
+                                        <button onClick={handleSaveScore} className="w-full py-5 bg-white text-black font-black uppercase italic rounded-full text-sm md:text-lg tracking-widest hover:bg-cyan-400 transition-all shadow-xl">Post Records</button>
                                     </div>
                                 )
                             ) : (
-                                <button onClick={() => handleVersusWinOrLoss(gameState === 'WON')} className={`w-full py-4 font-black uppercase italic rounded-full text-xs md:text-sm tracking-widest shadow-xl transition-all ${currentPlayer === 1 ? 'bg-blue-600' : 'bg-pink-600'}`}>
+                                <button onClick={() => handleVersusWinOrLoss(gameState === 'WON')} className={`w-full py-5 font-black uppercase italic rounded-full text-sm md:text-lg tracking-widest shadow-xl transition-all ${currentPlayer === 1 ? 'bg-blue-600' : 'bg-pink-600'}`}>
                                     {currentPlayer === 1 ? 'Player 2 Awaiting' : round === 3 ? 'Final Tally' : 'Next Round'}
                                 </button>
                             )}
                         </div>
-                        {gameState === 'LOST' && <div className="absolute inset-0 bg-pulse-500/10 animate-pulse" />}
+                        {gameState === 'LOST' && <div className="absolute inset-0 bg-red-600/5 animate-pulse" />}
                     </div>
                 )}
             </div>
