@@ -1,3 +1,4 @@
+
 import React from 'react';
 import type { Selection } from '../src/App';
 import { ListIcon, SettingsIcon, PlayPauseIcon, VoidIcon } from './icons';
@@ -17,7 +18,7 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ selection, onSelect, onOpen
     ];
 
     return (
-        <nav className="fixed bottom-0 left-0 right-0 z-40 pb-[env(safe-area-inset-bottom)] bg-void-950/80 backdrop-blur-2xl border-t border-white/5 shadow-2xl">
+        <nav className="fixed bottom-0 left-0 right-0 z-40 bg-void-950/80 backdrop-blur-2xl border-t border-white/5 shadow-2xl pb-[var(--safe-bottom)]">
             <div className="px-6 py-2 flex justify-around items-center h-16">
                 {navItems.map((item) => {
                     const isActive = item.type === 'settings' ? false : selection.type === item.type;

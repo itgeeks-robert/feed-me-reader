@@ -63,6 +63,16 @@ const CREDITS_KEY = `void_credits_${GUEST_USER_ID}`;
 
 const isMobile = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
+/**
+ * Shared layout component to handle the "class/template model" requirement.
+ * This ensures every page adheres to the safe areas for status and navigation bars.
+ */
+const TerminalView: React.FC<{ children: React.ReactNode; hasBottomNav?: boolean }> = ({ children, hasBottomNav }) => (
+    <div className={`flex-1 flex flex-col min-w-0 relative h-full overflow-hidden safe-area-container ${hasBottomNav ? 'pb-16 md:pb-0' : ''}`}>
+        {children}
+    </div>
+);
+
 const App: React.FC = () => {
     const [theme, setTheme] = useLocalStorage<Theme>(THEME_KEY, 'dark');
     const [articleView, setArticleView] = useLocalStorage<ArticleView>(ARTICLE_VIEW_KEY, 'list');
@@ -99,7 +109,8 @@ const App: React.FC = () => {
     const [skipIntegrityBriefing, setSkipIntegrityBriefing] = useLocalStorage<boolean>('void_skip_integrity_briefing', false);
 
     const isGameActive = useMemo(() => {
-        return ['sudoku', 'solitaire', 'minesweeper', 'tetris', 'pool', 'cipher_core', 'void_runner', 'synapse_link', 'grid_reset', 'hangman'].includes(selection.type);
+        const gameTypes = ['sudoku', 'solitaire', 'minesweeper', 'tetris', 'pool', 'cipher_core', 'void_runner', 'synapse_link', 'grid_reset', 'hangman'];
+        return gameTypes.includes(selection.type);
     }, [selection.type]);
 
     useEffect(() => {
@@ -346,13 +357,15 @@ const App: React.FC = () => {
         }
     };
 
+    const hasBottomNav = !isGameActive && selection.type !== 'splash';
+
     return (
-        <div className="h-screen w-full font-sans text-sm relative flex flex-col overflow-hidden bg-void-950 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
-            <div className="flex-1 flex flex-col min-w-0 relative pb-20 md:pb-0 h-full overflow-hidden">
+        <div className="h-screen w-full font-sans text-sm relative flex flex-col overflow-hidden bg-void-950">
+            <TerminalView hasBottomNav={hasBottomNav}>
                 {renderCurrentPage()}
-            </div>
+            </TerminalView>
             
-            {!isGameActive && selection.type !== 'splash' && (
+            {hasBottomNav && (
                 <BottomNavBar selection={selection} onSelect={(s) => updateSelection(s)} onOpenSettings={() => setIsSettingsModalOpen(true)} />
             )}
             
