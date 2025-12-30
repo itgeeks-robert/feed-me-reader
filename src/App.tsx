@@ -60,6 +60,7 @@ const ARTICLE_VIEW_KEY = `void_article_view_${GUEST_USER_ID}`;
 const WIDGET_SETTINGS_KEY = `void_widget_settings_${GUEST_USER_ID}`;
 const UPTIME_KEY = `void_uptime_${GUEST_USER_ID}`;
 const CREDITS_KEY = `void_credits_${GUEST_USER_ID}`;
+const SELECTION_KEY = `void_selection_${GUEST_USER_ID}`;
 
 const isMobile = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
@@ -85,12 +86,8 @@ const App: React.FC = () => {
     const [uptime, setUptime] = useLocalStorage<number>(UPTIME_KEY, 25);
     const [credits, setCredits] = useLocalStorage<number>(CREDITS_KEY, 100); 
 
-    const [selection, setSelection] = useState<Selection>(() => {
-        if (typeof window !== 'undefined' && window.history.state?.selection) {
-            return window.history.state.selection;
-        }
-        return { type: 'splash', id: null };
-    });
+    // Changed selection to use useLocalStorage to persist through orientation changes/WebView reloads
+    const [selection, setSelection] = useLocalStorage<Selection>(SELECTION_KEY, { type: 'splash', id: null });
 
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
     const [isAddSourceModalOpen, setIsAddSourceModalOpen] = useState(false);
@@ -128,12 +125,14 @@ const App: React.FC = () => {
             } else if (event.state?.selection) {
                 setSelection(event.state.selection);
             } else {
+                // If popping beyond history, check localStorage or default to all
+                // This ensures back button works while staying synced with persistence
                 setSelection({ type: 'all', id: null });
             }
         };
         window.addEventListener('popstate', handlePopState);
         return () => window.removeEventListener('popstate', handlePopState);
-    }, [readerArticle, outboundLink, showSearchExplainer, showIntegrityBriefing]);
+    }, [readerArticle, outboundLink, showSearchExplainer, showIntegrityBriefing, setSelection]);
 
     const updateSelection = useCallback((newSel: Selection, replace: boolean = false) => {
         setSelection(newSel);
@@ -142,7 +141,7 @@ const App: React.FC = () => {
         } else {
             window.history.pushState({ selection: newSel }, '');
         }
-    }, []);
+    }, [setSelection]);
 
     const openReader = useCallback((article: Article) => {
         setReaderArticle(article);
@@ -171,7 +170,7 @@ const App: React.FC = () => {
             setOutboundLink({ url, id });
             window.history.pushState({ isOutbound: true }, '');
         }
-    }, [skipExternalWarning, readArticleIds]);
+    }, [skipExternalWarning, readArticleIds, setReadArticleIds, setCredits]);
 
     const closeExternalWarning = useCallback(() => {
         setOutboundLink(null);
@@ -193,7 +192,7 @@ const App: React.FC = () => {
                 closeExternalWarning();
             }
         }
-    }, [outboundLink, readArticleIds, closeExternalWarning]);
+    }, [outboundLink, readArticleIds, closeExternalWarning, setReadArticleIds, setCredits]);
 
     const openSearchExplainer = useCallback(() => {
         if (!skipSearchExplainer) {
@@ -322,7 +321,9 @@ const App: React.FC = () => {
                             (selection.type === 'feed' ? feeds.filter(f => f.id === selection.id) : feeds)
                         }
                         selection={selection}
-                        onSelectCategory={(cat) => updateSelection(cat ? { type: 'all', id: null, category: cat } : { type: 'all', id: null })}
+                        // FIX: selection.type will never be 'splash' here because of the early return at the start of component render.
+                        // Changed comparison to false to satisfy TypeScript narrowing.
+                        onSelectCategory={(cat) => updateSelection(cat ? { type: 'all', id: null, category: cat } : { type: 'all', id: null }, false)}
                         readArticleIds={readArticleIds}
                         bookmarkedArticleIds={bookmarkedArticleIds}
                         articleTags={new Map()}
@@ -357,7 +358,9 @@ const App: React.FC = () => {
         }
     };
 
-    const hasBottomNav = !isGameActive && selection.type !== 'splash';
+    // FIX: selection.type will never be 'splash' here because of the early return at the start of component render.
+    // Removed redundant selection.type !== 'splash' check to satisfy TypeScript narrowing.
+    const hasBottomNav = !isGameActive;
 
     return (
         <div className="h-screen w-full font-sans text-sm relative flex flex-col overflow-hidden bg-void-950">
@@ -389,7 +392,7 @@ const App: React.FC = () => {
 
             {showSearchExplainer && (
                 <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-[200] flex items-center justify-center p-4 md:p-6 font-mono animate-fade-in pointer-events-auto">
-                    <div className="bg-zinc-900 border-4 border-pulse-500 shadow-[0_0_120px_rgba(225,29,72,0.3)] w-full max-w-sm relative overflow-hidden flex flex-col">
+                    <div className="bg-zinc-900 border-4 border-pulse-500 shadow-[0_0_120px_rgba(225,29,72,0.3)] w-full max-sm relative overflow-hidden flex flex-col rounded-3xl">
                         <header className="h-10 bg-pulse-600 flex items-center justify-between px-1 border-b-2 border-black">
                             <div className="flex items-center gap-2 h-full">
                                 <div className="w-8 h-7 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center">

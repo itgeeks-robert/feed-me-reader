@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { XIcon, VoidIcon, SparklesIcon, ArrowPathIcon, ListIcon } from './icons';
 import { saveHighScore, getHighScores, HighScoreEntry } from '../services/highScoresService';
@@ -68,18 +69,19 @@ const SynapseLinkPage: React.FC<{ onBackToHub: () => void; onComplete?: () => vo
     const [loadingStatus, setLoadingStatus] = useState("Establishing Uplink...");
     const [mistakes, setMistakes] = useState(0);
     const [shakeIndex, setShakeIndex] = useState(false);
+    const [guessFeedback, setGuessFeedback] = useState<string | null>(null);
     const [time, setTime] = useState(0);
     const [initials, setInitials] = useState("");
     const [aiSummary, setAiSummary] = useState<string>("");
     const timerRef = useRef<number | null>(null);
 
-    const MISTAKE_LIMIT = 3;
+    const MISTAKE_LIMIT = 4;
 
     useEffect(() => {
         if (gameState === 'idle') {
             const interval = setInterval(() => {
                 setShowScores(prev => !prev);
-            }, 5000); // Updated: Cycles every 5 seconds for more dynamic UI
+            }, 5000);
             return () => clearInterval(interval);
         }
     }, [gameState]);
@@ -99,6 +101,8 @@ const SynapseLinkPage: React.FC<{ onBackToHub: () => void; onComplete?: () => vo
         setSolvedGroups([]);
         setSelection([]);
         setMistakes(0);
+        setGuessFeedback(null);
+        setAiSummary("");
         setGameState('playing');
         setTime(0);
         if (timerRef.current) clearInterval(timerRef.current);
@@ -215,6 +219,7 @@ const SynapseLinkPage: React.FC<{ onBackToHub: () => void; onComplete?: () => vo
 
     const handleWordClick = (word: string) => {
         if (gameState !== 'playing') return;
+        setGuessFeedback(null);
         if (selection.includes(word)) {
             setSelection(prev => prev.filter(w => w !== word));
         } else if (selection.length < 4) {
@@ -231,6 +236,7 @@ const SynapseLinkPage: React.FC<{ onBackToHub: () => void; onComplete?: () => vo
             setSolvedGroups(newSolved);
             setShuffledWords(prev => prev.filter(w => !selection.includes(w)));
             setSelection([]);
+            setGuessFeedback(null);
             
             if (newSolved.length === 4) {
                 setGameState('won');
@@ -238,6 +244,16 @@ const SynapseLinkPage: React.FC<{ onBackToHub: () => void; onComplete?: () => vo
                 onComplete?.();
             }
         } else {
+            let maxMatches = 0;
+            wall.groups.forEach(g => {
+                if (solvedGroups.some(sg => sg.words[0] === g.words[0])) return;
+                const matchCount = selection.filter(w => g.words.includes(w)).length;
+                if (matchCount > maxMatches) maxMatches = matchCount;
+            });
+
+            const feedback = maxMatches === 3 ? "3 LINKED" : maxMatches === 2 ? "2 LINKED" : "NO LINKS";
+            setGuessFeedback(feedback);
+
             setMistakes(m => {
                 const next = m + 1;
                 if (next >= MISTAKE_LIMIT) {
@@ -280,15 +296,6 @@ const SynapseLinkPage: React.FC<{ onBackToHub: () => void; onComplete?: () => vo
     if (gameState === 'idle') {
         return (
             <div className="w-full h-full bg-zinc-950 flex flex-col items-center justify-center p-6 overflow-y-auto scrollbar-hide">
-                <style>{`
-                    @keyframes glitch-in {
-                        0% { opacity: 0; transform: scale(0.9) skew(0deg); }
-                        10% { opacity: 0.8; transform: scale(1.05) skew(5deg); filter: hue-rotate(90deg); }
-                        20% { opacity: 1; transform: scale(1) skew(0deg); filter: hue-rotate(0deg); }
-                    }
-                    .animate-glitch-in { animation: glitch-in 0.4s ease-out forwards; }
-                `}</style>
-                
                 <div className="w-full max-w-sm text-center bg-zinc-900 p-8 md:p-10 rounded-[3rem] border-4 border-pulse-500 shadow-[0_0_50px_rgba(225,29,72,0.1)] mb-6">
                     <header className="mb-10">
                         <span className="text-[10px] font-black uppercase text-neon-400 tracking-[0.3em] italic block mb-1">Cluster Analysis</span>
@@ -320,13 +327,19 @@ const SynapseLinkPage: React.FC<{ onBackToHub: () => void; onComplete?: () => vo
     }
 
     return (
-        <main className="w-full h-full bg-zinc-950 flex flex-col items-center p-4 overflow-y-auto scrollbar-hide">
+        <main className="w-full h-full bg-zinc-950 flex flex-col items-center p-4 overflow-y-auto scrollbar-hide pb-[calc(2rem+var(--safe-bottom))]">
             <style>{`
                 @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
                 .animate-shake { animation: shake 0.2s ease-in-out 2; }
+                @keyframes glitch-in {
+                    0% { opacity: 0; transform: scale(0.9) skew(0deg); }
+                    10% { opacity: 0.8; transform: scale(1.05) skew(5deg); filter: hue-rotate(90deg); }
+                    20% { opacity: 1; transform: scale(1) skew(0deg); filter: hue-rotate(0deg); }
+                }
+                .animate-glitch-in { animation: glitch-in 0.4s ease-out forwards; }
             `}</style>
             
-            <header className="w-full max-w-lg flex justify-between items-center mb-8 bg-zinc-900/50 p-4 rounded-3xl border border-white/5 flex-shrink-0">
+            <header className="w-full max-w-lg flex justify-between items-center mb-8 bg-zinc-900/50 p-4 rounded-3xl border border-white/5 flex-shrink-0 mt-[var(--safe-top)]">
                 <button onClick={onBackToHub} className="p-2 bg-zinc-800 rounded-xl text-zinc-400 hover:text-white transition-colors">
                     <XIcon className="w-6 h-6" />
                 </button>
@@ -340,10 +353,17 @@ const SynapseLinkPage: React.FC<{ onBackToHub: () => void; onComplete?: () => vo
             </header>
 
             <div className="w-full max-w-xl flex flex-col gap-6">
-                <div className="flex justify-center gap-2 mb-2">
-                    {[...Array(MISTAKE_LIMIT)].map((_, i) => (
-                        <HeartIcon key={i} filled={i < MISTAKE_LIMIT - mistakes} animated={gameState === 'playing'} />
-                    ))}
+                <div className="flex flex-col items-center gap-3">
+                    <div className="flex justify-center gap-2">
+                        {[...Array(MISTAKE_LIMIT)].map((_, i) => (
+                            <HeartIcon key={i} filled={i < MISTAKE_LIMIT - mistakes} animated={gameState === 'playing'} />
+                        ))}
+                    </div>
+                    {guessFeedback && (
+                        <div className="bg-pulse-500/20 border border-pulse-500 text-pulse-500 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest italic animate-bounce">
+                            {guessFeedback}
+                        </div>
+                    )}
                 </div>
 
                 <div className="grid grid-cols-1 gap-2">
@@ -377,7 +397,7 @@ const SynapseLinkPage: React.FC<{ onBackToHub: () => void; onComplete?: () => vo
 
                         <div className="flex gap-4 mt-4">
                             <button 
-                                onClick={() => setSelection([])}
+                                onClick={() => { setSelection([]); setGuessFeedback(null); }}
                                 className="flex-1 py-4 bg-zinc-800 text-zinc-400 font-black uppercase italic rounded-2xl hover:text-white transition-all border border-white/5"
                             >
                                 Clear
@@ -394,7 +414,7 @@ const SynapseLinkPage: React.FC<{ onBackToHub: () => void; onComplete?: () => vo
                 )}
 
                 {(gameState === 'won' || gameState === 'lost') && (
-                    <div className="mt-8 bg-zinc-900 p-8 rounded-[3rem] border-4 border-pulse-500 text-center shadow-2xl animate-fade-in">
+                    <div className="mt-8 bg-zinc-900 p-8 rounded-[3rem] border-4 border-pulse-500 text-center shadow-2xl animate-fade-in relative overflow-hidden">
                         <h2 className={`text-4xl font-black italic uppercase mb-4 ${gameState === 'won' ? 'text-emerald-500' : 'text-pulse-500'}`}>
                             {gameState === 'won' ? 'SYNC SUCCESS' : 'LINK SEVERED'}
                         </h2>
@@ -408,6 +428,22 @@ const SynapseLinkPage: React.FC<{ onBackToHub: () => void; onComplete?: () => vo
                                     <SparklesIcon className="w-3 h-3" /> Analyze Session
                                 </button>
                             )}
+                        </div>
+
+                        {/* FULL SOLUTION REVEAL */}
+                        <div className="bg-void-950/60 p-4 rounded-2xl border border-white/5 mb-8 text-left space-y-4">
+                            <p className="text-[8px] font-black text-zinc-600 uppercase tracking-widest italic border-b border-white/5 pb-2">// Data Packet Structure (Reveal)</p>
+                            <div className="space-y-3">
+                                {wall?.groups.map((g, i) => (
+                                    <div key={i} className="flex flex-col gap-1">
+                                        <div className="flex items-center gap-2">
+                                            <div className={`w-1.5 h-1.5 rounded-full ${g.color.split(' ')[0]}`} />
+                                            <span className="text-[10px] font-black text-white italic uppercase tracking-tighter">{g.connection}</span>
+                                        </div>
+                                        <span className="text-[9px] font-mono text-zinc-500 ml-3.5 leading-none">{g.words.join(" • ")}</span>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
 
                         {gameState === 'won' ? (
@@ -425,6 +461,7 @@ const SynapseLinkPage: React.FC<{ onBackToHub: () => void; onComplete?: () => vo
                         ) : (
                             <button onClick={() => fetchAndSynthesizePuzzle()} className="w-full py-5 bg-pulse-600 text-white font-black text-xl italic uppercase rounded-full shadow-xl hover:scale-105 transition-transform">Retry Sync</button>
                         )}
+                        <button onClick={onBackToHub} className="mt-4 text-zinc-500 font-bold uppercase tracking-widest text-[9px] hover:text-white transition-colors block w-full italic">Back to Terminal</button>
                     </div>
                 )}
             </div>
