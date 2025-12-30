@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { Article } from '../../src/App';
 import type { SourceType } from '../AddSource';
-import { BookOpenIcon } from '../icons';
+import { BookOpenIcon, GlobeAltIcon } from '../icons';
 import ImageWithProxy from '../ImageWithProxy';
 import { timeAgo } from '../../services/utils';
 import { SmartFeedIcon } from '../SmartFeedIcon';
@@ -11,12 +11,13 @@ interface MagazineArticleListItemProps {
     article: Article;
     onMarkAsRead: () => void;
     onReadHere: () => void;
+    onReadExternal: () => void;
     isRead: boolean;
     sourceType?: SourceType;
     iconUrl?: string;
 }
 
-const MagazineArticleListItem: React.FC<MagazineArticleListItemProps> = ({ article, onMarkAsRead, onReadHere, isRead, sourceType, iconUrl }) => {
+const MagazineArticleListItem: React.FC<MagazineArticleListItemProps> = ({ article, onMarkAsRead, onReadHere, onReadExternal, isRead, sourceType, iconUrl }) => {
     const [reconstructedSrc, setReconstructedSrc] = useState<string | null>(null);
     const [isSearching, setIsSearching] = useState(false);
 
@@ -83,22 +84,27 @@ const MagazineArticleListItem: React.FC<MagazineArticleListItemProps> = ({ artic
                     {article.snippet}
                 </p>
 
-                <div className="mt-auto flex items-center justify-between border-t border-zinc-200 dark:border-zinc-800/40 pt-3">
-                    <span className="text-[8px] font-mono font-bold text-zinc-500 dark:text-zinc-600 uppercase tracking-tighter">{timeAgo(article.publishedDate)}</span>
+                <div className="mt-auto flex flex-col gap-2.5 border-t border-zinc-200 dark:border-zinc-800/40 pt-3">
                     <button 
                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); onReadHere(); }} 
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-void-950 border border-pulse-500/20 text-pulse-600 dark:text-pulse-500 hover:bg-pulse-500 hover:text-white transition-all active:scale-95 shadow-[2px_2px_0px_#e11d48]"
+                        className="flex items-center justify-center gap-1.5 w-full py-2.5 bg-pulse-500 text-white font-black uppercase italic tracking-widest shadow-[2px_2px_0px_black] dark:shadow-[2px_2px_0px_white] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all text-[10px]"
                     >
-                        <BookOpenIcon className="w-3 h-3" />
-                        <span className="text-[9px] font-black uppercase italic tracking-widest">DECODE</span>
+                        <BookOpenIcon className="w-3.5 h-3.5" />
+                        <span>Analyze Local</span>
                     </button>
+                    
+                    <div className="flex items-center justify-between">
+                        <span className="text-[8px] font-mono font-bold text-zinc-500 dark:text-zinc-600 uppercase tracking-tighter">{timeAgo(article.publishedDate)}</span>
+                        <button 
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onReadExternal(); }} 
+                            className="text-[8px] font-black uppercase text-zinc-500 hover:text-terminal transition-colors underline decoration-dotted underline-offset-2 flex items-center gap-1"
+                        >
+                            <GlobeAltIcon className="w-2.5 h-2.5" />
+                            Raw Stream
+                        </button>
+                    </div>
                 </div>
             </div>
-            
-            {/* Hidden link for SEO/accessibility */}
-            <a href={article.link} target="_blank" rel="noopener noreferrer" onClick={onMarkAsRead} className="absolute inset-0 z-0">
-                <span className="sr-only">Access Original: {article.title}</span>
-            </a>
         </div>
     );
 };

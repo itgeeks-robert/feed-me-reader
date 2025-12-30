@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import type { Feed, Folder, Selection, WidgetSettings, Article, ArticleView, Theme } from '../src/App';
 import type { SourceType } from './AddSource';
-import { MenuIcon, SearchIcon, SunIcon, MoonIcon, GlobeAltIcon, CpuChipIcon, BeakerIcon, ChartBarIcon, FlagIcon, FireIcon, ControllerIcon, XIcon, ExclamationTriangleIcon, ArrowPathIcon, RadioIcon } from './icons';
+import { MenuIcon, SearchIcon, SunIcon, MoonIcon, GlobeAltIcon, CpuChipIcon, BeakerIcon, ChartBarIcon, FlagIcon, FireIcon, ControllerIcon, XIcon, ExclamationTriangleIcon, ArrowPathIcon, RadioIcon, VoidIcon } from './icons';
 import { resilientFetch } from '../services/fetch';
 import { parseRssXml } from '../services/rssParser';
 import FeaturedStory from './articles/FeaturedStory';
@@ -26,6 +26,7 @@ interface MainContentProps {
     onSetArticleTags: (articleId: string, tags: Set<string>) => void;
     onSearch: (query: string) => void;
     onOpenReader: (article: Article) => void;
+    onOpenExternal: (url: string, id: string) => void;
     allFeeds: Feed[];
     onSetFeeds?: (feeds: Feed[]) => void;
     onSetFolders?: (folders: Folder[]) => void;
@@ -43,6 +44,9 @@ interface MainContentProps {
     pageTitle: string;
     uptime: number;
     initialArticles?: Article[];
+    onSetSniffErrorModal: (show: boolean) => void;
+    onOpenSearchExplainer?: () => void;
+    onOpenIntegrityBriefing?: () => void;
 }
 
 const ARTICLES_PER_PAGE = 25;
@@ -58,10 +62,10 @@ const CATEGORY_MAP = [
     { id: 'GAMING', icon: <ControllerIcon className="w-3 h-3" /> }
 ];
 
-const EnergyScope: React.FC<{ value: number }> = ({ value }) => (
-    <div className="w-full flex flex-col gap-1">
+const EnergyScope: React.FC<{ value: number, onClick?: () => void }> = ({ value, onClick }) => (
+    <div className="w-full flex flex-col gap-1 cursor-help group" onClick={onClick}>
         <div className="flex justify-between items-center">
-            <span className="text-[10px] font-black text-pulse-600 dark:text-pulse-500 uppercase tracking-tighter italic leading-none">System Integrity</span>
+            <span className="text-[10px] font-black text-pulse-600 dark:text-pulse-500 uppercase tracking-tighter italic leading-none group-hover:text-white transition-colors">System Integrity</span>
             <span className="text-[10px] font-black text-pulse-600 dark:text-pulse-500 uppercase tracking-tighter italic leading-none">{value}%</span>
         </div>
         <div className="w-full h-1.5 bg-void-950 border border-pulse-500/20 rounded-full overflow-hidden relative">
@@ -71,7 +75,7 @@ const EnergyScope: React.FC<{ value: number }> = ({ value }) => (
 );
 
 const MainContent: React.FC<MainContentProps> = (props) => {
-    const { selection, onSelectCategory, readArticleIds, bookmarkedArticleIds, onMarkAsRead, onPurgeBuffer, onSearch, onOpenReader, refreshKey, onOpenSidebar, theme, onToggleTheme, animationClass, pageTitle, uptime, allFeeds, onSetFeeds, onSetFolders, initialArticles, onAddSource, onRefresh } = props;
+    const { selection, onSelectCategory, readArticleIds, bookmarkedArticleIds, onMarkAsRead, onPurgeBuffer, onSearch, onOpenReader, onOpenExternal, refreshKey, onOpenSidebar, theme, onToggleTheme, animationClass, pageTitle, uptime, allFeeds, onSetFeeds, onSetFolders, initialArticles, onAddSource, onRefresh, onSetSniffErrorModal, onOpenSearchExplainer, onOpenIntegrityBriefing } = props;
     
     const [articles, setArticles] = useState<Article[]>(initialArticles || []);
     const [loading, setLoading] = useState(false);
@@ -81,7 +85,6 @@ const MainContent: React.FC<MainContentProps> = (props) => {
     const [cacheCount, setCacheCount] = useState(0);
     const [pendingCategory, setPendingCategory] = useState<string | null>(null);
     const [isSniffing, setIsSniffing] = useState(false);
-    const [sniffError, setSniffError] = useState<string | null>(null);
     const [rememberGlobalWarning, setRememberGlobalWarning] = useLocalStorage<boolean>('void_remember_global_warning', false);
     
     useEffect(() => { getCacheCount().then(setCacheCount); }, [refreshKey]);
@@ -132,7 +135,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
             result = result.filter(a => bookmarkedArticleIds.has(a.id));
         } else if (selection.type === 'search' && selection.query) {
              const filter = selection.query.toLowerCase();
-             result = result.filter(a => a.title.toLowerCase().includes(filter) || a.snippet.toLowerCase().includes(filter));
+             result = result.filter(a => a.title.toLowerCase().includes(filter) || a.snippet.toLowerCase().includes(filter) || a.source.toLowerCase().includes(filter));
         }
         
         if (selection.category) {
@@ -159,24 +162,55 @@ const MainContent: React.FC<MainContentProps> = (props) => {
         }
     };
 
-    const handleSniffSignal = async () => {
-        if (!searchQuery || isSniffing) return;
+    const handleSniffSignal = async (targetUrl?: string) => {
+        const query = targetUrl || searchQuery;
+        if (!query || isSniffing) return;
         setIsSniffing(true);
-        setSniffError(null);
         try {
-            const discovered = await discoverFeedSignals(searchQuery);
+            let normalized = query.trim();
+            if (!normalized.includes('.') && !normalized.includes('://')) {
+                throw new Error("Target is not a valid node address.");
+            }
+            if (!normalized.includes('://')) normalized = `https://${normalized}`;
+            const discovered = await discoverFeedSignals(normalized);
             if (discovered && discovered.length > 0) {
                 await onAddSource(discovered[0].url, 'rss');
                 setSearchQuery('');
                 onRefresh();
-                alert(`SUCCESS: Node ${discovered[0].title} synchronized.`);
+                return true;
             } else {
-                throw new Error("No usable signal detected on this host.");
+                throw new Error("Frequency is silent.");
             }
         } catch (err) {
-            setSniffError(err instanceof Error ? err.message : "Intercept Failed.");
+            onSetSniffErrorModal(true);
+            return false;
         } finally {
             setIsSniffing(false);
+        }
+    };
+
+    const isUrl = (str: string) => {
+        return /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([\/\w .-]*)*\/?$/.test(str);
+    };
+
+    const handleSearchSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const query = searchQuery.trim();
+        if (!query) return;
+
+        if (isUrl(query)) {
+            await handleSniffSignal(query);
+        } else {
+            onSearch(query);
+            const filter = query.toLowerCase();
+            const localHits = articles.filter(a => 
+                a.title.toLowerCase().includes(filter) || 
+                a.snippet.toLowerCase().includes(filter) || 
+                a.source.toLowerCase().includes(filter)
+            );
+            if (localHits.length === 0) {
+                await handleSniffSignal(query);
+            }
         }
     };
 
@@ -184,7 +218,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
         return (
             <main className={`flex-grow overflow-y-auto scrollbar-hide ${animationClass} bg-void-950 pb-40 pt-40`}>
                 <Header 
-                    onSearchSubmit={() => onSearch(searchQuery)} 
+                    onSearchSubmit={handleSearchSubmit} 
                     searchQuery={searchQuery} 
                     setSearchQuery={setSearchQuery} 
                     onOpenSidebar={onOpenSidebar} 
@@ -193,8 +227,9 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                     uptime={uptime} 
                     cacheCount={cacheCount}
                     isSniffing={isSniffing}
-                    onSniff={handleSniffSignal}
-                    error={sniffError}
+                    onSniff={() => handleSniffSignal()}
+                    onOpenSearchExplainer={onOpenSearchExplainer}
+                    onOpenIntegrityBriefing={onOpenIntegrityBriefing}
                 />
                 <FeedOnboarding onComplete={(f, fld) => { onSetFolders(fld); onSetFeeds(f); }} />
             </main>
@@ -208,7 +243,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
     return (
         <main className={`flex-grow overflow-y-auto scrollbar-hide ${animationClass} bg-void-950 pb-[calc(10rem+env(safe-area-inset-bottom))] md:pb-32 scroll-smooth`}>
             <Header 
-                onSearchSubmit={(e: any) => { e.preventDefault(); onSearch(searchQuery); }} 
+                onSearchSubmit={handleSearchSubmit} 
                 searchQuery={searchQuery} 
                 setSearchQuery={setSearchQuery} 
                 onOpenSidebar={onOpenSidebar} 
@@ -217,8 +252,9 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                 uptime={uptime} 
                 cacheCount={cacheCount} 
                 isSniffing={isSniffing}
-                onSniff={handleSniffSignal}
-                error={sniffError}
+                onSniff={() => handleSniffSignal()}
+                onOpenSearchExplainer={onOpenSearchExplainer}
+                onOpenIntegrityBriefing={onOpenIntegrityBriefing}
             />
             
             <nav className="fixed top-[env(safe-area-inset-top)] mt-20 md:mt-28 left-0 right-0 z-20 bg-void-900/90 backdrop-blur-md border-b border-zinc-200 dark:border-white/5 flex items-center h-14 overflow-x-auto scrollbar-hide px-4 md:px-12 gap-3 shadow-xl">
@@ -241,7 +277,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                 
                 {latestArticle && !selection.category && (
                     <div className="mb-12">
-                        <FeaturedStory article={latestArticle} onReadHere={() => onOpenReader(latestArticle)} onMarkAsRead={() => onMarkAsRead(latestArticle.id)} isRead={readArticleIds.has(latestArticle.id)} />
+                        <FeaturedStory article={latestArticle} onReadHere={() => onOpenReader(latestArticle)} onReadExternal={() => onOpenExternal(latestArticle.link, latestArticle.id)} isRead={readArticleIds.has(latestArticle.id)} />
                     </div>
                 )}
                 
@@ -253,10 +289,16 @@ const MainContent: React.FC<MainContentProps> = (props) => {
 
                     {loading && filteredArticles.length === 0 ? (
                         <div className="text-center py-24 flex flex-col items-center gap-6"><div className="w-10 h-10 border-t-2 border-pulse-500 rounded-full animate-spin"></div><span className="text-pulse-600 dark:text-pulse-500 font-mono text-[11px] uppercase tracking-widest animate-pulse italic">Decrypting Signal...</span></div>
+                    ) : filteredArticles.length === 0 ? (
+                        <div className="text-center py-24 border-2 border-dashed border-zinc-800 rounded-[2rem] bg-void-900/20">
+                            <ExclamationTriangleIcon className="w-12 h-12 text-zinc-700 mx-auto mb-4" />
+                            <h3 className="text-xl font-black text-zinc-600 uppercase italic mb-2 tracking-tighter">Local Frequency Silent</h3>
+                            <p className="text-[10px] text-zinc-700 uppercase tracking-widest mb-8 font-mono italic">No matches found in established nodes for "{selection.query}".</p>
+                        </div>
                     ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 md:gap-8">
                             {visibleArticlesToDisplay.map(article => (
-                                <MagazineArticleListItem key={article.id} article={article} onMarkAsRead={() => onMarkAsRead(article.id)} onReadHere={() => onOpenReader(article)} isRead={readArticleIds.has(article.id)} />
+                                <MagazineArticleListItem key={article.id} article={article} onMarkAsRead={() => onMarkAsRead(article.id)} onReadHere={() => onOpenReader(article)} onReadExternal={() => onOpenExternal(article.link, article.id)} isRead={readArticleIds.has(article.id)} />
                             ))}
                         </div>
                     )}
@@ -317,7 +359,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
     );
 };
 
-const Header: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuery, onOpenSidebar, theme, onToggleTheme, uptime, cacheCount, isSniffing, onSniff, error }) => {
+const Header: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuery, onOpenSidebar, theme, onToggleTheme, uptime, cacheCount, isSniffing, onSniff, onOpenSearchExplainer, onOpenIntegrityBriefing }) => {
     
     const isUrl = useMemo(() => {
         return /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([\/\w .-]*)*\/?$/.test(searchQuery);
@@ -328,7 +370,7 @@ const Header: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuery, on
             <div className="w-full h-full bg-void-950/90 backdrop-blur-xl border-b border-pulse-500/30 flex items-center justify-between px-4 md:px-12 shadow-2xl">
                 <button onClick={onOpenSidebar} className="p-3 text-pulse-600 dark:text-pulse-500 transition-all flex-shrink-0 active:scale-90"><MenuIcon className="w-8 h-8 md:w-10 md:h-10" /></button>
                 <div className="flex-grow flex flex-col items-center mx-4 md:mx-16 max-w-2xl relative">
-                    <form onSubmit={onSearchSubmit} className="relative w-full mb-2 md:mb-4">
+                    <form onSubmit={onSearchSubmit} className="relative w-full mb-2 md:mb-4 group">
                         <div className={`absolute top-1/2 left-4 md:left-8 -translate-y-1/2 transition-colors duration-300 ${isSniffing ? 'text-emerald-600 dark:text-emerald-500' : 'text-zinc-400 dark:text-zinc-700'}`}>
                             {isSniffing ? <ArrowPathIcon className="w-5 h-5 md:w-6 md:h-6 animate-spin" /> : <SearchIcon className="w-5 h-5 md:w-6 md:h-6" />}
                         </div>
@@ -337,6 +379,7 @@ const Header: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuery, on
                             type="search" 
                             placeholder="Scan Frequencies or Website URL..." 
                             value={searchQuery} 
+                            onFocus={onOpenSearchExplainer}
                             onChange={e => setSearchQuery(e.target.value)} 
                             className={`w-full bg-void-900 border focus:border-pulse-500 placeholder-zinc-400 dark:placeholder-zinc-700 text-terminal rounded-none py-2.5 md:py-4 pl-12 md:pl-16 pr-24 md:pr-32 text-[11px] md:text-base font-mono uppercase tracking-widest outline-none shadow-inner transition-all
                                 ${isUrl ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-zinc-300 dark:border-zinc-800'}`} 
@@ -351,16 +394,18 @@ const Header: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuery, on
                                 [SNIFF_SIGNAL]
                             </button>
                         )}
+                        
+                        {/* Information Icon for Search */}
+                        <button 
+                            type="button" 
+                            onClick={onOpenSearchExplainer}
+                            className="absolute -right-8 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-white transition-colors p-2 md:hidden lg:block"
+                        >
+                            <BeakerIcon className="w-4 h-4 opacity-50" />
+                        </button>
                     </form>
                     
-                    {/* Inline Status/Error Overlay for Search Bar */}
-                    {error && (
-                        <div className="absolute top-full left-0 right-0 mt-1 text-center">
-                            <span className="text-[8px] font-black text-pulse-600 dark:text-pulse-500 uppercase tracking-widest animate-pulse italic bg-black/80 px-4 py-1 rounded-full border border-pulse-500/20">
-                                0x004_ERR: {error}
-                            </span>
-                        </div>
-                    )}
+                    {/* Inline Status Overlay for Search Bar */}
                     {isSniffing && (
                         <div className="absolute top-full left-0 right-0 mt-1 text-center">
                             <span className="text-[8px] font-black text-emerald-600 dark:text-emerald-500 uppercase tracking-[0.4em] animate-pulse italic bg-black/80 px-4 py-1 rounded-full border border-emerald-500/20">
@@ -369,7 +414,9 @@ const Header: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuery, on
                         </div>
                     )}
 
-                    <div className="w-full px-2 md:px-10"><EnergyScope value={uptime} /></div>
+                    <div className="w-full px-2 md:px-10">
+                        <EnergyScope value={uptime} onClick={() => onOpenIntegrityBriefing()} />
+                    </div>
                 </div>
                 <div className="flex items-center gap-4 md:gap-12 flex-shrink-0">
                     <div className="hidden lg:flex flex-col items-end"><span className="text-[10px] font-black text-zinc-500 dark:text-zinc-600 uppercase tracking-tighter italic">Data Cache</span><span className="text-xs font-black text-pulse-600 dark:text-pulse-500 uppercase tracking-tighter italic">{cacheCount} SIGS</span></div>

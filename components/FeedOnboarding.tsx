@@ -4,10 +4,11 @@ import {
     RadioIcon, GlobeAltIcon, RssIcon, ShieldCheckIcon, 
     CpuChipIcon, FireIcon, BeakerIcon, ChartBarIcon,
     ControllerIcon, FlagIcon, SparklesIcon, ArrowPathIcon,
-    ExclamationTriangleIcon
+    ExclamationTriangleIcon, SearchIcon, PlusIcon
 } from './icons';
+import { discoverFeedSignals } from '../services/feedDiscoveryService';
 
-export type Category = 'NEWS' | 'TECH' | 'SCIENCE' | 'CULTURE' | 'SPORTS' | 'FINANCE' | 'GAMING';
+export type Category = 'NEWS' | 'TECH' | 'SCIENCE' | 'CULTURE' | 'SPORTS' | 'FINANCE' | 'GAMING' | 'CUSTOM';
 type Region = 'GLOBAL' | 'UK' | 'US' | 'EU';
 
 export interface Preset {
@@ -15,8 +16,9 @@ export interface Preset {
     title: string;
     url: string;
     category: Category;
-    region: Region;
+    region?: Region;
     description: string;
+    isCustom?: boolean;
 }
 
 export const PRESETS: Preset[] = [
@@ -72,7 +74,8 @@ const CATEGORIES = [
     { id: 'GAMING', icon: <ControllerIcon className="w-4 h-4" /> },
     { id: 'FINANCE', icon: <ChartBarIcon className="w-4 h-4" /> },
     { id: 'SPORTS', icon: <FlagIcon className="w-4 h-4" /> },
-    { id: 'CULTURE', icon: <FireIcon className="w-4 h-4" /> }
+    { id: 'CULTURE', icon: <FireIcon className="w-4 h-4" /> },
+    { id: 'CUSTOM', icon: <SearchIcon className="w-4 h-4" /> }
 ] as const;
 
 interface FeedOnboardingProps {
@@ -84,6 +87,12 @@ const FeedOnboarding: React.FC<FeedOnboardingProps> = ({ onComplete }) => {
     const [activeCategory, setActiveCategory] = useState<Category>('NEWS');
     const [region, setRegion] = useState<Region>('GLOBAL');
     const [isDetecting, setIsDetecting] = useState(true);
+    
+    // Custom probing states
+    const [customUrl, setCustomUrl] = useState('');
+    const [isProbing, setIsProbing] = useState(false);
+    const [discoveredSignals, setDiscoveredSignals] = useState<Preset[]>([]);
+    const [probeError, setProbeError] = useState<string | null>(null);
 
     useEffect(() => {
         const detectRegion = async () => {
@@ -121,14 +130,18 @@ const FeedOnboarding: React.FC<FeedOnboardingProps> = ({ onComplete }) => {
             { id: 3, name: 'Intel & Research' },
             { id: 4, name: 'Cultural Output' }
         ];
-        const targetPresets = manualFeeds || PRESETS.filter(p => selectedIds.has(p.id));
+
+        // Combine standard presets and discovered ones
+        const allAvailable = [...PRESETS, ...discoveredSignals];
+        const targetPresets = manualFeeds || allAvailable.filter(p => selectedIds.has(p.id));
+        
         const selectedFeeds: Feed[] = targetPresets.map(p => {
             let folderId = 1;
             if (p.category === 'TECH' || p.category === 'GAMING') folderId = 2;
             if (p.category === 'SCIENCE' || p.category === 'FINANCE') folderId = 3;
             if (p.category === 'CULTURE' || p.category === 'SPORTS') folderId = 4;
             return {
-                id: Math.random(),
+                id: Math.random() + Date.now(),
                 url: p.url,
                 title: p.title,
                 iconUrl: `https://www.google.com/s2/favicons?sz=32&domain_url=${new URL(p.url).hostname}`,
@@ -148,9 +161,51 @@ const FeedOnboarding: React.FC<FeedOnboardingProps> = ({ onComplete }) => {
         handleConfirm(quickSet.length > 0 ? quickSet : PRESETS.filter(p => p.region === 'GLOBAL').slice(0, 5));
     };
 
-    const filteredPresets = useMemo(() => 
-        PRESETS.filter(p => p.category === activeCategory && (p.region === region || p.region === 'GLOBAL' || activeCategory !== 'NEWS')), 
-    [activeCategory, region]);
+    const handleProbe = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const url = customUrl.trim();
+        if (!url || isProbing) return;
+
+        setIsProbing(true);
+        setProbeError(null);
+        try {
+            let normalized = url;
+            if (!normalized.includes('.') && !normalized.includes('://')) {
+                throw new Error("Target node address invalid.");
+            }
+            if (!normalized.includes('://')) normalized = `https://${normalized}`;
+            
+            const results = await discoverFeedSignals(normalized);
+            if (results && results.length > 0) {
+                const newSignals: Preset[] = results.map((res, i) => ({
+                    id: `custom_${Date.now()}_${i}`,
+                    title: res.title,
+                    url: res.url,
+                    category: 'CUSTOM',
+                    description: `Operator discovered signal at ${normalized}.`,
+                    isCustom: true
+                }));
+                
+                setDiscoveredSignals(prev => [...newSignals, ...prev]);
+                // Auto-select discovered signals
+                const nextSelected = new Set(selectedIds);
+                newSignals.forEach(s => nextSelected.add(s.id));
+                setSelectedIds(nextSelected);
+                setCustomUrl('');
+            } else {
+                throw new Error("0x404: Frequency is silent. No RSS signals detected.");
+            }
+        } catch (err) {
+            setProbeError(err instanceof Error ? err.message : "Interception failed.");
+        } finally {
+            setIsProbing(false);
+        }
+    };
+
+    const filteredPresets = useMemo(() => {
+        if (activeCategory === 'CUSTOM') return discoveredSignals;
+        return PRESETS.filter(p => p.category === activeCategory && (p.region === region || p.region === 'GLOBAL' || activeCategory !== 'NEWS'));
+    }, [activeCategory, region, discoveredSignals]);
 
     return (
         <div className="max-w-6xl mx-auto px-4 md:px-6 py-8 animate-fade-in font-mono flex flex-col min-h-screen">
@@ -193,14 +248,15 @@ const FeedOnboarding: React.FC<FeedOnboardingProps> = ({ onComplete }) => {
                 <ExclamationTriangleIcon className="w-5 h-5 text-amber-500 shrink-0 mt-0.5 animate-pulse" />
                 <div>
                     <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-1 italic">Protocol Advisory: External Encryption</p>
-                    <p className="text-[9px] text-zinc-500 uppercase font-black leading-relaxed tracking-wide">Certain signal streams (e.g., NYT, Bloomberg, FT) utilize high-level external encryption (paywalls). Access to full decoded transmissions may require independent operator credentials on provider nodes.</p>
+                    <p className="text-[9px] text-zinc-500 uppercase font-black leading-relaxed tracking-wide">Certain signal streams (e.g., NYT, Bloomberg, FT) utilize high-level external encryption (paywalls). Access to full transmissions may require independent operator credentials.</p>
                 </div>
             </div>
 
             <div className="flex flex-col md:flex-row gap-6 flex-grow pb-48">
                 <div className="w-full md:w-56 flex flex-row md:flex-col gap-2 shrink-0 overflow-x-auto md:overflow-x-visible scrollbar-hide pb-2 md:pb-0">
                     {CATEGORIES.map(cat => {
-                        const countInSelected = PRESETS.filter(p => p.category === cat.id && selectedIds.has(p.id)).length;
+                        const allAvailable = [...PRESETS, ...discoveredSignals];
+                        const countInSelected = allAvailable.filter(p => p.category === cat.id && selectedIds.has(p.id)).length;
                         return (
                             <button
                                 key={cat.id}
@@ -222,38 +278,88 @@ const FeedOnboarding: React.FC<FeedOnboardingProps> = ({ onComplete }) => {
                     })}
                 </div>
 
-                <div className="flex-grow grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {filteredPresets.length === 0 ? (
-                        <div className="col-span-full py-16 text-center border-2 border-dashed border-zinc-900 rounded-[2rem]">
-                            <p className="text-[10px] text-zinc-700 font-black uppercase tracking-[0.4em] italic">No sector packets found</p>
-                            <button onClick={() => setRegion('GLOBAL')} className="mt-4 text-pulse-500 text-[10px] font-black uppercase underline">Access Global Nodes</button>
-                        </div>
-                    ) : (
-                        filteredPresets.map(preset => {
-                            const isSelected = selectedIds.has(preset.id);
-                            return (
-                                <div 
-                                    key={preset.id}
-                                    onClick={() => togglePreset(preset.id)}
-                                    className={`group relative bg-void-900 border-2 transition-all duration-300 cursor-pointer p-5 flex flex-col h-44 shadow-[6px_6px_0px_black] hover:translate-x-[-2px] hover:translate-y-[-2px]
-                                        ${isSelected ? 'border-pulse-500 shadow-[0_0_20px_rgba(225,29,72,0.2)]' : 'border-zinc-800 opacity-60 grayscale hover:opacity-100 hover:grayscale-0'}`}
-                                >
-                                    <div className="flex justify-between items-start mb-2">
-                                        <span className="text-[7px] font-black text-zinc-500 uppercase tracking-widest italic">{preset.region} NODE</span>
-                                        <div className={`w-2 h-2 rounded-full border ${isSelected ? 'bg-pulse-500 border-pulse-400 animate-pulse' : 'bg-zinc-800 border-zinc-700'}`} />
-                                    </div>
-                                    
-                                    <h3 className="text-base font-black text-white italic uppercase tracking-tighter mb-1 leading-tight">{preset.title}</h3>
-                                    <p className="text-[9px] text-zinc-500 uppercase leading-tight font-bold line-clamp-3 mb-2">{preset.description}</p>
-                                    
-                                    <div className="mt-auto flex justify-between items-end">
-                                        <span className="text-[6px] font-black text-zinc-700 uppercase">PKG_{preset.id}</span>
-                                        {isSelected && <span className="text-[7px] font-black text-pulse-500 uppercase animate-pulse">Synced</span>}
-                                    </div>
+                <div className="flex-grow flex flex-col gap-4">
+                    {activeCategory === 'CUSTOM' && (
+                        <div className="bg-void-900 p-6 border-2 border-emerald-500/30 rounded-2xl mb-4 animate-fade-in shadow-xl">
+                            <h3 className="text-xs font-black text-white italic uppercase tracking-widest mb-4 flex items-center gap-2">
+                                <SearchIcon className="w-4 h-4 text-emerald-500" />
+                                Custom Node Probing
+                            </h3>
+                            <form onSubmit={handleProbe} className="flex gap-2">
+                                <div className="flex-grow relative">
+                                    <input 
+                                        type="text" 
+                                        value={customUrl} 
+                                        onChange={(e) => setCustomUrl(e.target.value)}
+                                        placeholder="Enter website URL (e.g. hackaday.com)..."
+                                        className="w-full bg-void-950 border-2 border-zinc-800 rounded-xl py-3 px-4 text-xs text-white focus:outline-none focus:border-emerald-500 transition-all font-mono"
+                                    />
+                                    {isProbing && (
+                                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                            <ArrowPathIcon className="w-4 h-4 text-emerald-500 animate-spin" />
+                                        </div>
+                                    )}
                                 </div>
-                            );
-                        })
+                                <button 
+                                    type="submit"
+                                    disabled={!customUrl.trim() || isProbing}
+                                    className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 rounded-xl font-black uppercase italic text-[10px] transition-all disabled:opacity-30 flex items-center gap-2"
+                                >
+                                    <PlusIcon className="w-4 h-4" />
+                                    <span>Probe</span>
+                                </button>
+                            </form>
+                            {probeError && (
+                                <p className="mt-3 text-[9px] font-black text-pulse-500 uppercase italic tracking-widest animate-shake leading-relaxed">{probeError}</p>
+                            )}
+                            <p className="mt-4 text-[8px] text-zinc-600 uppercase tracking-widest italic">Note: Interception success depends on the node's broadcast metadata.</p>
+                        </div>
                     )}
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {filteredPresets.length === 0 ? (
+                            <div className="col-span-full py-16 text-center border-2 border-dashed border-zinc-900 rounded-[2rem]">
+                                {activeCategory === 'CUSTOM' ? (
+                                    <div className="space-y-2">
+                                        <p className="text-[10px] text-zinc-700 font-black uppercase tracking-[0.4em] italic leading-relaxed">No signals discovered yet.</p>
+                                        <p className="text-[9px] text-zinc-800 uppercase italic">Probe a node above to start surveillance.</p>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <p className="text-[10px] text-zinc-700 font-black uppercase tracking-[0.4em] italic">No sector packets found</p>
+                                        <button onClick={() => setRegion('GLOBAL')} className="mt-4 text-pulse-500 text-[10px] font-black uppercase underline">Access Global Nodes</button>
+                                    </>
+                                )}
+                            </div>
+                        ) : (
+                            filteredPresets.map(preset => {
+                                const isSelected = selectedIds.has(preset.id);
+                                return (
+                                    <div 
+                                        key={preset.id}
+                                        onClick={() => togglePreset(preset.id)}
+                                        className={`group relative bg-void-900 border-2 transition-all duration-300 cursor-pointer p-5 flex flex-col h-44 shadow-[6px_6px_0px_black] hover:translate-x-[-2px] hover:translate-y-[-2px]
+                                            ${isSelected ? 'border-pulse-500 shadow-[0_0_20px_rgba(225,29,72,0.2)]' : 'border-zinc-800 opacity-60 grayscale hover:opacity-100 hover:grayscale-0'}`}
+                                    >
+                                        <div className="flex justify-between items-start mb-2">
+                                            <span className="text-[7px] font-black text-zinc-500 uppercase tracking-widest italic">
+                                                {preset.isCustom ? 'DISCOVERED NODE' : `${preset.region} NODE`}
+                                            </span>
+                                            <div className={`w-2 h-2 rounded-full border ${isSelected ? 'bg-pulse-500 border-pulse-400 animate-pulse' : 'bg-zinc-800 border-zinc-700'}`} />
+                                        </div>
+                                        
+                                        <h3 className="text-base font-black text-white italic uppercase tracking-tighter mb-1 leading-tight">{preset.title}</h3>
+                                        <p className="text-[9px] text-zinc-500 uppercase leading-tight font-bold line-clamp-3 mb-2">{preset.description}</p>
+                                        
+                                        <div className="mt-auto flex justify-between items-end">
+                                            <span className="text-[6px] font-black text-zinc-700 uppercase">PKG_{preset.id.substring(0, 8)}</span>
+                                            {isSelected && <span className="text-[7px] font-black text-pulse-500 uppercase animate-pulse">Synced</span>}
+                                        </div>
+                                    </div>
+                                );
+                            })
+                        )}
+                    </div>
                 </div>
             </div>
 
@@ -267,7 +373,7 @@ const FeedOnboarding: React.FC<FeedOnboardingProps> = ({ onComplete }) => {
                         <RssIcon className="w-7 h-7" />
                         <span>Establish Uplink ({selectedIds.size})</span>
                     </button>
-                    <p className="text-center text-[8px] text-zinc-600 uppercase tracking-widest mt-4 font-black italic drop-shadow-md">Initial calibration will initialize core frequency cache.</p>
+                    <p className="text-center text-[8px] text-zinc-600 uppercase tracking-widest mt-4 font-black italic drop-shadow-md">Calibration will initialize core frequency cache.</p>
                 </div>
             </div>
         </div>

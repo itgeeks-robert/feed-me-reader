@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { Article } from '../../src/App';
-import { BookOpenIcon } from '../icons';
+import { BookOpenIcon, GlobeAltIcon } from '../icons';
 import ImageWithProxy from '../ImageWithProxy';
 import { reconstructSignalImage } from '../../services/imageSearchService';
 
@@ -60,7 +60,7 @@ const CCTVMonitor: React.FC<{ src: string | null; label: string; headline: strin
     );
 };
 
-const FeaturedStory: React.FC<{article: Article; onReadHere: () => void; onMarkAsRead: () => void; isRead: boolean;}> = ({ article, onReadHere, onMarkAsRead, isRead }) => {
+const FeaturedStory: React.FC<{article: Article; onReadHere: () => void; onReadExternal: () => void; isRead: boolean;}> = ({ article, onReadHere, onReadExternal, isRead }) => {
     return (
         <div className={`group grid grid-cols-1 lg:grid-cols-[1.2fr,1fr] bg-void-900 border border-zinc-300 dark:border-zinc-800 text-terminal shadow-[8px_8px_0px_black] dark:shadow-[8px_8px_0px_#000] overflow-hidden min-h-[320px] md:min-h-[400px] transition-all duration-500 hover:translate-x-[-2px] hover:translate-y-[-2px] ${isRead ? 'opacity-50 grayscale' : ''}`}>
             
@@ -73,14 +73,22 @@ const FeaturedStory: React.FC<{article: Article; onReadHere: () => void; onMarkA
                 <h1 className="text-lg sm:text-2xl md:text-4xl font-black italic uppercase tracking-tighter mb-4 md:mb-6 leading-tight drop-shadow-sm font-horror line-clamp-3 md:line-clamp-4 text-zinc-900 dark:text-white">{article.title}</h1>
                 <p className="text-[10px] md:text-base text-zinc-700 dark:text-white/90 font-mono line-clamp-3 sm:line-clamp-4 lg:line-clamp-5 mb-6 md:mb-12 leading-relaxed uppercase tracking-wider">{article.snippet}</p>
                 
-                <div className="flex flex-wrap items-center gap-4 md:gap-8 mt-auto">
-                    <button onClick={onReadHere} className="inline-flex items-center gap-2 md:gap-3 bg-pulse-500 hover:bg-zinc-900 dark:hover:bg-white text-white dark:hover:text-black transition-all font-black uppercase italic py-2.5 px-6 md:py-4 md:px-10 text-[10px] md:text-sm tracking-widest shadow-[3px_3px_0px_rgba(0,0,0,0.2)] dark:shadow-[3px_3px_0px_white]">
-                        <BookOpenIcon className="w-3.5 h-3.5 md:w-5 md:h-5" />
-                        <span>Decode Signal</span>
+                <div className="flex flex-wrap items-center gap-6 md:gap-10 mt-auto">
+                    <button 
+                        onClick={onReadHere}
+                        className="inline-flex items-center gap-2 md:gap-3 bg-pulse-500 hover:bg-zinc-900 dark:hover:bg-white text-white dark:hover:text-black transition-all font-black uppercase italic py-3 px-8 md:py-4 md:px-12 text-[10px] md:text-sm tracking-widest shadow-[4px_4px_0px_rgba(0,0,0,0.2)] dark:shadow-[4px_4px_0px_white] active:scale-95"
+                    >
+                        <BookOpenIcon className="w-4 h-4 md:w-5 md:h-5" />
+                        <span>Analyze Local Node</span>
                     </button>
-                    <a href={article.link} target="_blank" rel="noopener noreferrer" onClick={onMarkAsRead} className="text-[8px] md:text-xs font-black uppercase tracking-widest text-zinc-500 hover:text-pulse-600 dark:hover:text-white transition-colors font-mono italic">
+                    
+                    <button 
+                        onClick={(e) => { e.preventDefault(); onReadExternal(); }}
+                        className="flex items-center gap-2 text-[8px] md:text-xs font-black uppercase tracking-widest text-zinc-500 hover:text-pulse-600 dark:hover:text-white transition-colors font-mono italic underline decoration-dotted underline-offset-4"
+                    >
+                        <GlobeAltIcon className="w-3 h-3" />
                         Raw Stream Source
-                    </a>
+                    </button>
                 </div>
             </div>
         </div>
