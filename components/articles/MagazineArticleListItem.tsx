@@ -35,7 +35,6 @@ const MagazineArticleListItem: React.FC<MagazineArticleListItemProps> = ({ artic
 
     return (
         <div className={`group relative flex flex-col bg-void-900 border-2 border-zinc-300 dark:border-zinc-800 shadow-[6px_6px_0px_black] dark:shadow-[6px_6px_0px_#000] hover:border-pulse-500/50 hover:translate-x-[-1px] hover:translate-y-[-1px] transition-all duration-300 overflow-hidden h-full ${isRead ? 'opacity-40 grayscale' : ''}`}>
-            {/* Visual Header Strip */}
             <div className="h-1 bg-gradient-to-r from-pulse-500/20 via-pulse-500/50 to-pulse-500/20 opacity-40"></div>
             
             <div className="relative aspect-[16/10] w-full overflow-hidden border-b-2 border-zinc-300 dark:border-zinc-800 bg-black shrink-0">
@@ -54,7 +53,6 @@ const MagazineArticleListItem: React.FC<MagazineArticleListItemProps> = ({ artic
                 />
                 <div className="absolute inset-0 cctv-overlay pointer-events-none opacity-40" />
                 
-                {/* Sector/Category Overlay */}
                 <div className="absolute top-2 right-2 flex items-center gap-1.5 px-2 py-0.5 bg-black/60 backdrop-blur-md border border-white/10 rounded-sm">
                     <div className={`w-1 h-1 rounded-full ${reconstructedSrc && !article.imageUrl ? 'bg-amber-500 animate-pulse' : 'bg-pulse-500'}`} />
                     <span className="text-[7px] font-mono font-black text-zinc-300 uppercase tracking-tighter">
@@ -80,7 +78,7 @@ const MagazineArticleListItem: React.FC<MagazineArticleListItemProps> = ({ artic
                     {article.title}
                 </h3>
                 
-                <p className="text-[9px] text-zinc-600 dark:text-zinc-500 font-mono line-clamp-2 uppercase tracking-tight mb-4 opacity-80 dark:opacity-70">
+                <p className="text-[9px] text-zinc-600 dark:text-zinc-400 font-mono line-clamp-2 uppercase tracking-tight mb-4">
                     {article.snippet}
                 </p>
 

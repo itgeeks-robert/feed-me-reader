@@ -59,6 +59,8 @@ const WIDGET_SETTINGS_KEY = `void_widget_settings_${GUEST_USER_ID}`;
 const UPTIME_KEY = `void_uptime_${GUEST_USER_ID}`;
 const CREDITS_KEY = `void_credits_${GUEST_USER_ID}`;
 
+const isMobile = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
 const App: React.FC = () => {
     const [theme, setTheme] = useLocalStorage<Theme>(THEME_KEY, 'dark');
     const [articleView, setArticleView] = useLocalStorage<ArticleView>(ARTICLE_VIEW_KEY, 'list');
@@ -68,7 +70,6 @@ const App: React.FC = () => {
     const [readArticleIds, setReadArticleIds] = useLocalStorage<Set<string>>(READ_ARTICLES_KEY, () => new Set());
     const [bookmarkedArticleIds, setBookmarkedArticleIds] = useLocalStorage<Set<string>>(BOOKMARKED_ARTICLES_KEY, () => new Set());
     
-    // START AT 25% INTEGRITY to show the user they need to "recalibrate" the system
     const [uptime, setUptime] = useLocalStorage<number>(UPTIME_KEY, 25);
     const [credits, setCredits] = useLocalStorage<number>(CREDITS_KEY, 100); 
 
@@ -137,7 +138,13 @@ const App: React.FC = () => {
                 setReadArticleIds(prev => new Set(prev).add(id));
                 setCredits(c => c + 10);
             }
-            window.open(url, '_blank', 'noopener,noreferrer');
+            // window.open is often blocked on Android in certain contexts. 
+            // assign() is the absolute fallback for severing the session to view raw stream.
+            if (isMobile()) {
+                window.location.assign(url);
+            } else {
+                window.open(url, '_blank', 'noopener,noreferrer');
+            }
         } else {
             setOutboundLink({ url, id });
             window.history.pushState({ isOutbound: true }, '');
@@ -157,8 +164,15 @@ const App: React.FC = () => {
                 setReadArticleIds(prev => new Set(prev).add(outboundLink.id));
                 setCredits(c => c + 10);
             }
-            window.open(outboundLink.url, '_blank', 'noopener,noreferrer');
-            closeExternalWarning();
+            
+            // For Android/iOS stability in PWA or standard browser, location assignment
+            // is more robust than window.open when triggered inside a state-driven modal.
+            if (isMobile()) {
+                window.location.assign(outboundLink.url);
+            } else {
+                window.open(outboundLink.url, '_blank', 'noopener,noreferrer');
+                closeExternalWarning();
+            }
         }
     }, [outboundLink, readArticleIds, closeExternalWarning]);
 
