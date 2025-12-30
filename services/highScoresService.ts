@@ -7,11 +7,11 @@ export interface HighScoreEntry {
     metadata?: any; // New field for game-specific data (e.g. grid patterns)
 }
 
-/* FIX: Added 'grid_reset' to ScoreCategory to allow GridResetPage to use the high scores service */
 export type ScoreCategory = 
     | 'sudoku_easy' | 'sudoku_medium' | 'sudoku_hard' 
     | 'minesweeper_easy' | 'minesweeper_medium' | 'minesweeper_hard'
-    | 'tetris' | 'solitaire' | 'spore_crypt' | 'void_runner' | 'synapse_link' | 'grid_reset';
+    | 'tetris' | 'solitaire' | 'spore_crypt' | 'void_runner' | 'synapse_link' | 'grid_reset'
+    | 'hangman';
 
 const STORAGE_KEY = 'feedme_arcade_high_scores';
 

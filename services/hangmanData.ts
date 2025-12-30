@@ -1,7 +1,7 @@
 
 export interface HangmanWord {
     word: string;
-    category: 'ACTOR' | 'FILM' | 'ARTIST' | 'SONG' | 'TECH' | 'GAMING';
+    category: 'ACTOR' | 'FILM' | 'ARTIST' | 'SONG' | 'TECH' | 'GAMING' | 'SPORT' | 'FASHION';
     hint: string;
     difficulty: 1 | 2 | 3;
 }
@@ -21,9 +21,8 @@ export const HANGMAN_DATA: HangmanWord[] = [
     { word: "RADIOHEAD", category: "ARTIST", hint: "Kid A / Paranoid Android", difficulty: 2 },
     { word: "PARASITE", category: "FILM", hint: "Bong Joon-ho thriller", difficulty: 1 },
     { word: "MITSKI", category: "ARTIST", hint: "Bury Me at Makeout Creek", difficulty: 2 },
-    { word: "EVERYTHING EVERYWHERE ALL AT ONCE", category: "FILM", hint: "The Multiverse Bagel", difficulty: 3 },
     { word: "PEDRO PASCAL", category: "ACTOR", hint: "Joel Miller / Din Djarin", difficulty: 1 },
-    { word: "Hideo Kojima", category: "GAMING", hint: "Death Stranding creator", difficulty: 2 },
+    { word: "HIDEO KOJIMA", category: "GAMING", hint: "Death Stranding creator", difficulty: 2 },
     { word: "CARY GRANT", category: "ACTOR", hint: "North by Northwest", difficulty: 2 },
     { word: "BOHEMIAN RHAPSODY", category: "SONG", hint: "Queen's six-minute epic", difficulty: 1 },
     { word: "DAFT PUNK", category: "ARTIST", hint: "One More Time", difficulty: 1 },
@@ -36,5 +35,22 @@ export const HANGMAN_DATA: HangmanWord[] = [
     { word: "ELTON JOHN", category: "ARTIST", hint: "Rocketman", difficulty: 1 },
     { word: "ELDEN RING", category: "GAMING", hint: "The Lands Between", difficulty: 2 },
     { word: "ANNA DE ARMAS", category: "ACTOR", hint: "Knives Out / Blonde", difficulty: 2 },
-    { word: "AUSTIN BUTLER", category: "ACTOR", hint: "Elvis / Feyd-Rautha", difficulty: 2 }
+    { word: "LIONEL MESSI", category: "SPORT", hint: "The Flea of Argentina", difficulty: 1 },
+    { word: "NOVAK DJOKOVIC", category: "SPORT", hint: "The Serbinator", difficulty: 2 },
+    { word: "SIMONE BILES", category: "SPORT", hint: "GOAT of gymnastics", difficulty: 1 },
+    { word: "VIVIENNE WESTWOOD", category: "FASHION", hint: "Punk fashion icon", difficulty: 2 },
+    { word: "GUCCI", category: "FASHION", hint: "Double G house", difficulty: 1 },
+    { word: "SHOHEI OHTANI", category: "SPORT", hint: "Shotime MLB star", difficulty: 2 },
+    { word: "KYLIAN MBAPPE", category: "SPORT", hint: "Real Madrid's French star", difficulty: 1 },
+    { word: "ALEXANDER MCQUEEN", category: "FASHION", hint: "Savage Beauty", difficulty: 3 },
+    { word: "BALENCIAGA", category: "FASHION", hint: "Luxury speed sneakers", difficulty: 2 },
+    { word: "HALO", category: "GAMING", hint: "Master Chief's saga", difficulty: 1 },
+    { word: "TIKTOK", category: "TECH", hint: "ByteDance short video", difficulty: 1 },
+    { word: "STADIA", category: "TECH", hint: "Google's failed cloud gaming", difficulty: 2 },
+    { word: "NIKE", category: "FASHION", hint: "Just Do It", difficulty: 1 },
+    { word: "LEBRON JAMES", category: "SPORT", hint: "King James / Lakers", difficulty: 1 },
+    { word: "SUPER MARIO", category: "GAMING", hint: "Nintendo's plumber mascot", difficulty: 1 },
+    { word: "MINECRAFT", category: "GAMING", hint: "The blocky sandbox world", difficulty: 1 },
+    { word: "IPHONE", category: "TECH", hint: "Apple's flagship mobile device", difficulty: 1 },
+    { word: "NETFLIX", category: "TECH", hint: "The streaming giant", difficulty: 1 }
 ];

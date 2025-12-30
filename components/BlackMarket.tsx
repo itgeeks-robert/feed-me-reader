@@ -1,5 +1,6 @@
+
 import React from 'react';
-import { XIcon, WalkieTalkieIcon, KeypadIcon, EntityIcon, RadioIcon, SparklesIcon } from './icons';
+import { XIcon, WalkieTalkieIcon, KeypadIcon, EntityIcon, RadioIcon, SparklesIcon, ClockIcon } from './icons';
 
 interface ShopItemProps {
     name: string;
@@ -67,6 +68,11 @@ const BlackMarket: React.FC<BlackMarketProps> = ({ isOpen, onClose, credits, set
                 {/* Scrollable Content */}
                 <div className="px-8 md:px-14 overflow-y-auto flex-grow scrollbar-hide py-6 bg-void-950/20">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pb-12">
+                        <ShopItem 
+                            name="Buffer Extension" cost={100} icon={<ClockIcon className="w-6 h-6"/>} 
+                            description="Emergency temporal padding. Increases base round time by 10s."
+                            disabled={credits < 100} onBuy={() => { setCredits(credits - 100); alert("Augment Purchased: 10s temporal padding applied to system core."); }}
+                        />
                         <ShopItem 
                             name="Sequence Restore" cost={50} icon={<WalkieTalkieIcon className="w-6 h-6"/>} 
                             description="Reset Cipher Core attempts without losing progress."
