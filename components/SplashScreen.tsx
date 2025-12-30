@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { VoidIcon, ControllerIcon, ListIcon } from './icons';
+import { VoidIcon, ControllerIcon, ListIcon, TrashIcon, XIcon, ExclamationTriangleIcon } from './icons';
 
 interface SplashScreenProps {
     onEnterFeeds: () => void;
@@ -40,6 +40,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onEnterFeeds, onEnterArcade
     const [loadingProgress, setLoadingProgress] = useState(0);
     const [currentMessage, setCurrentMessage] = useState(BOOT_MESSAGES[0]);
     const [isBootComplete, setIsBootComplete] = useState(false);
+    const [showWipeConfirm, setShowWipeConfirm] = useState(false);
 
     useEffect(() => {
         const totalDuration = 4000;
@@ -63,6 +64,14 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onEnterFeeds, onEnterArcade
 
         return () => clearInterval(timer);
     }, [isDecoding]);
+
+    const handleSystemWipe = () => {
+        localStorage.clear();
+        const req = indexedDB.deleteDatabase('SeeMoreCache');
+        req.onsuccess = () => window.location.reload();
+        req.onerror = () => window.location.reload();
+        req.onblocked = () => window.location.reload();
+    };
 
     return (
         <div className="fixed inset-0 z-[100] bg-void-950 flex flex-col items-center justify-center overflow-hidden font-mono">
@@ -99,7 +108,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onEnterFeeds, onEnterArcade
                         </div>
                     </div>
                 ) : (
-                    <div className="w-full grid grid-cols-1 gap-5 animate-fade-in mb-8">
+                    <div className="w-full flex flex-col gap-5 animate-fade-in mb-8">
                         <button 
                             onClick={onEnterFeeds}
                             className="group relative py-6 bg-white text-black font-black uppercase italic text-xl rounded-2xl shadow-[8px_8px_0px_#e11d48] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all active:scale-95 active:bg-pulse-500 active:text-white flex items-center justify-center gap-4"
@@ -114,9 +123,52 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onEnterFeeds, onEnterArcade
                             <ControllerIcon className="w-6 h-6" />
                             <span>ENTER ARCADE CORE</span>
                         </button>
+                        
+                        <button 
+                            onClick={() => setShowWipeConfirm(true)}
+                            className="mt-4 flex items-center justify-center gap-2 text-zinc-600 hover:text-pulse-500 transition-colors py-2 uppercase text-[10px] font-black italic tracking-widest active:scale-95"
+                        >
+                            <TrashIcon className="w-4 h-4" />
+                            <span>PERFORM SYSTEM WIPE</span>
+                        </button>
                     </div>
                 )}
             </div>
+
+            {showWipeConfirm && (
+                <div className="fixed inset-0 z-[110] bg-black/95 backdrop-blur-md flex items-center justify-center p-6 animate-fade-in">
+                    <div className="bg-zinc-900 border-4 border-pulse-600 shadow-[0_0_120px_rgba(225,29,72,0.3)] w-full max-w-sm relative overflow-hidden flex flex-col">
+                        <header className="h-10 bg-pulse-600 flex items-center justify-between px-1 border-b-2 border-black">
+                            <div className="flex items-center gap-2 h-full">
+                                <div className="w-8 h-7 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center">
+                                   <div className="w-4 h-1 bg-black shadow-[0_4px_0_black]" />
+                                </div>
+                                <h2 className="text-white text-[10px] font-black uppercase tracking-[0.2em] italic px-2">CRITICAL_PROTOCOL.EXE</h2>
+                            </div>
+                            <button onClick={() => setShowWipeConfirm(false)} className="w-8 h-7 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center active:bg-zinc-400">
+                                <XIcon className="w-4 h-4 text-black" />
+                            </button>
+                        </header>
+                        
+                        <div className="p-10 bg-void-950 text-center space-y-8">
+                            <div className="mx-auto w-20 h-20 bg-pulse-500/10 rounded-full flex items-center justify-center border-2 border-pulse-500 animate-pulse">
+                                <ExclamationTriangleIcon className="w-10 h-10 text-pulse-500" />
+                            </div>
+                            <div className="space-y-4">
+                                <h3 className="text-xl font-black text-white italic uppercase tracking-tighter leading-none">Complete Data Purge</h3>
+                                <p className="text-[10px] text-zinc-500 leading-relaxed uppercase tracking-widest italic">
+                                    Committing to this action will <span className="text-pulse-500 font-black">permanently erase</span> all user signals, bookmarks, and arcade records. Reverts terminal to factory install settings.
+                                </p>
+                            </div>
+                        </div>
+
+                        <footer className="p-4 bg-zinc-300 border-t-2 border-black flex gap-3">
+                            <button onClick={() => setShowWipeConfirm(false)} className="flex-1 py-4 bg-zinc-100 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-400 text-xs font-black uppercase italic text-zinc-600 active:bg-zinc-200">ABORT</button>
+                            <button onClick={handleSystemWipe} className="flex-1 py-4 bg-pulse-600 border-t-2 border-l-2 border-white/50 border-b-2 border-r-2 border-pulse-950 text-xs font-black uppercase italic text-white hover:bg-pulse-500 active:bg-pulse-700">WIPE_SYSTEM</button>
+                        </footer>
+                    </div>
+                </div>
+            )}
 
             <div className="absolute bottom-14 left-10 right-10 flex justify-between items-end pointer-events-none z-20">
                 <div className="text-[8px] font-black text-zinc-700 uppercase tracking-widest leading-loose italic">
