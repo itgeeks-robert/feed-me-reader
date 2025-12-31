@@ -8,7 +8,7 @@ import { useLocalStorage } from '../hooks/useLocalStorage';
 const MAX_MISTAKES = 7;
 const INITIAL_TIME = 60; 
 
-type GameState = 'LOBBY' | 'ROUND_TRANSITION' | 'PLAYING' | 'WON' | 'LOST' | 'FINAL_RESULTS';
+type GameState = 'INITIAL_SYNC' | 'LOBBY' | 'PLAYING' | 'WON' | 'LOST' | 'FINAL_RESULTS';
 type CategoryFilter = 'ALL' | 'FILM' | 'MUSIC' | 'SPORT' | 'TECH' | 'FASHION' | 'GAMING';
 
 const CATEGORY_MAP: Record<CategoryFilter, string[]> = {
@@ -37,10 +37,20 @@ const LEVEL_THEMES = [
     { color: '#e11d48', name: 'CRIMSON' }, 
 ];
 
-const MainframeBackground: React.FC<{ level: number }> = ({ level }) => {
+// Utility: Fisher-Yates Shuffle
+const shufflePool = <T,>(array: T[]): T[] => {
+    const arr = [...array];
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+};
+
+const MainframeBackground: React.FC<{ level: number; isUrgent: boolean }> = ({ level, isUrgent }) => {
     const themeIndex = Math.min(level - 1, LEVEL_THEMES.length - 1);
     const theme = LEVEL_THEMES[themeIndex];
-    const speed = Math.max(1, 10 - level); 
+    const speed = isUrgent ? 0.5 : Math.max(1, 10 - level); 
 
     return (
         <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden bg-zinc-950 transition-colors duration-1000">
@@ -57,7 +67,7 @@ const MainframeBackground: React.FC<{ level: number }> = ({ level }) => {
                 style={{
                     backgroundImage: `repeating-linear-gradient(0deg, transparent, transparent 20px, ${theme.color} 20px, ${theme.color} 21px)`,
                     backgroundSize: '100% 40px',
-                    animation: `scanline ${speed * 2}s linear infinite`
+                    animation: `scanline ${speed / 2}s linear infinite`
                 }}
             />
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.8)_100%)]" />
@@ -69,52 +79,73 @@ const UrgencyOverlay: React.FC<{ timeLeft: number }> = ({ timeLeft }) => {
     const isCritical = timeLeft <= 10 && timeLeft > 0;
     const isExtreme = timeLeft <= 5 && timeLeft > 0;
     
+    if (!isCritical) return null;
+
     return (
-        <div className={`fixed inset-0 pointer-events-none z-40 overflow-hidden transition-opacity duration-300 ${isCritical ? 'opacity-100' : 'opacity-0'}`}>
+        <div className="fixed inset-0 pointer-events-none z-40 overflow-hidden">
             <style>{`
-                @keyframes strobe {
-                    0%, 100% { background-color: rgba(225, 29, 72, 0.4); }
-                    50% { background-color: rgba(225, 29, 72, 0.1); }
+                @keyframes heartbeat {
+                    0%, 100% { box-shadow: inset 0 0 50px rgba(225, 29, 72, 0.2); }
+                    50% { box-shadow: inset 0 0 150px rgba(225, 29, 72, 0.6); }
                 }
-                .animate-strobe { animation: strobe 0.2s infinite; }
+                @keyframes corner-flicker {
+                    0%, 100% { opacity: 0.8; transform: scale(1); }
+                    50% { opacity: 0.3; transform: scale(0.98); }
+                }
+                @keyframes ticker-scroll {
+                    0% { transform: translateX(100%); }
+                    100% { transform: translateX(-100%); }
+                }
+                .animate-heartbeat { animation: heartbeat ${isExtreme ? '0.4s' : '0.8s'} infinite ease-in-out; }
+                .animate-ticker { animation: ticker-scroll 8s linear infinite; }
             `}</style>
+
+            {/* Red Alert Perimeter */}
+            <div className="absolute inset-0 animate-heartbeat border-[4px] border-red-600/30" />
             
-            {/* Pulsing Red Wash */}
-            <div className={`absolute inset-0 ${isExtreme ? 'animate-strobe' : 'animate-pulse bg-red-600/30'}`} />
-            
-            {/* Visual Interference */}
-            <div className="absolute inset-0 opacity-20 static-noise" />
-            <div className="absolute inset-0 bg-gradient-to-t from-red-600/40 via-transparent to-red-600/40" />
-            
-            {/* Big Centered Number - White with Red Glow for high visibility */}
-            <div className="absolute inset-0 flex items-center justify-center">
-                <span className={`text-[55vw] font-black text-white italic drop-shadow-[0_0_40px_#ef4444] transition-all duration-300 ${isExtreme ? 'scale-125' : 'scale-100'}`}>
+            {/* Tactical Brackets */}
+            <div className="absolute inset-8 border-red-500/40 animate-pulse">
+                <div className="absolute top-0 left-0 w-12 h-12 border-t-4 border-l-4 border-red-500 shadow-[0_0_15px_#e11d48]" />
+                <div className="absolute top-0 right-0 w-12 h-12 border-t-4 border-r-4 border-red-500 shadow-[0_0_15px_#e11d48]" />
+                <div className="absolute bottom-0 left-0 w-12 h-12 border-b-4 border-l-4 border-red-500 shadow-[0_0_15px_#e11d48]" />
+                <div className="absolute bottom-0 right-0 w-12 h-12 border-b-4 border-r-4 border-red-500 shadow-[0_0_15px_#e11d48]" />
+            </div>
+
+            {/* Ghost Digit in Corner (Impactful but out of central view) */}
+            <div className="absolute top-12 right-12 opacity-40 select-none">
+                <span className="text-8xl font-black text-white italic drop-shadow-[0_0_30px_#ef4444]">
                     {timeLeft}
                 </span>
             </div>
 
-            {/* Warning Text */}
-            <div className="absolute bottom-[20%] left-0 right-0 text-center">
-                <span className="text-white font-black text-2xl italic uppercase tracking-[0.5em] animate-pulse drop-shadow-[0_0_10px_#ef4444]">
-                    TERMINAL_CRITICAL
-                </span>
+            {/* Ticker Tape */}
+            <div className="absolute top-4 left-0 right-0 h-4 bg-red-950/20 border-y border-red-500/20 flex items-center overflow-hidden">
+                <div className="animate-ticker whitespace-nowrap">
+                    <span className="text-[10px] font-black text-red-500 uppercase tracking-[0.8em] italic">
+                        TERMINAL_CRITICAL_LINK_UNSTABLE_0xDEADBEEF_SEVER_IMMINENT_TERMINAL_CRITICAL_LINK_UNSTABLE_0xDEADBEEF_SEVER_IMMINENT
+                    </span>
+                </div>
             </div>
         </div>
     );
 };
 
-const TelemetryHub: React.FC<{ level: number; timeLeft: number; color: string; isLandscape?: boolean }> = ({ level, timeLeft, color, isLandscape }) => (
-    <div className={`flex items-stretch gap-px bg-zinc-800 border-2 border-black rounded-xl overflow-hidden shadow-2xl ${isLandscape ? 'w-full' : ''}`}>
-        <div className="flex flex-col items-center flex-1 px-4 py-1.5 md:px-6 md:py-2 bg-zinc-900 border-r-2 border-black">
-            <span className="text-[7px] md:text-[8px] text-zinc-500 font-black uppercase leading-none mb-1">Sector</span>
-            <span className="text-base md:text-xl font-black italic transition-colors duration-500" style={{ color }}>0{level}</span>
+const TelemetryHub: React.FC<{ level: number; timeLeft: number; color: string; isLandscape?: boolean }> = ({ level, timeLeft, color, isLandscape }) => {
+    const isCritical = timeLeft <= 10;
+    
+    return (
+        <div className={`flex items-stretch gap-px bg-zinc-800 border-2 border-black rounded-xl overflow-hidden shadow-2xl transition-all duration-300 ${isLandscape ? 'w-full' : ''} ${isCritical ? 'scale-110 shadow-[0_0_30px_rgba(225,29,72,0.3)]' : ''}`}>
+            <div className={`flex flex-col items-center flex-1 px-4 py-1.5 md:px-6 md:py-2 border-r-2 border-black transition-colors ${isCritical ? 'bg-red-600' : 'bg-zinc-900'}`}>
+                <span className={`text-[7px] md:text-[8px] font-black uppercase leading-none mb-1 ${isCritical ? 'text-white' : 'text-zinc-500'}`}>Sector</span>
+                <span className={`text-base md:text-xl font-black italic transition-all duration-500 ${isCritical ? 'text-white' : ''}`} style={{ color: isCritical ? undefined : color }}>0{level}</span>
+            </div>
+            <div className={`flex flex-col items-center flex-1 px-4 py-1.5 md:px-6 md:py-2 transition-colors ${isCritical ? 'bg-red-950 animate-pulse' : 'bg-zinc-900'}`}>
+                <span className={`text-[7px] md:text-[8px] font-black uppercase leading-none mb-1 ${isCritical ? 'text-red-400' : 'text-zinc-500'}`}>Time</span>
+                <span className={`text-base md:text-xl font-black italic font-mono transition-all ${isCritical ? 'text-white text-2xl drop-shadow-[0_0_10px_#ef4444]' : 'text-white'}`}>{timeLeft}s</span>
+            </div>
         </div>
-        <div className="flex flex-col items-center flex-1 px-4 py-1.5 md:px-6 md:py-2 bg-zinc-900">
-            <span className="text-[7px] md:text-[8px] text-zinc-500 font-black uppercase leading-none mb-1">Time</span>
-            <span className={`text-base md:text-xl font-black italic font-mono ${timeLeft <= 10 ? 'text-red-500 animate-pulse' : 'text-white'}`}>{timeLeft}s</span>
-        </div>
-    </div>
-);
+    );
+};
 
 const LinkIntegrityCounter: React.FC<{ mistakes: number; level: number }> = ({ mistakes, level }) => {
     const isCritical = mistakes === MAX_MISTAKES - 1;
@@ -178,7 +209,7 @@ const HieroglyphicHangmanVisual: React.FC<{ mistakes: number; isShaking: boolean
 
 const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => {
     // PERSISTENT STATE
-    const [gameState, setGameState] = useLocalStorage<GameState>('void_hangman_state', 'LOBBY');
+    const [gameState, setGameState] = useLocalStorage<GameState>('void_hangman_state', 'INITIAL_SYNC');
     const [category, setCategory] = useLocalStorage<CategoryFilter>('void_hangman_category', 'ALL');
     const [usedWords, setUsedWords] = useLocalStorage<Set<string>>('void_hangman_used_words', () => new Set());
     const [level, setLevel] = useLocalStorage<number>('void_hangman_level', 1);
@@ -189,20 +220,42 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
     
     // Dynamic Pool State
     const [dynamicPool, setDynamicPool] = useState<HangmanWord[]>([]);
-    const [isSyncing, setIsSyncing] = useState(false);
+    const [isSyncing, setIsSyncing] = useState(true);
     const [showSeverConfirm, setShowSeverConfirm] = useState(false);
+    const [syncProgress, setSyncProgress] = useState(0);
 
-    // Initial Sync
+    // Initial Data Acquisition
     useEffect(() => {
-        if (gameState === 'LOBBY') {
-            setIsSyncing(true);
-            fetchDynamicHangmanData().then(data => {
-                setDynamicPool(data);
-                setIsSyncing(false);
-            });
-        }
-    }, [gameState]);
+        setIsSyncing(true);
+        fetchDynamicHangmanData().then(data => {
+            setDynamicPool(data);
+            setIsSyncing(false);
+        });
+    }, []);
     
+    // Visual Sync Progress Logic
+    useEffect(() => {
+        if (gameState === 'INITIAL_SYNC') {
+            const duration = 3500;
+            const intervalTime = 50;
+            const step = (intervalTime / duration) * 100;
+            
+            const timer = setInterval(() => {
+                setSyncProgress(prev => {
+                    if (prev >= 100 && !isSyncing) {
+                        clearInterval(timer);
+                        setGameState('LOBBY');
+                        return 100;
+                    }
+                    if (prev >= 98 && isSyncing) return 98;
+                    return prev + step;
+                });
+            }, intervalTime);
+            
+            return () => clearInterval(timer);
+        }
+    }, [gameState, isSyncing]);
+
     // Transient UI states
     const [isShocking, setIsShocking] = useState(false);
     const [initials, setInitials] = useState("");
@@ -223,29 +276,38 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
     };
 
     const startRound = useCallback((lvl: number) => {
-        const difficulty = (lvl <= 3 ? 1 : lvl <= 7 ? 2 : 3);
-        
-        // Merge pools
+        const difficultyCeiling = (lvl <= 3 ? 1 : lvl <= 7 ? 2 : 3);
         const combinedPool = [...HANGMAN_DATA, ...dynamicPool];
         
-        const pool = combinedPool.filter(d => 
-            d.difficulty <= difficulty && 
+        let candidates = combinedPool.filter(d => 
+            d.difficulty <= difficultyCeiling && 
             CATEGORY_MAP[category].includes(d.category) && 
             !usedWords.has(d.word)
         );
 
-        // Fail-safe selection
-        const source = pool.length > 0 ? pool : combinedPool.filter(d => CATEGORY_MAP[category].includes(d.category));
-        const finalPool = source.length > 0 ? source : combinedPool;
-        const random = finalPool[Math.floor(Math.random() * finalPool.length)];
+        const totalMatchingPool = combinedPool.filter(d => 
+            d.difficulty <= difficultyCeiling && 
+            CATEGORY_MAP[category].includes(d.category)
+        );
+        
+        if (candidates.length < Math.max(1, totalMatchingPool.length * 0.1)) {
+            const nextUsed = new Set(usedWords);
+            totalMatchingPool.forEach(w => nextUsed.delete(w.word));
+            setUsedWords(nextUsed);
+            candidates = totalMatchingPool;
+        }
+
+        const firstPass = shufflePool(candidates);
+        const secondPass = shufflePool(firstPass);
+        const finalChoice = secondPass[Math.floor(Math.random() * secondPass.length)];
         
         setUsedWords(prev => {
             const next = new Set(prev);
-            next.add(random.word);
+            next.add(finalChoice.word);
             return next;
         });
         
-        setTarget(random);
+        setTarget(finalChoice);
         setGuessedLetters(new Set());
         setMistakes(0);
         setTimeLeft(INITIAL_TIME);
@@ -304,6 +366,66 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
     const themeIndex = Math.min(level - 1, LEVEL_THEMES.length - 1);
     const themeColor = LEVEL_THEMES[themeIndex].color;
 
+    // --- INITIAL SYNC VIEW (Gateway) ---
+    if (gameState === 'INITIAL_SYNC') {
+        const getStatusText = (progress: number) => {
+            if (progress < 25) return "PROBING_REMOTE_NODES...";
+            if (progress < 50) return "EXTRACTING_DATA_PACKETS...";
+            if (progress < 75) return "RECURSIVE_SHUFFLE_ACTIVE...";
+            if (progress < 95) return "OPTIMIZING_DECRYPTOR...";
+            return "READY_FOR_INTERCEPT";
+        };
+
+        return (
+            <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-950 p-6 font-mono text-white">
+                <div className="w-full max-w-sm">
+                    <div className="flex items-center gap-4 mb-8">
+                        <div className="p-2 bg-cyan-500/20 rounded-xl border border-cyan-500/30">
+                            <ArrowPathIcon className="w-10 h-10 text-cyan-400 animate-spin" />
+                        </div>
+                        <div className="flex flex-col">
+                            <h2 className="text-2xl font-black italic uppercase tracking-tighter leading-none">SIGNAL_BREACH</h2>
+                            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-cyan-400 mt-2">Initialize_Uplink</span>
+                        </div>
+                    </div>
+                    
+                    <div className="bg-zinc-900 border-2 border-zinc-800 p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden">
+                        <div className="absolute inset-0 pointer-events-none opacity-10">
+                            <div className="w-full h-full bg-[repeating-linear-gradient(0deg,transparent,transparent_2px,rgba(34,211,238,0.1)_2px,rgba(34,211,238,0.1)_4px)]" />
+                        </div>
+                        
+                        <div className="relative z-10 space-y-6">
+                            <div className="flex justify-between items-end">
+                                <span className="text-[10px] font-black uppercase text-zinc-500 italic tracking-widest leading-none">{getStatusText(syncProgress)}</span>
+                                <span className="text-xl font-black italic font-mono text-cyan-400 leading-none">{Math.floor(syncProgress)}%</span>
+                            </div>
+                            
+                            <div className="w-full h-4 bg-black border-2 border-zinc-800 rounded-full p-1 overflow-hidden">
+                                <div 
+                                    className="h-full bg-cyan-500 shadow-[0_0_15px_#22d3ee] transition-all duration-300 rounded-full"
+                                    style={{ width: `${syncProgress}%` }}
+                                />
+                            </div>
+                            
+                            <div className="grid grid-cols-5 gap-2 opacity-30">
+                                {[...Array(10)].map((_, i) => (
+                                    <div key={i} className={`h-1 rounded-full ${syncProgress > (i * 10) ? 'bg-cyan-500' : 'bg-zinc-800'}`} />
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div className="mt-8 text-center">
+                        <p className="text-[8px] text-zinc-700 uppercase font-black tracking-widest leading-loose italic">
+                            DO NOT DISCONNECT POWER<br/>
+                            VOX_ALGORITHM_LOADED: {dynamicPool.length > 0 ? "SUCCESS" : "PENDING"}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     if (gameState === 'LOBBY') {
         return (
             <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-950 p-4 font-mono overflow-y-auto scrollbar-hide">
@@ -323,19 +445,18 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
 
                     <div className="bg-black/40 p-4 rounded-2xl border border-white/5 mb-8 flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                            <ArrowPathIcon className={`w-4 h-4 text-pulse-500 ${isSyncing ? 'animate-spin' : ''}`} />
+                            <ShieldCheckIcon className={`w-4 h-4 text-emerald-500`} />
                             <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">
-                                {isSyncing ? "SYNCING REMOTE NODES..." : `SYNCED: ${dynamicPool.length} PACKETS`}
+                                {`UPLINK_STABLE: ${dynamicPool.length + HANGMAN_DATA.length} PACKETS`}
                             </span>
                         </div>
-                        {!isSyncing && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />}
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                     </div>
 
                     <div className="space-y-4">
                         <button 
-                            disabled={isSyncing}
                             onClick={() => { setUsedWords(new Set()); setLevel(1); startRound(1); }} 
-                            className="w-full py-6 bg-white text-black font-black uppercase italic rounded-2xl shadow-xl text-xl active:scale-95 transition-all disabled:opacity-50"
+                            className="w-full py-6 bg-white text-black font-black uppercase italic rounded-2xl shadow-xl text-xl active:scale-95 transition-all"
                         >
                             Establish Link
                         </button>
@@ -353,7 +474,7 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
                 @keyframes scanline { 0% { transform: translateY(0); } 100% { transform: translateY(40px); } }
             `}</style>
 
-            <MainframeBackground level={level} />
+            <MainframeBackground level={level} isUrgent={timeLeft <= 10} />
             <UrgencyOverlay timeLeft={timeLeft} />
 
             <div className="absolute inset-0 border-[8px] md:border-[16px] border-zinc-900 pointer-events-none z-50">
@@ -482,7 +603,7 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
                             <p className="text-[10px] text-zinc-600 font-mono mt-4 italic border-t border-white/5 pt-2">{target?.hint}</p>
                         </div>
                         {gameState === 'WON' ? (
-                            <button onClick={() => { setLevel(l => l + 1); startRound(level + 1); }} className="w-full py-5 bg-emerald-600 text-white font-black uppercase italic rounded-full text-lg shadow-xl active:scale-95 transition-all">Advance_Node</button>
+                            <button onClick={() => { setLevel(l => l + 1); startRound(level); }} className="w-full py-5 bg-emerald-600 text-white font-black uppercase italic rounded-full text-lg shadow-xl active:scale-95 transition-all">Advance_Node</button>
                         ) : (
                             <div className="space-y-4">
                                 <input autoFocus maxLength={3} value={initials} onChange={e => setInitials(e.target.value.toUpperCase())} className="bg-black/50 border-2 border-red-500 text-white rounded-xl px-4 py-4 text-center text-3xl font-black w-32 outline-none uppercase italic" placeholder="???" />
