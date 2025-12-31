@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { XIcon, VoidIcon, SparklesIcon, ArrowPathIcon, ListIcon } from './icons';
 import { saveHighScore, getHighScores, HighScoreEntry } from '../services/highScoresService';
 import { resilientFetch } from '../services/fetch';
@@ -32,10 +32,10 @@ const INTERNAL_WALLS: Wall[] = [
     {
         id: 'fallback_1',
         groups: [
-            { words: ["PAGER", "RADIO", "SIGNAL", "BEACON"], connection: "TRANSMISSION DEVICES", color: "bg-yellow-600/40 border-yellow-500" },
-            { words: ["VOID", "VACUUM", "ABYSS", "CHASM"], connection: "EMPTY SPACES", color: "bg-emerald-600/40 border-emerald-500" },
-            { words: ["ARRAY", "STACK", "QUEUE", "BUFFER"], connection: "DATA STRUCTURES", color: "bg-pulse-600/40 border-pulse-500" },
-            { words: ["DETECTIVE", "GRIFTER", "MOLE", "SENTINEL"], connection: "NOIR ARCHETYPES", color: "bg-purple-600/40 border-purple-500" }
+            { words: ["PAGER", "RADIO", "SIGNAL", "BEACON"], connection: "TRANSMISSION DEVICES", color: "bg-emerald-600/40 border-emerald-500" },
+            { words: ["VOID", "VACUUM", "ABYSS", "CHASM"], connection: "EMPTY SPACES", color: "bg-pulse-600/40 border-pulse-500" },
+            { words: ["ARRAY", "STACK", "QUEUE", "BUFFER"], connection: "DATA STRUCTURES", color: "bg-neon-500/40 border-neon-400" },
+            { words: ["DETECTIVE", "GRIFTER", "MOLE", "SENTINEL"], connection: "NOIR ARCHETYPES", color: "bg-yellow-600/40 border-yellow-500" }
         ]
     }
 ];
@@ -75,11 +75,7 @@ const SynapseLinkPage: React.FC<{ onBackToHub: () => void; onComplete?: () => vo
     const [aiSummary, setAiSummary] = useState<string>("");
     const timerRef = useRef<number | null>(null);
 
-    // BAKE IN PROTOCOL: Mistakes allowed is always 1 less than the total number of groups.
-    // For a standard 4-group puzzle, this ensures exactly 3 lives.
-    const mistakeLimit = useMemo(() => {
-        return wall ? wall.groups.length - 1 : 3;
-    }, [wall]);
+    const MISTAKE_LIMIT = 4;
 
     useEffect(() => {
         if (gameState === 'idle') {
@@ -120,48 +116,42 @@ const SynapseLinkPage: React.FC<{ onBackToHub: () => void; onComplete?: () => vo
     const extractConnectionsData = (html: string): SynapseGroup[] | null => {
         const doc = new DOMParser().parseFromString(html, 'text/html');
         const groups: SynapseGroup[] = [];
-        const seenWords = new Set<string>();
+        const uniqueWordSets = new Set<string>();
+        
+        const elements = Array.from(doc.querySelectorAll('h1, h2, h3, h4, p, li, strong, b, div'));
+        
+        for (let i = 0; i < elements.length; i++) {
+            const el = elements[i];
+            const text = el.textContent?.trim() || "";
+            if (!text) continue;
 
-        // WORD TIPS / CONNECTIONS GAME STRATEGY:
-        // Category headers are typically in <h3> or <h4>. 
-        // We do a linear scan of elements to maintain context.
-        const allRelevant = Array.from(doc.querySelectorAll('h1, h2, h3, h4, h5, p, li, div, strong, b'));
-        let currentCategory = "DECODED SIGNAL";
+            const commaParts = text.split(/,|\n/).map(p => p.trim()).filter(p => p.length > 0);
+            
+            if (commaParts.length === 4) {
+                const isWordSet = commaParts.every(p => p.length >= 2 && p.length < 20);
+                if (!isWordSet) continue;
 
-        for (let i = 0; i < allRelevant.length; i++) {
-            const el = allRelevant[i];
-            const text = (el.textContent || "").trim();
-            const tagName = el.tagName.toUpperCase();
+                const words = commaParts.map(w => w.toUpperCase().replace(/[^A-Z0-9-]/g, ''));
+                const wordKey = [...words].sort().join('|');
 
-            // Check if this is a header (potential category)
-            if (['H1', 'H2', 'H3', 'H4', 'H5', 'STRONG', 'B'].includes(tagName)) {
-                if (text.length > 2 && text.length < 100 && !text.includes(',') && !/NYT|CONNECTIONS|HINT|TODAY/i.test(text)) {
-                    currentCategory = text.toUpperCase();
-                }
-            }
-
-            // Check if this element contains the 4 words
-            const parts = text.split(/,|\n|\t/).map(p => p.trim()).filter(p => p.length > 0);
-            if (parts.length === 4 && parts.every(p => p.length >= 2 && p.length < 25)) {
-                // Heuristic: If they are mostly caps, it's definitely a word list
-                const capsCount = parts.filter(p => p === p.toUpperCase()).length;
-                if (capsCount >= 2) {
-                    const words = parts.map(w => w.toUpperCase().replace(/[^A-Z0-9-]/g, ''));
-                    const wordKey = [...words].sort().join('|');
-
-                    if (!seenWords.has(wordKey)) {
-                        seenWords.add(wordKey);
-                        groups.push({
-                            words,
-                            connection: currentCategory.replace(/^(YELLOW|GREEN|BLUE|PURPLE|CATEGORY|GROUP)[:\s]*/i, '').substring(0, 60),
-                            color: COLORS[groups.length]
-                        });
-                        // Reset currentCategory to fallback for next find if no header is between
-                        currentCategory = "DECODED SIGNAL";
+                if (!uniqueWordSets.has(wordKey)) {
+                    let category = "DECODED SIGNAL";
+                    for (let j = i - 1; j >= 0 && j >= i - 5; j--) {
+                        const prevText = (elements[j].textContent || "").trim();
+                        if (prevText && prevText.length > 2 && prevText.length < 80 && !prevText.includes(',') && !prevText.includes('202') && !prevText.includes('#')) {
+                            category = prevText.toUpperCase();
+                            break;
+                        }
                     }
+
+                    uniqueWordSets.add(wordKey);
+                    groups.push({
+                        words,
+                        connection: category.replace(/^(YELLOW|GREEN|BLUE|PURPLE|CATEGORY|GROUP)[:\s]*/i, '').substring(0, 60),
+                        color: COLORS[groups.length]
+                    });
                 }
             }
-
             if (groups.length === 4) break;
         }
 
@@ -169,47 +159,41 @@ const SynapseLinkPage: React.FC<{ onBackToHub: () => void; onComplete?: () => vo
     };
 
     const fetchTodayGame = async (): Promise<SynapseGroup[] | null> => {
-        setLoadingStatus("Connecting to Word Tips Node...");
-        const sources = [
-            'https://word.tips/todays-nyt-connections-answers/',
-            'https://connectionsgame.org/'
-        ];
+        setLoadingStatus("Connecting to connectionsgame.org...");
+        const url = `https://connectionsgame.org/`;
 
-        for (const url of sources) {
-            try {
-                const response = await resilientFetch(url, { timeout: 15000 });
-                if (!response.ok) continue;
-                const html = await response.text();
-                setLoadingStatus(`Probing Packet Data [${new URL(url).hostname}]...`);
-                const data = extractConnectionsData(html);
-                if (data) return data;
-            } catch (e) {
-                console.warn(`Fetch to ${url} failed, trying next source.`);
-            }
-        }
+        try {
+            const response = await resilientFetch(url, { timeout: 15000 });
+            if (!response.ok) throw new Error("Fetch failed");
+            const html = await response.text();
+            setLoadingStatus("Decoding Packet Sequence...");
+            const data = extractConnectionsData(html);
+            if (data) return data;
             
-        // Final fallback to JSON archive
-        setLoadingStatus("Deep Scan in progress...");
-        const gitRes = await resilientFetch('https://raw.githubusercontent.com/Eyefyre/NYT-Connections-Answers/master/connections.json');
-        if (gitRes.ok) {
-            const gitData = await gitRes.json();
-            const latest = Object.values(gitData)
-                .filter((a: any) => a && typeof a === 'object' && a.answers)
-                .sort((a: any, b: any) => {
-                    const dateA = a.date ? new Date(a.date).getTime() : 0;
-                    const dateB = b.date ? new Date(b.date).getTime() : 0;
-                    return dateB - dateA;
-                })[0] as any;
-            
-            if (latest && latest.answers) {
-                return latest.answers.map((ans: any, i: number) => ({
-                    words: (ans.members || []).map((m: any) => (m || "???").toString().toUpperCase().replace(/[^A-Z0-9-]/g, '')),
-                    connection: (ans.description || "DECODED SIGNAL").toString().toUpperCase().substring(0, 60),
-                    color: COLORS[i]
-                }));
+            setLoadingStatus("Initial decode failed. Accessing Archive...");
+            const gitRes = await resilientFetch('https://raw.githubusercontent.com/Eyefyre/NYT-Connections-Answers/master/connections.json');
+            if (gitRes.ok) {
+                const gitData = await gitRes.json();
+                const latest = Object.values(gitData)
+                    .filter((a: any) => a && typeof a === 'object' && a.answers)
+                    .sort((a: any, b: any) => {
+                        const dateA = a.date ? new Date(a.date).getTime() : 0;
+                        const dateB = b.date ? new Date(b.date).getTime() : 0;
+                        return dateB - dateA;
+                    })[0] as any;
+                
+                if (latest && latest.answers) {
+                    return latest.answers.map((ans: any, i: number) => ({
+                        words: (ans.members || []).map((m: any) => (m || "???").toString().toUpperCase().replace(/[^A-Z0-9-]/g, '')),
+                        connection: (ans.description || "DECODED SIGNAL").toString().toUpperCase().substring(0, 60),
+                        color: COLORS[i]
+                    }));
+                }
             }
+            return null;
+        } catch (e: any) {
+            return null;
         }
-        return null;
     };
 
     const fetchAndSynthesizePuzzle = useCallback(async () => {
@@ -221,7 +205,7 @@ const SynapseLinkPage: React.FC<{ onBackToHub: () => void; onComplete?: () => vo
             return;
         }
 
-        setLoadingStatus("Signal loss. Reverting to local archives...");
+        setLoadingStatus("External signals lost. Reverting to local storage...");
         setTimeout(() => {
             const fallback = INTERNAL_WALLS[0];
             setWall(fallback);
@@ -272,7 +256,7 @@ const SynapseLinkPage: React.FC<{ onBackToHub: () => void; onComplete?: () => vo
 
             setMistakes(m => {
                 const next = m + 1;
-                if (next >= mistakeLimit) {
+                if (next >= MISTAKE_LIMIT) {
                     setGameState('lost');
                     stopTimer();
                 }
@@ -302,7 +286,7 @@ const SynapseLinkPage: React.FC<{ onBackToHub: () => void; onComplete?: () => vo
 
     if (gameState === 'loading') {
         return (
-            <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-950 p-6 text-center text-terminal font-mono">
+            <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-950 p-6 text-center">
                 <div className="w-16 h-16 border-4 border-pulse-500 border-t-transparent rounded-full animate-spin mb-6 mx-auto shadow-[0_0_20px_#e11d48]" />
                 <p className="text-pulse-500 font-black uppercase italic tracking-widest animate-pulse">{loadingStatus}</p>
             </div>
@@ -371,9 +355,8 @@ const SynapseLinkPage: React.FC<{ onBackToHub: () => void; onComplete?: () => vo
             <div className="w-full max-w-xl flex flex-col gap-6">
                 <div className="flex flex-col items-center gap-3">
                     <div className="flex justify-center gap-2">
-                        {/* DYNAMIC LIFE DISPLAY: Renders exactly as many hearts as the mistake limit */}
-                        {[...Array(mistakeLimit)].map((_, i) => (
-                            <HeartIcon key={i} filled={i < mistakeLimit - mistakes} animated={gameState === 'playing'} />
+                        {[...Array(MISTAKE_LIMIT)].map((_, i) => (
+                            <HeartIcon key={i} filled={i < MISTAKE_LIMIT - mistakes} animated={gameState === 'playing'} />
                         ))}
                     </div>
                     {guessFeedback && (

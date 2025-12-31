@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import MainContent from '../components/MainContent';
 import type { SourceType } from '../components/AddSource';
@@ -102,6 +101,11 @@ const App: React.FC = () => {
         return gameTypes.includes(selection.type);
     }, [selection.type]);
 
+    const isUtilityActive = useMemo(() => {
+        const utilityTypes = ['signal_streamer', 'transcoder', 'deep_sync', 'signal_scrambler'];
+        return utilityTypes.includes(selection.type);
+    }, [selection.type]);
+
     useEffect(() => {
         if (!window.history.state || !window.history.state.selection) {
             window.history.replaceState({ selection }, '');
@@ -131,7 +135,6 @@ const App: React.FC = () => {
         return () => window.removeEventListener('popstate', handlePopState);
     }, [readerArticle, outboundLink, showSearchExplainer, showIntegrityBriefing, setSelection]);
 
-    // THEME SYNC: Ensures the root class matches the operator's preference
     useEffect(() => {
         const root = document.documentElement;
         if (theme === 'light') {
@@ -208,13 +211,21 @@ const App: React.FC = () => {
         return <SplashScreen onEnterFeeds={() => updateSelection({ type: 'all', id: null })} onEnterArcade={() => updateSelection({ type: 'game_hub', id: null })} isDecoding={isDecoding} />;
     }
 
-    const hasBottomNav = !isGameActive;
+    const hasBottomNav = !isGameActive && !isUtilityActive;
 
     return (
         <div className="h-screen w-full font-sans text-sm relative flex flex-col overflow-hidden bg-void-950 text-terminal transition-colors duration-300">
             <TerminalView hasBottomNav={hasBottomNav}>
                 {selection.type === 'utility_hub' ? (
                     <UtilityHubPage onSelect={(id) => updateSelection({ type: id as any, id: null })} onBackToHub={() => updateSelection({ type: 'all', id: null })} />
+                ) : selection.type === 'signal_streamer' ? (
+                    <SignalStreamerPage onBackToHub={() => updateSelection({ type: 'utility_hub', id: null })} />
+                ) : selection.type === 'transcoder' ? (
+                    <TranscoderPage onBackToHub={() => updateSelection({ type: 'utility_hub', id: null })} />
+                ) : selection.type === 'deep_sync' ? (
+                    <DeepSyncPage onBackToHub={() => updateSelection({ type: 'utility_hub', id: null })} />
+                ) : selection.type === 'signal_scrambler' ? (
+                    <SignalScramblerPage onBackToHub={() => updateSelection({ type: 'utility_hub', id: null })} />
                 ) : selection.type === 'game_hub' ? (
                     <GameHubPage credits={credits} setShowShop={setIsShopOpen} onSelect={(type: any) => updateSelection({ type, id: null })} onReturnToFeeds={() => updateSelection({ type: 'all', id: null })} />
                 ) : isGameActive ? (
@@ -295,7 +306,6 @@ const App: React.FC = () => {
             
             {readerArticle && <ReaderViewModal article={readerArticle} onClose={closeReader} onMarkAsRead={handleMarkAsRead} onOpenExternal={openExternal} />}
 
-            {/* EXTERNAL SIGNAL INTERCEPT MODAL - Fixes "No Action" on Raw Stream buttons */}
             {outboundLink && (
                 <div className="fixed inset-0 bg-black/95 backdrop-blur-md z-[100] flex items-center justify-center p-6 font-mono animate-fade-in">
                     <div className="bg-zinc-900 border-4 border-pulse-600 shadow-[0_0_80px_rgba(225,29,72,0.3)] w-full max-w-sm relative overflow-hidden flex flex-col rounded-3xl">

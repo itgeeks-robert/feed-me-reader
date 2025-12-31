@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import type { Feed, Folder, Selection, WidgetSettings, Article, ArticleView, Theme } from '../src/App';
 import type { SourceType } from './AddSource';
-import { MenuIcon, SearchIcon, SunIcon, MoonIcon, GlobeAltIcon, CpuChipIcon, BeakerIcon, ChartBarIcon, FlagIcon, FireIcon, ControllerIcon, XIcon, ExclamationTriangleIcon, ArrowPathIcon, RadioIcon, VoidIcon } from './icons';
+import { MenuIcon, SearchIcon, SunIcon, MoonIcon, GlobeAltIcon, CpuChipIcon, BeakerIcon, ChartBarIcon, FlagIcon, FireIcon, ControllerIcon, XIcon, ExclamationTriangleIcon, ArrowPathIcon, RadioIcon, VoidIcon, ShieldCheckIcon } from './icons';
 import { resilientFetch } from '../services/fetch';
 import { parseRssXml } from '../services/rssParser';
 import FeaturedStory from './articles/FeaturedStory';
@@ -90,8 +90,29 @@ const MainContent: React.FC<MainContentProps> = (props) => {
     
     useEffect(() => { getCacheCount().then(setCacheCount); }, [refreshKey]);
 
+    // AUTO-REFRESH CYCLE: 60 SECONDS
+    useEffect(() => {
+        const interval = setInterval(() => {
+            if (document.visibilityState === 'visible') {
+                onRefresh();
+            }
+        }, 60000);
+        return () => clearInterval(interval);
+    }, [onRefresh]);
+
     const activeFeeds = useMemo(() => {
         if (!selection.category) return allFeeds;
+        if (selection.category === 'GLOBAL_SYNC') {
+            const presetsAsFeeds = PRESETS.map(p => ({
+                id: Math.random(),
+                url: p.url,
+                title: p.title,
+                iconUrl: '',
+                folderId: null,
+                category: p.category
+            }));
+            return [...allFeeds, ...presetsAsFeeds];
+        }
         const presets = PRESETS.filter(p => p.category === selection.category);
         return presets.map(p => ({
             id: Math.random(),
@@ -104,7 +125,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
     }, [selection.category, allFeeds]);
 
     useEffect(() => {
-        if (initialArticles && initialArticles.length > 0 && !selection.category && articles.length === initialArticles.length) {
+        if (initialArticles && initialArticles.length > 0 && !selection.category && articles.length === initialArticles.length && refreshKey === 0) {
             return;
         }
 
@@ -139,7 +160,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
              result = result.filter(a => a.title.toLowerCase().includes(filter) || a.snippet.toLowerCase().includes(filter) || a.source.toLowerCase().includes(filter));
         }
         
-        if (selection.category) {
+        if (selection.category && selection.category !== 'GLOBAL_SYNC') {
             const catLower = selection.category.toLowerCase();
             result = result.filter(a => 
                 a.feedCategory === selection.category || 
@@ -155,7 +176,12 @@ const MainContent: React.FC<MainContentProps> = (props) => {
 
     const unreadCount = useMemo(() => filteredArticles.filter(a => !readArticleIds.has(a.id)).length, [filteredArticles, readArticleIds]);
 
-    const handleCategoryClick = (catId: string) => {
+    const handleCategoryClick = (catId: string | null) => {
+        if (!catId) {
+            onSelectCategory(null);
+            return;
+        }
+
         if (rememberGlobalWarning) {
             onSelectCategory(catId);
         } else {
@@ -231,6 +257,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                     onSniff={() => handleSniffSignal()}
                     onOpenSearchExplainer={onOpenSearchExplainer}
                     onOpenIntegrityBriefing={onOpenIntegrityBriefing}
+                    onRefresh={onRefresh}
                 />
                 <div className="pt-24 md:pt-32">
                     <FeedOnboarding onComplete={(f, fld) => { onSetFolders(fld); onSetFeeds(f); }} />
@@ -258,20 +285,54 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                 onSniff={() => handleSniffSignal()}
                 onOpenSearchExplainer={onOpenSearchExplainer}
                 onOpenIntegrityBriefing={onOpenIntegrityBriefing}
+                onRefresh={onRefresh}
             />
             
-            <nav className="fixed top-[calc(4.5rem+var(--safe-top))] md:top-[calc(6rem+var(--safe-top))] landscape:top-[calc(4rem+var(--safe-top))] left-0 right-0 z-20 bg-void-900/90 backdrop-blur-md border-b border-zinc-300 dark:border-white/5 flex items-center h-12 landscape:h-10 overflow-x-auto scrollbar-hide px-4 md:px-12 gap-2.5 shadow-xl transition-all">
-                <button onClick={() => onSelectCategory(null)} className={`shrink-0 px-4 py-1.5 landscape:py-1 rounded-full text-[9px] landscape:text-[8px] font-black uppercase italic transition-all border ${!selection.category ? 'bg-pulse-500 border-pulse-400 text-white shadow-lg shadow-pulse-500/20' : 'bg-void-950 border-zinc-300 dark:border-zinc-800 text-zinc-700 dark:text-zinc-400 hover:text-terminal'}`}>ALL_INTEL</button>
-                {CATEGORY_MAP.map(cat => (
-                    <button key={cat.id} onClick={() => handleCategoryClick(cat.id)} className={`shrink-0 flex items-center gap-2 px-4 py-1.5 landscape:py-1 rounded-full text-[9px] landscape:text-[8px] font-black uppercase italic transition-all border ${selection.category === cat.id ? 'bg-pulse-500 border-pulse-400 text-white shadow-lg shadow-pulse-500/20' : 'bg-void-950 border-zinc-300 dark:border-zinc-800 text-zinc-700 dark:text-zinc-400 hover:text-terminal'}`}>{cat.icon}<span>{cat.id}</span></button>
-                ))}
+            <nav className="fixed top-[calc(4.5rem+var(--safe-top))] md:top-[calc(6rem+var(--safe-top))] landscape:top-[calc(4rem+var(--safe-top))] left-0 right-0 z-20 bg-void-900/90 backdrop-blur-md border-b border-zinc-300 dark:border-white/5 flex items-center h-14 landscape:h-12 overflow-x-auto scrollbar-hide px-4 md:px-12 gap-3 shadow-xl transition-all">
+                {/* YOUR INTEL BOX */}
+                <div className="flex items-center gap-2 p-1 bg-void-950 border border-zinc-300 dark:border-white/5 rounded-2xl">
+                    <button 
+                        onClick={() => handleCategoryClick(null)} 
+                        className={`shrink-0 flex items-center gap-2 px-4 py-1.5 landscape:py-1 rounded-xl text-[9px] landscape:text-[8px] font-black uppercase italic transition-all border ${!selection.category ? 'bg-emerald-600 border-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-transparent border-transparent text-zinc-600 dark:text-zinc-500 hover:text-terminal'}`}
+                    >
+                        <ShieldCheckIcon className="w-3.5 h-3.5" />
+                        <span>YOUR_SIGNAL</span>
+                    </button>
+                </div>
+
+                <div className="h-6 w-px bg-zinc-300 dark:bg-zinc-800 mx-1 shrink-0" />
+
+                {/* GLOBAL INTEL BOX */}
+                <div className="flex items-center gap-2 p-1 bg-void-950 border border-zinc-300 dark:border-white/5 rounded-2xl overflow-hidden shrink-0">
+                    <button 
+                        onClick={() => handleCategoryClick('GLOBAL_SYNC')} 
+                        className={`shrink-0 flex items-center gap-2 px-4 py-1.5 landscape:py-1 rounded-xl text-[9px] landscape:text-[8px] font-black uppercase italic transition-all border ${selection.category === 'GLOBAL_SYNC' ? 'bg-pulse-500 border-pulse-400 text-white shadow-lg shadow-pulse-500/20' : 'bg-transparent border-transparent text-zinc-600 dark:text-zinc-500 hover:text-terminal'}`}
+                    >
+                        <RadioIcon className="w-3.5 h-3.5" />
+                        <span>GLOBAL_SYNC</span>
+                    </button>
+                    {CATEGORY_MAP.map(cat => (
+                        <button 
+                            key={cat.id} 
+                            onClick={() => handleCategoryClick(cat.id)} 
+                            className={`shrink-0 flex items-center gap-2 px-4 py-1.5 landscape:py-1 rounded-xl text-[9px] landscape:text-[8px] font-black uppercase italic transition-all border ${selection.category === cat.id ? 'bg-pulse-500 border-pulse-400 text-white shadow-lg shadow-pulse-500/20' : 'bg-transparent border-transparent text-zinc-600 dark:text-zinc-500 hover:text-terminal'}`}
+                        >
+                            {cat.icon}
+                            <span>{cat.id}</span>
+                        </button>
+                    ))}
+                </div>
             </nav>
 
-            <div className="px-4 md:px-8 pt-[calc(9rem+var(--safe-top))] md:pt-[calc(11rem+var(--safe-top))] landscape:pt-[calc(8rem+var(--safe-top))] max-w-[1800px] mx-auto transition-all">
+            <div className="px-4 md:px-8 pt-[calc(10rem+var(--safe-top))] md:pt-[calc(12rem+var(--safe-top))] landscape:pt-[calc(9rem+var(--safe-top))] max-w-[1800px] mx-auto transition-all">
                  <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 pb-5 border-b border-pulse-500/20 mb-8">
                     <div>
-                        <h1 className="text-2xl md:text-4xl font-black text-terminal italic glitch-text uppercase tracking-widest leading-none">{pageTitle}</h1>
-                        <p className="text-[10px] md:text-[11px] font-black text-zinc-600 dark:text-zinc-500 uppercase tracking-[0.4em] mt-3 font-mono">{unreadCount} SIGS DETECTED</p>
+                        <h1 className="text-2xl md:text-4xl font-black text-terminal italic glitch-text uppercase tracking-widest leading-none">
+                            {selection.category === 'GLOBAL_SYNC' ? 'MASS SIGNAL SYNC' : pageTitle}
+                        </h1>
+                        <p className="text-[10px] md:text-[11px] font-black text-zinc-600 dark:text-zinc-500 uppercase tracking-[0.4em] mt-3 font-mono">
+                            {loading ? 'SYNCHRONIZING...' : `${unreadCount} SIGS DETECTED`} | AUTO_REFRESH: ACTIVE
+                        </p>
                     </div>
                     {unreadCount > 5 && (
                         <button onClick={() => onPurgeBuffer(filteredArticles.map(a => a.id))} className="px-5 py-2 bg-void-900 border border-pulse-500 text-pulse-600 dark:text-pulse-500 hover:bg-pulse-500 hover:text-white font-black uppercase italic text-[10px] transition-all shadow-[4px_4px_0_#e11d48] active:translate-x-1 active:translate-y-1 active:shadow-none">Clear Node</button>
@@ -296,7 +357,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                         <div className="text-center py-24 border-4 border-dashed border-zinc-300 dark:border-zinc-800 rounded-[3rem] bg-void-900/20">
                             <ExclamationTriangleIcon className="w-14 h-14 text-zinc-500 dark:text-zinc-700 mx-auto mb-6" />
                             <h3 className="text-2xl font-black text-zinc-600 dark:text-zinc-700 uppercase italic mb-3 tracking-tighter">Frequency Silent</h3>
-                            <p className="text-[11px] text-zinc-600 dark:text-zinc-700 uppercase tracking-widest mb-8 font-mono italic">No matches detected for "{selection.query}".</p>
+                            <p className="text-[11px] text-zinc-600 dark:text-zinc-700 uppercase tracking-widest mb-8 font-mono italic">No matches detected for "{selection.query || 'current selection'}".</p>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 md:gap-8">
@@ -334,7 +395,9 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                                 <ExclamationTriangleIcon className="w-8 h-8 text-pulse-500" />
                             </div>
                             <h3 className="text-lg font-black text-white italic uppercase tracking-tighter leading-none">Mass Signal Establishment</h3>
-                            <p className="text-[10px] text-zinc-500 leading-relaxed uppercase tracking-widest">establishing a link to <span className="text-pulse-500 font-black">ALL GLOBAL {pendingCategory} NODES</span> concurrently may result in system lag. establish link?</p>
+                            <p className="text-[10px] text-zinc-500 leading-relaxed uppercase tracking-widest italic">
+                                Operator, linking to <span className="text-pulse-500 font-black">ALL {pendingCategory === 'GLOBAL_SYNC' ? 'GLOBAL' : pendingCategory} NODES</span> concurrently requires high bandwidth. Sequence lag may occur.
+                            </p>
                             
                             <label className="flex items-center justify-center gap-3 cursor-pointer group pt-2">
                                 <input 
@@ -359,7 +422,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
     );
 };
 
-const Header: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuery, onOpenSidebar, theme, onToggleTheme, uptime, cacheCount, isSniffing, onSniff, onOpenSearchExplainer, onOpenIntegrityBriefing }) => {
+const Header: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuery, onOpenSidebar, theme, onToggleTheme, uptime, cacheCount, isSniffing, onSniff, onOpenSearchExplainer, onOpenIntegrityBriefing, onRefresh }) => {
     const isUrl = useMemo(() => {
         return /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([\/\w .-]*)*\/?$/.test(searchQuery);
     }, [searchQuery]);
@@ -400,6 +463,9 @@ const Header: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuery, on
                     </div>
                 </div>
                 <div className="flex items-center gap-3 md:gap-8 flex-shrink-0">
+                    <button onClick={onRefresh} className="p-2 text-zinc-500 hover:text-terminal transition-all active:rotate-180 duration-500">
+                        <ArrowPathIcon className="w-5 h-5 md:w-7 md:h-7" />
+                    </button>
                     <button onClick={onToggleTheme} className="p-2 text-pulse-600 dark:text-pulse-500 hover:text-terminal transition-all active:scale-90">{theme === 'dark' ? <SunIcon className="w-6 h-6 md:w-8 md:h-8 landscape:w-6 landscape:h-6" /> : <MoonIcon className="w-6 h-6 md:w-8 md:h-8 landscape:w-6 landscape:h-6" />}</button>
                 </div>
             </div>
