@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { XIcon, RadioIcon, BoltIcon, SparklesIcon, VoidIcon, ShieldCheckIcon, GlobeAltIcon, ControllerIcon, FireIcon, CpuChipIcon, ArrowPathIcon, ExclamationTriangleIcon } from './icons';
 import { HANGMAN_DATA, HangmanWord, fetchDynamicHangmanData } from '../services/hangmanData';
@@ -47,17 +46,20 @@ const shufflePool = <T,>(array: T[]): T[] => {
     return arr;
 };
 
-const MainframeBackground: React.FC<{ level: number; isUrgent: boolean }> = ({ level, isUrgent }) => {
+const MainframeBackground: React.FC<{ level: number; isUrgent: boolean; urgencyType: 'NONE' | 'AMBER' | 'RED' }> = ({ level, isUrgent, urgencyType }) => {
     const themeIndex = Math.min(level - 1, LEVEL_THEMES.length - 1);
-    const theme = LEVEL_THEMES[themeIndex];
-    const speed = isUrgent ? 0.5 : Math.max(1, 10 - level); 
+    const baseTheme = LEVEL_THEMES[themeIndex];
+    
+    // Override color during urgency
+    const activeColor = urgencyType === 'RED' ? '#ef4444' : urgencyType === 'AMBER' ? '#f59e0b' : baseTheme.color;
+    const speed = urgencyType === 'RED' ? 0.3 : urgencyType === 'AMBER' ? 0.8 : Math.max(1, 10 - level); 
 
     return (
         <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden bg-zinc-950 transition-colors duration-1000">
             <div 
                 className="absolute inset-0 opacity-10 transition-colors duration-1000"
                 style={{ 
-                    backgroundImage: `linear-gradient(${theme.color}22 1px, transparent 1px), linear-gradient(90deg, ${theme.color}22 1px, transparent 1px)`,
+                    backgroundImage: `linear-gradient(${activeColor}22 1px, transparent 1px), linear-gradient(90deg, ${activeColor}22 1px, transparent 1px)`,
                     backgroundSize: '40px 40px',
                     animation: `pulse ${speed}s infinite ease-in-out`
                 }} 
@@ -65,7 +67,7 @@ const MainframeBackground: React.FC<{ level: number; isUrgent: boolean }> = ({ l
             <div 
                 className="absolute inset-0 opacity-[0.03] pointer-events-none"
                 style={{
-                    backgroundImage: `repeating-linear-gradient(0deg, transparent, transparent 20px, ${theme.color} 20px, ${theme.color} 21px)`,
+                    backgroundImage: `repeating-linear-gradient(0deg, transparent, transparent 20px, ${activeColor} 20px, ${activeColor} 21px)`,
                     backgroundSize: '100% 40px',
                     animation: `scanline ${speed / 2}s linear infinite`
                 }}
@@ -76,53 +78,54 @@ const MainframeBackground: React.FC<{ level: number; isUrgent: boolean }> = ({ l
 };
 
 const UrgencyOverlay: React.FC<{ timeLeft: number }> = ({ timeLeft }) => {
+    const isUrgent = timeLeft <= 30 && timeLeft > 0;
     const isCritical = timeLeft <= 10 && timeLeft > 0;
     const isExtreme = timeLeft <= 5 && timeLeft > 0;
     
-    if (!isCritical) return null;
+    if (!isUrgent) return null;
+
+    const phaseColor = isCritical ? '#ef4444' : '#f59e0b';
+    const phaseLabel = isCritical ? 'TERMINAL_CRITICAL' : 'SIGNAL_DEGRADATION';
+    const bpm = isExtreme ? '0.3s' : isCritical ? '0.6s' : '1.2s';
 
     return (
         <div className="fixed inset-0 pointer-events-none z-40 overflow-hidden">
             <style>{`
-                @keyframes heartbeat {
-                    0%, 100% { box-shadow: inset 0 0 50px rgba(225, 29, 72, 0.2); }
-                    50% { box-shadow: inset 0 0 150px rgba(225, 29, 72, 0.6); }
-                }
-                @keyframes corner-flicker {
-                    0%, 100% { opacity: 0.8; transform: scale(1); }
-                    50% { opacity: 0.3; transform: scale(0.98); }
+                @keyframes heartbeat-alert {
+                    0%, 100% { box-shadow: inset 0 0 40px ${phaseColor}22; }
+                    50% { box-shadow: inset 0 0 120px ${phaseColor}66; }
                 }
                 @keyframes ticker-scroll {
                     0% { transform: translateX(100%); }
                     100% { transform: translateX(-100%); }
                 }
-                .animate-heartbeat { animation: heartbeat ${isExtreme ? '0.4s' : '0.8s'} infinite ease-in-out; }
-                .animate-ticker { animation: ticker-scroll 8s linear infinite; }
+                .animate-heartbeat-alert { animation: heartbeat-alert ${bpm} infinite ease-in-out; }
+                .animate-ticker { animation: ticker-scroll 10s linear infinite; }
             `}</style>
 
-            {/* Red Alert Perimeter */}
-            <div className="absolute inset-0 animate-heartbeat border-[4px] border-red-600/30" />
+            {/* Pulsing Perimeter */}
+            <div className="absolute inset-0 animate-heartbeat-alert border-[4px] transition-colors duration-500" style={{ borderColor: `${phaseColor}44` }} />
             
-            {/* Tactical Brackets */}
-            <div className="absolute inset-8 border-red-500/40 animate-pulse">
-                <div className="absolute top-0 left-0 w-12 h-12 border-t-4 border-l-4 border-red-500 shadow-[0_0_15px_#e11d48]" />
-                <div className="absolute top-0 right-0 w-12 h-12 border-t-4 border-r-4 border-red-500 shadow-[0_0_15px_#e11d48]" />
-                <div className="absolute bottom-0 left-0 w-12 h-12 border-b-4 border-l-4 border-red-500 shadow-[0_0_15px_#e11d48]" />
-                <div className="absolute bottom-0 right-0 w-12 h-12 border-b-4 border-r-4 border-red-500 shadow-[0_0_15px_#e11d48]" />
+            {/* Tactical Brackets - only for Critical and Warning entry */}
+            <div className={`absolute inset-8 transition-opacity duration-500 ${isCritical ? 'opacity-100' : 'opacity-40'}`}>
+                <div className="absolute top-0 left-0 w-12 h-12 border-t-4 border-l-4 transition-colors duration-500" style={{ borderColor: phaseColor, boxShadow: `0 0 15px ${phaseColor}` }} />
+                <div className="absolute top-0 right-0 w-12 h-12 border-t-4 border-r-4 transition-colors duration-500" style={{ borderColor: phaseColor, boxShadow: `0 0 15px ${phaseColor}` }} />
+                <div className="absolute bottom-0 left-0 w-12 h-12 border-b-4 border-l-4 transition-colors duration-500" style={{ borderColor: phaseColor, boxShadow: `0 0 15px ${phaseColor}` }} />
+                <div className="absolute bottom-0 right-0 w-12 h-12 border-b-4 border-r-4 transition-colors duration-500" style={{ borderColor: phaseColor, boxShadow: `0 0 15px ${phaseColor}` }} />
             </div>
 
-            {/* Ghost Digit in Corner (Impactful but out of central view) */}
-            <div className="absolute top-12 right-12 opacity-40 select-none">
-                <span className="text-8xl font-black text-white italic drop-shadow-[0_0_30px_#ef4444]">
+            {/* Peripheral Timer Ghost */}
+            <div className="absolute top-12 right-12 opacity-30 select-none transition-all duration-500">
+                <span className="text-8xl font-black text-white italic" style={{ filter: `drop-shadow(0 0 30px ${phaseColor})` }}>
                     {timeLeft}
                 </span>
             </div>
 
-            {/* Ticker Tape */}
-            <div className="absolute top-4 left-0 right-0 h-4 bg-red-950/20 border-y border-red-500/20 flex items-center overflow-hidden">
+            {/* Urgency Ticker */}
+            <div className="absolute top-4 left-0 right-0 h-4 bg-black/40 border-y transition-colors duration-500 flex items-center overflow-hidden" style={{ borderColor: `${phaseColor}33` }}>
                 <div className="animate-ticker whitespace-nowrap">
-                    <span className="text-[10px] font-black text-red-500 uppercase tracking-[0.8em] italic">
-                        TERMINAL_CRITICAL_LINK_UNSTABLE_0xDEADBEEF_SEVER_IMMINENT_TERMINAL_CRITICAL_LINK_UNSTABLE_0xDEADBEEF_SEVER_IMMINENT
+                    <span className="text-[10px] font-black uppercase tracking-[0.8em] italic transition-colors duration-500" style={{ color: phaseColor }}>
+                        {phaseLabel}_0xVOID_{timeLeft}_SEC_REMAINING_{phaseLabel}_0xVOID_{timeLeft}_SEC_REMAINING
                     </span>
                 </div>
             </div>
@@ -131,17 +134,19 @@ const UrgencyOverlay: React.FC<{ timeLeft: number }> = ({ timeLeft }) => {
 };
 
 const TelemetryHub: React.FC<{ level: number; timeLeft: number; color: string; isLandscape?: boolean }> = ({ level, timeLeft, color, isLandscape }) => {
-    const isCritical = timeLeft <= 10;
+    const isAmber = timeLeft <= 30 && timeLeft > 10;
+    const isRed = timeLeft <= 10;
+    const urgencyColor = isRed ? '#ef4444' : isAmber ? '#f59e0b' : null;
     
     return (
-        <div className={`flex items-stretch gap-px bg-zinc-800 border-2 border-black rounded-xl overflow-hidden shadow-2xl transition-all duration-300 ${isLandscape ? 'w-full' : ''} ${isCritical ? 'scale-110 shadow-[0_0_30px_rgba(225,29,72,0.3)]' : ''}`}>
-            <div className={`flex flex-col items-center flex-1 px-4 py-1.5 md:px-6 md:py-2 border-r-2 border-black transition-colors ${isCritical ? 'bg-red-600' : 'bg-zinc-900'}`}>
-                <span className={`text-[7px] md:text-[8px] font-black uppercase leading-none mb-1 ${isCritical ? 'text-white' : 'text-zinc-500'}`}>Sector</span>
-                <span className={`text-base md:text-xl font-black italic transition-all duration-500 ${isCritical ? 'text-white' : ''}`} style={{ color: isCritical ? undefined : color }}>0{level}</span>
+        <div className={`flex items-stretch gap-px bg-zinc-800 border-2 border-black rounded-xl overflow-hidden shadow-2xl transition-all duration-300 ${isLandscape ? 'w-full' : ''} ${urgencyColor ? 'scale-105 shadow-[0_0_30px_rgba(0,0,0,0.5)]' : ''}`}>
+            <div className={`flex flex-col items-center flex-1 px-4 py-1.5 md:px-6 md:py-2 border-r-2 border-black transition-colors duration-500 ${isRed ? 'bg-red-600' : isAmber ? 'bg-amber-500' : 'bg-zinc-900'}`}>
+                <span className={`text-[7px] md:text-[8px] font-black uppercase leading-none mb-1 ${urgencyColor ? 'text-white' : 'text-zinc-500'}`}>Sector</span>
+                <span className={`text-base md:text-xl font-black italic transition-all duration-500 ${urgencyColor ? 'text-white' : ''}`} style={{ color: urgencyColor ? undefined : color }}>0{level}</span>
             </div>
-            <div className={`flex flex-col items-center flex-1 px-4 py-1.5 md:px-6 md:py-2 transition-colors ${isCritical ? 'bg-red-950 animate-pulse' : 'bg-zinc-900'}`}>
-                <span className={`text-[7px] md:text-[8px] font-black uppercase leading-none mb-1 ${isCritical ? 'text-red-400' : 'text-zinc-500'}`}>Time</span>
-                <span className={`text-base md:text-xl font-black italic font-mono transition-all ${isCritical ? 'text-white text-2xl drop-shadow-[0_0_10px_#ef4444]' : 'text-white'}`}>{timeLeft}s</span>
+            <div className={`flex flex-col items-center flex-1 px-4 py-1.5 md:px-6 md:py-2 transition-colors duration-500 ${isRed ? 'bg-red-950 animate-pulse' : isAmber ? 'bg-amber-950 animate-pulse' : 'bg-zinc-900'}`}>
+                <span className={`text-[7px] md:text-[8px] font-black uppercase leading-none mb-1 ${isRed ? 'text-red-400' : isAmber ? 'text-amber-400' : 'text-zinc-500'}`}>Time</span>
+                <span className={`text-base md:text-xl font-black italic font-mono transition-all duration-500 ${urgencyColor ? 'text-white text-2xl' : 'text-white'}`} style={{ filter: urgencyColor ? `drop-shadow(0 0 10px ${urgencyColor})` : 'none' }}>{timeLeft}s</span>
             </div>
         </div>
     );
@@ -474,7 +479,11 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
                 @keyframes scanline { 0% { transform: translateY(0); } 100% { transform: translateY(40px); } }
             `}</style>
 
-            <MainframeBackground level={level} isUrgent={timeLeft <= 10} />
+            <MainframeBackground 
+                level={level} 
+                isUrgent={timeLeft <= 30} 
+                urgencyType={timeLeft <= 10 ? 'RED' : timeLeft <= 30 ? 'AMBER' : 'NONE'} 
+            />
             <UrgencyOverlay timeLeft={timeLeft} />
 
             <div className="absolute inset-0 border-[8px] md:border-[16px] border-zinc-900 pointer-events-none z-50">
