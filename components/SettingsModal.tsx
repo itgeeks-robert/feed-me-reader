@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import type { Settings, Theme, ArticleView, WidgetSettings, Feed, Folder, Selection } from '../src/App';
 import { XIcon, SunIcon, MoonIcon, CloudArrowUpIcon, CloudArrowDownIcon, TrashIcon, BookmarkIcon, ListIcon, PlusIcon, FolderIcon, ShieldCheckIcon, SparklesIcon, CpuChipIcon, ExclamationTriangleIcon } from './icons';
@@ -37,6 +36,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 }) => {
     const [activeTab, setActiveTab] = useState<Tab>('CORE');
     const [localSettings, setLocalSettings] = useState({ ...settings });
+    const [showWipeConfirm, setShowWipeConfirm] = useState(false);
     const opmlInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => { if (isOpen) setLocalSettings({ ...settings }); }, [isOpen, settings]);
@@ -78,15 +78,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         URL.revokeObjectURL(url);
     };
 
-    const handleSystemWipe = () => {
-        if (confirm("CRITICAL PROTOCOL: PERFORM SYSTEM WIPE?\n\nThis will permanently delete all feeds, folders, bookmarks, high scores, and credits. The terminal will revert to original installation settings. PROCEED?")) {
-            localStorage.clear();
-            // Clear IndexedDB cache as well for a true wipe
-            const req = indexedDB.deleteDatabase('SeeMoreCache');
-            req.onsuccess = () => window.location.reload();
-            req.onerror = () => window.location.reload();
-            req.onblocked = () => window.location.reload();
-        }
+    const performSystemWipe = () => {
+        localStorage.clear();
+        // Clear IndexedDB cache as well for a true wipe
+        const req = indexedDB.deleteDatabase('SeeMoreCache');
+        req.onsuccess = () => window.location.reload();
+        req.onerror = () => window.location.reload();
+        req.onblocked = () => window.location.reload();
     };
 
     const TabButton: React.FC<{ name: Tab, label: string }> = ({ name, label }) => (
@@ -221,7 +219,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                             </div>
                             <h3 className="text-[10px] font-black text-pulse-500 uppercase tracking-widest mb-2 italic">Terminal Reset</h3>
                             <p className="text-[8px] text-zinc-600 uppercase mb-6 font-black leading-tight italic">Warning: Reverts system to original installation state. Irreversible.</p>
-                            <ActionButton variant="danger" icon={<TrashIcon className="w-4 h-4" />} onClick={handleSystemWipe}>PERFORM_SYSTEM_WIPE</ActionButton>
+                            <ActionButton variant="danger" icon={<TrashIcon className="w-4 h-4" />} onClick={() => setShowWipeConfirm(true)}>PERFORM_SYSTEM_WIPE</ActionButton>
                         </div>
                     </div>)}
                 </div>
@@ -231,6 +229,42 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     <button onClick={handleSave} className="flex-1 py-3 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 text-[10px] font-black uppercase italic text-black hover:bg-white active:bg-zinc-400">COMMIT_CHANGES</button>
                 </footer>
             </div>
+
+            {/* CUSTOM CONFIRM OVERLAY */}
+            {showWipeConfirm && (
+                <div className="fixed inset-0 z-[110] bg-black/95 backdrop-blur-md flex items-center justify-center p-6 animate-fade-in" onClick={e => e.stopPropagation()}>
+                    <div className="bg-zinc-900 border-4 border-pulse-600 shadow-[0_0_120px_rgba(225,29,72,0.3)] w-full max-w-sm relative overflow-hidden flex flex-col rounded-[2.5rem]">
+                        <header className="h-10 bg-pulse-600 flex items-center justify-between px-1 border-b-2 border-black">
+                            <div className="flex items-center gap-2 h-full">
+                                <div className="w-8 h-7 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center">
+                                   <div className="w-4 h-1 bg-black shadow-[0_4px_0_black]" />
+                                </div>
+                                <h2 className="text-white text-[9px] font-black uppercase tracking-[0.2em] italic px-2 truncate">CRITICAL_PROTOCOL.EXE</h2>
+                            </div>
+                            <button onClick={() => setShowWipeConfirm(false)} className="w-8 h-7 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center active:bg-zinc-400">
+                                <XIcon className="w-4 h-4 text-black" />
+                            </button>
+                        </header>
+                        
+                        <div className="p-8 bg-void-950 text-center space-y-6">
+                            <div className="mx-auto w-12 h-12 bg-pulse-500/10 rounded-full flex items-center justify-center border-2 border-pulse-500 animate-pulse">
+                                <ExclamationTriangleIcon className="w-6 h-6 text-pulse-500" />
+                            </div>
+                            <div className="space-y-4">
+                                <h3 className="text-lg font-black text-white italic uppercase tracking-tighter">PERFORM SYSTEM WIPE?</h3>
+                                <p className="text-[9px] text-zinc-500 leading-relaxed uppercase tracking-widest italic px-4">
+                                    This will <span className="text-pulse-500 font-black">permanently delete</span> all feeds, folders, bookmarks, high scores, and credits. The terminal will revert to original installation settings.
+                                </p>
+                            </div>
+                        </div>
+
+                        <footer className="p-4 bg-zinc-300 border-t-2 border-black flex gap-3">
+                            <button onClick={() => setShowWipeConfirm(false)} className="flex-1 py-3 bg-zinc-100 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-400 text-[10px] font-black uppercase italic text-zinc-600 active:bg-zinc-200">ABORT</button>
+                            <button onClick={performSystemWipe} className="flex-1 py-3 bg-pulse-600 border-t-2 border-l-2 border-white/50 border-b-2 border-r-2 border-pulse-950 text-[10px] font-black uppercase italic text-white hover:bg-pulse-500 active:bg-pulse-700">OK</button>
+                        </footer>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { XIcon, RadioIcon, BoltIcon, SparklesIcon, VoidIcon, ShieldCheckIcon, GlobeAltIcon, ControllerIcon, FireIcon, CpuChipIcon } from './icons';
-import { HANGMAN_DATA, HangmanWord } from '../services/hangmanData';
+import { XIcon, RadioIcon, BoltIcon, SparklesIcon, VoidIcon, ShieldCheckIcon, GlobeAltIcon, ControllerIcon, FireIcon, CpuChipIcon, ArrowPathIcon, ExclamationTriangleIcon } from './icons';
+import { HANGMAN_DATA, HangmanWord, fetchDynamicHangmanData } from '../services/hangmanData';
 import { saveHighScore, getHighScores } from '../services/highScoresService';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 
@@ -12,7 +12,7 @@ type GameState = 'LOBBY' | 'ROUND_TRANSITION' | 'PLAYING' | 'WON' | 'LOST' | 'FI
 type CategoryFilter = 'ALL' | 'FILM' | 'MUSIC' | 'SPORT' | 'TECH' | 'FASHION' | 'GAMING';
 
 const CATEGORY_MAP: Record<CategoryFilter, string[]> = {
-    ALL: ['ACTOR', 'FILM', 'ARTIST', 'SONG', 'TECH', 'GAMING', 'SPORT', 'FASHION'],
+    ALL: ['ACTOR', 'FILM', 'ARTIST', 'SONG', 'TECH', 'GAMING', 'SPORT', 'FASHION', 'OBJECT', 'RANDOM'],
     FILM: ['ACTOR', 'FILM'],
     MUSIC: ['ARTIST', 'SONG'],
     SPORT: ['SPORT'],
@@ -67,14 +67,38 @@ const MainframeBackground: React.FC<{ level: number }> = ({ level }) => {
 
 const UrgencyOverlay: React.FC<{ timeLeft: number }> = ({ timeLeft }) => {
     const isCritical = timeLeft <= 10 && timeLeft > 0;
+    const isExtreme = timeLeft <= 5 && timeLeft > 0;
+    
     return (
-        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-            <div className={`absolute inset-0 bg-red-600/20 transition-opacity duration-1000 ${isCritical ? 'opacity-100' : 'opacity-0'}`} />
-            {isCritical && (
-                <div className="absolute inset-0 flex items-center justify-center opacity-10">
-                    <span className="text-[40vw] font-black text-red-600 italic animate-pulse">{timeLeft}</span>
-                </div>
-            )}
+        <div className={`fixed inset-0 pointer-events-none z-40 overflow-hidden transition-opacity duration-300 ${isCritical ? 'opacity-100' : 'opacity-0'}`}>
+            <style>{`
+                @keyframes strobe {
+                    0%, 100% { background-color: rgba(225, 29, 72, 0.4); }
+                    50% { background-color: rgba(225, 29, 72, 0.1); }
+                }
+                .animate-strobe { animation: strobe 0.2s infinite; }
+            `}</style>
+            
+            {/* Pulsing Red Wash */}
+            <div className={`absolute inset-0 ${isExtreme ? 'animate-strobe' : 'animate-pulse bg-red-600/30'}`} />
+            
+            {/* Visual Interference */}
+            <div className="absolute inset-0 opacity-20 static-noise" />
+            <div className="absolute inset-0 bg-gradient-to-t from-red-600/40 via-transparent to-red-600/40" />
+            
+            {/* Big Centered Number - White with Red Glow for high visibility */}
+            <div className="absolute inset-0 flex items-center justify-center">
+                <span className={`text-[55vw] font-black text-white italic drop-shadow-[0_0_40px_#ef4444] transition-all duration-300 ${isExtreme ? 'scale-125' : 'scale-100'}`}>
+                    {timeLeft}
+                </span>
+            </div>
+
+            {/* Warning Text */}
+            <div className="absolute bottom-[20%] left-0 right-0 text-center">
+                <span className="text-white font-black text-2xl italic uppercase tracking-[0.5em] animate-pulse drop-shadow-[0_0_10px_#ef4444]">
+                    TERMINAL_CRITICAL
+                </span>
+            </div>
         </div>
     );
 };
@@ -153,7 +177,7 @@ const HieroglyphicHangmanVisual: React.FC<{ mistakes: number; isShaking: boolean
 };
 
 const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => {
-    // PERSISTENT STATE: Using useLocalStorage to ensure rotation doesn't reset the game
+    // PERSISTENT STATE
     const [gameState, setGameState] = useLocalStorage<GameState>('void_hangman_state', 'LOBBY');
     const [category, setCategory] = useLocalStorage<CategoryFilter>('void_hangman_category', 'ALL');
     const [usedWords, setUsedWords] = useLocalStorage<Set<string>>('void_hangman_used_words', () => new Set());
@@ -162,6 +186,22 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
     const [guessedLetters, setGuessedLetters] = useLocalStorage<Set<string>>('void_hangman_guesses', () => new Set());
     const [mistakes, setMistakes] = useLocalStorage<number>('void_hangman_mistakes', 0);
     const [timeLeft, setTimeLeft] = useLocalStorage<number>('void_hangman_time', INITIAL_TIME);
+    
+    // Dynamic Pool State
+    const [dynamicPool, setDynamicPool] = useState<HangmanWord[]>([]);
+    const [isSyncing, setIsSyncing] = useState(false);
+    const [showSeverConfirm, setShowSeverConfirm] = useState(false);
+
+    // Initial Sync
+    useEffect(() => {
+        if (gameState === 'LOBBY') {
+            setIsSyncing(true);
+            fetchDynamicHangmanData().then(data => {
+                setDynamicPool(data);
+                setIsSyncing(false);
+            });
+        }
+    }, [gameState]);
     
     // Transient UI states
     const [isShocking, setIsShocking] = useState(false);
@@ -176,7 +216,6 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
             date: new Date().toISOString()
         });
         setGameState('LOBBY');
-        // Clear session
         setTarget(null);
         setGuessedLetters(new Set());
         setMistakes(0);
@@ -185,12 +224,20 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
 
     const startRound = useCallback((lvl: number) => {
         const difficulty = (lvl <= 3 ? 1 : lvl <= 7 ? 2 : 3);
-        const pool = HANGMAN_DATA.filter(d => 
+        
+        // Merge pools
+        const combinedPool = [...HANGMAN_DATA, ...dynamicPool];
+        
+        const pool = combinedPool.filter(d => 
             d.difficulty <= difficulty && 
             CATEGORY_MAP[category].includes(d.category) && 
             !usedWords.has(d.word)
         );
-        const random = (pool.length > 0 ? pool : HANGMAN_DATA)[Math.floor(Math.random() * (pool.length || HANGMAN_DATA.length))];
+
+        // Fail-safe selection
+        const source = pool.length > 0 ? pool : combinedPool.filter(d => CATEGORY_MAP[category].includes(d.category));
+        const finalPool = source.length > 0 ? source : combinedPool;
+        const random = finalPool[Math.floor(Math.random() * finalPool.length)];
         
         setUsedWords(prev => {
             const next = new Set(prev);
@@ -203,7 +250,7 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
         setMistakes(0);
         setTimeLeft(INITIAL_TIME);
         setGameState('PLAYING');
-    }, [category, usedWords, setUsedWords, setTarget, setGuessedLetters, setMistakes, setTimeLeft, setGameState]);
+    }, [category, dynamicPool, usedWords, setUsedWords, setTarget, setGuessedLetters, setMistakes, setTimeLeft, setGameState]);
 
     const handleGuess = useCallback((letter: string) => {
         if (gameState !== 'PLAYING' || !target || guessedLetters.has(letter)) return;
@@ -265,6 +312,7 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
                         <span className="text-[10px] font-black uppercase text-cyan-400 tracking-[0.3em] italic block mb-1">High_Voltage_Intercept</span>
                         <h1 className="text-4xl font-black italic uppercase text-white tracking-tighter leading-none glitch-text">SIGNAL BREACH</h1>
                     </header>
+                    
                     <div className="mb-8 space-y-4">
                         <div className="flex flex-wrap justify-center gap-2">
                             {(Object.keys(CATEGORY_MAP) as CategoryFilter[]).map(cat => (
@@ -272,8 +320,25 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
                             ))}
                         </div>
                     </div>
+
+                    <div className="bg-black/40 p-4 rounded-2xl border border-white/5 mb-8 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <ArrowPathIcon className={`w-4 h-4 text-pulse-500 ${isSyncing ? 'animate-spin' : ''}`} />
+                            <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">
+                                {isSyncing ? "SYNCING REMOTE NODES..." : `SYNCED: ${dynamicPool.length} PACKETS`}
+                            </span>
+                        </div>
+                        {!isSyncing && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />}
+                    </div>
+
                     <div className="space-y-4">
-                        <button onClick={() => { setUsedWords(new Set()); setLevel(1); startRound(1); }} className="w-full py-6 bg-white text-black font-black uppercase italic rounded-2xl shadow-xl text-xl active:scale-95 transition-all">Solo_Link</button>
+                        <button 
+                            disabled={isSyncing}
+                            onClick={() => { setUsedWords(new Set()); setLevel(1); startRound(1); }} 
+                            className="w-full py-6 bg-white text-black font-black uppercase italic rounded-2xl shadow-xl text-xl active:scale-95 transition-all disabled:opacity-50"
+                        >
+                            Establish Link
+                        </button>
                         <button onClick={onBackToHub} className="text-zinc-600 font-bold uppercase tracking-[0.4em] text-[10px] pt-4 block w-full italic">Abort_System</button>
                     </div>
                 </div>
@@ -291,22 +356,14 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
             <MainframeBackground level={level} />
             <UrgencyOverlay timeLeft={timeLeft} />
 
-            {/* Clean Outer Frame */}
             <div className="absolute inset-0 border-[8px] md:border-[16px] border-zinc-900 pointer-events-none z-50">
                 <div className="absolute inset-0 border-2 border-white/5" />
             </div>
-            
-            {/* Split View Container */}
+
             <div className="flex-1 flex flex-col landscape:flex-row items-center justify-between p-4 md:p-8 landscape:p-10 relative z-10 overflow-hidden">
-                
-                {/* Game Logic Area (Left Side in Landscape) */}
                 <div className="w-full landscape:w-[50%] flex flex-col items-center justify-center gap-4 landscape:gap-8 landscape:h-full py-4">
-                    
-                    {/* Hangman Graphic - Large and centered on left */}
                     <HieroglyphicHangmanVisual mistakes={mistakes} isShaking={isShocking} level={level} />
-                    
-                    {/* Word Display - Improved logic to keep words together on wrap */}
-                    <div className="text-[clamp(1.5rem,8vw,4rem)] landscape:text-[clamp(1.5rem,6vw,3.5rem)] font-black tracking-[0.2em] text-white italic whitespace-pre-wrap leading-tight font-horror drop-shadow-[0_0_20px_rgba(255,255,255,0.3)] flex flex-wrap justify-center text-center px-4 gap-y-4">
+                    <div className="text-[clamp(1.5rem,8vw,4rem)] landscape:text-[clamp(1.2rem,5vw,3rem)] font-black tracking-[0.2em] text-white italic whitespace-pre-wrap leading-tight font-horror drop-shadow-[0_0_20px_rgba(255,255,255,0.3)] flex flex-wrap justify-center text-center px-4 gap-y-4">
                         {target?.word.toUpperCase().split(' ').map((word, wordIdx) => (
                             <span key={wordIdx} className="inline-flex whitespace-nowrap">
                                 {word.split('').map((char, charIdx) => {
@@ -319,32 +376,23 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
                                         </span>
                                     );
                                 })}
-                                {/* Add a spacer if not the last word */}
                                 {wordIdx < target.word.split(' ').length - 1 && <span className="w-[0.5em] flex-shrink-0">&nbsp;</span>}
                             </span>
                         ))}
                     </div>
                 </div>
 
-                {/* Right Side Column (Landscape): Data & Inputs */}
                 <div className="w-full landscape:w-[50%] flex flex-col gap-4 md:gap-6 landscape:h-full landscape:justify-center relative z-20">
-                    
-                    {/* Telemetry and Info - Grouped at top of right column in landscape */}
                     <div className="flex flex-col gap-3 w-full max-w-sm mx-auto">
-                        <div className="landscape:flex items-center gap-3">
-                            <TelemetryHub level={level} timeLeft={timeLeft} color={themeColor} isLandscape={true} />
-                        </div>
-                        
+                        <TelemetryHub level={level} timeLeft={timeLeft} color={themeColor} isLandscape={true} />
                         <div className="flex items-center justify-center px-6 py-2 bg-black/40 border-2 rounded-full transition-colors duration-500 shadow-xl border-white/5" style={{ borderColor: `${themeColor}22` }}>
                             <span className="text-[9px] font-black uppercase tracking-[0.4em] italic transition-colors duration-500" style={{ color: themeColor }}>
                                 {target?.category} // DATA_NODE
                             </span>
                         </div>
-                        
                         <LinkIntegrityCounter mistakes={mistakes} level={level} />
                     </div>
 
-                    {/* Keyboard - Optimized for bottom of right column in landscape */}
                     <div className="w-full bg-zinc-900/40 landscape:bg-void-900/40 backdrop-blur-2xl border-t-2 border-black/40 landscape:border-2 landscape:border-white/5 p-3 md:p-6 landscape:p-6 rounded-2xl flex flex-col gap-2 md:gap-4 shrink-0 shadow-2xl">
                         {KEYBOARD_ROWS.map((row, rowIndex) => (
                             <div key={rowIndex} className="flex justify-center gap-1 md:gap-3 landscape:gap-2.5">
@@ -369,12 +417,58 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
                                 })}
                             </div>
                         ))}
+                        
+                        {/* UTILITY ROW */}
+                        <div className="flex justify-center mt-2 border-t border-white/5 pt-4">
+                            <button 
+                                onClick={() => setShowSeverConfirm(true)}
+                                className="flex items-center gap-2 px-8 py-3 bg-red-950/20 border-2 border-pulse-600/50 text-pulse-500 font-black uppercase italic text-[10px] tracking-widest rounded-xl hover:bg-pulse-600 hover:text-white transition-all active:scale-95 shadow-lg"
+                            >
+                                <XIcon className="w-4 h-4" />
+                                <span>Sever_Link</span>
+                            </button>
+                        </div>
                     </div>
                     <div className="h-[env(safe-area-inset-bottom)] landscape:hidden" />
                 </div>
             </div>
 
-            {/* Overlays */}
+            {/* SEVER CONFIRMATION MODAL */}
+            {showSeverConfirm && (
+                <div className="fixed inset-0 z-[110] bg-black/95 backdrop-blur-md flex items-center justify-center p-6 animate-fade-in" onClick={e => e.stopPropagation()}>
+                    <div className="bg-zinc-900 border-4 border-pulse-600 shadow-[0_0_120px_rgba(225,29,72,0.3)] w-full max-w-sm relative overflow-hidden flex flex-col rounded-[2.5rem]">
+                        <header className="h-10 bg-pulse-600 flex items-center justify-between px-1 border-b-2 border-black">
+                            <div className="flex items-center gap-2 h-full">
+                                <div className="w-8 h-7 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center">
+                                   <div className="w-4 h-1 bg-black shadow-[0_4px_0_black]" />
+                                </div>
+                                <h2 className="text-white text-[9px] font-black uppercase tracking-[0.2em] italic px-2 truncate">PROTOCOL_ABORT.EXE</h2>
+                            </div>
+                            <button onClick={() => setShowSeverConfirm(false)} className="w-8 h-7 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center active:bg-zinc-400">
+                                <XIcon className="w-4 h-4 text-black" />
+                            </button>
+                        </header>
+                        
+                        <div className="p-8 bg-void-950 text-center space-y-6">
+                            <div className="mx-auto w-12 h-12 bg-pulse-500/10 rounded-full flex items-center justify-center border-2 border-pulse-500 animate-pulse">
+                                <ExclamationTriangleIcon className="w-6 h-6 text-pulse-500" />
+                            </div>
+                            <div className="space-y-4">
+                                <h3 className="text-lg font-black text-white italic uppercase tracking-tighter">TERMINATE SESSION?</h3>
+                                <p className="text-[9px] text-zinc-500 leading-relaxed uppercase tracking-widest italic px-4">
+                                    Operator, you are about to <span className="text-pulse-500 font-black">abort the intercept</span>. Current session data will be lost.
+                                </p>
+                            </div>
+                        </div>
+
+                        <footer className="p-4 bg-zinc-300 border-t-2 border-black flex gap-3">
+                            <button onClick={() => setShowSeverConfirm(false)} className="flex-1 py-3 bg-zinc-100 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-400 text-[10px] font-black uppercase italic text-zinc-600 active:bg-zinc-200">RESUME</button>
+                            <button onClick={onBackToHub} className="flex-1 py-3 bg-pulse-600 border-t-2 border-l-2 border-white/50 border-b-2 border-r-2 border-pulse-950 text-[10px] font-black uppercase italic text-white hover:bg-pulse-500 active:bg-pulse-700">CONFIRM</button>
+                        </footer>
+                    </div>
+                </div>
+            )}
+
             {(gameState === 'WON' || gameState === 'LOST') && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-fade-in">
                     <div className="w-full max-w-sm bg-zinc-900 border-4 border-white/10 p-8 md:p-10 rounded-[3rem] text-center shadow-2xl relative overflow-hidden">
