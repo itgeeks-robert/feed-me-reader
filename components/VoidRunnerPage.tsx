@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { XIcon, SparklesIcon, VoidIcon } from './icons';
+import { XIcon, SparklesIcon, VoidIcon, BookOpenIcon, ExclamationTriangleIcon } from './icons';
 import { GameboyControls, GameboyButton } from './GameboyControls';
 import { saveHighScore, getHighScores, HighScoreEntry } from '../services/highScoresService';
 import HighScoreTable from './HighScoreTable';
@@ -7,7 +7,6 @@ import HighScoreTable from './HighScoreTable';
 type Direction = 'UP' | 'DOWN' | 'LEFT' | 'RIGHT' | 'NONE';
 type GameState = 'INTRO' | 'STORY_BEAT' | 'PLAYING' | 'DYING' | 'SECTOR_CLEAR' | 'WON' | 'LOST';
 
-// Fixed Error: Added Entity interface to resolve "Cannot find name 'Entity'"
 interface Entity {
     x: number;
     y: number;
@@ -16,7 +15,6 @@ interface Entity {
     isMoving: boolean;
 }
 
-// Fixed Error: Added Ghost interface to resolve "Cannot find name 'Ghost'"
 interface Ghost {
     id: number;
     x: number;
@@ -86,6 +84,7 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
     const [initials, setInitials] = useState("");
     const [isFrightened, setIsFrightened] = useState(false);
     const [showScores, setShowScores] = useState(false);
+    const [showHelp, setShowHelp] = useState(false);
     
     const requestRef = useRef<number | undefined>(undefined);
     const gameData = useRef({
@@ -318,9 +317,12 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
                              <h2 className="text-xl font-black text-white italic uppercase tracking-tighter leading-none">VOID RUNNER</h2>
                         </div>
                     </div>
-                    <div className="text-right">
-                        <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest block mb-1">Data Intercept</span>
-                        <span className="text-xl font-black italic text-signal-500 font-mono">{score}</span>
+                    <div className="flex items-center gap-4">
+                        <button onClick={() => setShowHelp(true)} className="p-2 bg-zinc-800 rounded-xl text-zinc-400 hover:text-white border border-white/5"><BookOpenIcon className="w-6 h-6" /></button>
+                        <div className="text-right">
+                            <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest block mb-1">Data Intercept</span>
+                            <span className="text-xl font-black italic text-signal-500 font-mono">{score}</span>
+                        </div>
                     </div>
                 </header>
 
@@ -342,7 +344,12 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
                             <div className="grid grid-cols-4 gap-2 mb-8 px-4">
                                 {[1,2,3,4,5,6,7].map(s => <button key={s} onClick={() => initSector(s)} className="py-3 bg-zinc-900 border border-white/10 text-zinc-500 rounded-xl font-black italic text-xs hover:border-pulse-500 hover:text-white transition-all">S_{s}</button>)}
                             </div>
-                            <button onClick={() => initSector(1)} className="mx-8 py-4 bg-pulse-600 text-white font-black uppercase italic rounded-2xl shadow-xl hover:scale-105 transition-all border-2 border-pulse-400 active:scale-95">Establish Link</button>
+                            <div className="flex flex-col gap-3 px-8">
+                                <button onClick={() => initSector(1)} className="w-full py-4 bg-pulse-600 text-white font-black uppercase italic rounded-2xl shadow-xl hover:scale-105 transition-all border-2 border-pulse-400 active:scale-95">Establish Link</button>
+                                <button onClick={() => setShowHelp(true)} className="w-full py-3 bg-zinc-800 text-zinc-400 font-black uppercase italic rounded-2xl border border-white/5 hover:text-white transition-all text-xs tracking-widest flex items-center justify-center gap-2">
+                                    <BookOpenIcon className="w-4 h-4" /> Tactical Manual
+                                </button>
+                            </div>
                         </div>
                     )}
 
@@ -385,8 +392,81 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
                     <GameboyControls onButtonPress={handleInputPress} onButtonRelease={handleInputRelease} />
                 </div>
             </div>
+            {showHelp && <TacticalManual onClose={() => setShowHelp(false)} />}
         </main>
     );
 };
+
+const TacticalManual: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+    return (
+        <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 md:p-10 font-mono" onClick={onClose}>
+            <div className="max-w-xl w-full bg-void-900 border-4 border-pulse-500 rounded-[2.5rem] md:rounded-[3rem] shadow-2xl overflow-hidden relative flex flex-col max-h-[85vh] pt-[var(--safe-top)] pb-[var(--safe-bottom)]" onClick={e => e.stopPropagation()}>
+                
+                <header className="h-12 bg-pulse-600 flex items-center justify-between px-1 relative z-20 border-b-2 border-black shrink-0">
+                    <div className="flex items-center gap-2 h-full">
+                        <div className="w-10 h-8 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center">
+                           <BookOpenIcon className="w-5 h-5 text-black" />
+                        </div>
+                        <h2 className="text-white text-[10px] font-black uppercase tracking-[0.2em] italic px-2">PATHFINDING_MANUAL.PDF</h2>
+                    </div>
+                    <button onClick={onClose} className="w-10 h-8 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center active:bg-zinc-400 transition-colors">
+                        <XIcon className="w-5 h-5 text-black" />
+                    </button>
+                </header>
+
+                <div className="p-6 md:p-10 overflow-y-auto flex-grow bg-void-950/40 relative">
+                    <div className="absolute inset-0 pointer-events-none opacity-5 cctv-overlay" />
+                    
+                    <section className="space-y-8 relative z-10">
+                        <div>
+                            <div className="flex items-center gap-3 mb-4">
+                                <SparklesIcon className="w-5 h-5 text-pulse-500" />
+                                <h3 className="text-lg font-black text-white italic uppercase tracking-tighter">Maze Navigation</h3>
+                            </div>
+                            <p className="text-[10px] md:text-xs text-zinc-400 uppercase font-black leading-relaxed tracking-wider mb-4 border-l-2 border-pulse-500/30 pl-4">
+                                Collect all data packets while evading the sentinel nodes patrolling the network.
+                            </p>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-6">
+                            <ManualPoint title="0x01_Perimeter_Safety" desc="Utilize the edge buffers (left and right tunnels) to instantly loop across the grid. Sentinels lose velocity during these jumps." color="text-pulse-500" />
+                            <ManualPoint title="0x02_Aggression_Window" desc="Power packets (red circles) temporarily destabilize sentinel logic. Use this window to purge them for high-value credits." color="text-pulse-500" />
+                            <ManualPoint title="0x03_Pattern_Evasion" desc="Sentinels follow specific logical paths based on your position. Blinky (red) is the hunter; others use diversionary logic." color="text-pulse-500" />
+                            <ManualPoint title="0x04_Corner_Priority" desc="Clear the corners first. They are the easiest places to get trapped when the network enters CHASE mode." color="text-pulse-500" />
+                        </div>
+
+                        <div className="p-5 bg-pulse-500/10 border-2 border-pulse-500/30 rounded-2xl flex items-start gap-4">
+                            <ExclamationTriangleIcon className="w-6 h-6 text-pulse-500 shrink-0 mt-0.5 animate-pulse" />
+                            <div>
+                                <p className="text-[9px] font-black text-pulse-500 uppercase tracking-widest mb-1 italic">Pro Tip: Bonus Packets</p>
+                                <p className="text-[8px] text-zinc-500 uppercase font-black leading-tight italic">
+                                    High-value data burgers and shakes appear after 70 and 150 packets. Intercept them for significant credit boosts.
+                                </p>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <footer className="p-4 bg-zinc-300 border-t-2 border-black shrink-0">
+                    <button onClick={onClose} className="w-full py-4 bg-emerald-600 border-t-2 border-l-2 border-white/50 border-b-2 border-r-2 border-emerald-950 text-[10px] font-black uppercase italic text-white hover:bg-emerald-500 active:bg-emerald-700 transition-all shadow-lg">
+                        ACKNOWLEDGE_PROTOCOLS
+                    </button>
+                </footer>
+            </div>
+        </div>
+    );
+};
+
+const ManualPoint: React.FC<{ title: string; desc: string; color: string }> = ({ title, desc, color }) => (
+    <div className="space-y-2 group">
+        <h4 className={`text-[9px] font-black ${color} uppercase tracking-[0.3em] italic flex items-center gap-2`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${color.replace('text-', 'bg-')} group-hover:scale-150 transition-transform`}></span>
+            {title}
+        </h4>
+        <p className="text-[10px] md:text-xs text-zinc-300 font-bold uppercase tracking-wide leading-relaxed pl-3 border-l border-zinc-800">
+            {desc}
+        </p>
+    </div>
+);
 
 export default VoidRunnerPage;

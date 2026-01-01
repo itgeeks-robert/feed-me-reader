@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import { WalkieTalkieIcon, ControllerIcon, RadioIcon, EntityIcon, KeypadIcon, SparklesIcon, XIcon, ListIcon, CpuChipIcon, TrophyIcon, BoltIcon } from './icons';
 import { getHighScores, ScoreCategory } from '../services/highScoresService';
@@ -17,8 +16,16 @@ interface GameInfo {
 const VHSCard: React.FC<{ game: GameInfo; onPlay: () => void; isHighlighted?: boolean }> = ({ game, onPlay, isHighlighted }) => {
     const badgeData = useMemo(() => {
         if (game.isDaily) {
-            const today = new Date().toISOString().split('T')[0];
-            const isDone = localStorage.getItem(`${game.id}_cleared_${today}`) === 'true' || localStorage.getItem(`${game.id === 'cipher_core' ? 'cipher_core' : 'hangman'}_${Math.floor(Date.now() / 86400000)}`);
+            const daysSinceEpoch = Math.floor(Date.now() / 86400000);
+            const raw = localStorage.getItem(`${game.id}_${daysSinceEpoch}`);
+            let isDone = false;
+            if (raw) {
+                try {
+                    const data = JSON.parse(raw);
+                    isDone = data.gameState === 'won';
+                } catch { isDone = false; }
+            }
+            
             return {
                 label: isDone ? 'SYNC_COMPLETE' : 'AWAITING_SYNC',
                 active: !isDone,
@@ -32,7 +39,7 @@ const VHSCard: React.FC<{ game: GameInfo; onPlay: () => void; isHighlighted?: bo
             if (top) {
                 const label = game.scoreKey.includes('sudoku') || game.scoreKey.includes('minesweeper') || game.scoreKey === 'solitaire' || game.scoreKey === 'synapse_link' 
                     ? `RECORD: ${top.displayValue}` 
-                    : game.id === 'hangman' ? `MAX: ${top.displayValue}` : `PEAK: ${top.displayValue}`;
+                    : game.id === 'hangman' || game.id === 'neon_signal' ? `MAX: ${top.displayValue}` : `PEAK: ${top.displayValue}`;
                 return {
                     label: label.toUpperCase(),
                     active: true,
@@ -99,6 +106,15 @@ const GameHubPage: React.FC<any> = (props) => {
     const { credits, setShowShop, onSelect } = props;
 
     const games: GameInfo[] = [
+        { 
+            id: 'neon_signal', 
+            title: 'NEON SIGNAL', 
+            protocol: 'Gyro-Cognitive Sync',
+            description: 'A high-intensity proximity simulation. Mount the terminal on your forehead and sync frequencies through physical modulation.', 
+            icon: <RadioIcon />, 
+            bannerColor: 'from-pulse-950 to-void-900',
+            scoreKey: 'neon_signal'
+        },
         { 
             id: 'hangman', 
             title: 'SIGNAL BREACH', 
@@ -212,7 +228,7 @@ const GameHubPage: React.FC<any> = (props) => {
                     </div>
                 </header>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 md:gap-12 pb-20">
-                    {games.map(game => <VHSCard key={game.id} game={game} onPlay={() => onSelect(game.id)} isHighlighted={game.id === 'hangman'} />)}
+                    {games.map(game => <VHSCard key={game.id} game={game} onPlay={() => onSelect(game.id)} isHighlighted={game.id === 'neon_signal'} />)}
                 </div>
             </div>
         </main>

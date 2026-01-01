@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { ArrowPathIcon, XIcon, VoidIcon, RadioIcon } from './icons';
+import { ArrowPathIcon, XIcon, VoidIcon, RadioIcon, BookOpenIcon, SparklesIcon, ExclamationTriangleIcon } from './icons';
 import type { SolitaireStats, SolitaireSettings } from '../src/App';
 import { saveHighScore, getHighScores } from '../services/highScoresService';
 import HighScoreTable from './HighScoreTable';
@@ -83,6 +83,7 @@ const SolitairePage: React.FC<SolitairePageProps> = (props) => {
   const [time, setTime] = useState(0);
   const [initials, setInitials] = useState("");
   const [showScores, setShowScores] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const timerRef = useRef<number | null>(null);
   const [selectedInfo, setSelectedInfo] = useState<{ type: string; pileIndex: number; cardIndex: number; } | null>(null);
 
@@ -173,7 +174,7 @@ const SolitairePage: React.FC<SolitairePageProps> = (props) => {
   
   const canPlaceOnTableau = (cardToMove: Card, destinationPile: Pile): boolean => {
     if (!cardToMove) return false;
-    if (destinationPile.length === 0) return cardToMove.value === 13; // King on empty
+    if (destinationPile.length === 0) return cardToMove.value === 13; 
     const topCard = destinationPile[destinationPile.length - 1];
     if (!topCard.isFaceUp) return false;
     const isMovingCardRed = cardToMove.suit === '♥' || cardToMove.suit === '♦';
@@ -184,7 +185,7 @@ const SolitairePage: React.FC<SolitairePageProps> = (props) => {
 
   const canPlaceOnFoundation = (cardToMove: Card, destinationPile: Pile) => {
     if (!cardToMove) return false;
-    if (destinationPile.length === 0) return cardToMove.value === 1; // Ace on empty
+    if (destinationPile.length === 0) return cardToMove.value === 1; 
     const topCard = destinationPile[destinationPile.length - 1];
     return cardToMove.suit === topCard.suit && cardToMove.value === topCard.value + 1;
   };
@@ -264,7 +265,7 @@ const SolitairePage: React.FC<SolitairePageProps> = (props) => {
     const sourcePile = fromType === 'tableau' ? gameState.tableau[fromPileIndex] : fromType === 'waste' ? gameState.waste : gameState.foundations[fromPileIndex];
     const cardToMove = sourcePile[fromCardIndex];
     
-    if (cardToMove.value === 13) { // Only Kings can move to empty tableau
+    if (cardToMove.value === 13) { 
         moveCards(selectedInfo, { type: 'tableau', pileIndex });
     } else {
         setSelectedInfo(null);
@@ -310,9 +311,9 @@ const SolitairePage: React.FC<SolitairePageProps> = (props) => {
             .card-animate { transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         `}</style>
         {gamePhase === 'intro' ? 
-            <IntroScreen onStart={startNewGame} onBackToHub={onBackToHub} stats={stats} showScores={showScores} /> : 
+            <IntroScreen onStart={startNewGame} onBackToHub={onBackToHub} onShowHelp={() => setShowHelp(true)} stats={stats} showScores={showScores} /> : 
             <div className="w-full h-full alley-bg p-4 flex flex-col items-center">
-                 <div className="w-full max-w-5xl flex justify-between items-center mb-8 px-2 game-content">
+                 <div className="w-full max-w-5xl flex justify-between items-center mb-8 px-2 game-content mt-[var(--safe-top)]">
                     <div className="flex gap-4">
                         <div className="bg-black/70 px-4 py-2 rounded-xl border border-pulse-500/40 shadow-2xl backdrop-blur-md">
                             <span className="text-[8px] font-black text-emerald-500 uppercase block tracking-widest italic">Uptime</span>
@@ -324,6 +325,7 @@ const SolitairePage: React.FC<SolitairePageProps> = (props) => {
                         </div>
                     </div>
                     <div className="flex gap-2">
+                        <button onClick={() => setShowHelp(true)} className="p-2 bg-zinc-950/60 border border-white/10 rounded-full text-zinc-400 hover:text-emerald-400 transition-all"><BookOpenIcon className="w-5 h-5" /></button>
                         <button onClick={handleUndo} className="px-6 py-2 bg-zinc-950 border border-white/20 rounded-full text-[10px] font-black uppercase italic text-zinc-400 hover:text-white transition-all shadow-lg active:scale-95">Undo</button>
                         <button onClick={onBackToHub} className="px-6 py-2 bg-zinc-950 border border-white/20 rounded-full text-[10px] font-black uppercase italic text-pulse-500 transition-all shadow-lg active:scale-95">Eject</button>
                     </div>
@@ -426,11 +428,12 @@ const SolitairePage: React.FC<SolitairePageProps> = (props) => {
                 )}
             </div>
         }
+        {showHelp && <TacticalManual onClose={() => setShowHelp(false)} />}
     </div>
   );
 };
 
-const IntroScreen = ({ onStart, onBackToHub, stats, showScores }: any) => {
+const IntroScreen = ({ onStart, onBackToHub, onShowHelp, stats, showScores }: any) => {
     const topScores = getHighScores('solitaire');
     return (
         <div className="w-full h-full flex items-center justify-center bg-zinc-950 p-6 overflow-y-auto scrollbar-hide">
@@ -471,12 +474,87 @@ const IntroScreen = ({ onStart, onBackToHub, stats, showScores }: any) => {
                 </div>
                 <div className="space-y-4">
                     <button onClick={onStart} className="w-full py-5 bg-pulse-600 hover:bg-pulse-500 text-white font-black uppercase italic rounded-2xl transition-all shadow-xl border-2 border-white/10 active:scale-95 text-lg">Sync Sequence</button>
+                    <button onClick={onShowHelp} className="w-full py-4 bg-zinc-800 text-zinc-400 font-black uppercase italic rounded-2xl border border-white/5 hover:text-white transition-all active:scale-95 text-xs tracking-widest flex items-center justify-center gap-2">
+                        <BookOpenIcon className="w-4 h-4" /> Tactical Manual
+                    </button>
                     <button onClick={onBackToHub} className="text-zinc-500 font-bold uppercase tracking-widest text-xs hover:text-white transition-colors pt-4 block w-full italic">Return to Hub</button>
                 </div>
             </div>
         </div>
     );
 };
+
+const TacticalManual: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+    return (
+        <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 md:p-10 font-mono" onClick={onClose}>
+            <div className="max-w-xl w-full bg-zinc-900 border-4 border-emerald-500 rounded-[2.5rem] md:rounded-[3rem] shadow-2xl overflow-hidden relative flex flex-col max-h-[85vh] pt-[var(--safe-top)] pb-[var(--safe-bottom)]" onClick={e => e.stopPropagation()}>
+                
+                <header className="h-12 bg-emerald-600 flex items-center justify-between px-1 relative z-20 border-b-2 border-black shrink-0">
+                    <div className="flex items-center gap-2 h-full">
+                        <div className="w-10 h-8 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center">
+                           <BookOpenIcon className="w-5 h-5 text-black" />
+                        </div>
+                        <h2 className="text-white text-[10px] font-black uppercase tracking-[0.2em] italic px-2">SORTING_STRATEGIES.PDF</h2>
+                    </div>
+                    <button onClick={onClose} className="w-10 h-8 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center active:bg-zinc-400 transition-colors">
+                        <XIcon className="w-5 h-5 text-black" />
+                    </button>
+                </header>
+
+                <div className="p-6 md:p-10 overflow-y-auto flex-grow bg-void-950/40 relative">
+                    <div className="absolute inset-0 pointer-events-none opacity-5 cctv-overlay" />
+                    
+                    <section className="space-y-8 relative z-10">
+                        <div>
+                            <div className="flex items-center gap-3 mb-4">
+                                <SparklesIcon className="w-5 h-5 text-emerald-500" />
+                                <h3 className="text-lg font-black text-white italic uppercase tracking-tighter">Signal Stacking</h3>
+                            </div>
+                            <p className="text-[10px] md:text-xs text-zinc-400 uppercase font-black leading-relaxed tracking-wider mb-4 border-l-2 border-emerald-500/30 pl-4">
+                                Order the frequency stacks sequentially to achieve 100% network alignment.
+                            </p>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-6">
+                            <ManualPoint title="0x01_Exhibition_Priority" desc="Prioritize moves that flip obscured (face-down) data packets. Exposing more nodes increases alignment options." color="text-emerald-500" />
+                            <ManualPoint title="0x02_Column_Expansion" desc="Only move a King to an empty node if you have a sequence ready to deploy immediately. Space is a finite resource." color="text-emerald-500" />
+                            <ManualPoint title="0x03_Foundation_Uplink" desc="Sync Aces to the foundation buffers immediately. They are the anchors of the recovery sequence." color="text-emerald-500" />
+                            <ManualPoint title="0x04_Sequential_Decay" desc="Tableau columns must follow alternating colors and descending numerical order. Do not break the sequence." color="text-emerald-500" />
+                        </div>
+
+                        <div className="p-5 bg-emerald-500/10 border-2 border-emerald-500/30 rounded-2xl flex items-start gap-4">
+                            <ExclamationTriangleIcon className="w-6 h-6 text-emerald-500 shrink-0 mt-0.5 animate-pulse" />
+                            <div>
+                                <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-1 italic">Pro Tip: Buffer Management</p>
+                                <p className="text-[8px] text-zinc-500 uppercase font-black leading-tight italic">
+                                    Cycling the stock pile too many times can lead to signal fragmentation. Move cards from waste to tableau whenever possible.
+                                </p>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <footer className="p-4 bg-zinc-300 border-t-2 border-black shrink-0">
+                    <button onClick={onClose} className="w-full py-4 bg-emerald-600 border-t-2 border-l-2 border-white/50 border-b-2 border-r-2 border-emerald-950 text-[10px] font-black uppercase italic text-white hover:bg-emerald-500 active:bg-emerald-700 transition-all shadow-lg">
+                        ACKNOWLEDGE_PROTOCOLS
+                    </button>
+                </footer>
+            </div>
+        </div>
+    );
+};
+
+const ManualPoint: React.FC<{ title: string; desc: string; color: string }> = ({ title, desc, color }) => (
+    <div className="space-y-2 group">
+        <h4 className={`text-[9px] font-black ${color} uppercase tracking-[0.3em] italic flex items-center gap-2`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${color.replace('text-', 'bg-')} group-hover:scale-150 transition-transform`}></span>
+            {title}
+        </h4>
+        <p className="text-[10px] md:text-xs text-zinc-300 font-bold uppercase tracking-wide leading-relaxed pl-3 border-l border-zinc-800">
+            {desc}
+        </p>
+    </div>
+);
 
 const Card = ({ card, isSelected, onClick, onDoubleClick }: any) => (
     <div 

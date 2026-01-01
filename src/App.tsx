@@ -18,11 +18,12 @@ import SolitairePage from '../components/SolitairePage';
 import MinesweeperPage from '../components/MinesweeperPage';
 import TetrisPage from '../components/TetrisPage';
 import PoolGamePage from '../components/PoolGamePage';
-import CipherCorePage from '../components/SporeCryptPage'; 
+import CipherCorePage from '../components/CipherCorePage'; 
 import VoidRunnerPage from '../components/VoidRunnerPage';
 import SynapseLinkPage from '../components/SynapseLinkPage';
 import GridResetPage from '../components/GridResetPage';
 import HangmanPage from '../components/HangmanPage';
+import NeonSignalPage from '../components/NeonSignalPage';
 import BlackMarket from '../components/BlackMarket';
 import OrientationGuard from '../components/OrientationGuard';
 import { resilientFetch } from '../services/fetch';
@@ -40,7 +41,7 @@ export interface SolitaireStats { gamesWon: number; currentStreak: number; }
 export interface SolitaireSettings { drawThree: boolean; }
 
 export type Selection = { 
-    type: 'splash' | 'all' | 'folder' | 'bookmarks' | 'search' | 'feed' | 'reddit' | 'game_hub' | 'daily_uplink' | 'grid_reset' | 'deep_sync' | 'signal_scrambler' | 'utility_hub' | 'signal_streamer' | 'transcoder' | 'sudoku' | 'solitaire' | 'minesweeper' | 'tetris' | 'pool' | 'cipher_core' | 'void_runner' | 'synapse_link' | 'hangman'; 
+    type: 'splash' | 'all' | 'folder' | 'bookmarks' | 'search' | 'feed' | 'reddit' | 'game_hub' | 'daily_uplink' | 'grid_reset' | 'deep_sync' | 'signal_scrambler' | 'utility_hub' | 'signal_streamer' | 'transcoder' | 'sudoku' | 'solitaire' | 'minesweeper' | 'tetris' | 'pool' | 'cipher_core' | 'void_runner' | 'synapse_link' | 'hangman' | 'neon_signal'; 
     id: string | number | null; 
     query?: string;
     category?: string;
@@ -61,6 +62,9 @@ const WIDGET_SETTINGS_KEY = `void_widget_settings_${GUEST_USER_ID}`;
 const UPTIME_KEY = `void_uptime_${GUEST_USER_ID}`;
 const CREDITS_KEY = `void_credits_${GUEST_USER_ID}`;
 const SELECTION_KEY = `void_selection_${GUEST_USER_ID}`;
+
+const FALLBACK_WORD = "FABLE";
+const SECTOR_LIMIT = 7;
 
 const TerminalView: React.FC<{ children: React.ReactNode; hasBottomNav?: boolean }> = ({ children, hasBottomNav }) => (
     <div className={`flex-1 flex flex-col min-w-0 relative h-full overflow-hidden ${hasBottomNav ? 'pb-16 md:pb-0' : ''}`}>
@@ -96,8 +100,15 @@ const App: React.FC = () => {
     const [showIntegrityBriefing, setShowIntegrityBriefing] = useState(false);
     const [skipExternalWarning, setSkipExternalWarning] = useLocalStorage<boolean>('void_skip_external_warning', false);
 
+    // CIPHER CORE PRE-LOADING STATE
+    const [cipherData, setCipherData] = useState<{ archiveMap: { date: string; word: string; label: string }[]; isSynced: boolean; loading: boolean }>({
+        archiveMap: [],
+        isSynced: false,
+        loading: true
+    });
+
     const isGameActive = useMemo(() => {
-        const gameTypes = ['sudoku', 'solitaire', 'minesweeper', 'tetris', 'pool', 'cipher_core', 'void_runner', 'synapse_link', 'grid_reset', 'hangman'];
+        const gameTypes = ['sudoku', 'solitaire', 'minesweeper', 'tetris', 'pool', 'cipher_core', 'void_runner', 'synapse_link', 'grid_reset', 'hangman', 'neon_signal'];
         return gameTypes.includes(selection.type);
     }, [selection.type]);
 
@@ -105,6 +116,77 @@ const App: React.FC = () => {
         const utilityTypes = ['signal_streamer', 'transcoder', 'deep_sync', 'signal_scrambler'];
         return utilityTypes.includes(selection.type);
     }, [selection.type]);
+
+    // CIPHER CORE GLOBAL INTERCEPTOR
+    const prefetchCipherFrequency = useCallback(async () => {
+        const results = new Map<string, string>();
+        try {
+            const response = await resilientFetch('https://screenrant.com/wordle-history/', { timeout: 12000 });
+            if (response.ok) {
+                const html = await response.text();
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                const tables = doc.querySelectorAll('table');
+                tables.forEach(table => {
+                    table.querySelectorAll('tr').forEach(row => {
+                        const cells = row.querySelectorAll('td');
+                        if (cells.length >= 2) {
+                            const dateRaw = cells[0].textContent?.trim() || "";
+                            const wordRaw = cells[1].textContent?.trim().toUpperCase() || "";
+                            if (/^[A-Z]{5}$/.test(wordRaw)) {
+                                try {
+                                    const d = new Date(dateRaw);
+                                    if (!isNaN(d.getTime())) results.set(d.toISOString().split('T')[0], wordRaw);
+                                } catch (e) {}
+                            }
+                        }
+                    });
+                });
+            }
+        } catch (e) { console.warn("Signal Leak in Startup Interceptor."); }
+
+        const finalMap = Array.from({ length: SECTOR_LIMIT }, (_, i) => {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            const iso = d.toISOString().split('T')[0];
+            let word = results.get(iso) || FALLBACK_WORD;
+            if (i === 0 && iso === '2026-01-01') word = "FABLE"; 
+            return { date: iso, word, label: i === 0 ? "TODAY" : `T-${i}` };
+        });
+
+        setCipherData({ archiveMap: finalMap, isSynced: results.size > 0, loading: false });
+    }, []);
+
+    // BACKGROUND ARTICLE INTERCEPTOR
+    const prefetchContentFrequencies = useCallback(async () => {
+        if (feeds.length === 0) return;
+        setIsDecoding(true);
+        const topFeeds = feeds.slice(0, 3);
+        const promises = topFeeds.map(feed => 
+            resilientFetch(feed.url, { timeout: 8000 })
+                .then(res => res.text())
+                .then(xml => parseRssXml(xml, feed.title, feed.url))
+                .catch(() => [])
+        );
+
+        try {
+            const results = await Promise.all(promises);
+            const all = results.flat().sort((a, b) => (b.publishedDate?.getTime() || 0) - (a.publishedDate?.getTime() || 0));
+            // De-duplicate
+            const unique = Array.from(new Map(all.map(a => [a.id, a])).values());
+            setPrefetchedArticles(unique);
+        } catch (e) {
+            console.warn("Background Decode Interrupted.");
+        } finally {
+            setIsDecoding(false);
+        }
+    }, [feeds]);
+
+    useEffect(() => {
+        prefetchCipherFrequency();
+        if (selection.type === 'splash' && feeds.length > 0) {
+            prefetchContentFrequencies();
+        }
+    }, [prefetchCipherFrequency, prefetchContentFrequencies, selection.type, feeds.length]);
 
     useEffect(() => {
         if (!window.history.state || !window.history.state.selection) {
@@ -235,11 +317,29 @@ const App: React.FC = () => {
                         {selection.type === 'minesweeper' && <MinesweeperPage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} onReturnToFeeds={() => updateSelection({ type: 'all', id: null })} onDefuse={() => setCredits(c => c + 50)} />}
                         {selection.type === 'tetris' && <TetrisPage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} onReturnToFeeds={() => updateSelection({ type: 'all', id: null })} />}
                         {selection.type === 'pool' && <PoolGamePage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} onReturnToFeeds={() => updateSelection({ type: 'all', id: null })} />}
-                        {selection.type === 'cipher_core' && <CipherCorePage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} uptime={uptime} setUptime={setUptime} />}
+                        {selection.type === 'cipher_core' && (
+                            <CipherCorePage 
+                                onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} 
+                                uptime={uptime} 
+                                setUptime={setUptime} 
+                                preloadedData={cipherData}
+                                onWin={() => {
+                                    setUptime(prev => Math.min(100, prev + 15));
+                                    setCredits(prev => prev + 100);
+                                }}
+                            />
+                        )}
                         {selection.type === 'void_runner' && <VoidRunnerPage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} onReturnToFeeds={() => updateSelection({ type: 'all', id: null })} />}
                         {selection.type === 'synapse_link' && <SynapseLinkPage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} />}
                         {selection.type === 'grid_reset' && <GridResetPage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} />}
                         {selection.type === 'hangman' && <HangmanPage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} />}
+                        {selection.type === 'neon_signal' && (
+                            <NeonSignalPage 
+                                onBack={() => updateSelection({ type: 'game_hub', id: null })} 
+                                onReturnToFeeds={() => updateSelection({ type: 'all', id: null })}
+                                onWin={(score) => setCredits(prev => prev + (score * 5))}
+                            />
+                        )}
                     </OrientationGuard>
                 ) : (
                     <MainContent

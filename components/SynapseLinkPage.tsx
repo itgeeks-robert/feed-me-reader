@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { XIcon, VoidIcon, SparklesIcon, ArrowPathIcon, ListIcon } from './icons';
+import { XIcon, VoidIcon, SparklesIcon, ArrowPathIcon, ListIcon, BookOpenIcon, ExclamationTriangleIcon } from './icons';
 import { saveHighScore, getHighScores, HighScoreEntry } from '../services/highScoresService';
 import { resilientFetch } from '../services/fetch';
 import HighScoreTable from './HighScoreTable';
@@ -66,6 +65,7 @@ const SynapseLinkPage: React.FC<{ onBackToHub: () => void; onComplete?: () => vo
     const [solvedGroups, setSolvedGroups] = useState<SynapseGroup[]>([]);
     const [gameState, setGameState] = useState<'loading' | 'idle' | 'playing' | 'won' | 'lost' | 'error'>('loading');
     const [showScores, setShowScores] = useState(false);
+    const [showHelp, setShowHelp] = useState(false);
     const [loadingStatus, setLoadingStatus] = useState("Establishing Uplink...");
     const [mistakes, setMistakes] = useState(0);
     const [shakeIndex, setShakeIndex] = useState(false);
@@ -319,9 +319,13 @@ const SynapseLinkPage: React.FC<{ onBackToHub: () => void; onComplete?: () => vo
                         >
                             Sync Nodes
                         </button>
+                        <button onClick={() => setShowHelp(true)} className="w-full py-3 bg-zinc-800 text-zinc-400 font-black uppercase italic rounded-xl border border-white/5 hover:text-white transition-all text-[10px] tracking-widest flex items-center justify-center gap-2">
+                            <BookOpenIcon className="w-4 h-4" /> Tactical Manual
+                        </button>
                         <button onClick={onBackToHub} className="text-zinc-500 font-bold uppercase tracking-widest text-xs hover:text-white transition-colors pt-2 block w-full italic">Abort Link</button>
                     </div>
                 </div>
+                {showHelp && <TacticalManual onClose={() => setShowHelp(false)} />}
             </div>
         );
     }
@@ -347,8 +351,11 @@ const SynapseLinkPage: React.FC<{ onBackToHub: () => void; onComplete?: () => vo
                     <span className="text-[10px] font-black uppercase text-neon-400 tracking-[0.3em] italic">Cluster Analysis</span>
                     <h1 className="text-2xl font-black italic uppercase text-white tracking-tighter leading-none">SYNAPSE LINK</h1>
                 </div>
-                <div className="bg-black/40 px-3 py-1 rounded-xl border border-white/10 text-xs font-mono font-black text-white">
-                    {Math.floor(time / 60)}:{String(time % 60).padStart(2, '0')}
+                <div className="flex gap-2">
+                    <button onClick={() => setShowHelp(true)} className="p-2 bg-zinc-800 rounded-xl text-zinc-400 hover:text-white border border-white/5"><BookOpenIcon className="w-6 h-6" /></button>
+                    <div className="bg-black/40 px-3 py-1 rounded-xl border border-white/10 text-xs font-mono font-black text-white flex items-center">
+                        {Math.floor(time / 60)}:{String(time % 60).padStart(2, '0')}
+                    </div>
                 </div>
             </header>
 
@@ -430,7 +437,6 @@ const SynapseLinkPage: React.FC<{ onBackToHub: () => void; onComplete?: () => vo
                             )}
                         </div>
 
-                        {/* FULL SOLUTION REVEAL */}
                         <div className="bg-void-950/60 p-4 rounded-2xl border border-white/5 mb-8 text-left space-y-4">
                             <p className="text-[8px] font-black text-zinc-600 uppercase tracking-widest italic border-b border-white/5 pb-2">// Data Packet Structure (Reveal)</p>
                             <div className="space-y-3">
@@ -465,8 +471,81 @@ const SynapseLinkPage: React.FC<{ onBackToHub: () => void; onComplete?: () => vo
                     </div>
                 )}
             </div>
+            {showHelp && <TacticalManual onClose={() => setShowHelp(false)} />}
         </main>
     );
 };
+
+const TacticalManual: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+    return (
+        <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 md:p-10 font-mono" onClick={onClose}>
+            <div className="max-w-xl w-full bg-void-900 border-4 border-pulse-500 rounded-[2.5rem] md:rounded-[3rem] shadow-2xl overflow-hidden relative flex flex-col max-h-[85vh] pt-[var(--safe-top)] pb-[var(--safe-bottom)]" onClick={e => e.stopPropagation()}>
+                
+                <header className="h-12 bg-emerald-600 flex items-center justify-between px-1 relative z-20 border-b-2 border-black shrink-0">
+                    <div className="flex items-center gap-2 h-full">
+                        <div className="w-10 h-8 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center">
+                           <BookOpenIcon className="w-5 h-5 text-black" />
+                        </div>
+                        <h2 className="text-white text-[10px] font-black uppercase tracking-[0.2em] italic px-2">CLUSTER_ANALYSIS_PROTOCOLS.PDF</h2>
+                    </div>
+                    <button onClick={onClose} className="w-10 h-8 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center active:bg-zinc-400 transition-colors">
+                        <XIcon className="w-5 h-5 text-black" />
+                    </button>
+                </header>
+
+                <div className="p-6 md:p-10 overflow-y-auto flex-grow bg-void-950/40 relative">
+                    <div className="absolute inset-0 pointer-events-none opacity-5 cctv-overlay" />
+                    
+                    <section className="space-y-8 relative z-10">
+                        <div>
+                            <div className="flex items-center gap-3 mb-4">
+                                <SparklesIcon className="w-5 h-5 text-emerald-500" />
+                                <h3 className="text-lg font-black text-white italic uppercase tracking-tighter">Logical Association</h3>
+                            </div>
+                            <p className="text-[10px] md:text-xs text-zinc-400 uppercase font-black leading-relaxed tracking-wider mb-4 border-l-2 border-emerald-500/30 pl-4">
+                                Identify four groups of four words that share a common synaptic connection.
+                            </p>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-6">
+                            <ManualPoint title="0x01_Synaptic_Divergence" desc="Many words belong to multiple potential clusters. Look for the most exclusive link first to prevent signal bleed." color="text-emerald-500" />
+                            <ManualPoint title="0x02_Complexity_Scaling" desc="Connections range from surface-level (Synonyms) to high-level meta-logical patterns. Probing deeper yields better results." color="text-emerald-500" />
+                            <ManualPoint title="0x03_Feedback_Loop" desc="The 'X LINKED' signal indicates you have three correct nodes in your current selection. Adjust one bit to resolve the cluster." color="text-emerald-500" />
+                            <ManualPoint title="0x04_The_Pantry_Strategy" desc="Eliminate confirmed groups to simplify the remaining network. The last group often requires the highest cognitive sync." color="text-emerald-500" />
+                        </div>
+
+                        <div className="p-5 bg-emerald-500/10 border-2 border-emerald-500/30 rounded-2xl flex items-start gap-4">
+                            <ExclamationTriangleIcon className="w-6 h-6 text-emerald-500 shrink-0 mt-0.5 animate-pulse" />
+                            <div>
+                                <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-1 italic">Pro Tip: Pattern Evasion</p>
+                                <p className="text-[8px] text-zinc-500 uppercase font-black leading-tight italic">
+                                    Operator, do not rush. Faulty submissions drain the link integrity buffer. Verify the association before committing.
+                                </p>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <footer className="p-4 bg-zinc-300 border-t-2 border-black shrink-0">
+                    <button onClick={onClose} className="w-full py-4 bg-emerald-600 border-t-2 border-l-2 border-white/50 border-b-2 border-r-2 border-emerald-950 text-[10px] font-black uppercase italic text-white hover:bg-emerald-500 active:bg-emerald-700 transition-all shadow-lg">
+                        ACKNOWLEDGE_PROTOCOLS
+                    </button>
+                </footer>
+            </div>
+        </div>
+    );
+};
+
+const ManualPoint: React.FC<{ title: string; desc: string; color: string }> = ({ title, desc, color }) => (
+    <div className="space-y-2 group">
+        <h4 className={`text-[9px] font-black ${color} uppercase tracking-[0.3em] italic flex items-center gap-2`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${color.replace('text-', 'bg-')} group-hover:scale-150 transition-transform`}></span>
+            {title}
+        </h4>
+        <p className="text-[10px] md:text-xs text-zinc-300 font-bold uppercase tracking-wide leading-relaxed pl-3 border-l border-zinc-800">
+            {desc}
+        </p>
+    </div>
+);
 
 export default SynapseLinkPage;

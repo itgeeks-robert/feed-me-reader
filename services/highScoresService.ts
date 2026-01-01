@@ -11,7 +11,7 @@ export type ScoreCategory =
     | 'sudoku_easy' | 'sudoku_medium' | 'sudoku_hard' 
     | 'minesweeper_easy' | 'minesweeper_medium' | 'minesweeper_hard'
     | 'tetris' | 'solitaire' | 'spore_crypt' | 'void_runner' | 'synapse_link' | 'grid_reset'
-    | 'hangman';
+    | 'hangman' | 'neon_signal';
 
 const STORAGE_KEY = 'feedme_arcade_high_scores';
 

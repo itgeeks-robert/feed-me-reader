@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import type { Feed, Folder, Selection, WidgetSettings, Article, ArticleView, Theme } from '../src/App';
 import type { SourceType } from './AddSource';
@@ -125,6 +124,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
     }, [selection.category, allFeeds]);
 
     useEffect(() => {
+        // If we have initial articles passed in from boot, and we aren't filtering by category, use them.
         if (initialArticles && initialArticles.length > 0 && !selection.category && articles.length === initialArticles.length && refreshKey === 0) {
             return;
         }

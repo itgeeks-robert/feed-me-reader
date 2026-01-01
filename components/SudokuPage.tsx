@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { generateSudoku } from '../services/sudoku';
-import { PencilIcon, LightBulbIcon, EraserIcon, VoidIcon, XIcon, ArrowPathIcon, CpuChipIcon, SparklesIcon } from './icons';
+import { PencilIcon, LightBulbIcon, EraserIcon, VoidIcon, XIcon, ArrowPathIcon, CpuChipIcon, SparklesIcon, BookOpenIcon, ExclamationTriangleIcon } from './icons';
 import type { SudokuStats, SudokuDifficulty as Difficulty } from '../src/App';
 import { saveHighScore, getHighScores, ScoreCategory } from '../services/highScoresService';
 import { useLocalStorage } from '../hooks/useLocalStorage';
@@ -12,7 +11,7 @@ type GameState = 'LOADING' | 'IDLE' | 'PLAYING' | 'ERROR' | 'WON' | 'LOST';
 interface Cell {
   value: number | null;
   isPrefilled: boolean;
-  notes: number[]; // Set doesn't serialize well to JSON, so use array
+  notes: number[]; 
   isError: boolean;
 }
 
@@ -60,19 +59,13 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
     const [mistakes, setMistakes] = useLocalStorage<number>('void_sudoku_mistakes', 0);
     const [time, setTime] = useLocalStorage<number>('void_sudoku_time', 0);
     
-    // Transient UI states
     const [selectedCell, setSelectedCell] = useState<{ row: number; col: number } | null>(null);
     const [isNotesMode, setIsNotesMode] = useState(false);
-    const [isSmartPad, setIsSmartPad] = useState(false);
     const [initials, setInitials] = useState("");
     const [showScores, setShowScores] = useState(false);
+    const [showHelp, setShowHelp] = useState(false);
     const [isDailyChallenge, setIsDailyChallenge] = useState(false);
     const timerRef = useRef<number | null>(null);
-
-    const [completedRows, setCompletedRows] = useState<Set<number>>(new Set());
-    const [completedCols, setCompletedCols] = useState<Set<number>>(new Set());
-    const [completedBlocks, setCompletedBlocks] = useState<Set<number>>(new Set());
-    const [lastCompleted, setLastCompleted] = useState<{type: 'row' | 'col' | 'block', index: number} | null>(null);
 
     useEffect(() => {
         if (view === 'IDLE') {
@@ -117,36 +110,6 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
         const secs = seconds % 60;
         return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
     };
-
-    const cellContext = useMemo(() => {
-        if (!selectedCell || !grid) return { 
-            inBlock: new Set<number>(),
-            inRow: new Set<number>(),
-            inCol: new Set<number>(),
-            invalid: new Set<number>()
-        };
-
-        const { row, col } = selectedCell;
-        const inRow = new Set<number>();
-        const inCol = new Set<number>();
-        const inBlock = new Set<number>();
-        
-        for (let i = 0; i < 9; i++) {
-            if (grid[row][i].value && !grid[row][i].isError) inRow.add(grid[row][i].value!);
-            if (grid[i][col].value && !grid[i][col].isError) inCol.add(grid[i][col].value!);
-        }
-        
-        const boxRowStart = Math.floor(row / 3) * 3;
-        const boxColStart = Math.floor(col / 3) * 3;
-        for (let r = boxRowStart; r < boxRowStart + 3; r++) {
-            for (let c = boxColStart; c < boxColStart + 3; c++) {
-                if (grid[r][c].value && !grid[r][c].isError) inBlock.add(grid[r][c].value!);
-            }
-        }
-        
-        const invalid = new Set([...inRow, ...inCol, ...inBlock]);
-        return { inRow, inCol, inBlock, invalid };
-    }, [selectedCell, grid]);
 
     const handleCellClick = (row: number, col: number) => {
         if (gameState !== 'PLAYING') return;
@@ -252,9 +215,13 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
                     </div>
                     <div className="space-y-3">
                         <button onClick={() => startNewGame(difficulty)} className="w-full py-4 bg-white text-black font-black uppercase italic rounded-2xl hover:scale-[1.02] transition-all shadow-xl active:scale-95">Initiate Sync</button>
+                        <button onClick={() => setShowHelp(true)} className="w-full py-3 bg-zinc-800 text-zinc-400 font-black uppercase italic rounded-xl border border-white/5 hover:text-white transition-all text-[10px] tracking-widest flex items-center justify-center gap-2">
+                            <BookOpenIcon className="w-4 h-4" /> Tactical Manual
+                        </button>
                         <button onClick={onBackToHub} className="text-zinc-500 font-bold uppercase tracking-widest text-xs hover:text-white transition-colors pt-2 block w-full italic tracking-[0.2em]">Abort Link</button>
                     </div>
                 </div>
+                {showHelp && <TacticalManual type="SUDOKU" onClose={() => setShowHelp(false)} />}
             </div>
         );
     }
@@ -262,7 +229,7 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
     return (
         <main className="w-full h-full bg-zinc-950 text-white flex flex-col items-center justify-center font-sans overflow-y-auto scrollbar-hide relative">
             <div className="max-w-md w-full h-full flex flex-col p-4 gap-4 z-10">
-                <header className="flex justify-between items-center bg-zinc-900/50 p-4 rounded-3xl border border-white/5 flex-shrink-0">
+                <header className="flex justify-between items-center bg-zinc-900/50 p-4 rounded-3xl border border-white/5 flex-shrink-0 mt-[var(--safe-top)]">
                     <button onClick={onBackToHub} className="p-2 bg-zinc-800 rounded-xl text-zinc-400 hover:text-white transition-colors"><XIcon className="w-6 h-6" /></button>
                     <div className="flex gap-4 items-center">
                         <div className="flex items-center gap-1">
@@ -273,7 +240,7 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
                         <div className="w-px h-8 bg-zinc-800 mx-1" />
                         <div><span className="text-[8px] font-black uppercase text-zinc-500 block leading-none mb-1 italic">Uptime</span><span className="text-sm font-black font-mono leading-none">{formatTime(time)}</span></div>
                     </div>
-                    <button onClick={() => { setGameState('IDLE'); setView('IDLE'); }} className="p-2 bg-zinc-800 rounded-xl text-zinc-400 hover:text-pulse-500"><ArrowPathIcon className="w-6 h-6" /></button>
+                    <button onClick={() => setShowHelp(true)} className="p-2 bg-zinc-800 rounded-xl text-zinc-400 hover:text-neon-400 transition-colors"><BookOpenIcon className="w-6 h-6" /></button>
                 </header>
 
                 <div className="flex-grow flex items-center justify-center min-h-0">
@@ -318,6 +285,8 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
                 </div>
             </div>
 
+            {showHelp && <TacticalManual type="SUDOKU" onClose={() => setShowHelp(false)} />}
+
             {(gameState === 'WON' || gameState === 'LOST') && (
                 <div className="fixed inset-0 bg-black/98 backdrop-blur-xl z-50 flex items-center justify-center p-6 text-center">
                     <div className="max-w-sm w-full bg-zinc-900 p-10 rounded-[3rem] border-4 border-neon-400 text-center shadow-[0_0_120px_rgba(34,211,238,0.2)]">
@@ -332,5 +301,77 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
         </main>
     );
 };
+
+const TacticalManual: React.FC<{ onClose: () => void; type: string }> = ({ onClose, type }) => {
+    return (
+        <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 md:p-10 font-mono" onClick={onClose}>
+            <div className="max-w-xl w-full bg-zinc-900 border-4 border-neon-400 rounded-[2.5rem] md:rounded-[3rem] shadow-2xl overflow-hidden relative flex flex-col max-h-[85vh] pt-[var(--safe-top)] pb-[var(--safe-bottom)]" onClick={e => e.stopPropagation()}>
+                
+                <header className="h-12 bg-neon-600 flex items-center justify-between px-1 relative z-20 border-b-2 border-black shrink-0">
+                    <div className="flex items-center gap-2 h-full">
+                        <div className="w-10 h-8 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center">
+                           <BookOpenIcon className="w-5 h-5 text-black" />
+                        </div>
+                        <h2 className="text-white text-[10px] font-black uppercase tracking-[0.2em] italic px-2">LOGIC_RECOVERY_PROTOCOL.PDF</h2>
+                    </div>
+                    <button onClick={onClose} className="w-10 h-8 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center active:bg-zinc-400 transition-colors">
+                        <XIcon className="w-5 h-5 text-black" />
+                    </button>
+                </header>
+
+                <div className="p-6 md:p-10 overflow-y-auto flex-grow bg-void-950/40 relative">
+                    <div className="absolute inset-0 pointer-events-none opacity-5 cctv-overlay" />
+                    
+                    <section className="space-y-8 relative z-10">
+                        <div>
+                            <div className="flex items-center gap-3 mb-4">
+                                <SparklesIcon className="w-5 h-5 text-neon-400" />
+                                <h3 className="text-lg font-black text-white italic uppercase tracking-tighter">Grid Recalibration</h3>
+                            </div>
+                            <p className="text-[10px] md:text-xs text-zinc-400 uppercase font-black leading-relaxed tracking-wider mb-4 border-l-2 border-neon-400/30 pl-4">
+                                Pattern Zero requires precise numerical sequencing. Stabilize the grid to restore system logic.
+                            </p>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-6">
+                            <ManualPoint title="0x01_Node_Isolation" desc="Scan for rows, columns, or 3x3 blocks missing a single frequency bit. These are your entry points." color="text-neon-400" />
+                            <ManualPoint title="0x02_Cross_Analysis" desc="Compare overlapping row and column data to eliminate redundant digits and reveal hidden node values." color="text-neon-400" />
+                            <ManualPoint title="0x03_Note_Buffering" desc="Use the Neural Probe (Pencil) to map multiple possibilities within a single node before committing." color="text-neon-400" />
+                            <ManualPoint title="0x04_The_Block_Rule" desc="Every 3x3 mainframe segment must contain bits 1 through 9. Verify integrity often." color="text-neon-400" />
+                        </div>
+
+                        <div className="p-5 bg-neon-400/10 border-2 border-neon-400/30 rounded-2xl flex items-start gap-4">
+                            <ExclamationTriangleIcon className="w-6 h-6 text-neon-400 shrink-0 mt-0.5 animate-pulse" />
+                            <div>
+                                <p className="text-[9px] font-black text-neon-400 uppercase tracking-widest mb-1 italic">Pro Tip: Mistake Mitigation</p>
+                                <p className="text-[8px] text-zinc-500 uppercase font-black leading-tight italic">
+                                    Operator, three logic faults will trigger a kernel panic. Commit only when frequency alignment is verified.
+                                </p>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <footer className="p-4 bg-zinc-300 border-t-2 border-black shrink-0">
+                    <button onClick={onClose} className="w-full py-4 bg-neon-600 border-t-2 border-l-2 border-white/50 border-b-2 border-r-2 border-neon-950 text-[10px] font-black uppercase italic text-white hover:bg-neon-500 active:bg-neon-700 transition-all shadow-lg">
+                        CONFIRM_PROTOCOLS
+                    </button>
+                </footer>
+            </div>
+        </div>
+    );
+};
+
+const ManualPoint: React.FC<{ title: string; desc: string; color: string }> = ({ title, desc, color }) => (
+    <div className="space-y-2 group">
+        <h4 className={`text-[9px] font-black ${color} uppercase tracking-[0.3em] italic flex items-center gap-2`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${color.replace('text-', 'bg-')} group-hover:scale-150 transition-transform`}></span>
+            {title}
+        </h4>
+        <p className="text-[10px] md:text-xs text-zinc-300 font-bold uppercase tracking-wide leading-relaxed pl-3 border-l border-zinc-800">
+            {desc}
+        </p>
+    </div>
+);
 
 export default SudokuPage;

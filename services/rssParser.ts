@@ -12,14 +12,47 @@ export const parseRssXml = (xmlText: string, sourceTitle: string, feedUrl: strin
 
     const items = Array.from(xml.querySelectorAll('item, entry'));
     return items.map(item => {
-        const title = item.querySelector('title')?.textContent || 'No title';
-        const linkElem = item.querySelector('link');
-        const link = linkElem?.getAttribute('href') || linkElem?.textContent || '';
+        const title = item.querySelector('title')?.textContent?.trim() || 'No title';
+        
+        // --- ROBUST LINK EXTRACTION ---
+        let link = '';
+        
+        // 1. Try Atom-style links with priority on 'alternate'
+        const atomLinks = Array.from(item.querySelectorAll('link'));
+        if (atomLinks.length > 0) {
+            const alternateLink = atomLinks.find(l => l.getAttribute('rel') === 'alternate');
+            const hrefLink = alternateLink || atomLinks.find(l => l.hasAttribute('href'));
+            if (hrefLink) {
+                link = hrefLink.getAttribute('href') || '';
+            }
+            
+            // If still no link, check if the first link element has text content (RSS standard)
+            if (!link && atomLinks[0].textContent) {
+                link = atomLinks[0].textContent.trim();
+            }
+        }
+
+        // 2. Fallback to GUID if it's a permalink
+        if (!link) {
+            const guid = item.querySelector('guid');
+            if (guid && (guid.getAttribute('isPermaLink') !== 'false')) {
+                link = guid.textContent?.trim() || '';
+            }
+        }
+
+        // 3. Fallback to any element named 'link' that might have been missed
+        if (!link) {
+            link = item.querySelector('link')?.textContent?.trim() || '';
+        }
+
+        // Clean up whitespace
+        link = link.trim();
+
         const description = item.querySelector('description')?.textContent || item.querySelector('summary')?.textContent || '';
         const snippet = description.replace(/<[^>]*>?/gm, '').substring(0, 100) + (description.length > 100 ? '...' : '');
         const pubDateStr = item.querySelector('pubDate')?.textContent || item.querySelector('published')?.textContent || item.querySelector('updated')?.textContent;
         const publishedDate = pubDateStr ? new Date(pubDateStr) : null;
-        const guid = item.querySelector('guid')?.textContent || item.querySelector('id')?.textContent;
+        const guidValue = item.querySelector('guid')?.textContent || item.querySelector('id')?.textContent;
         
         let imageUrl: string | null = null;
         const mediaContent = item.querySelector('media\\:content, content');
@@ -53,7 +86,16 @@ export const parseRssXml = (xmlText: string, sourceTitle: string, feedUrl: strin
             }
         }
         
-        const id = guid || link || `${title}-${pubDateStr}`;
+        // Ensure link is absolute
+        if (link && !link.startsWith('http')) {
+            try {
+                link = new URL(link, siteLink).href;
+            } catch (e) {
+                console.warn("Could not normalize link:", link);
+            }
+        }
+
+        const id = guidValue || link || `${title}-${pubDateStr}`;
 
         return { id, title, link, snippet, publishedDate, source: sourceTitle, imageUrl };
     });

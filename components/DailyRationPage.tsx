@@ -37,8 +37,15 @@ const DailyRationPage: React.FC<DailyRationPageProps> = ({ feeds, fertilizer, on
         fetchRation();
     }, [feeds]);
 
-    const daysSinceEpoch = Math.floor(new Date().getTime() / (1000 * 60 * 60 * 24));
-    const isCryptDone = !!localStorage.getItem(`spore_crypt_${daysSinceEpoch}`);
+    const daysSinceEpoch = Math.floor(Date.now() / 86400000);
+    const isCryptDone = (() => {
+        const raw = localStorage.getItem(`void_cipher_v2_${daysSinceEpoch}`);
+        if (!raw) return false;
+        try {
+            const data = JSON.parse(raw);
+            return data.gameState === 'won';
+        } catch { return false; }
+    })();
 
     return (
         <main className="h-full w-full bg-void-950 overflow-y-auto p-6 md:p-20 relative scrollbar-hide font-horror pb-40">
@@ -76,7 +83,6 @@ const DailyRationPage: React.FC<DailyRationPageProps> = ({ feeds, fertilizer, on
                             <div className="space-y-10 md:space-y-16">
                                 {articles.map(article => (
                                     <div key={article.id} className="relative group">
-                                        {/* Fix: Replaced onMarkAsRead with onReadExternal to match FeaturedStory component interface */}
                                         <FeaturedStory 
                                             article={article} 
                                             onReadHere={() => setReaderArticle(article)} 
@@ -109,7 +115,7 @@ const DailyRationPage: React.FC<DailyRationPageProps> = ({ feeds, fertilizer, on
                                 <p className="text-pulse-500 font-black italic uppercase text-sm md:text-lg">Signal Decoded</p>
                             ) : (
                                 <button 
-                                    onClick={() => onSelectGame('spore-crypt')}
+                                    onClick={() => onSelectGame('cipher_core')}
                                     className="w-full py-4 md:py-6 bg-pulse-500 text-white font-black uppercase italic rounded-none hover:bg-white hover:text-black transition-all shadow-[4px_4px_0px_white] text-xs md:text-sm tracking-widest"
                                 >
                                     Intercept Now
@@ -131,7 +137,6 @@ const DailyRationPage: React.FC<DailyRationPageProps> = ({ feeds, fertilizer, on
                 </div>
             </div>
             {readerArticle && (
-                /* Fix: Added missing onOpenExternal prop to ReaderViewModal to match its required interface */
                 <ReaderViewModal 
                     article={readerArticle} 
                     onClose={() => setReaderArticle(null)} 

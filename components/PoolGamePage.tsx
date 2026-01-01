@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
+import { BookOpenIcon, XIcon, SparklesIcon, ExclamationTriangleIcon } from './icons';
 
 // --- Helper Classes and Types ---
 class Vector2 {
@@ -45,7 +46,7 @@ const BALL_COLORS: { [key: number]: string } = {
 };
 
 // --- UI Sub-components ---
-const TopIndicatorBar: React.FC<{ humanPotted: Ball[], aiPotted: Ball[], humanType: BallType | null }> = ({ humanPotted, aiPotted, humanType }) => {
+const TopIndicatorBar: React.FC<{ humanPotted: Ball[], aiPotted: Ball[], humanType: BallType | null; onShowHelp: () => void }> = ({ humanPotted, aiPotted, humanType, onShowHelp }) => {
     const isHumanSolids = humanType === 'solid';
     const humanBalls = humanType ? (isHumanSolids ? [1,2,3,4,5,6,7] : [9,10,11,12,13,14,15]) : [];
     const aiBalls = humanType ? (isHumanSolids ? [9,10,11,12,13,14,15] : [1,2,3,4,5,6,7]) : [];
@@ -66,8 +67,9 @@ const TopIndicatorBar: React.FC<{ humanPotted: Ball[], aiPotted: Ball[], humanTy
     };
 
     return (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-lg z-10 p-2 bg-black/40 backdrop-blur-md rounded-xl border border-white/10 shadow-lg">
-            <div className="flex justify-between items-center">
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-2xl z-10 p-2 bg-black/40 backdrop-blur-md rounded-xl border border-white/10 shadow-lg flex items-center gap-3">
+            <button onClick={onShowHelp} className="p-1.5 bg-zinc-800 rounded-lg text-zinc-400 hover:text-white shrink-0"><BookOpenIcon className="w-5 h-5"/></button>
+            <div className="flex-grow flex justify-between items-center">
                 <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-indigo-600 border-2 border-white/50 flex-shrink-0"></div>
                     <div className="flex flex-wrap gap-1 w-auto sm:w-44">
@@ -174,6 +176,7 @@ const PoolGamePage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () => v
     
     const [power, setPower] = useState(0.8);
     const [spin, setSpin] = useState(new Vector2(0, 0));
+    const [showHelp, setShowHelp] = useState(false);
     const shotAnimationProgress = useRef(1);
 
     const setupGame = useCallback(() => {
@@ -719,7 +722,7 @@ const PoolGamePage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () => v
 
     return (
         <div className="w-full h-full bg-black flex flex-col relative font-sans text-white overflow-hidden">
-            <TopIndicatorBar humanPotted={game.current.humanPotted} aiPotted={game.current.aiPotted} humanType={game.current.humanPlayerBallType} />
+            <TopIndicatorBar humanPotted={game.current.humanPotted} aiPotted={game.current.aiPotted} humanType={game.current.humanPlayerBallType} onShowHelp={() => setShowHelp(true)} />
             
             <main className="flex-grow relative w-full h-full min-h-0 grid place-items-center p-2">
                 <div className="relative aspect-[2/1] max-w-full max-h-full portrait:w-full landscape:h-full">
@@ -756,8 +759,82 @@ const PoolGamePage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () => v
                     </div>
                 </div>
             )}
+
+            {showHelp && <TacticalManual onClose={() => setShowHelp(false)} />}
         </div>
     );
 };
+
+const TacticalManual: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+    return (
+        <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 md:p-10 font-mono" onClick={onClose}>
+            <div className="max-w-xl w-full bg-void-900 border-4 border-cyan-500 rounded-[2.5rem] md:rounded-[3rem] shadow-2xl overflow-hidden relative flex flex-col max-h-[85vh] pt-[var(--safe-top)] pb-[var(--safe-bottom)]" onClick={e => e.stopPropagation()}>
+                
+                <header className="h-12 bg-cyan-600 flex items-center justify-between px-1 relative z-20 border-b-2 border-black shrink-0">
+                    <div className="flex items-center gap-2 h-full">
+                        <div className="w-10 h-8 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center">
+                           <BookOpenIcon className="w-5 h-5 text-black" />
+                        </div>
+                        <h2 className="text-white text-[10px] font-black uppercase tracking-[0.2em] italic px-2">ALIGNMENT_STRATEGIES.PDF</h2>
+                    </div>
+                    <button onClick={onClose} className="w-10 h-8 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center active:bg-zinc-400 transition-colors">
+                        <XIcon className="w-5 h-5 text-black" />
+                    </button>
+                </header>
+
+                <div className="p-6 md:p-10 overflow-y-auto flex-grow bg-void-950/40 relative">
+                    <div className="absolute inset-0 pointer-events-none opacity-5 cctv-overlay" />
+                    
+                    <section className="space-y-8 relative z-10">
+                        <div>
+                            <div className="flex items-center gap-3 mb-4">
+                                <SparklesIcon className="w-5 h-5 text-cyan-400" />
+                                <h3 className="text-lg font-black text-white italic uppercase tracking-tighter">Kinetic Alignment</h3>
+                            </div>
+                            <p className="text-[10px] md:text-xs text-zinc-400 uppercase font-black leading-relaxed tracking-wider mb-4 border-l-2 border-cyan-500/30 pl-4">
+                                Orchestrate kinetic collisions to align all data spheres (balls) into the network pockets.
+                            </p>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-6">
+                            <ManualPoint title="0x01_Collision_Physics" desc="Aim for the 'Collision Point' behind the target ball to guide it into the pocket. Use the ghost line for path projection." color="text-cyan-400" />
+                            <ManualPoint title="0x02_Spin_Modulation" desc="Adjust the hit-point on the cue ball to add 'English' (Spin). Top-spin follows the path; back-spin retracts the cue ball." color="text-cyan-400" />
+                            <ManualPoint title="0x03_The_Eight_Node" desc="The black Eight-Node must be synced last. Clearing it prematurely will result in immediate link termination." color="text-cyan-400" />
+                            <ManualPoint title="0x04_Table_Openness" desc="Identify your target group (Solids or Stripes) early. Clearing your own spheres increases network stability." color="text-cyan-400" />
+                        </div>
+
+                        <div className="p-5 bg-cyan-500/10 border-2 border-cyan-500/30 rounded-2xl flex items-start gap-4">
+                            <ExclamationTriangleIcon className="w-6 h-6 text-cyan-400 shrink-0 mt-0.5 animate-pulse" />
+                            <div>
+                                <p className="text-[9px] font-black text-cyan-400 uppercase tracking-widest mb-1 italic">Pro Tip: Cue Positioning</p>
+                                <p className="text-[8px] text-zinc-500 uppercase font-black leading-tight italic">
+                                    Control the cue ball's landing position. Leaving it in a central node ensures better visibility for the next data intercept.
+                                </p>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <footer className="p-4 bg-zinc-300 border-t-2 border-black shrink-0">
+                    <button onClick={onClose} className="w-full py-4 bg-cyan-600 border-t-2 border-l-2 border-white/50 border-b-2 border-r-2 border-cyan-950 text-[10px] font-black uppercase italic text-white hover:bg-cyan-500 active:bg-cyan-700 transition-all shadow-lg">
+                        CONFIRM_PROTOCOLS
+                    </button>
+                </footer>
+            </div>
+        </div>
+    );
+};
+
+const ManualPoint: React.FC<{ title: string; desc: string; color: string }> = ({ title, desc, color }) => (
+    <div className="space-y-2 group">
+        <h4 className={`text-[9px] font-black ${color} uppercase tracking-[0.3em] italic flex items-center gap-2`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${color.replace('text-', 'bg-')} group-hover:scale-150 transition-transform`}></span>
+            {title}
+        </h4>
+        <p className="text-[10px] md:text-xs text-zinc-300 font-bold uppercase tracking-wide leading-relaxed pl-3 border-l border-zinc-800">
+            {desc}
+        </p>
+    </div>
+);
 
 export default PoolGamePage;

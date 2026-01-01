@@ -5,9 +5,11 @@ import { resilientFetch } from '../services/fetch';
 import HighScoreTable from './HighScoreTable';
 
 /**
- * CIPHER CORE v5.1 - OPTIMIZED FOR PRE-LOADING
+ * CIPHER CORE v5.3 - REFINED NAVIGATION
  * A high-fidelity signal decryption simulation.
  * Receives pre-loaded archive map from App core to minimize latency.
+ * Features a visual "Pattern to Success" for social transmission.
+ * Navigation logic updated to prevent internal lobby loops.
  */
 
 const MAX_ATTEMPTS = 6;
@@ -145,14 +147,15 @@ const CipherCorePage: React.FC<CipherCoreProps> = ({ onBackToHub, onWin, preload
 
     const handleTransmitLog = () => {
         const sol = archiveMap[activeSector].word;
-        const grid = guesses.map(g => 
+        const emojiGrid = guesses.map(g => 
             Array.from({length: 5}, (_, i) => {
                 const s = getStatus(g, i, sol);
                 return s === 2 ? '🟩' : s === 1 ? '🟪' : '⬛';
             }).join('')
         ).join('\n');
         
-        const text = `CIPHER CORE: SECTOR ${archiveMap[activeSector].label}\n${guesses.length}/${MAX_ATTEMPTS}\n\n${grid}\n\n[TRANSMISSION SEALED]`;
+        const scoreStr = gameState === 'won' ? guesses.length : 'X';
+        const text = `THE VOID // CIPHER CORE\nSECTOR ${archiveMap[activeSector].label}\n${scoreStr}/${MAX_ATTEMPTS}\n\n${emojiGrid}\n\n[TRANSMISSION SEALED]`;
         navigator.clipboard.writeText(text);
         setShowCopySuccess(true);
         setTimeout(() => setShowCopySuccess(false), 2000);
@@ -237,7 +240,7 @@ const CipherCorePage: React.FC<CipherCoreProps> = ({ onBackToHub, onWin, preload
         <main className="w-full h-full bg-zinc-950 flex flex-col items-center p-4 overflow-y-auto scrollbar-hide font-mono">
             <style>{`
                 @keyframes flip { 0% { transform: rotateX(0); } 45% { transform: rotateX(90deg); } 55% { transform: rotateX(90deg); } 100% { transform: rotateX(0); } }
-                @keyframes shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-5px); } 40%, 80% { transform: translateX(5px); } }
+                @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
                 .bit-2 { background-color: #10b981; border-color: #10b981; color: black; }
                 .bit-1 { background-color: #ec4899; border-color: #ec4899; color: white; }
                 .bit-0 { background-color: #18181b; border-color: #27272a; color: #52525b; }
@@ -246,7 +249,7 @@ const CipherCorePage: React.FC<CipherCoreProps> = ({ onBackToHub, onWin, preload
             `}</style>
 
             <header className="w-full max-w-lg flex justify-between items-center mb-8 bg-zinc-900/50 p-4 rounded-3xl border border-white/5 shrink-0 mt-[var(--safe-top)]">
-                <button onClick={() => setGameState('idle')} className="p-2 bg-zinc-800 rounded-xl text-zinc-400 hover:text-white transition-all"><XIcon className="w-6 h-6"/></button>
+                <button onClick={onBackToHub} className="p-2 bg-zinc-800 rounded-xl text-zinc-400 hover:text-white transition-all"><XIcon className="w-6 h-6"/></button>
                 <div className="text-center">
                     <span className="text-[10px] font-black uppercase text-pulse-500 tracking-[0.3em] italic">Sector: {archiveMap[activeSector]?.label || 'TODAY'}</span>
                     <h1 className="text-2xl font-black italic uppercase text-white tracking-tighter leading-none">CIPHER CORE</h1>
@@ -291,18 +294,33 @@ const CipherCorePage: React.FC<CipherCoreProps> = ({ onBackToHub, onWin, preload
                     <div className="w-full max-w-sm bg-zinc-900 p-8 rounded-[3rem] border-4 border-pulse-500 text-center animate-fade-in shadow-2xl relative overflow-hidden">
                         <div className="absolute inset-0 pointer-events-none opacity-5 cctv-overlay" />
                         <div className="relative z-10">
-                            <h2 className={`text-4xl font-black italic uppercase mb-6 ${gameState === 'won' ? 'text-emerald-500' : 'text-red-500'}`}>{gameState === 'won' ? 'DECODED' : 'SIG_LOSS'}</h2>
+                            <h2 className={`text-4xl font-black italic uppercase mb-4 ${gameState === 'won' ? 'text-emerald-500' : 'text-red-500'}`}>{gameState === 'won' ? 'DECODED' : 'SIG_LOSS'}</h2>
                             
+                            <div className="mb-6 p-4 bg-black/60 border border-white/5 rounded-2xl">
+                                <p className="text-[8px] text-zinc-500 font-black uppercase mb-3 text-center italic tracking-widest">// PATTERN_TO_SUCCESS</p>
+                                <div className="flex flex-col gap-1 items-center mb-4">
+                                    {guesses.map((g, r) => (
+                                        <div key={r} className="flex gap-1 animate-fade-in" style={{ animationDelay: `${r * 100}ms` }}>
+                                            {Array.from({length: 5}, (_, i) => {
+                                                const s = getStatus(g, i, activeWord);
+                                                return <div key={i} className={`w-3 h-3 rounded-sm ${s === 2 ? 'bg-emerald-500' : s === 1 ? 'bg-pulse-500' : 'bg-zinc-800'}`} />;
+                                            })}
+                                        </div>
+                                    ))}
+                                </div>
+                                <button 
+                                    onClick={handleTransmitLog}
+                                    className="w-full py-3 bg-white text-black font-black uppercase italic text-[10px] tracking-widest rounded-lg transition-all hover:bg-emerald-500 hover:text-white flex items-center justify-center gap-2"
+                                >
+                                    <SparklesIcon className="w-3.5 h-3.5" />
+                                    {showCopySuccess ? "PACKET_CLONED" : "TRANSMIT_GRID_LOG"}
+                                </button>
+                            </div>
+
                             {(gameState === 'lost' || gameState === 'won') && (
-                                <div className="mb-8 p-6 bg-black/60 border border-white/5 rounded-2xl text-left">
-                                    <p className="text-[10px] text-zinc-500 font-black uppercase mb-1">Final Result String</p>
-                                    <p className="text-3xl font-black text-white italic tracking-widest uppercase mb-4">{activeWord}</p>
-                                    <button 
-                                        onClick={handleTransmitLog}
-                                        className="w-full py-3 bg-white text-black font-black uppercase italic text-[10px] tracking-widest rounded-lg transition-all hover:bg-emerald-500 hover:text-white"
-                                    >
-                                        {showCopySuccess ? "PACKET_CLONED" : "TRANSMIT_GRID_LOG"}
-                                    </button>
+                                <div className="mb-6 p-4 bg-black/60 border border-white/5 rounded-2xl text-left">
+                                    <p className="text-[10px] text-zinc-500 font-black uppercase mb-1">Target Freq</p>
+                                    <p className="text-2xl font-black text-white italic tracking-widest uppercase">{activeWord}</p>
                                 </div>
                             )}
                             
@@ -313,7 +331,7 @@ const CipherCorePage: React.FC<CipherCoreProps> = ({ onBackToHub, onWin, preload
                                     <button onClick={handleSaveScore} className="w-full py-5 bg-emerald-600 text-white font-black text-lg italic uppercase rounded-full shadow-xl hover:bg-emerald-500 transition-colors">Post Records</button>
                                 </div>
                             )}
-                            <button onClick={() => setGameState('idle')} className="w-full py-4 bg-zinc-800 text-zinc-400 font-black uppercase text-[10px] tracking-widest rounded-full hover:text-white border border-white/5 transition-colors">Return_to_Core</button>
+                            <button onClick={onBackToHub} className="w-full py-4 bg-zinc-800 text-zinc-400 font-black uppercase text-[10px] tracking-widest rounded-full hover:text-white border border-white/5 transition-colors">Return_to_Hub</button>
                         </div>
                     </div>
                 )}
