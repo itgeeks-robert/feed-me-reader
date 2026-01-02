@@ -62,6 +62,7 @@ const WIDGET_SETTINGS_KEY = `void_widget_settings_${GUEST_USER_ID}`;
 const UPTIME_KEY = `void_uptime_${GUEST_USER_ID}`;
 const CREDITS_KEY = `void_credits_${GUEST_USER_ID}`;
 const SELECTION_KEY = `void_selection_${GUEST_USER_ID}`;
+const FAV_GAMES_KEY = `void_fav_games_${GUEST_USER_ID}`;
 
 const FALLBACK_WORD = "FABLE";
 const SECTOR_LIMIT = 7;
@@ -80,6 +81,7 @@ const App: React.FC = () => {
     const [feeds, setFeeds] = useLocalStorage<Feed[]>(FEEDS_KEY, []);
     const [readArticleIds, setReadArticleIds] = useLocalStorage<Set<string>>(READ_ARTICLES_KEY, () => new Set());
     const [bookmarkedArticleIds, setBookmarkedArticleIds] = useLocalStorage<Set<string>>(BOOKMARKED_ARTICLES_KEY, () => new Set());
+    const [favoriteGameIds, setFavoriteGameIds] = useLocalStorage<Set<string>>(FAV_GAMES_KEY, () => new Set());
     
     const [uptime, setUptime] = useLocalStorage<number>(UPTIME_KEY, 25);
     const [credits, setCredits] = useLocalStorage<number>(CREDITS_KEY, 100); 
@@ -279,6 +281,15 @@ const App: React.FC = () => {
         }
     }, [outboundLink, handleMarkAsRead, setCredits]);
 
+    const toggleFavoriteGame = useCallback((id: string) => {
+        setFavoriteGameIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    }, [setFavoriteGameIds]);
+
     const pageTitle = useMemo(() => {
         if (selection.type === 'search') return `SCANNING: "${selection.query}"`;
         if (selection.type === 'bookmarks') return 'SAVED PACKETS';
@@ -309,7 +320,14 @@ const App: React.FC = () => {
                 ) : selection.type === 'signal_scrambler' ? (
                     <SignalScramblerPage onBackToHub={() => updateSelection({ type: 'utility_hub', id: null })} />
                 ) : selection.type === 'game_hub' ? (
-                    <GameHubPage credits={credits} setShowShop={setIsShopOpen} onSelect={(type: any) => updateSelection({ type, id: null })} onReturnToFeeds={() => updateSelection({ type: 'all', id: null })} />
+                    <GameHubPage 
+                        credits={credits} 
+                        setShowShop={setIsShopOpen} 
+                        onSelect={(type: any) => updateSelection({ type, id: null })} 
+                        onReturnToFeeds={() => updateSelection({ type: 'all', id: null })}
+                        favoriteGameIds={favoriteGameIds}
+                        onToggleFavorite={toggleFavoriteGame}
+                    />
                 ) : isGameActive ? (
                     <>
                         {selection.type === 'neon_signal' ? (

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { XIcon, VoidIcon, SparklesIcon, ArrowPathIcon, ListIcon, BookOpenIcon, ExclamationTriangleIcon } from './icons';
 import { saveHighScore, getHighScores, HighScoreEntry } from '../services/highScoresService';
 import { resilientFetch } from '../services/fetch';
+import { ARCADE_RULES } from '../services/gameRules';
 import HighScoreTable from './HighScoreTable';
 
 const HeartIcon: React.FC<{ filled: boolean; animated?: boolean }> = ({ filled, animated }) => (
@@ -75,7 +76,7 @@ const SynapseLinkPage: React.FC<{ onBackToHub: () => void; onComplete?: () => vo
     const [aiSummary, setAiSummary] = useState<string>("");
     const timerRef = useRef<number | null>(null);
 
-    const MISTAKE_LIMIT = 4;
+    const MISTAKE_LIMIT = ARCADE_RULES.SYNAPSE_LINK.MAX_MISTAKES;
 
     useEffect(() => {
         if (gameState === 'idle') {
