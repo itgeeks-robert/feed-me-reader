@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { XIcon, ExclamationTriangleIcon, ArrowPathIcon } from './icons';
+import { ExclamationTriangleIcon, ArrowPathIcon, XIcon } from './icons';
 
 interface OrientationGuardProps {
     children: React.ReactNode;
@@ -9,6 +9,7 @@ interface OrientationGuardProps {
 
 const OrientationGuard: React.FC<OrientationGuardProps> = ({ children, portraitOnly = false, landscapeOnly = false }) => {
     const [isLandscape, setIsLandscape] = useState(false);
+    const [userDismissed, setUserDismissed] = useState(false);
 
     useEffect(() => {
         const checkOrientation = () => {
@@ -34,42 +35,77 @@ const OrientationGuard: React.FC<OrientationGuardProps> = ({ children, portraitO
         };
     }, []);
 
-    const showPortraitOverlay = portraitOnly && isLandscape;
-    const showLandscapeOverlay = landscapeOnly && !isLandscape;
+    const subOptimalPortrait = portraitOnly && isLandscape;
+    const subOptimalLandscape = landscapeOnly && !isLandscape;
+    const isCurrentlySubOptimal = subOptimalPortrait || subOptimalLandscape;
+
+    // Reset dismissal when the user fixes the orientation, 
+    // so it will show again if they rotate back to a "bad" mode.
+    useEffect(() => {
+        if (!isCurrentlySubOptimal) {
+            setUserDismissed(false);
+        }
+    }, [isCurrentlySubOptimal]);
+
+    const showAdvisory = isCurrentlySubOptimal && !userDismissed;
 
     return (
         <div className="relative w-full h-full">
+            {/* The game always renders */}
             {children}
             
-            {(showPortraitOverlay || showLandscapeOverlay) && (
-                <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-black/98 backdrop-blur-2xl p-8 font-mono text-center animate-fade-in">
-                    <div className="absolute inset-0 pointer-events-none opacity-5 cctv-overlay" />
-                    <div className="max-w-md space-y-10 relative z-10">
-                        <div className="relative w-28 h-28 mx-auto">
-                            <div className="absolute inset-0 bg-pulse-600/30 rounded-full animate-ping" />
-                            <div className="relative z-10 w-full h-full bg-zinc-900 border-4 border-pulse-500 rounded-3xl flex items-center justify-center shadow-[0_0_60px_rgba(225,29,72,0.4)]">
-                                <ArrowPathIcon className="w-14 h-14 text-pulse-500 animate-spin" />
+            {showAdvisory && (
+                <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[200] w-[90%] max-w-sm pointer-events-none animate-fade-in">
+                    <div className="bg-zinc-900/90 backdrop-blur-xl border-2 border-amber-500/50 rounded-2xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex items-start gap-4 border-l-[6px] pointer-events-auto relative">
+                        
+                        {/* Dismiss Button */}
+                        <button 
+                            onClick={() => setUserDismissed(true)}
+                            className="absolute top-2 right-2 p-1.5 text-zinc-500 hover:text-white transition-colors active:scale-90"
+                            aria-label="Dismiss Advisory"
+                        >
+                            <XIcon className="w-4 h-4" />
+                        </button>
+
+                        <div className="shrink-0 pt-1">
+                            <div className="relative">
+                                <div className="absolute inset-0 bg-amber-500/20 rounded-full animate-ping" />
+                                <ExclamationTriangleIcon className="w-5 h-5 text-amber-500 relative z-10" />
                             </div>
                         </div>
                         
-                        <div className="space-y-6">
-                            <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter leading-none">Alignment Error</h2>
-                            <div className="inline-block px-4 py-2 bg-pulse-950/40 border-2 border-pulse-500/30 rounded-xl">
-                                <span className="text-xs font-black text-pulse-500 uppercase tracking-[0.4em] italic">
-                                    {showPortraitOverlay ? 'FORCE: VERTICAL' : 'FORCE: HORIZONTAL'}
+                        <div className="flex-1 pr-4">
+                            <div className="flex items-center justify-between mb-1">
+                                <span className="text-[10px] font-black text-amber-500 uppercase tracking-[0.2em] italic">Diagnostic Advisory</span>
+                                <span className="flex items-center gap-1.5">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse" />
+                                    <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest italic">Live_Monitor</span>
                                 </span>
                             </div>
-                            <p className="text-xs text-zinc-400 uppercase tracking-widest leading-relaxed italic px-6">
-                                Neural link unstable. Simulation requires <span className="text-white font-black">{showPortraitOverlay ? 'PORTRAIT' : 'LANDSCAPE'}</span> orientation to calibrate gyroscopic frequency nodes.
+                            
+                            <h4 className="text-white text-[11px] font-black uppercase tracking-tight mb-1">
+                                {subOptimalPortrait ? 'PORTRAIT MODE RECOMMENDED' : 'LANDSCAPE MODE RECOMMENDED'}
+                            </h4>
+                            
+                            <p className="text-zinc-400 text-[9px] uppercase font-bold leading-snug tracking-wide italic">
+                                {subOptimalPortrait 
+                                    ? 'Horizontal drift detected. Tactical controls and UI scaling may be fragmented in this orientation.' 
+                                    : 'Vertical clearance is insufficient. Terminal sync requires a wider horizontal plane for optimal data visualization.'}
                             </p>
-                        </div>
-                        
-                        <div className="pt-12 opacity-30">
-                            <div className={`border-4 border-dashed border-zinc-800 rounded-2xl mx-auto relative transition-all duration-700 ${showPortraitOverlay ? 'w-16 h-28' : 'w-28 h-16'}`}>
-                                <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-zinc-800 rounded-full ${showPortraitOverlay ? 'w-6 h-1' : 'w-1 h-6'}`} />
+                            
+                            <div className="mt-3 pt-2 border-t border-white/5 flex items-center justify-between">
+                                <span className="text-[7px] font-black text-zinc-600 uppercase tracking-widest italic">Error_Code: 0xORNT_FAIL</span>
+                                <div className="flex items-center gap-2">
+                                     <ArrowPathIcon className="w-3 h-3 text-zinc-700" />
+                                     <span className="text-[7px] font-black text-zinc-700 uppercase tracking-widest">Rotation_Sync_Pending</span>
+                                </div>
                             </div>
-                            <span className="text-[9px] font-black text-zinc-700 uppercase tracking-[0.5em] mt-6 block italic">RE-SYNC_REQUIRED</span>
                         </div>
+                    </div>
+                    
+                    {/* Visual hint for the user that the game is still active underneath */}
+                    <div className="mt-2 text-center pointer-events-none">
+                        <span className="text-[8px] font-black text-white/20 uppercase tracking-[0.5em] italic">Simulation_Active // Proceed_At_Risk</span>
                     </div>
                 </div>
             )}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { XIcon, RadioIcon, BoltIcon, SparklesIcon, VoidIcon, ShieldCheckIcon, GlobeAltIcon, ControllerIcon, FireIcon, CpuChipIcon, ArrowPathIcon, ExclamationTriangleIcon, BookOpenIcon } from './icons';
-import { HANGMAN_DATA, HangmanWord, fetchDynamicHangmanData } from '../services/hangmanData';
+import { VOID_DATA, CategoryNode } from '../voidDataArchive';
 import { saveHighScore, getHighScores } from '../services/highScoresService';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 
@@ -8,17 +8,6 @@ const MAX_MISTAKES = 7;
 const INITIAL_TIME = 60; 
 
 type GameState = 'INITIAL_SYNC' | 'LOBBY' | 'PLAYING' | 'WON' | 'LOST' | 'FINAL_RESULTS';
-type CategoryFilter = 'ALL' | 'FILM' | 'MUSIC' | 'SPORT' | 'TECH' | 'FASHION' | 'GAMING';
-
-const CATEGORY_MAP: Record<CategoryFilter, string[]> = {
-    ALL: ['ACTOR', 'FILM', 'ARTIST', 'SONG', 'TECH', 'GAMING', 'SPORT', 'FASHION', 'OBJECT', 'RANDOM'],
-    FILM: ['ACTOR', 'FILM'],
-    MUSIC: ['ARTIST', 'SONG'],
-    SPORT: ['SPORT'],
-    TECH: ['TECH'],
-    FASHION: ['FASHION'],
-    GAMING: ['GAMING']
-};
 
 const KEYBOARD_ROWS = [
     ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"],
@@ -35,15 +24,6 @@ const LEVEL_THEMES = [
     { color: '#f59e0b', name: 'AMBER' },   
     { color: '#e11d48', name: 'CRIMSON' }, 
 ];
-
-const shufflePool = <T,>(array: T[]): T[] => {
-    const arr = [...array];
-    for (let i = arr.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [arr[i], arr[j]] = [arr[j], arr[i]];
-    }
-    return arr;
-};
 
 const MainframeBackground: React.FC<{ level: number; isUrgent: boolean; urgencyType: 'NONE' | 'AMBER' | 'RED' }> = ({ level, isUrgent, urgencyType }) => {
     const themeIndex = Math.min(level - 1, LEVEL_THEMES.length - 1);
@@ -201,77 +181,84 @@ const HieroglyphicHangmanVisual: React.FC<{ mistakes: number; isShaking: boolean
 
 const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => {
     const [gameState, setGameState] = useLocalStorage<GameState>('void_hangman_state', 'INITIAL_SYNC');
-    const [category, setCategory] = useLocalStorage<CategoryFilter>('void_hangman_category', 'ALL');
+    const [activeCategoryId, setCategoryId] = useLocalStorage<string>('void_hangman_cat_id', 'ALL');
     const [usedWords, setUsedWords] = useLocalStorage<Set<string>>('void_hangman_used_words', () => new Set());
     const [level, setLevel] = useLocalStorage<number>('void_hangman_level', 1);
-    const [target, setTarget] = useLocalStorage<HangmanWord | null>('void_hangman_target', null);
+    const [target, setTarget] = useLocalStorage<{ word: string, category: string, hint: string } | null>('void_hangman_target', null);
     const [guessedLetters, setGuessedLetters] = useLocalStorage<Set<string>>('void_hangman_guesses', () => new Set());
     const [mistakes, setMistakes] = useLocalStorage<number>('void_hangman_mistakes', 0);
     const [timeLeft, setTimeLeft] = useLocalStorage<number>('void_hangman_time', INITIAL_TIME);
     
-    const [dynamicPool, setDynamicPool] = useState<HangmanWord[]>([]);
-    const [isSyncing, setIsSyncing] = useState(true);
-    const [showSeverConfirm, setShowSeverConfirm] = useState(false);
-    const [showHelp, setShowHelp] = useState(false);
     const [syncProgress, setSyncProgress] = useState(0);
+    const [isShocking, setIsShocking] = useState(false);
+    const [initials, setInitials] = useState("");
+    const [showHelp, setShowHelp] = useState(false);
+    const [showSeverConfirm, setShowSeverConfirm] = useState(false);
+    const timerRef = useRef<number | null>(null);
 
     useEffect(() => {
-        setIsSyncing(true);
-        fetchDynamicHangmanData().then(data => {
-            setDynamicPool(data);
-            setIsSyncing(false);
-        });
-    }, []);
-    
-    useEffect(() => {
         if (gameState === 'INITIAL_SYNC') {
-            const duration = 3500;
+            const duration = 2000;
             const step = (50 / duration) * 100;
             const timer = setInterval(() => {
                 setSyncProgress(prev => {
-                    if (prev >= 100 && !isSyncing) { clearInterval(timer); setGameState('LOBBY'); return 100; }
-                    if (prev >= 98 && isSyncing) return 98;
+                    if (prev >= 100) { clearInterval(timer); setGameState('LOBBY'); return 100; }
                     return prev + step;
                 });
             }, 50);
             return () => clearInterval(timer);
         }
-    }, [gameState, isSyncing]);
-
-    const [isShocking, setIsShocking] = useState(false);
-    const [initials, setInitials] = useState("");
-    const timerRef = useRef<number | null>(null);
-
-    const handleSaveScore = () => {
-        saveHighScore('hangman', { name: initials.toUpperCase() || "???", score: level, displayValue: `LVL ${level}`, date: new Date().toISOString() });
-        setGameState('LOBBY'); setTarget(null); setGuessedLetters(new Set()); setMistakes(0); setTimeLeft(INITIAL_TIME);
-    };
+    }, [gameState, setGameState]);
 
     const startRound = useCallback((lvl: number) => {
-        const difficultyCeiling = (lvl <= 3 ? 1 : lvl <= 7 ? 2 : 3);
-        const combinedPool = [...HANGMAN_DATA, ...dynamicPool];
-        let candidates = combinedPool.filter(d => d.difficulty <= difficultyCeiling && CATEGORY_MAP[category].includes(d.category) && !usedWords.has(d.word));
-        const totalMatchingPool = combinedPool.filter(d => d.difficulty <= difficultyCeiling && CATEGORY_MAP[category].includes(d.category));
-        if (candidates.length < Math.max(1, totalMatchingPool.length * 0.1)) {
-            const nextUsed = new Set(usedWords); totalMatchingPool.forEach(w => nextUsed.delete(w.word));
-            setUsedWords(nextUsed); candidates = totalMatchingPool;
+        let pool: { word: string, catName: string }[] = [];
+        
+        if (activeCategoryId === 'ALL') {
+            pool = VOID_DATA.flatMap(c => c.words.map(w => ({ word: w, catName: c.name })));
+        } else {
+            const cat = VOID_DATA.find(c => c.id === activeCategoryId);
+            if (cat) pool = cat.words.map(w => ({ word: w, catName: cat.name }));
         }
-        const firstPass = shufflePool(candidates);
-        const secondPass = shufflePool(firstPass);
-        const finalChoice = secondPass[Math.floor(Math.random() * secondPass.length)];
-        setUsedWords(prev => { const next = new Set(prev); next.add(finalChoice.word); return next; });
-        setTarget(finalChoice); setGuessedLetters(new Set()); setMistakes(0); setTimeLeft(INITIAL_TIME); setGameState('PLAYING');
-    }, [category, dynamicPool, usedWords, setUsedWords, setTarget, setGuessedLetters, setMistakes, setTimeLeft, setGameState]);
+
+        // Filter out used words if possible
+        let candidates = pool.filter(p => !usedWords.has(p.word));
+        if (candidates.length === 0) {
+            setUsedWords(new Set());
+            candidates = pool;
+        }
+
+        // Shuffle and pick
+        const choice = candidates[Math.floor(Math.random() * candidates.length)];
+        
+        setUsedWords(prev => { const next = new Set(prev); next.add(choice.word); return next; });
+        setTarget({ 
+            word: choice.word.toUpperCase(), 
+            category: choice.catName, 
+            hint: `SYNCHRONIZED ARCHIVE NODE: ${choice.catName}` 
+        });
+        setGuessedLetters(new Set());
+        setMistakes(0);
+        setTimeLeft(INITIAL_TIME);
+        setGameState('PLAYING');
+    }, [activeCategoryId, usedWords, setUsedWords, setTarget, setGuessedLetters, setMistakes, setTimeLeft, setGameState]);
 
     const handleGuess = useCallback((letter: string) => {
         if (gameState !== 'PLAYING' || !target || guessedLetters.has(letter)) return;
-        const newGuessed = new Set(guessedLetters); newGuessed.add(letter); setGuessedLetters(newGuessed);
-        if (!target.word.toUpperCase().includes(letter)) {
-            const nextMistakes = mistakes + 1; setMistakes(nextMistakes); setIsShocking(true);
+        
+        const newGuessed = new Set(guessedLetters);
+        newGuessed.add(letter);
+        setGuessedLetters(newGuessed);
+
+        if (!target.word.includes(letter)) {
+            const nextMistakes = mistakes + 1;
+            setMistakes(nextMistakes);
+            setIsShocking(true);
             setTimeout(() => setIsShocking(false), 200);
             if (nextMistakes >= MAX_MISTAKES) setGameState('LOST');
         } else {
-            const isWon = target.word.toUpperCase().split('').every(char => char === ' ' || !/[A-Z]/.test(char) || newGuessed.has(char));
+            const isWon = target.word.split('').every(char => 
+                char === ' ' || !/[A-Z]/.test(char) || newGuessed.has(char)
+            );
             if (isWon) setGameState('WON');
         }
     }, [gameState, target, guessedLetters, mistakes, setGuessedLetters, setMistakes, setGameState]);
@@ -279,17 +266,38 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
     useEffect(() => {
         if (gameState === 'PLAYING') {
             timerRef.current = window.setInterval(() => {
-                setTimeLeft(t => { if (t <= 1) { setGameState('LOST'); return 0; } return t - 1; });
+                setTimeLeft(t => { 
+                    if (t <= 1) { setGameState('LOST'); return 0; } 
+                    return t - 1; 
+                });
             }, 1000);
-        } else { if (timerRef.current) clearInterval(timerRef.current); }
+        } else { 
+            if (timerRef.current) clearInterval(timerRef.current); 
+        }
         return () => { if (timerRef.current) clearInterval(timerRef.current); };
     }, [gameState, setGameState, setTimeLeft]);
 
     useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => { if (/^[a-zA-Z]$/.test(e.key)) handleGuess(e.key.toUpperCase()); };
+        const handleKeyDown = (e: KeyboardEvent) => { 
+            if (/^[a-zA-Z]$/.test(e.key)) handleGuess(e.key.toUpperCase()); 
+        };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [handleGuess]);
+
+    const handleSaveScore = () => {
+        saveHighScore('hangman', { 
+            name: initials.toUpperCase() || "???", 
+            score: level, 
+            displayValue: `SECTOR ${level}`, 
+            date: new Date().toISOString() 
+        });
+        setGameState('LOBBY'); 
+        setTarget(null); 
+        setGuessedLetters(new Set()); 
+        setMistakes(0); 
+        setTimeLeft(INITIAL_TIME);
+    };
 
     const themeIndex = Math.min(level - 1, LEVEL_THEMES.length - 1);
     const themeColor = LEVEL_THEMES[themeIndex].color;
@@ -304,7 +312,7 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
                         </div>
                         <div className="flex flex-col">
                             <h2 className="text-2xl font-black italic uppercase tracking-tighter leading-none">SIGNAL_BREACH</h2>
-                            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-cyan-400 mt-2">Initialize_Uplink</span>
+                            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-cyan-400 mt-2">Syncing_Archive_Nodes</span>
                         </div>
                     </div>
                     <div className="bg-zinc-900 border-2 border-zinc-800 p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden">
@@ -313,7 +321,7 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
                         </div>
                         <div className="relative z-10 space-y-6">
                             <div className="flex justify-between items-end">
-                                <span className="text-[10px] font-black uppercase text-zinc-500 italic tracking-widest leading-none">OPTIMIZING_DECRYPTOR...</span>
+                                <span className="text-[10px] font-black uppercase text-zinc-500 italic tracking-widest leading-none">BUFFERING_WORDS...</span>
                                 <span className="text-xl font-black italic font-mono text-cyan-400 leading-none">{Math.floor(syncProgress)}%</span>
                             </div>
                             <div className="w-full h-4 bg-black border-2 border-zinc-800 rounded-full p-1 overflow-hidden">
@@ -331,18 +339,34 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
             <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-950 p-4 font-mono overflow-y-auto scrollbar-hide">
                 <div className="w-full max-w-sm text-center bg-zinc-900 p-10 border-4 border-pulse-500 shadow-[0_0_100px_rgba(225,29,72,0.2)] rounded-[3rem]">
                     <header className="mb-6">
-                        <span className="text-[10px] font-black uppercase text-cyan-400 tracking-[0.3em] italic block mb-1">High_Voltage_Intercept</span>
+                        <span className="text-[10px] font-black uppercase text-cyan-400 tracking-[0.3em] italic block mb-1">ARCHIVE_INTERCEPT_v5</span>
                         <h1 className="text-4xl font-black italic uppercase text-white tracking-tighter leading-none glitch-text">SIGNAL BREACH</h1>
                     </header>
+                    
                     <div className="mb-8 space-y-4">
-                        <div className="flex flex-wrap justify-center gap-2">
-                            {(Object.keys(CATEGORY_MAP) as CategoryFilter[]).map(cat => (
-                                <button key={cat} onClick={() => setCategory(cat)} className={`px-4 py-2 rounded-xl text-[10px] font-black border transition-all ${category === cat ? 'bg-cyan-500 border-cyan-400 text-black shadow-[0_0_15px_#22d3ee]' : 'bg-zinc-800 border-zinc-700 text-zinc-500'}`}>{cat}</button>
+                        <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest block mb-4 italic">Select Target Frequency</span>
+                        <div className="grid grid-cols-1 gap-2">
+                            <button 
+                                onClick={() => setCategoryId('ALL')}
+                                className={`px-4 py-2.5 rounded-xl text-[9px] font-black border transition-all ${activeCategoryId === 'ALL' ? 'bg-cyan-500 border-cyan-400 text-black shadow-[0_0_15px_#22d3ee]' : 'bg-zinc-800 border-zinc-700 text-zinc-500'}`}
+                            >
+                                ALL SECTORS
+                            </button>
+                            {VOID_DATA.map(cat => (
+                                <button 
+                                    key={cat.id} 
+                                    onClick={() => setCategoryId(cat.id)} 
+                                    className={`flex justify-between items-center px-4 py-2.5 rounded-xl text-[9px] font-black border transition-all ${activeCategoryId === cat.id ? 'bg-cyan-500 border-cyan-400 text-black shadow-[0_0_15px_#22d3ee]' : 'bg-zinc-800 border-zinc-700 text-zinc-500'}`}
+                                >
+                                    <span>{cat.name}</span>
+                                    <span className="opacity-40">{cat.words.length} NODES</span>
+                                </button>
                             ))}
                         </div>
                     </div>
+
                     <div className="space-y-4">
-                        <button onClick={() => { setUsedWords(new Set()); setLevel(1); startRound(1); }} className="w-full py-6 bg-white text-black font-black uppercase italic rounded-2xl shadow-xl text-xl active:scale-95 transition-all">Establish Link</button>
+                        <button onClick={() => { setLevel(1); startRound(1); }} className="w-full py-6 bg-white text-black font-black uppercase italic rounded-2xl shadow-xl text-xl active:scale-95 transition-all">Establish Link</button>
                         <button onClick={() => setShowHelp(true)} className="w-full py-3 bg-zinc-800 text-zinc-400 font-black uppercase italic rounded-xl border border-white/5 hover:text-white transition-all text-[10px] tracking-widest flex items-center justify-center gap-2">
                             <BookOpenIcon className="w-4 h-4" /> Tactical Manual
                         </button>
@@ -356,44 +380,67 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
 
     return (
         <main className={`w-full h-full flex flex-col overflow-hidden font-mono text-white transition-all duration-75 relative ${isShocking ? 'bg-red-900/40' : ''}`}>
-            <style>{`
-                @keyframes pulse { 0%, 100% { opacity: 0.1; } 50% { opacity: 0.2; } }
-                @keyframes scanline { 0% { transform: translateY(0); } 100% { transform: translateY(40px); } }
-            `}</style>
             <MainframeBackground level={level} isUrgent={timeLeft <= 30} urgencyType={timeLeft <= 10 ? 'RED' : timeLeft <= 30 ? 'AMBER' : 'NONE'} />
             <UrgencyOverlay timeLeft={timeLeft} />
             <div className="absolute inset-0 border-[8px] md:border-[16px] border-zinc-900 pointer-events-none z-50"><div className="absolute inset-0 border-2 border-white/5" /></div>
+            
             <div className="flex-1 flex flex-col landscape:flex-row items-center justify-between p-4 md:p-8 landscape:p-10 relative z-10 overflow-hidden">
-                <div className="w-full landscape:w-[50%] flex flex-col items-center justify-center gap-4 landscape:gap-8 landscape:h-full py-4">
+                
+                <div className="w-full landscape:w-[50%] flex flex-col items-center justify-center gap-4 landscape:gap-8 landscape:h-full py-4 shrink-0">
                     <HieroglyphicHangmanVisual mistakes={mistakes} isShaking={isShocking} level={level} />
-                    <div className="text-[clamp(1.5rem,8vw,4rem)] landscape:text-[clamp(1.2rem,5vw,3rem)] font-black tracking-[0.2em] text-white italic whitespace-pre-wrap leading-tight font-horror drop-shadow-[0_0_20px_rgba(255,255,255,0.3)] flex flex-wrap justify-center text-center px-4 gap-y-4">
-                        {target?.word.toUpperCase().split(' ').map((word, wordIdx) => (
+                    
+                    <div className="text-[clamp(1.2rem,6vw,3.5rem)] landscape:text-[clamp(1rem,4vw,2.5rem)] font-black tracking-[0.2em] text-white italic whitespace-pre-wrap leading-tight font-horror drop-shadow-[0_0_20px_rgba(255,255,255,0.3)] flex flex-wrap justify-center text-center px-4 gap-y-4">
+                        {target?.word.split(' ').map((word, wordIdx) => (
                             <span key={wordIdx} className="inline-flex whitespace-nowrap">
                                 {word.split('').map((char, charIdx) => {
                                     if (!/[A-Z]/.test(char)) return <span key={charIdx}>{char}</span>;
                                     const isGuessed = guessedLetters.has(char);
-                                    return <span key={charIdx} className={`relative min-w-[0.8em] transition-all duration-300 ${isGuessed ? "text-white" : "text-white/60"}`}>{isGuessed ? char : "_"}{!isGuessed && <div className="absolute bottom-1 left-0 right-0 h-1 bg-white/20 rounded-full" />}</span>;
+                                    return (
+                                        <span key={charIdx} className={`relative min-w-[0.8em] transition-all duration-300 ${isGuessed ? "text-white" : "text-white/60"}`}>
+                                            {isGuessed ? char : "_"}
+                                            {!isGuessed && <div className="absolute bottom-1 left-0 right-0 h-1 bg-white/20 rounded-full" />}
+                                        </span>
+                                    );
                                 })}
                                 {wordIdx < target.word.split(' ').length - 1 && <span className="w-[0.5em] flex-shrink-0">&nbsp;</span>}
                             </span>
                         ))}
                     </div>
                 </div>
-                <div className="w-full landscape:w-[50%] flex flex-col gap-4 md:gap-6 landscape:h-full landscape:justify-center relative z-20">
-                    <div className="flex flex-col gap-3 w-full max-w-sm mx-auto">
+
+                <div className="w-full landscape:w-[50%] flex flex-col gap-4 md:gap-6 landscape:h-full landscape:justify-center relative z-20 overflow-y-auto scrollbar-hide">
+                    <div className="flex flex-col gap-3 w-full max-w-sm mx-auto shrink-0">
                         <TelemetryHub level={level} timeLeft={timeLeft} color={themeColor} isLandscape={true} />
                         <div className="flex items-center justify-between px-6 py-2 bg-black/40 border-2 rounded-full transition-colors duration-500 shadow-xl border-white/5" style={{ borderColor: `${themeColor}22` }}>
-                            <span className="text-[9px] font-black uppercase tracking-[0.4em] italic transition-colors duration-500" style={{ color: themeColor }}>{target?.category} // DATA_NODE</span>
-                            <button onClick={() => setShowHelp(true)} className="text-zinc-500 hover:text-white transition-colors"><BookOpenIcon className="w-4 h-4" /></button>
+                            <span className="text-[9px] font-black uppercase tracking-[0.4em] italic transition-colors duration-500 truncate max-w-[80%]" style={{ color: themeColor }}>
+                                {target?.category} // ARCHIVE_NODE
+                            </span>
+                            <button onClick={() => setShowHelp(true)} className="text-zinc-500 hover:text-white transition-colors shrink-0"><BookOpenIcon className="w-4 h-4" /></button>
                         </div>
                         <LinkIntegrityCounter mistakes={mistakes} level={level} />
                     </div>
+
                     <div className="w-full bg-zinc-900/40 landscape:bg-void-900/40 backdrop-blur-2xl border-t-2 border-black/40 landscape:border-2 landscape:border-white/5 p-3 md:p-6 landscape:p-6 rounded-2xl flex flex-col gap-2 md:gap-4 shrink-0 shadow-2xl">
                         {KEYBOARD_ROWS.map((row, rowIndex) => (
                             <div key={rowIndex} className="flex justify-center gap-1 md:gap-3 landscape:gap-2.5">
                                 {row.map(char => {
-                                    const isGuessed = guessedLetters.has(char); const isCorrect = target?.word.toUpperCase().includes(char);
-                                    return <button key={char} onClick={() => handleGuess(char)} disabled={isGuessed} className={`flex-1 max-w-[80px] h-10 md:h-16 landscape:h-12 rounded-lg md:rounded-xl font-black text-xs md:text-2xl landscape:text-lg transition-all active:scale-90 ${!isGuessed ? 'bg-zinc-800 text-white shadow-[0_4px_0_black] border-2 border-white/5 hover:bg-zinc-700' : isCorrect ? 'bg-emerald-600/20 text-emerald-400 border-2 border-emerald-500/30 opacity-40' : 'bg-red-600/20 text-red-500 border-2 border-red-500/30 opacity-20'}`}>{char}</button>;
+                                    const isGuessed = guessedLetters.has(char); 
+                                    const isCorrect = target?.word.includes(char);
+                                    return (
+                                        <button 
+                                            key={char} 
+                                            onClick={() => handleGuess(char)} 
+                                            disabled={isGuessed} 
+                                            className={`flex-1 max-w-[80px] h-10 md:h-16 landscape:h-12 rounded-lg md:rounded-xl font-black text-xs md:text-2xl landscape:text-lg transition-all active:scale-90 
+                                                ${!isGuessed 
+                                                    ? 'bg-zinc-800 text-white shadow-[0_4px_0_black] border-2 border-white/5 hover:bg-zinc-700' 
+                                                    : isCorrect 
+                                                        ? 'bg-emerald-600/20 text-emerald-400 border-2 border-emerald-500/30 opacity-40' 
+                                                        : 'bg-red-600/20 text-red-500 border-2 border-red-500/30 opacity-20'}`}
+                                        >
+                                            {char}
+                                        </button>
+                                    );
                                 })}
                             </div>
                         ))}
@@ -403,10 +450,12 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
                     </div>
                 </div>
             </div>
+
             {showHelp && <TacticalManual onClose={() => setShowHelp(false)} />}
+
             {showSeverConfirm && (
                 <div className="fixed inset-0 z-[110] bg-black/95 backdrop-blur-md flex items-center justify-center p-6 animate-fade-in">
-                    <div className="bg-zinc-900 border-4 border-pulse-600 shadow-[0_0_120px_rgba(225,29,72,0.3)] w-full max-w-sm relative overflow-hidden flex flex-col rounded-[2.5rem]">
+                    <div className="bg-zinc-900 border-4 border-pulse-600 shadow-[0_0_80px_rgba(225,29,72,0.3)] w-full max-w-sm relative overflow-hidden flex flex-col rounded-[2.5rem]">
                         <header className="h-10 bg-pulse-600 flex items-center justify-between px-1 border-b-2 border-black">
                             <div className="flex items-center gap-2 h-full"><div className="w-8 h-7 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center"><div className="w-4 h-1 bg-black shadow-[0_4px_0_black]" /></div><h2 className="text-white text-[9px] font-black uppercase tracking-[0.2em] italic px-2 truncate">PROTOCOL_ABORT.EXE</h2></div>
                             <button onClick={() => setShowSeverConfirm(false)} className="w-8 h-7 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center active:bg-zinc-400"><XIcon className="w-4 h-4 text-black" /></button>
@@ -416,13 +465,25 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
                     </div>
                 </div>
             )}
+
             {(gameState === 'WON' || gameState === 'LOST') && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-fade-in">
                     <div className="w-full max-w-sm bg-zinc-900 border-4 border-white/10 p-8 md:p-10 rounded-[3rem] text-center shadow-2xl relative overflow-hidden">
                         <div className={`absolute top-0 left-0 w-full h-2 ${gameState === 'WON' ? 'bg-emerald-500' : 'bg-red-500'}`} />
                         <h2 className={`text-4xl font-black italic uppercase tracking-tighter mb-6 ${gameState === 'WON' ? 'text-emerald-500' : 'text-red-500'}`}>{gameState === 'WON' ? 'DECODED' : 'SIG_LOSS'}</h2>
-                        <div className="bg-black/60 p-6 rounded-3xl border border-white/5 text-left mb-8"><p className="text-[10px] text-zinc-500 font-black uppercase mb-2">Resultant_String</p><p className="text-2xl font-black text-white italic tracking-widest uppercase">{target?.word}</p><p className="text-[10px] text-zinc-600 font-mono mt-4 italic border-t border-white/5 pt-2">{target?.hint}</p></div>
-                        {gameState === 'WON' ? <button onClick={() => { setLevel(l => l + 1); startRound(level); }} className="w-full py-5 bg-emerald-600 text-white font-black uppercase italic rounded-full text-lg shadow-xl active:scale-95 transition-all">Advance_Node</button> : <div className="space-y-4"><input autoFocus maxLength={3} value={initials} onChange={e => setInitials(e.target.value.toUpperCase())} className="bg-black/50 border-2 border-red-500 text-white rounded-xl px-4 py-4 text-center text-3xl font-black w-32 outline-none uppercase italic" placeholder="???" /><button onClick={handleSaveScore} className="w-full py-5 bg-white text-black font-black uppercase italic rounded-full text-lg shadow-xl active:scale-95 transition-all">Transmit_Log</button></div>}
+                        <div className="bg-black/60 p-6 rounded-3xl border border-white/5 text-left mb-8">
+                            <p className="text-[10px] text-zinc-500 font-black uppercase mb-2">ARCHIVE_STRING</p>
+                            <p className="text-2xl font-black text-white italic tracking-widest uppercase break-words">{target?.word}</p>
+                            <p className="text-[10px] text-zinc-600 font-mono mt-4 italic border-t border-white/5 pt-2 uppercase">ZONE: {target?.category}</p>
+                        </div>
+                        {gameState === 'WON' ? (
+                            <button onClick={() => { setLevel(l => l + 1); startRound(level); }} className="w-full py-5 bg-emerald-600 text-white font-black uppercase italic rounded-full text-lg shadow-xl active:scale-95 transition-all">Advance_Node</button>
+                        ) : (
+                            <div className="space-y-4">
+                                <input autoFocus maxLength={3} value={initials} onChange={e => setInitials(e.target.value.toUpperCase())} className="bg-black/50 border-2 border-red-500 text-white rounded-xl px-4 py-4 text-center text-3xl font-black w-32 outline-none uppercase italic" placeholder="???" />
+                                <button onClick={handleSaveScore} className="w-full py-5 bg-white text-black font-black uppercase italic rounded-full text-lg shadow-xl active:scale-95 transition-all">Transmit_Log</button>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
@@ -454,26 +515,26 @@ const TacticalManual: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                         <div>
                             <div className="flex items-center gap-3 mb-4">
                                 <SparklesIcon className="w-5 h-5 text-emerald-500" />
-                                <h3 className="text-lg font-black text-white italic uppercase tracking-tighter">Signal Recovery</h3>
+                                <h3 className="text-lg font-black text-white italic uppercase tracking-tighter">Archive Recovery</h3>
                             </div>
                             <p className="text-[10px] md:text-xs text-zinc-400 uppercase font-black leading-relaxed tracking-wider mb-4 border-l-2 border-emerald-500/30 pl-4">
-                                Breach the encrypted word signal before the terminal lock triggers. High-voltage execution required.
+                                Breach the encrypted archive word before the terminal lock triggers. Synchronized with THE VOID master data.
                             </p>
                         </div>
 
                         <div className="grid grid-cols-1 gap-6">
                             <ManualPoint title="0x01_Vowel_Probing" desc="Begin with A, E, I, O, U. Most signal packets are structured around these primary frequency anchors." color="text-emerald-500" />
                             <ManualPoint title="0x02_High_Freq_Bits" desc="Prioritize R, S, T, L, N. These consonants appear at a significantly higher rate within standard data streams." color="text-emerald-500" />
-                            <ManualPoint title="0x03_Pattern_Matching" desc="Look for common terminal sequences like -ING, -ED, or -TION. Use the category metadata to narrow the logical search space." color="text-emerald-500" />
-                            <ManualPoint title="0x04_Mistake_Buffer" desc="You have a 7-bit mistake buffer. If the integrity bar reaches zero, the link is severed and session data is wiped." color="text-emerald-500" />
+                            <ManualPoint title="0x03_The_Mistake_Buffer" desc="You have a 7-bit mistake buffer. If the integrity bar reaches zero, the link is severed and session data is wiped." color="text-emerald-500" />
+                            <ManualPoint title="0x04_Multiword_Logic" desc="Archive strings may contain spaces. These are pre-synchronized and do not require decryption bits." color="text-emerald-500" />
                         </div>
 
                         <div className="p-5 bg-emerald-500/10 border-2 border-emerald-500/30 rounded-2xl flex items-start gap-4">
                             <ExclamationTriangleIcon className="w-6 h-6 text-emerald-500 shrink-0 mt-0.5 animate-pulse" />
                             <div>
-                                <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-1 italic">Pro Tip: Time Management</p>
+                                <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-1 italic">Pro Tip: Sector Knowledge</p>
                                 <p className="text-[8px] text-zinc-500 uppercase font-black leading-tight italic">
-                                    Operator, the timer is constant. Do not fixate on a single incorrect bit. Move quickly to re-establish the connection.
+                                    Operator, use the Sector metadata to narrow the logical search space. Each category follows specific thematic patterns.
                                 </p>
                             </div>
                         </div>

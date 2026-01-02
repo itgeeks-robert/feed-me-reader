@@ -26,7 +26,8 @@ const TetrisPage: React.FC<TetrisPageProps> = ({ onBackToHub, onReturnToFeeds })
     const holdRef = useRef<HTMLCanvasElement>(null);
     const gameInstance = useRef<ReturnType<typeof startGame> | null>(null);
 
-    const [view, setView] = useState<'IDLE' | 'PLAYING'>('IDLE');
+    const [view, setView] = useState<'IDLE' | 'COUNTDOWN' | 'PLAYING'>('IDLE');
+    const [countdown, setCountdown] = useState(3);
     const [stats, setStats] = useState({ score: 0, rows: 0, level: 0 });
     const [isGameOver, setIsGameOver] = useState(false);
     const [initials, setInitials] = useState("");
@@ -64,21 +65,31 @@ const TetrisPage: React.FC<TetrisPageProps> = ({ onBackToHub, onReturnToFeeds })
         gameInstance.current?.stop();
         setIsGameOver(false);
         setInitials("");
-        setView('PLAYING');
-        setTimeout(() => {
-            if (canvasRef.current && previewRef.current && holdRef.current) {
-                gameInstance.current = startGame({
-                    canvas: canvasRef.current, previewCanvas: previewRef.current, holdCanvas: holdRef.current,
-                    onScoreUpdate: (score) => setStats(s => ({ ...s, score })),
-                    onRowsUpdate: (rows) => setStats(s => ({ ...s, rows })),
-                    onLevelUpdate: (level) => setStats(s => ({ ...s, level: Math.floor(level) })),
-                    onGameOver: () => setIsGameOver(true),
-                    onHoldUpdate: (piece) => setHoldPiece(piece),
-                    onNextUpdate: (queue) => setNextQueue(queue),
-                });
-            }
-        }, 50);
+        setView('COUNTDOWN');
+        setCountdown(3);
     }, []);
+
+    useEffect(() => {
+        if (view === 'COUNTDOWN' && countdown > 0) {
+            const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+            return () => clearTimeout(timer);
+        } else if (view === 'COUNTDOWN' && countdown === 0) {
+            setView('PLAYING');
+            setTimeout(() => {
+                if (canvasRef.current && previewRef.current && holdRef.current) {
+                    gameInstance.current = startGame({
+                        canvas: canvasRef.current, previewCanvas: previewRef.current, holdCanvas: holdRef.current,
+                        onScoreUpdate: (score) => setStats(s => ({ ...s, score })),
+                        onRowsUpdate: (rows) => setStats(s => ({ ...s, rows })),
+                        onLevelUpdate: (level) => setStats(s => ({ ...s, level: Math.floor(level) })),
+                        onGameOver: () => setIsGameOver(true),
+                        onHoldUpdate: (piece) => setHoldPiece(piece),
+                        onNextUpdate: (queue) => setNextQueue(queue),
+                    });
+                }
+            }, 50);
+        }
+    }, [view, countdown]);
 
     const handleSaveScore = () => {
         saveHighScore('tetris', {
@@ -103,6 +114,7 @@ const TetrisPage: React.FC<TetrisPageProps> = ({ onBackToHub, onReturnToFeeds })
             case 'right': controls.moveRight(); break;
             case 'rotate': controls.rotate(); break;
             case 'drop': controls.hardDrop(); break;
+            case 'hold': controls.hold(); break;
             case 'start': handleRestart(); break;
             case 'quit': onBackToHub(); break;
         }
@@ -149,63 +161,99 @@ const TetrisPage: React.FC<TetrisPageProps> = ({ onBackToHub, onReturnToFeeds })
         );
     }
 
+    if (view === 'COUNTDOWN') {
+        return (
+            <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-950 font-mono">
+                <div className="p-8 bg-pulse-500/10 border-4 border-pulse-500 rounded-[3rem] mb-12 shadow-[0_0_80px_rgba(225,29,72,0.3)] animate-pulse">
+                    <VoidIcon className="w-20 h-20 text-white" />
+                </div>
+                <h2 className="text-3xl font-black text-white italic uppercase tracking-[0.4em] mb-4">BUFFERING_NODES</h2>
+                <div className="text-[clamp(8rem,30vw,15rem)] font-black text-white italic animate-ping">
+                    {countdown}
+                </div>
+            </div>
+        );
+    }
+
     return (
         <main className="w-full h-full flex flex-col bg-zinc-950 text-white font-mono overflow-hidden relative">
-            <header className="flex justify-between items-center px-4 py-3 z-10 flex-shrink-0 bg-void-900 border-b border-white/5 mt-[var(--safe-top)]">
+            <header className="flex justify-between items-center px-4 py-4 z-10 flex-shrink-0 bg-zinc-900 border-b-2 border-zinc-800 mt-[var(--safe-top)]">
                 <div>
-                    <h1 className="text-xl font-black italic uppercase tracking-tighter text-pulse-500 leading-none">STACK TRACE</h1>
-                    <p className="text-[7px] font-black uppercase tracking-[0.2em] text-zinc-600 mt-1 italic">Protocol: Block Compilation</p>
+                    <h1 className="text-xl md:text-2xl font-black italic uppercase tracking-tighter text-pulse-500 leading-none">STACK TRACE</h1>
+                    <div className="flex items-center gap-2 mt-1.5">
+                         <div className="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse shadow-[0_0_5px_red]" />
+                         <span className="text-[8px] font-black uppercase tracking-[0.2em] text-zinc-500 italic">LIVE_DECODE</span>
+                    </div>
                 </div>
                 <div className="flex items-center gap-4">
-                    <button onClick={() => setShowHelp(true)} className="p-2 bg-zinc-800 rounded-lg text-zinc-400 hover:text-white transition-colors"><BookOpenIcon className="w-4 h-4" /></button>
-                    <div className="text-right">
-                        <span className="text-[7px] font-black uppercase text-zinc-500 block mb-0.5 tracking-widest">Score</span>
-                        <span className="text-sm font-black italic text-yellow-400 font-mono">{stats.score.toLocaleString()}</span>
+                    <button onClick={() => setShowHelp(true)} className="p-2.5 bg-zinc-800 rounded-xl text-zinc-400 hover:text-white transition-colors border border-white/5"><BookOpenIcon className="w-5 h-5" /></button>
+                    <div className="bg-black/60 px-5 py-2 rounded-xl border-2 border-zinc-800 shadow-inner min-w-[120px] text-right">
+                        <span className="text-[7px] font-black uppercase text-zinc-600 block mb-0.5 tracking-widest">SIG_VAL</span>
+                        <span className="text-base md:text-lg font-black italic text-yellow-400 font-mono leading-none">{stats.score.toLocaleString()}</span>
                     </div>
                 </div>
             </header>
 
-            <div className="flex-grow flex items-center justify-center p-2 min-h-0">
-                <div className="grid grid-cols-[60px,1fr,60px] gap-2 h-full max-h-[70vh] w-full max-w-lg">
-                    <div className="flex flex-col gap-2 justify-center">
-                        <div className="bg-zinc-900/80 p-2 rounded-xl border border-white/5 text-center">
-                            <p className="text-[7px] font-black uppercase text-zinc-500 mb-1 italic">Buf</p>
-                            <canvas ref={holdRef} className="mx-auto w-10 h-10 opacity-80" />
+            <div className="flex-grow flex items-center justify-center p-4 min-h-0">
+                <div className="grid grid-cols-[80px,1fr,80px] gap-4 h-full max-h-[75vh] w-full max-w-xl">
+                    {/* HOLD COLUMN */}
+                    <div className="flex flex-col gap-4 justify-start pt-8">
+                        <div className="bg-zinc-900/90 p-2 rounded-[1.5rem] border-2 border-zinc-800 shadow-2xl relative">
+                            <p className="text-[8px] font-black uppercase text-zinc-500 mb-2 text-center italic tracking-widest">BUF_01</p>
+                            <div className="aspect-square bg-black rounded-xl border border-white/5 flex items-center justify-center overflow-hidden">
+                                <canvas ref={holdRef} className="w-12 h-12 opacity-90" />
+                            </div>
                         </div>
-                        <div className="bg-zinc-900/80 p-2 rounded-xl border border-white/5 text-center">
-                            <p className="text-[7px] font-black uppercase text-zinc-500 mb-1 italic">Lvl</p>
-                            <span className="text-xs font-black text-white">{stats.level}</span>
+                        <div className="bg-zinc-900/90 p-3 rounded-[1.5rem] border-2 border-zinc-800 shadow-2xl text-center">
+                            <p className="text-[8px] font-black uppercase text-zinc-500 mb-1 italic">SECTOR</p>
+                            <span className="text-xl font-black text-emerald-500 italic">0{stats.level}</span>
                         </div>
                     </div>
-                    <div className="relative h-full border-2 border-zinc-800 bg-black rounded-lg overflow-hidden shadow-[0_0_40px_rgba(225,29,72,0.1)]">
-                        <canvas ref={canvasRef} className="w-full h-full" />
+
+                    {/* MAIN FIELD */}
+                    <div className="relative h-full border-4 border-zinc-800 bg-black rounded-[2rem] overflow-hidden shadow-[0_0_80px_rgba(0,0,0,0.8)] flex-grow">
+                        <div className="absolute inset-0 pointer-events-none opacity-[0.05] cctv-overlay z-20" />
+                        <canvas ref={canvasRef} className="w-full h-full relative z-10" />
                     </div>
-                    <div className="flex flex-col gap-2 justify-center">
-                        <div className="bg-zinc-900/80 p-2 rounded-xl border border-white/5 text-center">
-                            <p className="text-[7px] font-black uppercase text-zinc-500 mb-1 italic">Next</p>
-                            <canvas ref={previewRef} className="mx-auto w-10 h-24 opacity-80" />
+
+                    {/* NEXT COLUMN */}
+                    <div className="flex flex-col gap-4 justify-start pt-8">
+                        <div className="bg-zinc-900/90 p-2 rounded-[1.5rem] border-2 border-zinc-800 shadow-2xl relative">
+                            <p className="text-[8px] font-black uppercase text-zinc-500 mb-2 text-center italic tracking-widest">DATA_IN</p>
+                            <div className="bg-black rounded-xl border border-white/5 flex items-center justify-center py-4 overflow-hidden">
+                                <canvas ref={previewRef} className="w-12 h-32 opacity-90" />
+                            </div>
+                        </div>
+                        <div className="bg-zinc-900/90 p-3 rounded-[1.5rem] border-2 border-zinc-800 shadow-2xl text-center">
+                            <p className="text-[8px] font-black uppercase text-zinc-500 mb-1 italic">ROWS</p>
+                            <span className="text-xl font-black text-white italic">{stats.rows}</span>
                         </div>
                     </div>
                 </div>
             </div>
             
-            <div className="bg-zinc-900 border-t-2 border-zinc-800 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] flex-shrink-0">
-                <div className="max-w-md mx-auto grid grid-cols-4 gap-3">
-                    <div className="col-span-2 flex gap-3">
-                        <button onPointerDown={() => handleAction('left')} className="flex-1 h-16 bg-zinc-800 border-b-4 border-black rounded-2xl flex items-center justify-center active:translate-y-1 active:border-b-0 transition-all"><span className="text-2xl">←</span></button>
-                        <button onPointerDown={() => handleAction('right')} className="flex-1 h-16 bg-zinc-800 border-b-4 border-black rounded-2xl flex items-center justify-center active:translate-y-1 active:border-b-0 transition-all"><span className="text-2xl">→</span></button>
+            <div className="bg-zinc-900 border-t-4 border-black p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] flex-shrink-0 relative overflow-hidden">
+                <div className="absolute inset-0 opacity-5 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
+                <div className="max-w-md mx-auto grid grid-cols-4 gap-4 relative z-10">
+                    <div className="col-span-2 flex gap-4">
+                        <button onPointerDown={() => handleAction('left')} className="flex-1 h-20 bg-zinc-800 border-t-2 border-l-2 border-white/10 border-b-4 border-r-4 border-black rounded-2xl flex items-center justify-center active:translate-y-1 active:border-b-0 transition-all text-zinc-400 hover:text-white">
+                            <svg className="w-8 h-8 fill-current" viewBox="0 0 24 24"><path d="M14 7l-5 5 5 5V7z"/></svg>
+                        </button>
+                        <button onPointerDown={() => handleAction('right')} className="flex-1 h-20 bg-zinc-800 border-t-2 border-l-2 border-white/10 border-b-4 border-r-4 border-black rounded-2xl flex items-center justify-center active:translate-y-1 active:border-b-0 transition-all text-zinc-400 hover:text-white">
+                            <svg className="w-8 h-8 fill-current" viewBox="0 0 24 24"><path d="M10 17l5-5-5-5v10z"/></svg>
+                        </button>
                     </div>
-                    <button onPointerDown={() => handleAction('rotate')} className="h-16 bg-pulse-600 border-b-4 border-pulse-950 rounded-2xl flex flex-col items-center justify-center active:translate-y-1 active:border-b-0 transition-all group">
-                        <span className="text-[8px] font-black uppercase leading-none mb-1 opacity-50 group-active:opacity-100">Spin</span>
-                        <span className="text-xl font-black italic">B</span>
+                    <button onPointerDown={() => handleAction('rotate')} className="h-20 bg-pulse-600 border-t-2 border-l-2 border-white/20 border-b-4 border-r-4 border-pulse-950 rounded-2xl flex flex-col items-center justify-center active:translate-y-1 active:border-b-0 transition-all group">
+                        <span className="text-[7px] font-black uppercase leading-none mb-1 text-white/50 group-active:text-white">Spin_B</span>
+                        <span className="text-2xl font-black italic text-white">⟳</span>
                     </button>
-                    <button onPointerDown={() => handleAction('drop')} className="h-16 bg-pulse-600 border-b-4 border-pulse-950 rounded-2xl flex flex-col items-center justify-center active:translate-y-1 active:border-b-0 transition-all group">
-                        <span className="text-[8px] font-black uppercase leading-none mb-1 opacity-50 group-active:opacity-100">Drop</span>
-                        <span className="text-xl font-black italic">A</span>
+                    <button onPointerDown={() => handleAction('drop')} className="h-20 bg-pulse-600 border-t-2 border-l-2 border-white/20 border-b-4 border-r-4 border-pulse-950 rounded-2xl flex flex-col items-center justify-center active:translate-y-1 active:border-b-0 transition-all group">
+                        <span className="text-[7px] font-black uppercase leading-none mb-1 text-white/50 group-active:text-white">Drop_A</span>
+                        <span className="text-2xl font-black italic text-white">▼</span>
                     </button>
-                    <div className="col-span-4 flex gap-4 pt-2">
-                        <button onClick={() => handleAction('start')} className="flex-1 py-3 bg-zinc-800 border border-white/5 rounded-xl text-[9px] font-black uppercase italic text-zinc-400 hover:text-white transition-all active:scale-95">RESTART_SYNC</button>
-                        <button onClick={() => setView('IDLE')} className="flex-1 py-3 bg-zinc-800 border border-pulse-500/30 rounded-xl text-[9px] font-black uppercase italic text-pulse-500 hover:bg-pulse-500 hover:text-white transition-all active:scale-95">ABORT_MISSION</button>
+                    <div className="col-span-4 flex gap-4 pt-4">
+                        <button onClick={() => handleAction('hold')} className="flex-1 py-4 bg-zinc-800 border-2 border-zinc-700 rounded-xl text-[9px] font-black uppercase italic text-zinc-400 hover:text-white transition-all active:scale-95 shadow-xl">SWAP_BUFFER</button>
+                        <button onClick={() => setView('IDLE')} className="flex-1 py-4 bg-red-950/20 border-2 border-red-900/30 rounded-xl text-[9px] font-black uppercase italic text-pulse-500 hover:bg-pulse-600 hover:text-white transition-all active:scale-95 shadow-xl">TERMINATE</button>
                     </div>
                 </div>
             </div>
@@ -213,12 +261,12 @@ const TetrisPage: React.FC<TetrisPageProps> = ({ onBackToHub, onReturnToFeeds })
             {showHelp && <TacticalManual onClose={() => setShowHelp(false)} />}
 
             {isGameOver && (
-                <div className="fixed inset-0 bg-black/95 backdrop-blur-md z-50 flex items-center justify-center p-6 text-center">
+                <div className="fixed inset-0 bg-black/95 backdrop-blur-md z-50 flex items-center justify-center p-6 text-center animate-fade-in">
                     <div className="max-w-sm w-full bg-zinc-900 p-12 rounded-[3rem] border-4 border-pulse-600 shadow-[0_0_100px_rgba(225,29,72,0.3)]">
                         <h2 className="text-4xl font-black italic uppercase tracking-tighter text-pulse-500 mb-4 leading-none">BUFFER OVERFLOW</h2>
                         <div className="mb-8">
                             <p className="text-zinc-500 font-bold uppercase tracking-widest text-[10px] mb-4 italic">Post Trace Initials</p>
-                            <input autoFocus maxLength={3} value={initials} onChange={e => setInitials(e.target.value.toUpperCase())} className="bg-black/50 border-2 border-pulse-500 text-white rounded-xl px-4 py-4 text-center text-2xl font-black w-32 outline-none uppercase italic" placeholder="???" />
+                            <input autoFocus maxLength={3} value={initials} onChange={e => setInitials(e.target.value.toUpperCase())} className="bg-black/50 border-2 border-pulse-500 text-white rounded-xl px-4 py-4 text-center text-3xl font-black w-32 outline-none uppercase italic" placeholder="???" />
                         </div>
                         <button onClick={handleSaveScore} className="w-full py-5 bg-pulse-600 text-white font-black text-xl italic uppercase rounded-full hover:scale-105 transition-transform shadow-xl active:scale-95">Transmit Log</button>
                     </div>

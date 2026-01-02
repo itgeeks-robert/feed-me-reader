@@ -1,14 +1,13 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-/* Added VoidIcon to imports to resolve the 'Cannot find name' error on line 281 */
 import { XIcon, ClockIcon, SparklesIcon, FireIcon, BookOpenIcon, ArrowPathIcon, VoidIcon } from './icons';
 import { VOID_DATA } from '../voidDataArchive';
 import { NEON_IMAGES } from '../neonSignalAssets';
 import OrientationGuard from './OrientationGuard';
 
 /**
- * NEON SIGNAL: DATA_SYNC v18.2
- * Optimized with DYNAMIC_CALIBRATION.
- * Fixes: Re-centering loop, twitch-triggering, and axis-mapping errors.
+ * NEON SIGNAL: DATA_SYNC v18.5
+ * Optimized for Ultra-Low Vertical Clearance (Mobile Landscape).
+ * Fixes: Text clipping, Re-centering loops, and initialization jumps.
  */
 
 const GAME_DURATION = 60;
@@ -40,7 +39,7 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
     const timerRef = useRef<number | null>(null);
 
     const startTransmission = async (catId: string, catName: string) => {
-        // Request Motion Permissions (Required for modern mobile browsers)
+        // Request Motion Permissions
         if (typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
             try {
                 const response = await (DeviceOrientationEvent as any).requestPermission();
@@ -78,7 +77,7 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
         setHistory([]);
         setScore(0);
         setCurrentIndex(0);
-        referencePitch.current = null; // Reset calibration
+        referencePitch.current = null; 
         neutralLock.current = false;
         actionLock.current = false;
     };
@@ -104,10 +103,9 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
         
         if (currentIndex < activePool.length - 1) {
             setCurrentIndex(prev => prev + 1);
-            // Lock for a moment to prevent multiple registrations
             setTimeout(() => { 
                 actionLock.current = false; 
-            }, 700);
+            }, 800); // Slightly longer lock for stability
         } else {
             setGameState('RESULTS');
         }
@@ -117,11 +115,9 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
         const handleOrientation = (e: DeviceOrientationEvent) => {
             if (gameState !== 'PLAYING' || e.beta === null) return;
             
-            // On landscape, 'beta' usually maps to the 'nodding' movement 
-            // of a phone held upright on a forehead.
             const currentPitch = e.beta;
 
-            // 1. CALIBRATION: Take the first reading as the reference "Zero"
+            // 1. DYNAMIC CALIBRATION
             if (referencePitch.current === null) {
                 referencePitch.current = currentPitch;
                 return;
@@ -129,7 +125,7 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
 
             const delta = currentPitch - referencePitch.current;
 
-            // 2. NEUTRAL LOCK: Require user to return to starting position after an action
+            // 2. NEUTRAL LOCK
             if (neutralLock.current) {
                 if (Math.abs(delta) < NEUTRAL_DELTA) {
                     neutralLock.current = false;
@@ -137,13 +133,13 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
                 return; 
             }
 
-            if (actionLock.current) return;
+            if (actionLock.current || gracePeriodActive.current) return;
 
             // 3. ACTION TRIGGERS
             if (delta > TRIGGER_DELTA) {
-                handleAction(true); // TILT DOWN (Forward)
+                handleAction(true); // TILT FORWARD
             } else if (delta < -TRIGGER_DELTA) {
-                handleAction(false); // TILT UP (Backward)
+                handleAction(false); // TILT BACK
             }
         };
 
@@ -160,9 +156,11 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
             setGameState('PLAYING');
             setTimeLeft(GAME_DURATION);
             
-            // Initial grace period to prevent accidental triggers while mounting
+            // Extended grace period for physical mounting
             gracePeriodActive.current = true;
-            setTimeout(() => { gracePeriodActive.current = false; }, 1000);
+            setTimeout(() => { 
+                gracePeriodActive.current = false; 
+            }, 1500);
             
         } else if (gameState === 'PLAYING' && timeLeft === 0) {
             setGameState('RESULTS');
@@ -276,16 +274,16 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
                 )}
 
                 {gameState === 'COUNTDOWN' && (
-                    <div className="w-full h-full flex flex-col items-center justify-center text-center p-10 relative z-10">
+                    <div className="w-full h-full flex flex-col items-center justify-center text-center p-6 relative z-10">
                         <div className="relative z-10 flex flex-col items-center">
-                            <div className="p-8 bg-pulse-500/10 border-4 border-pulse-500 rounded-[3rem] mb-12 shadow-[0_0_100px_rgba(225,29,72,0.3)] animate-pulse">
-                                <VoidIcon className="w-20 h-20 text-white" />
+                            <div className="p-4 md:p-8 bg-pulse-500/10 border-4 border-pulse-500 rounded-[2rem] md:rounded-[3rem] mb-4 md:mb-12 shadow-[0_0_100px_rgba(225,29,72,0.3)] animate-pulse">
+                                <VoidIcon className="w-10 h-10 md:w-20 md:h-20 text-white" />
                             </div>
-                            <h2 className="text-3xl font-black text-white italic uppercase tracking-widest mb-4">CALIBRATING_SENSORS</h2>
-                            <div className="inline-block px-12 py-4 bg-white text-black font-black uppercase italic tracking-[0.4em] rounded-full mb-12 shadow-2xl border-4 border-black/10">
+                            <h2 className="text-xl md:text-3xl font-black text-white italic uppercase tracking-widest mb-2 md:mb-4">CALIBRATING_SENSORS</h2>
+                            <div className="inline-block px-8 py-2 md:px-12 md:py-4 bg-white text-black font-black uppercase italic tracking-[0.4em] rounded-full mb-6 md:mb-12 shadow-2xl border-4 border-black/10 text-[10px] md:text-base">
                                 PLACE_ON_FOREHEAD_NOW
                             </div>
-                            <div className="text-[clamp(10rem,40vw,20rem)] font-black text-white italic animate-ping leading-none drop-shadow-[0_0_60px_rgba(255,255,255,0.4)]">
+                            <div className="text-[clamp(6rem,30vw,20rem)] font-black text-white italic animate-ping leading-none drop-shadow-[0_0_60px_rgba(255,255,255,0.4)]">
                                 {timeLeft}
                             </div>
                         </div>
@@ -293,75 +291,66 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
                 )}
 
                 {gameState === 'PLAYING' && (
-                    /* THE BOLD BEZEL BUFFER */
-                    <div className="w-full h-full p-4 sm:p-8 md:p-12 relative z-10">
-                        
-                        {/* PHYSICAL TERMINAL FRAME EFFECT */}
-                        <div className={`w-full h-full border-[8px] md:border-[16px] border-zinc-900 rounded-[2.5rem] md:rounded-[4rem] overflow-hidden flex flex-col transition-all duration-500 relative shadow-[0_0_100px_rgba(0,0,0,0.8),inset_0_0_20px_rgba(255,255,255,0.05)] ${timeLeft <= 10 ? 'bg-red-950/25 border-red-900/40' : 'bg-black/30 border-zinc-800'}`}>
+                    <div className="w-full h-full p-2 md:p-12 relative z-10">
+                        <div className={`w-full h-full border-[6px] md:border-[16px] border-zinc-900 rounded-[1.5rem] md:rounded-[4rem] overflow-hidden flex flex-col transition-all duration-500 relative shadow-[0_0_100px_rgba(0,0,0,0.8)] ${timeLeft <= 10 ? 'bg-red-950/25 border-red-900/40' : 'bg-black/30 border-zinc-800'}`}>
                             
-                            {/* Inner Bezel Glow */}
                             <div className="absolute inset-0 pointer-events-none shadow-[inset_0_0_40px_rgba(0,0,0,0.5)] z-20" />
 
-                            <header className="px-8 py-6 md:px-12 md:py-8 flex justify-between items-start shrink-0 z-50">
+                            <header className="px-6 py-4 md:px-12 md:py-8 flex justify-between items-start shrink-0 z-50 landscape:py-2">
                                 <button 
                                     onClick={abortNode} 
-                                    className="flex items-center gap-3 px-5 py-3 bg-zinc-900/90 border-2 border-pulse-500/40 rounded-2xl text-pulse-500 font-black uppercase italic text-[10px] tracking-widest backdrop-blur-md active:scale-95 transition-all shadow-2xl"
+                                    className="flex items-center gap-2 px-4 py-2 bg-zinc-900/90 border-2 border-pulse-500/40 rounded-xl text-pulse-500 font-black uppercase italic text-[9px] tracking-widest backdrop-blur-md active:scale-95 transition-all shadow-xl"
                                 >
-                                    <XIcon className="w-5 h-5" />
+                                    <XIcon className="w-4 h-4" />
                                     <span>ABORT</span>
                                 </button>
 
                                 <div className="flex flex-col items-end">
-                                    <span className="text-[9px] font-black text-white/30 uppercase tracking-[0.3em] leading-none mb-2 italic">ENCRYPT_v8.4</span>
-                                    <span className="text-xs font-black text-emerald-500 uppercase tracking-[0.4em] leading-none italic animate-pulse flex items-center gap-2">
-                                        <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_#10b981]" />
-                                        LIVE_SYNC
+                                    <span className="text-[8px] font-black text-emerald-500 uppercase tracking-[0.4em] leading-none italic animate-pulse flex items-center gap-2">
+                                        NODE {String(currentIndex + 1).padStart(3, '0')} / {activePool.length}
                                     </span>
                                 </div>
                             </header>
 
-                            {/* Progress Bar - Integrated into Bezel */}
-                            <div className="h-1.5 md:h-2 bg-black/80 w-full relative z-20 overflow-hidden border-y border-white/5">
+                            <div className="h-1 bg-black/80 w-full relative z-20 overflow-hidden">
                                 <div 
                                     className={`h-full transition-all duration-1000 ease-linear ${timeLeft <= 10 ? 'bg-red-500 shadow-[0_0_20px_#ef4444]' : 'bg-emerald-500 shadow-[0_0_20px_#10b981]'}`} 
                                     style={{ width: `${(timeLeft/GAME_DURATION)*100}%` }} 
                                 />
                             </div>
 
-                            <div className="flex-1 flex flex-col items-center justify-center p-8 md:p-20 text-center relative z-10">
-                                {/* RESET INDICATOR - Shows when looking for Neutral */}
+                            <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-20 text-center relative z-10">
                                 {neutralLock.current && (
-                                    <div className="absolute top-12 left-1/2 -translate-x-1/2 flex items-center gap-3 px-8 py-3 bg-white/10 border-2 border-white/20 rounded-full animate-fade-in backdrop-blur-xl shadow-2xl">
-                                        <ArrowPathIcon className="w-5 h-5 text-white animate-spin" />
-                                        <span className="text-[12px] font-black text-white uppercase tracking-[0.4em] italic">RETURN_TO_NEUTRAL</span>
+                                    <div className="absolute top-2 md:top-12 left-1/2 -translate-x-1/2 flex items-center gap-3 px-6 py-2 bg-white/10 border-2 border-white/20 rounded-full animate-fade-in backdrop-blur-xl shadow-2xl z-50">
+                                        <ArrowPathIcon className="w-4 h-4 text-white animate-spin" />
+                                        <span className="text-[10px] font-black text-white uppercase tracking-[0.4em] italic">RE-CENTERING</span>
                                     </div>
                                 )}
 
-                                <div className={`text-xs md:text-sm font-black tracking-[0.8em] mb-16 flex items-center gap-8 ${timeLeft <= 10 ? 'text-red-500 animate-pulse' : 'text-zinc-600'}`}>
-                                    DECRYPTING_SIGNAL: {selectedCatName}
+                                <div className={`text-[8px] md:text-sm font-black tracking-[0.6em] mb-4 md:mb-16 flex items-center gap-4 ${timeLeft <= 10 ? 'text-red-500 animate-pulse' : 'text-zinc-600'}`}>
+                                    DECRYPTING: {selectedCatName}
                                 </div>
                                 
-                                <h2 className="text-[clamp(3.5rem,15vw,11rem)] font-black text-white uppercase italic tracking-tighter leading-[0.8] mb-20 font-horror drop-shadow-[0_10px_60px_rgba(0,0,0,1)] transition-all duration-300">
-                                    {activePool[currentIndex]}
+                                <h2 className="text-[clamp(2.5rem,12vw,9rem)] font-black text-emerald-400 uppercase italic tracking-tighter leading-none mb-4 md:mb-20 font-horror drop-shadow-[0_10px_60px_rgba(0,0,0,1)] transition-all duration-300 w-full px-4 break-words">
+                                    {activePool[currentIndex] || "NODE_EMPTY"}
                                 </h2>
                                 
-                                <div className="flex items-center gap-16">
-                                    <div className="px-10 py-5 bg-zinc-900/80 border-2 border-white/10 rounded-[2rem] text-white/50 font-black text-5xl italic shadow-2xl backdrop-blur-md">
+                                <div className="flex items-center gap-8 md:gap-16">
+                                    <div className="px-6 py-2 md:px-10 md:py-5 bg-zinc-900/80 border-2 border-white/10 rounded-xl md:rounded-[2rem] text-white/50 font-black text-2xl md:text-5xl italic shadow-2xl backdrop-blur-md">
                                         {timeLeft}S
                                     </div>
-                                    <div className="px-10 py-5 bg-emerald-500/10 border-2 border-emerald-500/30 rounded-[2rem] text-emerald-400 font-black text-5xl italic shadow-2xl backdrop-blur-md">
+                                    <div className="px-6 py-2 md:px-10 md:py-5 bg-emerald-500/10 border-2 border-emerald-500/30 rounded-xl md:rounded-[2rem] text-emerald-400 font-black text-2xl md:text-5xl italic shadow-2xl backdrop-blur-md">
                                         {score}
                                     </div>
                                 </div>
                             </div>
                             
-                            <footer className="px-12 py-8 flex justify-between items-end shrink-0 z-20 pointer-events-none border-t border-white/5">
-                                <div className="text-[9px] font-black text-white/20 uppercase tracking-widest leading-loose italic">
-                                    CALIBRATED_PITCH: {referencePitch.current ? referencePitch.current.toFixed(1) : 'PENDING'}°<br/>
-                                    SIG_STRENGTH: 99.8%<br/>
+                            <footer className="px-8 py-4 flex justify-between items-end shrink-0 z-20 pointer-events-none border-t border-white/5 landscape:py-2">
+                                <div className="text-[8px] font-black text-white/20 uppercase tracking-widest leading-loose italic">
+                                    PITCH: {referencePitch.current ? referencePitch.current.toFixed(1) : 'CAL...'}°
                                 </div>
-                                <div className="text-[9px] font-black text-zinc-700 uppercase tracking-[0.5em] italic">
-                                    VOID_PROTOCOL_RECRUIT_OS
+                                <div className="text-[8px] font-black text-zinc-700 uppercase tracking-[0.5em] italic">
+                                    VOID_RECRUIT_OS
                                 </div>
                             </footer>
                         </div>
@@ -370,37 +359,37 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
 
                 {gameState === 'RESULTS' && (
                     <div className="w-full h-full bg-zinc-950 p-6 flex flex-col overflow-hidden animate-fade-in relative z-10">
-                        <div className="text-center mt-12 shrink-0 relative">
-                             <div className="absolute -top-10 left-1/2 -translate-x-1/2 text-[150px] font-black text-white/5 italic select-none leading-none">DONE</div>
-                            <h2 className="text-5xl md:text-7xl font-black italic uppercase text-white tracking-tighter leading-none mb-6 relative z-10">DATA_SYNC_COMPLETE</h2>
-                            <div className="inline-block px-12 py-4 bg-emerald-500/10 border-2 border-emerald-500/30 rounded-[2.5rem] shadow-2xl relative z-10">
-                                <span className="text-emerald-400 font-black text-4xl italic uppercase tracking-widest">{score} PACKETS EXTRACTED</span>
+                        <div className="text-center mt-6 md:mt-12 shrink-0 relative">
+                             <div className="absolute -top-10 left-1/2 -translate-x-1/2 text-[120px] font-black text-white/5 italic select-none leading-none">DONE</div>
+                            <h2 className="text-4xl md:text-7xl font-black italic uppercase text-white tracking-tighter leading-none mb-4 md:mb-6 relative z-10">DATA_SYNC_COMPLETE</h2>
+                            <div className="inline-block px-8 py-2 md:px-12 md:py-4 bg-emerald-500/10 border-2 border-emerald-500/30 rounded-xl md:rounded-[2.5rem] shadow-2xl relative z-10">
+                                <span className="text-emerald-400 font-black text-2xl md:text-4xl italic uppercase tracking-widest">{score} PACKETS EXTRACTED</span>
                             </div>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto mt-12 space-y-4 mb-10 scrollbar-hide bg-black/60 rounded-[4rem] p-10 border-2 border-white/5 shadow-inner">
+                        <div className="flex-1 overflow-y-auto mt-8 md:mt-12 space-y-4 mb-6 md:mb-10 scrollbar-hide bg-black/60 rounded-3xl md:rounded-[4rem] p-6 md:p-10 border-2 border-white/5 shadow-inner">
                             {history.map((h, i) => (
-                                <div key={i} className={`p-6 rounded-3xl flex justify-between items-center border-2 animate-fade-in ${h.correct ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-400' : 'bg-red-500/5 border-red-500/20 text-red-500/40'}`} style={{ animationDelay: `${i * 80}ms` }}>
-                                    <span className="font-black italic uppercase text-3xl tracking-tighter truncate max-w-[75%] font-horror">{h.word}</span>
-                                    <span className={`text-[10px] font-black border-2 px-5 py-2 rounded-full uppercase tracking-widest ${h.correct ? 'border-emerald-500/40 text-emerald-500' : 'border-red-500/40 text-red-500'}`}>
+                                <div key={i} className={`p-4 md:p-6 rounded-2xl md:rounded-3xl flex justify-between items-center border-2 animate-fade-in ${h.correct ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-400' : 'bg-red-500/5 border-red-500/20 text-red-500/40'}`} style={{ animationDelay: `${i * 80}ms` }}>
+                                    <span className="font-black italic uppercase text-xl md:text-3xl tracking-tighter truncate max-w-[75%] font-horror">{h.word}</span>
+                                    <span className={`text-[8px] md:text-[10px] font-black border-2 px-3 py-1 md:px-5 md:py-2 rounded-full uppercase tracking-widest ${h.correct ? 'border-emerald-500/40 text-emerald-500' : 'border-red-500/40 text-red-500'}`}>
                                         {h.correct ? 'SYNCED' : 'VOID'}
                                     </span>
                                 </div>
                             ))}
                         </div>
 
-                        <div className="space-y-6 shrink-0 pb-[calc(2.5rem+var(--safe-bottom))] bg-zinc-950 pt-4 max-w-xl mx-auto w-full">
+                        <div className="space-y-4 md:space-y-6 shrink-0 pb-[calc(1.5rem+var(--safe-bottom))] bg-zinc-950 pt-2 max-w-xl mx-auto w-full">
                             <button 
                                 onClick={() => setGameState('MENU')} 
-                                className="w-full py-8 bg-white text-black font-black uppercase italic rounded-3xl text-3xl shadow-[0_12px_0px_#10b981] active:translate-y-2 active:shadow-none transition-all hover:bg-emerald-50"
+                                className="w-full py-5 md:py-8 bg-white text-black font-black uppercase italic rounded-2xl md:rounded-3xl text-xl md:text-3xl shadow-[0_10px_0px_#10b981] active:translate-y-2 active:shadow-none transition-all hover:bg-emerald-50"
                             >
-                                Establish_New_Link
+                                New_Uplink
                             </button>
                             <button 
                                 onClick={onBack} 
-                                className="w-full py-2 text-zinc-700 font-black uppercase text-xs tracking-[0.5em] italic hover:text-zinc-400 transition-colors text-center"
+                                className="w-full py-2 text-zinc-700 font-black uppercase text-[10px] tracking-[0.5em] italic hover:text-zinc-400 transition-colors text-center"
                             >
-                                [ TERMINATE_SESSION ]
+                                [ TERMINATE ]
                             </button>
                         </div>
                     </div>

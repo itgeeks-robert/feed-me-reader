@@ -1,5 +1,5 @@
 // This service is adapted from the vanilla JavaScript Tetris implementation
-// by Jake Gordon. Original source: https://github.com/jakesgordon/javascript-tetris
+// by Jake Gordon. Overhauled for VOID ARCADE with neon aesthetic and ghost logic.
 
 //-------------------------------------------------------------------------
 // Type Definitions
@@ -8,6 +8,7 @@ export interface PieceType {
   size: number;
   blocks: number[];
   color: string;
+  glow: string;
 }
 
 interface GameOptions {
@@ -30,22 +31,21 @@ interface Piece {
 }
 
 //-------------------------------------------------------------------------
-// Constants
+// Constants - Neon Palette
 //-------------------------------------------------------------------------
 
 const DIR = { UP: 0, RIGHT: 1, DOWN: 2, LEFT: 3, MIN: 0, MAX: 3 };
 const NEXT_QUEUE_SIZE = 3;
 
-const I: PieceType = { size: 4, blocks: [0x0F00, 0x2222, 0x00F0, 0x4444], color: '#33C4C4' };
-const J: PieceType = { size: 3, blocks: [0x44C0, 0x8E00, 0x6440, 0x0E20], color: '#3355C4' };
-const L: PieceType = { size: 3, blocks: [0x4460, 0x0E80, 0xC440, 0x2E00], color: '#C47B33' };
-const O: PieceType = { size: 2, blocks: [0xCC00, 0xCC00, 0xCC00, 0xCC00], color: '#C4C433' };
-const S: PieceType = { size: 3, blocks: [0x06C0, 0x8C40, 0x6C00, 0x4620], color: '#33C433' };
-const T: PieceType = { size: 3, blocks: [0x0E40, 0x4C40, 0x4E00, 0x4640], color: '#8833C4' };
-const Z: PieceType = { size: 3, blocks: [0x0C60, 0x4C80, 0xC600, 0x2640], color: '#C43333' };
+const I: PieceType = { size: 4, blocks: [0x0F00, 0x2222, 0x00F0, 0x4444], color: '#22d3ee', glow: '#06b6d4' };
+const J: PieceType = { size: 3, blocks: [0x44C0, 0x8E00, 0x6440, 0x0E20], color: '#3b82f6', glow: '#2563eb' };
+const L: PieceType = { size: 3, blocks: [0x4460, 0x0E80, 0xC440, 0x2E00], color: '#f59e0b', glow: '#d97706' };
+const O: PieceType = { size: 2, blocks: [0xCC00, 0xCC00, 0xCC00, 0xCC00], color: '#fbbf24', glow: '#f59e0b' };
+const S: PieceType = { size: 3, blocks: [0x06C0, 0x8C40, 0x6C00, 0x4620], color: '#10b981', glow: '#059669' };
+const T: PieceType = { size: 3, blocks: [0x0E40, 0x4C40, 0x4E00, 0x4640], color: '#a78bfa', glow: '#8b5cf6' };
+const Z: PieceType = { size: 3, blocks: [0x0C60, 0x4C80, 0xC600, 0x2640], color: '#e11d48', glow: '#be123c' };
 
 const pieces = [I, J, L, O, S, T, Z];
-const courtBgColors = ['#1a1a1a', '#292929']; 
 
 //-------------------------------------------------------------------------
 // Main Game Export
@@ -124,7 +124,7 @@ export function startGame(options: GameOptions) {
 
   const setScore = (n: number) => { score = n; options.onScoreUpdate(n); };
   const setRows = (n: number) => { rows = n; setLevel(Math.floor(n / 10)); options.onRowsUpdate(n); };
-  const setLevel = (n: number) => { level = n; step = 1 - (level * 0.05); options.onLevelUpdate(n); };
+  const setLevel = (n: number) => { level = n; step = Math.max(0.1, 0.8 - (level * 0.05)); options.onLevelUpdate(n); };
   const setHold = (piece: PieceType | null) => { hold = piece; options.onHoldUpdate(piece); };
   
   const getBlock = (x: number, y: number) => (court[x] ? court[x][y] : null);
@@ -198,23 +198,46 @@ export function startGame(options: GameOptions) {
     if (invalid) {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       drawCourt();
+      drawGhost();
       drawPiece(ctx, current.type, current.x, current.y, current.dir);
       invalid = false;
     }
   };
 
   const drawCourt = () => {
+    // Draw matrix background
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+    ctx.lineWidth = 1;
+    for (let x = 0; x <= nx; x++) {
+      ctx.beginPath(); ctx.moveTo(x * dx, 0); ctx.lineTo(x * dx, canvas.height); ctx.stroke();
+    }
+    for (let y = 0; y <= ny; y++) {
+      ctx.beginPath(); ctx.moveTo(0, y * dy); ctx.lineTo(canvas.width, y * dy); ctx.stroke();
+    }
+
     for (let y = 0; y < ny; y++) {
       for (let x = 0; x < nx; x++) {
         const block = getBlock(x, y);
         if (block) {
-            drawBlock(ctx, x, y, block);
-        } else {
-            const colorIndex = (x + y) % 2;
-            ctx.fillStyle = courtBgColors[colorIndex];
-            ctx.fillRect(x * dx, y * dy, dx, dy);
+            drawBlock(ctx, x, y, block as string);
         }
       }
+    }
+  };
+
+  const drawGhost = () => {
+    let ghostY = current.y;
+    while (!occupied(current.type, current.x, ghostY + 1, current.dir)) {
+      ghostY++;
+    }
+    if (ghostY !== current.y) {
+      eachblock(current.type, current.x, ghostY, current.dir, (x, y) => {
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+        ctx.setLineDash([2, 2]);
+        ctx.strokeRect(x * dx + 2, y * dy + 2, dx - 4, dy - 4);
+        ctx.restore();
+      });
     }
   };
 
@@ -225,7 +248,7 @@ export function startGame(options: GameOptions) {
   const drawPieceOnCanvas = (targetCtx: CanvasRenderingContext2D, pieceType: PieceType | null, xOffset: number, yOffset: number) => {
         if (!pieceType) return;
         const tempDx = targetCtx.canvas.width / 5;
-        const tempDy = targetCtx.canvas.width / 5; // Use width for both to maintain aspect ratio
+        const tempDy = targetCtx.canvas.width / 5; 
         
         const padding = (pieceType.size === 2 ? 1.5 : pieceType.size === 3 ? 1 : 0.5);
         eachblock(pieceType, padding + xOffset, padding + yOffset, DIR.UP, (x,y) => drawBlock(targetCtx, x, y, pieceType.color, tempDx, tempDy));
@@ -235,19 +258,28 @@ export function startGame(options: GameOptions) {
     const px = x * blockDx;
     const py = y * blockDy;
     
+    // Main Body
     c.fillStyle = color;
-    c.fillRect(px, py, blockDx, blockDy);
+    c.fillRect(px + 1, py + 1, blockDx - 2, blockDy - 2);
 
-    const gradient = c.createLinearGradient(px, py, px + blockDx, py + blockDy);
-    gradient.addColorStop(0, 'rgba(255, 255, 255, 0.4)');
-    gradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.0)');
-    gradient.addColorStop(1, 'rgba(0, 0, 0, 0.4)');
-    c.fillStyle = gradient;
-    c.fillRect(px, py, blockDx, blockDy);
-    
-    c.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+    // Inner Glow
+    c.save();
+    c.shadowBlur = 15;
+    c.shadowColor = color;
+    c.strokeStyle = 'white';
     c.lineWidth = 1;
-    c.strokeRect(px + 0.5, py + 0.5, blockDx - 1, blockDy - 1);
+    c.strokeRect(px + 3, py + 3, blockDx - 6, blockDy - 6);
+    c.restore();
+
+    // Top Highlight (Technical edge)
+    c.fillStyle = 'rgba(255, 255, 255, 0.3)';
+    c.fillRect(px + 1, py + 1, blockDx - 2, 2);
+    c.fillRect(px + 1, py + 1, 2, blockDy - 2);
+    
+    // Bottom Shadow
+    c.fillStyle = 'rgba(0, 0, 0, 0.4)';
+    c.fillRect(px + 1, py + blockDy - 3, blockDx - 2, 2);
+    c.fillRect(px + blockDx - 3, py + 1, 2, blockDy - 2);
   };
   
   const frame = () => {
@@ -263,7 +295,7 @@ export function startGame(options: GameOptions) {
     canvas = options.canvas;
     ctx = canvas.getContext('2d')!;
 
-    // Use a fixed internal resolution. CSS will handle scaling the canvas element.
+    // Scaled internal resolution
     canvas.width = 300;
     canvas.height = 600;
     
@@ -291,9 +323,11 @@ export function startGame(options: GameOptions) {
     softDrop: () => playing && drop(),
     hardDrop: () => {
       if (playing) {
-        while (move(0, 1)) { /* do nothing */ }
+        while (move(0, 1)) { /* keep going */ }
         drop();
-        // Reset the timer after the synchronous drop to prevent "catch-up" speed burst.
+        // Shake feedback
+        canvas.classList.add('animate-shake');
+        setTimeout(() => canvas.classList.remove('animate-shake'), 200);
         last = window.performance.now();
         dt = 0;
       }
