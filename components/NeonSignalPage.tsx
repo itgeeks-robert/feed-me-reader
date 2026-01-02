@@ -1,22 +1,19 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { XIcon, ClockIcon, SparklesIcon, FireIcon, BookOpenIcon, ArrowPathIcon } from './icons';
+/* Added VoidIcon to imports to resolve the 'Cannot find name' error on line 281 */
+import { XIcon, ClockIcon, SparklesIcon, FireIcon, BookOpenIcon, ArrowPathIcon, VoidIcon } from './icons';
 import { VOID_DATA } from '../voidDataArchive';
 import { NEON_IMAGES } from '../neonSignalAssets';
 import OrientationGuard from './OrientationGuard';
 
 /**
- * NEON SIGNAL: DATA_SYNC v17.0
- * Optimized for Forehead-Mount Haptics and Kinetic Accuracy.
- * UI Enhancement: Rugged Terminal Bezel and High-Contrast Visuals.
+ * NEON SIGNAL: DATA_SYNC v18.2
+ * Optimized with DYNAMIC_CALIBRATION.
+ * Fixes: Re-centering loop, twitch-triggering, and axis-mapping errors.
  */
 
 const GAME_DURATION = 60;
-
-// THRESHOLDS for a Landscape device held on the forehead
-const TILT_SYNC = 135;   // Tilt DOWN (forward)
-const TILT_VOID = 45;    // Tilt UP (back)
-const NEUTRAL_MIN = 75;  // Zone to reset trigger
-const NEUTRAL_MAX = 105; // Zone to reset trigger
+const TRIGGER_DELTA = 30; // Degrees to tilt for action
+const NEUTRAL_DELTA = 15; // Degrees from reference to clear lock
 
 interface NeonSignalProps {
     onBack: () => void;
@@ -35,11 +32,15 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
     const [history, setHistory] = useState<{ word: string; correct: boolean }[]>([]);
     const [flash, setFlash] = useState<'NONE' | 'SYNC' | 'VOID'>('NONE');
     
-    const tiltLock = useRef(false);
-    const neutralLock = useRef(false); 
+    // Kinetic State Tracking
+    const referencePitch = useRef<number | null>(null);
+    const neutralLock = useRef(false);
+    const actionLock = useRef(false);
+    const gracePeriodActive = useRef(false);
     const timerRef = useRef<number | null>(null);
 
     const startTransmission = async (catId: string, catName: string) => {
+        // Request Motion Permissions (Required for modern mobile browsers)
         if (typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
             try {
                 const response = await (DeviceOrientationEvent as any).requestPermission();
@@ -62,6 +63,7 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
 
         if (words.length === 0) words = ["VOID", "SIGNAL", "NETWORK", "DECRYPT"];
 
+        // Shuffle logic
         const shuffled = [...words];
         for (let i = shuffled.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
@@ -76,18 +78,19 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
         setHistory([]);
         setScore(0);
         setCurrentIndex(0);
+        referencePitch.current = null; // Reset calibration
         neutralLock.current = false;
-        tiltLock.current = false;
+        actionLock.current = false;
     };
 
     const handleAction = useCallback((correct: boolean) => {
-        if (gameState !== 'PLAYING' || tiltLock.current) return;
+        if (gameState !== 'PLAYING' || actionLock.current || gracePeriodActive.current) return;
         
-        tiltLock.current = true;
+        actionLock.current = true;
         neutralLock.current = true; 
 
         if (window.navigator.vibrate) {
-            window.navigator.vibrate(correct ? 50 : [50, 50, 50]);
+            window.navigator.vibrate(correct ? 60 : [40, 40, 40]);
         }
 
         const currentWord = activePool[currentIndex];
@@ -101,9 +104,10 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
         
         if (currentIndex < activePool.length - 1) {
             setCurrentIndex(prev => prev + 1);
+            // Lock for a moment to prevent multiple registrations
             setTimeout(() => { 
-                tiltLock.current = false; 
-            }, 600);
+                actionLock.current = false; 
+            }, 700);
         } else {
             setGameState('RESULTS');
         }
@@ -113,21 +117,33 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
         const handleOrientation = (e: DeviceOrientationEvent) => {
             if (gameState !== 'PLAYING' || e.beta === null) return;
             
-            const beta = e.beta;
+            // On landscape, 'beta' usually maps to the 'nodding' movement 
+            // of a phone held upright on a forehead.
+            const currentPitch = e.beta;
 
+            // 1. CALIBRATION: Take the first reading as the reference "Zero"
+            if (referencePitch.current === null) {
+                referencePitch.current = currentPitch;
+                return;
+            }
+
+            const delta = currentPitch - referencePitch.current;
+
+            // 2. NEUTRAL LOCK: Require user to return to starting position after an action
             if (neutralLock.current) {
-                if (beta > NEUTRAL_MIN && beta < NEUTRAL_MAX) {
+                if (Math.abs(delta) < NEUTRAL_DELTA) {
                     neutralLock.current = false;
                 }
                 return; 
             }
 
-            if (tiltLock.current) return;
+            if (actionLock.current) return;
 
-            if (beta > TILT_SYNC) {
-                handleAction(true);
-            } else if (beta < TILT_VOID) {
-                handleAction(false);
+            // 3. ACTION TRIGGERS
+            if (delta > TRIGGER_DELTA) {
+                handleAction(true); // TILT DOWN (Forward)
+            } else if (delta < -TRIGGER_DELTA) {
+                handleAction(false); // TILT UP (Backward)
             }
         };
 
@@ -143,6 +159,11 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
         } else if (gameState === 'COUNTDOWN' && timeLeft === 0) {
             setGameState('PLAYING');
             setTimeLeft(GAME_DURATION);
+            
+            // Initial grace period to prevent accidental triggers while mounting
+            gracePeriodActive.current = true;
+            setTimeout(() => { gracePeriodActive.current = false; }, 1000);
+            
         } else if (gameState === 'PLAYING' && timeLeft === 0) {
             setGameState('RESULTS');
         }
@@ -240,7 +261,7 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
         <OrientationGuard landscapeOnly={gameState === 'COUNTDOWN' || gameState === 'PLAYING'}>
              <div className="w-full h-full bg-zinc-950 overflow-hidden font-mono relative">
                 
-                {/* DYNAMIC CCTV BACKGROUND LAYER - INTENSIFIED */}
+                {/* DYNAMIC CCTV BACKGROUND LAYER */}
                 {(gameState === 'PLAYING' || gameState === 'COUNTDOWN') && (
                     <div className="absolute inset-0 z-0 bg-zinc-950">
                         <img 
@@ -256,14 +277,15 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
 
                 {gameState === 'COUNTDOWN' && (
                     <div className="w-full h-full flex flex-col items-center justify-center text-center p-10 relative z-10">
-                        <div className="relative z-10">
-                            <div className="inline-block px-12 py-4 bg-white text-black font-black uppercase italic tracking-[0.5em] rounded-full mb-12 shadow-[0_0_80px_rgba(255,255,255,0.2)] animate-pulse border-4 border-black/10">
-                                MOUNT_TERMINAL_ON_FOREHEAD
+                        <div className="relative z-10 flex flex-col items-center">
+                            <div className="p-8 bg-pulse-500/10 border-4 border-pulse-500 rounded-[3rem] mb-12 shadow-[0_0_100px_rgba(225,29,72,0.3)] animate-pulse">
+                                <VoidIcon className="w-20 h-20 text-white" />
                             </div>
-                            <p className="text-white/40 text-[11px] font-black uppercase tracking-[0.4em] mb-12 italic">
-                                Tilt DOWN for SYNC <span className="mx-4 text-white/20">//</span> Tilt UP for VOID
-                            </p>
-                            <div className="text-[clamp(8rem,40vw,20rem)] font-black text-white italic animate-ping leading-none drop-shadow-[0_0_40px_rgba(255,255,255,0.4)]">
+                            <h2 className="text-3xl font-black text-white italic uppercase tracking-widest mb-4">CALIBRATING_SENSORS</h2>
+                            <div className="inline-block px-12 py-4 bg-white text-black font-black uppercase italic tracking-[0.4em] rounded-full mb-12 shadow-2xl border-4 border-black/10">
+                                PLACE_ON_FOREHEAD_NOW
+                            </div>
+                            <div className="text-[clamp(10rem,40vw,20rem)] font-black text-white italic animate-ping leading-none drop-shadow-[0_0_60px_rgba(255,255,255,0.4)]">
                                 {timeLeft}
                             </div>
                         </div>
@@ -275,7 +297,7 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
                     <div className="w-full h-full p-4 sm:p-8 md:p-12 relative z-10">
                         
                         {/* PHYSICAL TERMINAL FRAME EFFECT */}
-                        <div className={`w-full h-full border-[6px] md:border-[12px] border-zinc-900 rounded-[2.5rem] md:rounded-[4rem] overflow-hidden flex flex-col transition-all duration-500 relative shadow-[0_0_100px_rgba(0,0,0,0.8),inset_0_0_20px_rgba(255,255,255,0.05)] ${timeLeft <= 10 ? 'bg-red-950/25 border-red-900/40' : 'bg-black/30 border-zinc-800'}`}>
+                        <div className={`w-full h-full border-[8px] md:border-[16px] border-zinc-900 rounded-[2.5rem] md:rounded-[4rem] overflow-hidden flex flex-col transition-all duration-500 relative shadow-[0_0_100px_rgba(0,0,0,0.8),inset_0_0_20px_rgba(255,255,255,0.05)] ${timeLeft <= 10 ? 'bg-red-950/25 border-red-900/40' : 'bg-black/30 border-zinc-800'}`}>
                             
                             {/* Inner Bezel Glow */}
                             <div className="absolute inset-0 pointer-events-none shadow-[inset_0_0_40px_rgba(0,0,0,0.5)] z-20" />
@@ -286,11 +308,11 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
                                     className="flex items-center gap-3 px-5 py-3 bg-zinc-900/90 border-2 border-pulse-500/40 rounded-2xl text-pulse-500 font-black uppercase italic text-[10px] tracking-widest backdrop-blur-md active:scale-95 transition-all shadow-2xl"
                                 >
                                     <XIcon className="w-5 h-5" />
-                                    <span>ABORT_LINK</span>
+                                    <span>ABORT</span>
                                 </button>
 
                                 <div className="flex flex-col items-end">
-                                    <span className="text-[9px] font-black text-white/30 uppercase tracking-[0.3em] leading-none mb-2 italic">ENCRYPT_LEVEL_7</span>
+                                    <span className="text-[9px] font-black text-white/30 uppercase tracking-[0.3em] leading-none mb-2 italic">ENCRYPT_v8.4</span>
                                     <span className="text-xs font-black text-emerald-500 uppercase tracking-[0.4em] leading-none italic animate-pulse flex items-center gap-2">
                                         <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_#10b981]" />
                                         LIVE_SYNC
@@ -307,11 +329,11 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
                             </div>
 
                             <div className="flex-1 flex flex-col items-center justify-center p-8 md:p-20 text-center relative z-10">
-                                {/* RESET INDICATOR */}
+                                {/* RESET INDICATOR - Shows when looking for Neutral */}
                                 {neutralLock.current && (
-                                    <div className="absolute top-12 left-1/2 -translate-x-1/2 flex items-center gap-3 px-6 py-2 bg-white/10 border-2 border-white/20 rounded-full animate-fade-in backdrop-blur-xl shadow-2xl">
-                                        <ArrowPathIcon className="w-4 h-4 text-white animate-spin" />
-                                        <span className="text-[10px] font-black text-white uppercase tracking-[0.4em] italic">RE-CENTERING</span>
+                                    <div className="absolute top-12 left-1/2 -translate-x-1/2 flex items-center gap-3 px-8 py-3 bg-white/10 border-2 border-white/20 rounded-full animate-fade-in backdrop-blur-xl shadow-2xl">
+                                        <ArrowPathIcon className="w-5 h-5 text-white animate-spin" />
+                                        <span className="text-[12px] font-black text-white uppercase tracking-[0.4em] italic">RETURN_TO_NEUTRAL</span>
                                     </div>
                                 )}
 
@@ -319,7 +341,7 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
                                     DECRYPTING_SIGNAL: {selectedCatName}
                                 </div>
                                 
-                                <h2 className="text-[clamp(3rem,14vw,10rem)] font-black text-white uppercase italic tracking-tighter leading-[0.8] mb-20 drop-shadow-[0_0_50px_rgba(255,255,255,0.4)] font-horror transition-all duration-300">
+                                <h2 className="text-[clamp(3.5rem,15vw,11rem)] font-black text-white uppercase italic tracking-tighter leading-[0.8] mb-20 font-horror drop-shadow-[0_10px_60px_rgba(0,0,0,1)] transition-all duration-300">
                                     {activePool[currentIndex]}
                                 </h2>
                                 
@@ -333,12 +355,10 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
                                 </div>
                             </div>
                             
-                            {/* DECORATIVE TERMINAL DATA */}
                             <footer className="px-12 py-8 flex justify-between items-end shrink-0 z-20 pointer-events-none border-t border-white/5">
                                 <div className="text-[9px] font-black text-white/20 uppercase tracking-widest leading-loose italic">
-                                    SIG_STRENGTH: 99.1%<br/>
-                                    LATENCY: 0.001ms<br/>
-                                    NODE_ID: {selectedCatId.toUpperCase()}
+                                    CALIBRATED_PITCH: {referencePitch.current ? referencePitch.current.toFixed(1) : 'PENDING'}°<br/>
+                                    SIG_STRENGTH: 99.8%<br/>
                                 </div>
                                 <div className="text-[9px] font-black text-zinc-700 uppercase tracking-[0.5em] italic">
                                     VOID_PROTOCOL_RECRUIT_OS
@@ -361,7 +381,7 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
                         <div className="flex-1 overflow-y-auto mt-12 space-y-4 mb-10 scrollbar-hide bg-black/60 rounded-[4rem] p-10 border-2 border-white/5 shadow-inner">
                             {history.map((h, i) => (
                                 <div key={i} className={`p-6 rounded-3xl flex justify-between items-center border-2 animate-fade-in ${h.correct ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-400' : 'bg-red-500/5 border-red-500/20 text-red-500/40'}`} style={{ animationDelay: `${i * 80}ms` }}>
-                                    <span className="font-black italic uppercase text-3xl tracking-tighter truncate max-w-[75%]">{h.word}</span>
+                                    <span className="font-black italic uppercase text-3xl tracking-tighter truncate max-w-[75%] font-horror">{h.word}</span>
                                     <span className={`text-[10px] font-black border-2 px-5 py-2 rounded-full uppercase tracking-widest ${h.correct ? 'border-emerald-500/40 text-emerald-500' : 'border-red-500/40 text-red-500'}`}>
                                         {h.correct ? 'SYNCED' : 'VOID'}
                                     </span>
