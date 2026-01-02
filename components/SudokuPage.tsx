@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { generateSudoku } from '../services/sudoku';
 import { PencilIcon, LightBulbIcon, EraserIcon, VoidIcon, XIcon, ArrowPathIcon, CpuChipIcon, SparklesIcon, BookOpenIcon, ExclamationTriangleIcon } from './icons';
@@ -195,6 +196,28 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
         }
     };
 
+    // Calculate which numbers are already in the constraints of the selected cell
+    const usedInConstraints = useMemo(() => {
+        if (!selectedCell || !grid) return new Set<number>();
+        const { row: r, col: c } = selectedCell;
+        const used = new Set<number>();
+        
+        // Check Row
+        for (let j = 0; j < 9; j++) if (grid[r][j].value && !grid[r][j].isError) used.add(grid[r][j].value!);
+        // Check Col
+        for (let i = 0; i < 9; i++) if (grid[i][c].value && !grid[i][c].isError) used.add(grid[i][c].value!);
+        // Check 3x3 Block
+        const startR = Math.floor(r / 3) * 3;
+        const startC = Math.floor(c / 3) * 3;
+        for (let i = 0; i < 3; i++) {
+            for (let j = 0; j < 3; j++) {
+                const val = grid[startR + i][startC + j].value;
+                if (val && !grid[startR + i][startC + j].isError) used.add(val);
+            }
+        }
+        return used;
+    }, [selectedCell, grid]);
+
     if (view === 'IDLE') {
         const cat = `sudoku_${difficulty.toLowerCase()}` as ScoreCategory;
         const topScores = getHighScores(cat);
@@ -247,27 +270,61 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
 
                 <div className="flex-grow flex items-center justify-center min-h-0">
                     {gameState === 'LOADING' ? <div className="text-neon-400 font-black animate-pulse uppercase tracking-[0.4em] italic">Synthesizing...</div> : (
-                        <div className="aspect-square w-full max-w-[350px] grid grid-cols-9 bg-black rounded-xl border-4 border-zinc-900 shadow-[0_0_50px_rgba(0,0,0,0.8)] relative overflow-hidden">
+                        <div className="aspect-square w-full max-w-[360px] grid grid-cols-9 bg-zinc-900 border-[3px] border-neon-400 shadow-[0_0_50px_rgba(34,211,238,0.3)] relative overflow-hidden ring-1 ring-white/5">
                             {grid?.map((row, r) => row.map((cell, c) => {
                                 const isSelected = selectedCell?.row === r && selectedCell?.col === c;
                                 const selectedCellValue = selectedCell ? grid[selectedCell.row][selectedCell.col].value : null;
+                                
                                 const isSameValue = cell.value !== null && selectedCellValue !== null && cell.value === selectedCellValue;
                                 const isSameRow = selectedCell?.row === r;
                                 const isSameCol = selectedCell?.col === c;
+                                
                                 const blockIndex = Math.floor(r / 3) * 3 + Math.floor(c / 3);
                                 const selectedBlockIndex = selectedCell ? Math.floor(selectedCell.row / 3) * 3 + Math.floor(selectedCell.col / 3) : -1;
                                 const isSameBlock = blockIndex === selectedBlockIndex;
 
-                                const borderR = (c + 1) % 3 === 0 && c < 8 ? 'border-r-4 border-neon-400' : 'border-r border-white/5';
-                                const borderB = (r + 1) % 3 === 0 && r < 8 ? 'border-b-4 border-neon-400' : 'border-b border-white/5';
+                                // 3x3 BLOCK BOUNDARIES
+                                // Consistent borders for all cells, thick for block edges
+                                const isRightBlockEdge = (c + 1) % 3 === 0 && c < 8;
+                                const isBottomBlockEdge = (r + 1) % 3 === 0 && r < 8;
+                                
+                                const borderClasses = `
+                                    border-r ${isRightBlockEdge ? 'border-r-4 border-neon-400/80' : 'border-r-zinc-700/50'}
+                                    border-b ${isBottomBlockEdge ? 'border-b-4 border-neon-400/80' : 'border-b-zinc-700/50'}
+                                `;
 
-                                let cellBg = isSelected ? "bg-pulse-600" : isSameValue ? "bg-neon-400/20" : (isSameRow || isSameCol || isSameBlock) ? "bg-zinc-800/40" : "bg-transparent";
+                                // HIGHLIGHT LOGIC
+                                let cellBg = "bg-zinc-900/40";
+                                if (isSelected) {
+                                    cellBg = "bg-neon-500 shadow-[inset_0_0_15px_rgba(0,0,0,0.5)] scale-[1.02] z-20";
+                                } else if (isSameValue) {
+                                    cellBg = "bg-neon-400/30"; // Highlight same digits
+                                } else if (isSameRow || isSameCol) {
+                                    cellBg = "bg-amber-500/15"; // Amber row/column axis highlight
+                                } else if (isSameBlock) {
+                                    cellBg = "bg-zinc-800/40";
+                                }
 
                                 return (
-                                    <div key={`${r}-${c}`} onClick={() => handleCellClick(r, c)} className={`aspect-square flex items-center justify-center text-xl font-bold cursor-pointer transition-colors duration-150 ${cellBg} ${borderR} ${borderB}`}>
-                                        {cell.value !== null ? <span className={cell.isError ? 'text-pulse-500' : cell.isPrefilled ? 'text-white' : 'text-signal-400'}>{cell.value}</span> : (
+                                    <div 
+                                        key={`${r}-${c}`} 
+                                        onClick={() => handleCellClick(r, c)} 
+                                        className={`aspect-square flex items-center justify-center text-xl font-bold cursor-pointer transition-all duration-150 ${cellBg} ${borderClasses}`}
+                                    >
+                                        {cell.value !== null ? (
+                                            <span className={`
+                                                ${cell.isError ? 'text-pulse-500' : cell.isPrefilled ? 'text-white' : 'text-emerald-400'} 
+                                                ${isSelected ? 'text-black' : ''}
+                                            `}>
+                                                {cell.value}
+                                            </span>
+                                        ) : (
                                             <div className="grid grid-cols-3 gap-[1px] p-1 w-full h-full opacity-30">
-                                                {[1,2,3,4,5,6,7,8,9].map(n => <div key={n} className="flex items-center justify-center text-[7px] leading-none font-black text-neon-400">{cell.notes.includes(n) ? n : ''}</div>)}
+                                                {[1,2,3,4,5,6,7,8,9].map(n => (
+                                                    <div key={n} className="flex items-center justify-center text-[7px] leading-none font-black text-neon-400">
+                                                        {cell.notes.includes(n) ? n : ''}
+                                                    </div>
+                                                ))}
                                             </div>
                                         )}
                                     </div>
@@ -278,9 +335,22 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
                 </div>
 
                 <div className="flex-shrink-0 grid grid-cols-6 gap-2 pb-8">
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
-                        <button key={num} onClick={() => handleNumberInput(num)} className="aspect-square bg-zinc-900 border border-white/10 rounded-xl text-xl font-black italic hover:bg-neon-500 hover:text-black active:scale-90 shadow-lg">{num}</button>
-                    ))}
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => {
+                        const isBlocked = selectedCell && usedInConstraints.has(num);
+                        return (
+                            <button 
+                                key={num} 
+                                onClick={() => handleNumberInput(num)} 
+                                disabled={isBlocked === true}
+                                className={`aspect-square border-2 rounded-xl text-xl font-black italic transition-all active:scale-90 shadow-lg
+                                    ${isBlocked 
+                                        ? 'bg-zinc-950 border-zinc-900 text-zinc-800 opacity-30 grayscale cursor-not-allowed' 
+                                        : 'bg-zinc-800 border-white/10 text-white hover:bg-neon-500 hover:text-black hover:border-white'}`}
+                            >
+                                {num}
+                            </button>
+                        );
+                    })}
                     <Tooltip text="Neural Probe: Mark potential node values without committing.">
                         <button onClick={() => setIsNotesMode(!isNotesMode)} className={`aspect-square rounded-xl flex items-center justify-center transition-all border-2 w-full h-full ${isNotesMode ? 'bg-neon-400 border-white text-black' : 'bg-zinc-800 border-white/5 text-zinc-500'}`}><PencilIcon className="w-6 h-6" /></button>
                     </Tooltip>

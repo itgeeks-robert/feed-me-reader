@@ -1,13 +1,15 @@
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { XIcon, RadioIcon, BoltIcon, SparklesIcon, VoidIcon, ShieldCheckIcon, GlobeAltIcon, ControllerIcon, FireIcon, CpuChipIcon, ArrowPathIcon, ExclamationTriangleIcon, BookOpenIcon } from './icons';
 import { VOID_DATA, CategoryNode } from '../voidDataArchive';
 import { saveHighScore, getHighScores } from '../services/highScoresService';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import { NEON_IMAGES } from '../neonSignalAssets';
 
 const MAX_MISTAKES = 7;
 const INITIAL_TIME = 60; 
 
-type GameState = 'INITIAL_SYNC' | 'LOBBY' | 'PLAYING' | 'WON' | 'LOST' | 'FINAL_RESULTS';
+type GameState = 'LOBBY' | 'PLAYING' | 'WON' | 'LOST' | 'FINAL_RESULTS';
 
 const KEYBOARD_ROWS = [
     ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"],
@@ -180,7 +182,7 @@ const HieroglyphicHangmanVisual: React.FC<{ mistakes: number; isShaking: boolean
 };
 
 const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => {
-    const [gameState, setGameState] = useLocalStorage<GameState>('void_hangman_state', 'INITIAL_SYNC');
+    const [gameState, setGameState] = useLocalStorage<GameState>('void_hangman_state', 'LOBBY');
     const [activeCategoryId, setCategoryId] = useLocalStorage<string>('void_hangman_cat_id', 'ALL');
     const [usedWords, setUsedWords] = useLocalStorage<Set<string>>('void_hangman_used_words', () => new Set());
     const [level, setLevel] = useLocalStorage<number>('void_hangman_level', 1);
@@ -189,34 +191,22 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
     const [mistakes, setMistakes] = useLocalStorage<number>('void_hangman_mistakes', 0);
     const [timeLeft, setTimeLeft] = useLocalStorage<number>('void_hangman_time', INITIAL_TIME);
     
-    const [syncProgress, setSyncProgress] = useState(0);
     const [isShocking, setIsShocking] = useState(false);
     const [initials, setInitials] = useState("");
     const [showHelp, setShowHelp] = useState(false);
     const [showSeverConfirm, setShowSeverConfirm] = useState(false);
     const timerRef = useRef<number | null>(null);
 
-    useEffect(() => {
-        if (gameState === 'INITIAL_SYNC') {
-            const duration = 2000;
-            const step = (50 / duration) * 100;
-            const timer = setInterval(() => {
-                setSyncProgress(prev => {
-                    if (prev >= 100) { clearInterval(timer); setGameState('LOBBY'); return 100; }
-                    return prev + step;
-                });
-            }, 50);
-            return () => clearInterval(timer);
-        }
-    }, [gameState, setGameState]);
-
-    const startRound = useCallback((lvl: number) => {
+    const startRound = useCallback((lvl: number, catId?: string) => {
+        const categoryIdToUse = catId || activeCategoryId;
         let pool: { word: string, catName: string }[] = [];
         
-        if (activeCategoryId === 'ALL') {
-            pool = VOID_DATA.flatMap(c => c.words.map(w => ({ word: w, catName: c.name })));
+        if (categoryIdToUse === 'ALL') {
+            pool = VOID_DATA
+                .filter(c => c.id !== 'actions_sounds') // Filter out non-text category
+                .flatMap(c => c.words.map(w => ({ word: w, catName: c.name })));
         } else {
-            const cat = VOID_DATA.find(c => c.id === activeCategoryId);
+            const cat = VOID_DATA.find(c => c.id === categoryIdToUse);
             if (cat) pool = cat.words.map(w => ({ word: w, catName: cat.name }));
         }
 
@@ -299,79 +289,76 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
         setTimeLeft(INITIAL_TIME);
     };
 
+    const filteredCategories = useMemo(() => VOID_DATA.filter(cat => cat.id !== 'actions_sounds'), []);
+
     const themeIndex = Math.min(level - 1, LEVEL_THEMES.length - 1);
     const themeColor = LEVEL_THEMES[themeIndex].color;
 
-    if (gameState === 'INITIAL_SYNC') {
-        return (
-            <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-950 p-6 font-mono text-white">
-                <div className="w-full max-w-sm">
-                    <div className="flex items-center gap-4 mb-8">
-                        <div className="p-2 bg-cyan-500/20 rounded-xl border border-cyan-500/30">
-                            <ArrowPathIcon className="w-10 h-10 text-cyan-400 animate-spin" />
-                        </div>
-                        <div className="flex flex-col">
-                            <h2 className="text-2xl font-black italic uppercase tracking-tighter leading-none">SIGNAL_BREACH</h2>
-                            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-cyan-400 mt-2">Syncing_Archive_Nodes</span>
-                        </div>
-                    </div>
-                    <div className="bg-zinc-900 border-2 border-zinc-800 p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden">
-                        <div className="absolute inset-0 pointer-events-none opacity-10">
-                            <div className="w-full h-full bg-[repeating-linear-gradient(0deg,transparent,transparent_2px,rgba(34,211,238,0.1)_2px,rgba(34,211,238,0.1)_4px)]" />
-                        </div>
-                        <div className="relative z-10 space-y-6">
-                            <div className="flex justify-between items-end">
-                                <span className="text-[10px] font-black uppercase text-zinc-500 italic tracking-widest leading-none">BUFFERING_WORDS...</span>
-                                <span className="text-xl font-black italic font-mono text-cyan-400 leading-none">{Math.floor(syncProgress)}%</span>
-                            </div>
-                            <div className="w-full h-4 bg-black border-2 border-zinc-800 rounded-full p-1 overflow-hidden">
-                                <div className="h-full bg-cyan-500 shadow-[0_0_15px_#22d3ee] transition-all duration-300 rounded-full" style={{ width: `${syncProgress}%` }} />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
     if (gameState === 'LOBBY') {
         return (
-            <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-950 p-4 font-mono overflow-y-auto scrollbar-hide">
-                <div className="w-full max-w-sm text-center bg-zinc-900 p-10 border-4 border-pulse-500 shadow-[0_0_100px_rgba(225,29,72,0.2)] rounded-[3rem]">
-                    <header className="mb-6">
-                        <span className="text-[10px] font-black uppercase text-cyan-400 tracking-[0.3em] italic block mb-1">ARCHIVE_INTERCEPT_v5</span>
-                        <h1 className="text-4xl font-black italic uppercase text-white tracking-tighter leading-none glitch-text">SIGNAL BREACH</h1>
-                    </header>
-                    
-                    <div className="mb-8 space-y-4">
-                        <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest block mb-4 italic">Select Target Frequency</span>
-                        <div className="grid grid-cols-1 gap-2">
-                            <button 
-                                onClick={() => setCategoryId('ALL')}
-                                className={`px-4 py-2.5 rounded-xl text-[9px] font-black border transition-all ${activeCategoryId === 'ALL' ? 'bg-cyan-500 border-cyan-400 text-black shadow-[0_0_15px_#22d3ee]' : 'bg-zinc-800 border-zinc-700 text-zinc-500'}`}
-                            >
-                                ALL SECTORS
-                            </button>
-                            {VOID_DATA.map(cat => (
-                                <button 
-                                    key={cat.id} 
-                                    onClick={() => setCategoryId(cat.id)} 
-                                    className={`flex justify-between items-center px-4 py-2.5 rounded-xl text-[9px] font-black border transition-all ${activeCategoryId === cat.id ? 'bg-cyan-500 border-cyan-400 text-black shadow-[0_0_15px_#22d3ee]' : 'bg-zinc-800 border-zinc-700 text-zinc-500'}`}
-                                >
-                                    <span>{cat.name}</span>
-                                    <span className="opacity-40">{cat.words.length} NODES</span>
-                                </button>
-                            ))}
-                        </div>
+            <div className="w-full h-full bg-zinc-950 p-6 font-mono overflow-y-auto scrollbar-hide flex flex-col animate-fade-in pb-32">
+                <header className="flex justify-between items-center mb-6 md:mb-12 shrink-0 mt-[var(--safe-top)]">
+                    <button onClick={onBackToHub} className="p-3 md:p-4 bg-zinc-900 rounded-2xl border border-white/10 active:scale-90 transition-all shadow-lg">
+                        <XIcon className="w-5 h-5 md:w-6 md:h-6 text-white"/>
+                    </button>
+                    <div className="text-right">
+                        <span className="text-[9px] md:text-[10px] text-cyan-400 font-black tracking-widest uppercase italic block mb-1">Protocol: SIGNAL_BREACH</span>
+                        <h1 className="text-xl md:text-3xl font-black italic text-white tracking-tighter leading-none uppercase">SECTOR_SELECT</h1>
                     </div>
-
-                    <div className="space-y-4">
-                        <button onClick={() => { setLevel(1); startRound(1); }} className="w-full py-6 bg-white text-black font-black uppercase italic rounded-2xl shadow-xl text-xl active:scale-95 transition-all">Establish Link</button>
-                        <button onClick={() => setShowHelp(true)} className="w-full py-3 bg-zinc-800 text-zinc-400 font-black uppercase italic rounded-xl border border-white/5 hover:text-white transition-all text-[10px] tracking-widest flex items-center justify-center gap-2">
-                            <BookOpenIcon className="w-4 h-4" /> Tactical Manual
+                </header>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-8 max-w-4xl mx-auto w-full">
+                    {filteredCategories.map((cat) => (
+                        <button 
+                            key={cat.id} 
+                            onClick={() => { setCategoryId(cat.id); setLevel(1); startRound(1, cat.id); }}
+                            className="relative w-full h-36 md:h-56 rounded-2xl md:rounded-[3rem] bg-black border-2 border-zinc-800 overflow-hidden hover:border-cyan-500 transition-all active:scale-95 group shadow-lg"
+                        >
+                            <div className="absolute inset-0">
+                                <img 
+                                    src={cat.img} 
+                                    alt="" 
+                                    className="w-full h-full object-cover opacity-40 grayscale group-hover:grayscale-0 group-hover:opacity-70 group-hover:scale-110 transition-all duration-1000 ease-out"
+                                />
+                                <div className="absolute inset-0 bg-cyan-950/20 mix-blend-color" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent" />
+                            </div>
+                            <div className="absolute bottom-4 left-4 md:bottom-8 md:left-8 text-left z-20">
+                                <span className="text-[7px] md:text-[10px] text-cyan-400 font-black tracking-[0.3em] uppercase italic block mb-1 md:mb-2 drop-shadow-md">
+                                    {cat.words.length} NODES DETECTED
+                                </span>
+                                <div className="text-lg md:text-3xl font-black text-white italic uppercase tracking-tighter leading-none drop-shadow-2xl">
+                                    {cat.name}
+                                </div>
+                            </div>
                         </button>
-                        <button onClick={onBackToHub} className="text-zinc-600 font-bold uppercase tracking-[0.4em] text-[10px] pt-4 block w-full italic">Abort_System</button>
-                    </div>
+                    ))}
+                    
+                    <button 
+                        onClick={() => { setCategoryId('ALL'); setLevel(1); startRound(1, 'ALL'); }} 
+                        className="relative w-full h-36 md:h-56 rounded-2xl md:rounded-[3rem] bg-black border-2 border-pulse-500 overflow-hidden active:scale-95 shadow-lg group"
+                    >
+                        <div className="absolute inset-0">
+                            <img 
+                                src={NEON_IMAGES.TIE_BREAKER} 
+                                className="w-full h-full object-cover opacity-40 grayscale group-hover:grayscale-0 group-hover:opacity-70 group-hover:scale-110 transition-all duration-1000 ease-out" 
+                                alt="" 
+                            />
+                            <div className="absolute inset-0 bg-pulse-950/30 mix-blend-color" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent" />
+                        </div>
+                        <div className="absolute bottom-4 left-4 md:bottom-8 md:left-8 text-left z-20">
+                            <span className="text-[7px] md:text-[10px] text-pulse-500 font-black tracking-[0.3em] uppercase italic block mb-1 md:mb-2 drop-shadow-md">MIXED_FREQUENCY_SYNC</span>
+                            <div className="text-lg md:text-3xl font-black text-white italic uppercase tracking-tighter leading-none drop-shadow-2xl">ALL SECTORS</div>
+                        </div>
+                    </button>
+                </div>
+                
+                <div className="mt-8 md:mt-16 flex flex-col items-center gap-6 shrink-0">
+                    <button onClick={() => setShowHelp(true)} className="flex items-center gap-3 px-8 py-3 bg-zinc-900 border border-white/5 rounded-2xl text-[9px] md:text-[10px] font-black text-zinc-500 uppercase italic tracking-[0.4em] hover:text-white transition-all shadow-xl">
+                        <BookOpenIcon className="w-4 h-4" />
+                        <span>Tactical_Manual</span>
+                    </button>
                 </div>
                 {showHelp && <TacticalManual onClose={() => setShowHelp(false)} />}
             </div>
@@ -382,14 +369,14 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
         <main className={`w-full h-full flex flex-col overflow-hidden font-mono text-white transition-all duration-75 relative ${isShocking ? 'bg-red-900/40' : ''}`}>
             <MainframeBackground level={level} isUrgent={timeLeft <= 30} urgencyType={timeLeft <= 10 ? 'RED' : timeLeft <= 30 ? 'AMBER' : 'NONE'} />
             <UrgencyOverlay timeLeft={timeLeft} />
-            <div className="absolute inset-0 border-[8px] md:border-[16px] border-zinc-900 pointer-events-none z-50"><div className="absolute inset-0 border-2 border-white/5" /></div>
+            <div className="absolute inset-0 border-[4px] md:border-[16px] border-zinc-900 pointer-events-none z-50"><div className="absolute inset-0 border-2 border-white/5" /></div>
             
-            <div className="flex-1 flex flex-col landscape:flex-row items-center justify-between p-4 md:p-8 landscape:p-10 relative z-10 overflow-hidden">
+            <div className="flex-1 flex flex-col landscape:flex-row items-center justify-between p-4 md:p-8 landscape:p-6 relative z-10 overflow-hidden">
                 
-                <div className="w-full landscape:w-[50%] flex flex-col items-center justify-center gap-4 landscape:gap-8 landscape:h-full py-4 shrink-0">
+                <div className="w-full landscape:w-[50%] flex flex-col items-center justify-center gap-4 landscape:gap-2 landscape:h-full py-2 shrink-0">
                     <HieroglyphicHangmanVisual mistakes={mistakes} isShaking={isShocking} level={level} />
                     
-                    <div className="text-[clamp(1.2rem,6vw,3.5rem)] landscape:text-[clamp(1rem,4vw,2.5rem)] font-black tracking-[0.2em] text-white italic whitespace-pre-wrap leading-tight font-horror drop-shadow-[0_0_20px_rgba(255,255,255,0.3)] flex flex-wrap justify-center text-center px-4 gap-y-4">
+                    <div className="text-[clamp(1.2rem,6vw,3.5rem)] landscape:text-[clamp(1rem,4vw,2.5rem)] font-black tracking-[0.2em] text-white italic whitespace-pre-wrap leading-tight font-horror drop-shadow-[0_0_20px_rgba(255,255,255,0.3)] flex flex-wrap justify-center text-center px-4 gap-y-2 landscape:gap-y-1">
                         {target?.word.split(' ').map((word, wordIdx) => (
                             <span key={wordIdx} className="inline-flex whitespace-nowrap">
                                 {word.split('').map((char, charIdx) => {
@@ -398,7 +385,7 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
                                     return (
                                         <span key={charIdx} className={`relative min-w-[0.8em] transition-all duration-300 ${isGuessed ? "text-white" : "text-white/60"}`}>
                                             {isGuessed ? char : "_"}
-                                            {!isGuessed && <div className="absolute bottom-1 left-0 right-0 h-1 bg-white/20 rounded-full" />}
+                                            {!isGuessed && <div className="absolute bottom-1 left-0 right-0 h-0.5 md:h-1 bg-white/20 rounded-full" />}
                                         </span>
                                     );
                                 })}
@@ -408,10 +395,10 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
                     </div>
                 </div>
 
-                <div className="w-full landscape:w-[50%] flex flex-col gap-4 md:gap-6 landscape:h-full landscape:justify-center relative z-20 overflow-y-auto scrollbar-hide">
-                    <div className="flex flex-col gap-3 w-full max-w-sm mx-auto shrink-0">
+                <div className="w-full landscape:w-[50%] flex flex-col gap-4 md:gap-6 landscape:gap-2 landscape:h-full landscape:justify-center relative z-20 overflow-y-auto scrollbar-hide">
+                    <div className="flex flex-col gap-3 landscape:gap-2 w-full max-sm mx-auto shrink-0">
                         <TelemetryHub level={level} timeLeft={timeLeft} color={themeColor} isLandscape={true} />
-                        <div className="flex items-center justify-between px-6 py-2 bg-black/40 border-2 rounded-full transition-colors duration-500 shadow-xl border-white/5" style={{ borderColor: `${themeColor}22` }}>
+                        <div className="flex items-center justify-between px-6 py-2 landscape:py-1 bg-black/40 border-2 rounded-full transition-colors duration-500 shadow-xl border-white/5" style={{ borderColor: `${themeColor}22` }}>
                             <span className="text-[9px] font-black uppercase tracking-[0.4em] italic transition-colors duration-500 truncate max-w-[80%]" style={{ color: themeColor }}>
                                 {target?.category} // ARCHIVE_NODE
                             </span>
@@ -420,9 +407,9 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
                         <LinkIntegrityCounter mistakes={mistakes} level={level} />
                     </div>
 
-                    <div className="w-full bg-zinc-900/40 landscape:bg-void-900/40 backdrop-blur-2xl border-t-2 border-black/40 landscape:border-2 landscape:border-white/5 p-3 md:p-6 landscape:p-6 rounded-2xl flex flex-col gap-2 md:gap-4 shrink-0 shadow-2xl">
+                    <div className="w-full bg-zinc-900/40 landscape:bg-void-900/40 backdrop-blur-2xl border-t-2 border-black/40 landscape:border-2 landscape:border-white/5 p-3 md:p-6 landscape:p-4 rounded-2xl flex flex-col gap-2 md:gap-4 landscape:gap-1.5 shrink-0 shadow-2xl">
                         {KEYBOARD_ROWS.map((row, rowIndex) => (
-                            <div key={rowIndex} className="flex justify-center gap-1 md:gap-3 landscape:gap-2.5">
+                            <div key={rowIndex} className="flex justify-center gap-1 md:gap-3 landscape:gap-1.5">
                                 {row.map(char => {
                                     const isGuessed = guessedLetters.has(char); 
                                     const isCorrect = target?.word.includes(char);
@@ -431,7 +418,7 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
                                             key={char} 
                                             onClick={() => handleGuess(char)} 
                                             disabled={isGuessed} 
-                                            className={`flex-1 max-w-[80px] h-10 md:h-16 landscape:h-12 rounded-lg md:rounded-xl font-black text-xs md:text-2xl landscape:text-lg transition-all active:scale-90 
+                                            className={`flex-1 max-w-[80px] h-10 md:h-16 landscape:h-10 rounded-lg md:rounded-xl font-black text-xs md:text-2xl landscape:text-sm transition-all active:scale-90 
                                                 ${!isGuessed 
                                                     ? 'bg-zinc-800 text-white shadow-[0_4px_0_black] border-2 border-white/5 hover:bg-zinc-700' 
                                                     : isCorrect 
@@ -444,8 +431,8 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
                                 })}
                             </div>
                         ))}
-                        <div className="flex justify-center mt-2 border-t border-white/5 pt-4">
-                            <button onClick={() => setShowSeverConfirm(true)} className="flex items-center gap-2 px-8 py-3 bg-red-950/20 border-2 border-pulse-600/50 text-pulse-500 font-black uppercase italic text-[10px] tracking-widest rounded-xl hover:bg-pulse-600 hover:text-white transition-all active:scale-95 shadow-lg"><XIcon className="w-4 h-4" /><span>Sever_Link</span></button>
+                        <div className="flex justify-center mt-2 border-t border-white/5 pt-4 landscape:pt-2">
+                            <button onClick={() => setShowSeverConfirm(true)} className="flex items-center gap-2 px-8 py-3 landscape:py-1.5 bg-red-950/20 border-2 border-pulse-600/50 text-pulse-500 font-black uppercase italic text-[10px] tracking-widest rounded-xl hover:bg-pulse-600 hover:text-white transition-all active:scale-95 shadow-lg"><XIcon className="w-4 h-4" /><span>Sever_Link</span></button>
                         </div>
                     </div>
                 </div>
@@ -517,7 +504,7 @@ const TacticalManual: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                                 <SparklesIcon className="w-5 h-5 text-emerald-500" />
                                 <h3 className="text-lg font-black text-white italic uppercase tracking-tighter">Archive Recovery</h3>
                             </div>
-                            <p className="text-[10px] md:text-xs text-zinc-400 uppercase font-black leading-relaxed tracking-wider mb-4 border-l-2 border-emerald-500/30 pl-4">
+                            <p className="text-[10px] md:text-xs text-zinc-400 uppercase font-black leading-relaxed tracking-wider mb-4 border-l-2 border-pulse-500/30 pl-4">
                                 Breach the encrypted archive word before the terminal lock triggers. Synchronized with THE VOID master data.
                             </p>
                         </div>
