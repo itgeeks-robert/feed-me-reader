@@ -311,36 +311,39 @@ const App: React.FC = () => {
                 ) : selection.type === 'game_hub' ? (
                     <GameHubPage credits={credits} setShowShop={setIsShopOpen} onSelect={(type: any) => updateSelection({ type, id: null })} onReturnToFeeds={() => updateSelection({ type: 'all', id: null })} />
                 ) : isGameActive ? (
-                    <OrientationGuard portraitOnly>
-                        {selection.type === 'sudoku' && <SudokuPage stats={{totalWins: 0}} onGameWin={() => setCredits(c => c + 50)} onGameLoss={() => {}} onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} onReturnToFeeds={() => updateSelection({ type: 'all', id: null })} />}
-                        {selection.type === 'solitaire' && <SolitairePage stats={{gamesWon: 0, currentStreak: 0}} onGameWin={() => setCredits(c => c + 50)} onGameStart={() => {}} settings={{drawThree: true}} onUpdateSettings={() => {}} onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} onReturnToFeeds={() => updateSelection({ type: 'all', id: null })} />}
-                        {selection.type === 'minesweeper' && <MinesweeperPage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} onReturnToFeeds={() => updateSelection({ type: 'all', id: null })} onDefuse={() => setCredits(c => c + 50)} />}
-                        {selection.type === 'tetris' && <TetrisPage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} onReturnToFeeds={() => updateSelection({ type: 'all', id: null })} />}
-                        {selection.type === 'pool' && <PoolGamePage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} onReturnToFeeds={() => updateSelection({ type: 'all', id: null })} />}
-                        {selection.type === 'cipher_core' && (
-                            <CipherCorePage 
-                                onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} 
-                                uptime={uptime} 
-                                setUptime={setUptime} 
-                                preloadedData={cipherData}
-                                onWin={() => {
-                                    setUptime(prev => Math.min(100, prev + 15));
-                                    setCredits(prev => prev + 100);
-                                }}
-                            />
-                        )}
-                        {selection.type === 'void_runner' && <VoidRunnerPage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} onReturnToFeeds={() => updateSelection({ type: 'all', id: null })} />}
-                        {selection.type === 'synapse_link' && <SynapseLinkPage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} />}
-                        {selection.type === 'grid_reset' && <GridResetPage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} />}
-                        {selection.type === 'hangman' && <HangmanPage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} />}
-                        {selection.type === 'neon_signal' && (
+                    <>
+                        {selection.type === 'neon_signal' ? (
                             <NeonSignalPage 
                                 onBack={() => updateSelection({ type: 'game_hub', id: null })} 
                                 onReturnToFeeds={() => updateSelection({ type: 'all', id: null })}
                                 onWin={(score) => setCredits(prev => prev + (score * 5))}
                             />
+                        ) : (
+                            <OrientationGuard portraitOnly>
+                                {selection.type === 'sudoku' && <SudokuPage stats={{totalWins: 0}} onGameWin={() => setCredits(c => c + 50)} onGameLoss={() => {}} onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} onReturnToFeeds={() => updateSelection({ type: 'all', id: null })} />}
+                                {selection.type === 'solitaire' && <SolitairePage stats={{gamesWon: 0, currentStreak: 0}} onGameWin={() => setCredits(c => c + 50)} onGameStart={() => {}} settings={{drawThree: true}} onUpdateSettings={() => {}} onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} onReturnToFeeds={() => updateSelection({ type: 'all', id: null })} />}
+                                {selection.type === 'minesweeper' && <MinesweeperPage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} onReturnToFeeds={() => updateSelection({ type: 'all', id: null })} onDefuse={() => setCredits(c => c + 50)} />}
+                                {selection.type === 'tetris' && <TetrisPage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} onReturnToFeeds={() => updateSelection({ type: 'all', id: null })} />}
+                                {selection.type === 'pool' && <PoolGamePage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} onReturnToFeeds={() => updateSelection({ type: 'all', id: null })} />}
+                                {selection.type === 'cipher_core' && (
+                                    <CipherCorePage 
+                                        onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} 
+                                        uptime={uptime} 
+                                        setUptime={setUptime} 
+                                        preloadedData={cipherData}
+                                        onWin={() => {
+                                            setUptime(prev => Math.min(100, prev + 15));
+                                            setCredits(prev => prev + 100);
+                                        }}
+                                    />
+                                )}
+                                {selection.type === 'void_runner' && <VoidRunnerPage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} onReturnToFeeds={() => updateSelection({ type: 'all', id: null })} />}
+                                {selection.type === 'synapse_link' && <SynapseLinkPage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} />}
+                                {selection.type === 'grid_reset' && <GridResetPage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} />}
+                                {selection.type === 'hangman' && <HangmanPage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} />}
+                            </OrientationGuard>
                         )}
-                    </OrientationGuard>
+                    </>
                 ) : (
                     <MainContent
                         key={selection.type + String(selection.id) + (selection.category || '')}
