@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { XIcon, MusicIcon, FolderIcon, ArrowPathIcon } from './icons';
+import Tooltip from './Tooltip';
 
 const SignalStreamerPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => {
     const [mediaUrl, setMediaUrl] = useState<string | null>(null);
@@ -37,10 +38,6 @@ const SignalStreamerPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub
         <main className="w-full h-full bg-zinc-950 flex flex-col items-center p-4 md:p-6 font-mono text-white relative overflow-hidden">
             <div className="absolute inset-0 pointer-events-none opacity-5 cctv-overlay" />
             
-            {/* 
-                Visually hidden but functionally active input. 
-                Using absolute + opacity-0 is more compatible with mobile intents than display:none.
-            */}
             <input 
                 id="void-signal-input"
                 ref={fileInputRef}
@@ -65,9 +62,11 @@ const SignalStreamerPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub
                         </div>
                     </div>
                     {mediaUrl && (
-                        <label htmlFor="void-signal-input" className="p-2 bg-zinc-800 rounded-xl text-zinc-400 hover:text-white transition-all active:scale-95 cursor-pointer">
-                            <ArrowPathIcon className="w-5 h-5" />
-                        </label>
+                        <Tooltip text="Replace current packet with new data stream.">
+                            <label htmlFor="void-signal-input" className="p-2 bg-zinc-800 rounded-xl text-zinc-400 hover:text-white transition-all active:scale-95 cursor-pointer">
+                                <ArrowPathIcon className="w-5 h-5" />
+                            </label>
+                        </Tooltip>
                     )}
                 </header>
 
@@ -119,19 +118,23 @@ const SignalStreamerPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub
                         <span className="text-[10px] md:text-xs font-black text-white italic truncate block px-4">{fileName || "AWAITING_RECEPTION"}</span>
                     </div>
                     <div className="flex gap-3 w-full">
-                        <label 
-                            htmlFor="void-signal-input"
-                            className="flex-1 px-4 py-4 bg-zinc-100 text-black font-black uppercase italic text-[10px] tracking-widest rounded-xl shadow-[0_4px_0_#a1a1aa] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center cursor-pointer"
-                        >
-                            {mediaUrl ? "RE-SYNC_NODE" : "LINK_MEMORY"}
-                        </label>
-                        {mediaUrl && (
-                            <button 
-                                onClick={handleEject}
-                                className="px-8 py-4 bg-zinc-800 text-pulse-500 font-black uppercase italic text-[10px] tracking-widest rounded-xl hover:bg-pulse-500 hover:text-white transition-all border border-pulse-500/20 active:scale-95"
+                        <Tooltip text="Access device memory to load audio or surveillance video.">
+                            <label 
+                                htmlFor="void-signal-input"
+                                className="flex-1 px-4 py-4 bg-zinc-100 text-black font-black uppercase italic text-[10px] tracking-widest rounded-xl shadow-[0_4px_0_#a1a1aa] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center cursor-pointer w-full"
                             >
-                                EJECT
-                            </button>
+                                {mediaUrl ? "RE-SYNC_NODE" : "LINK_MEMORY"}
+                            </label>
+                        </Tooltip>
+                        {mediaUrl && (
+                            <Tooltip text="Purge current stream and reset buffer.">
+                                <button 
+                                    onClick={handleEject}
+                                    className="px-8 py-4 bg-zinc-800 text-pulse-500 font-black uppercase italic text-[10px] tracking-widest rounded-xl hover:bg-pulse-500 hover:text-white transition-all border border-pulse-500/20 active:scale-95"
+                                >
+                                    EJECT
+                                </button>
+                            </Tooltip>
                         )}
                     </div>
                 </div>

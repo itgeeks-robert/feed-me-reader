@@ -5,14 +5,14 @@ import { NEON_IMAGES } from '../neonSignalAssets';
 import OrientationGuard from './OrientationGuard';
 
 /**
- * NEON SIGNAL: DATA_SYNC v18.5
+ * NEON SIGNAL: DATA_SYNC v18.6
  * Optimized for Ultra-Low Vertical Clearance (Mobile Landscape).
- * Fixes: Text clipping, Re-centering loops, and initialization jumps.
+ * Fixes: Text clipping, UI overflow, and spacing for 21:9 screens.
  */
 
 const GAME_DURATION = 60;
-const TRIGGER_DELTA = 30; // Degrees to tilt for action
-const NEUTRAL_DELTA = 15; // Degrees from reference to clear lock
+const TRIGGER_DELTA = 30; 
+const NEUTRAL_DELTA = 15; 
 
 interface NeonSignalProps {
     onBack: () => void;
@@ -31,7 +31,6 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
     const [history, setHistory] = useState<{ word: string; correct: boolean }[]>([]);
     const [flash, setFlash] = useState<'NONE' | 'SYNC' | 'VOID'>('NONE');
     
-    // Kinetic State Tracking
     const referencePitch = useRef<number | null>(null);
     const neutralLock = useRef(false);
     const actionLock = useRef(false);
@@ -39,7 +38,6 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
     const timerRef = useRef<number | null>(null);
 
     const startTransmission = async (catId: string, catName: string) => {
-        // Request Motion Permissions
         if (typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
             try {
                 const response = await (DeviceOrientationEvent as any).requestPermission();
@@ -62,7 +60,6 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
 
         if (words.length === 0) words = ["VOID", "SIGNAL", "NETWORK", "DECRYPT"];
 
-        // Shuffle logic
         const shuffled = [...words];
         for (let i = shuffled.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
@@ -105,7 +102,7 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
             setCurrentIndex(prev => prev + 1);
             setTimeout(() => { 
                 actionLock.current = false; 
-            }, 800); // Slightly longer lock for stability
+            }, 800); 
         } else {
             setGameState('RESULTS');
         }
@@ -114,32 +111,23 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
     useEffect(() => {
         const handleOrientation = (e: DeviceOrientationEvent) => {
             if (gameState !== 'PLAYING' || e.beta === null) return;
-            
             const currentPitch = e.beta;
-
-            // 1. DYNAMIC CALIBRATION
             if (referencePitch.current === null) {
                 referencePitch.current = currentPitch;
                 return;
             }
-
             const delta = currentPitch - referencePitch.current;
-
-            // 2. NEUTRAL LOCK
             if (neutralLock.current) {
                 if (Math.abs(delta) < NEUTRAL_DELTA) {
                     neutralLock.current = false;
                 }
                 return; 
             }
-
             if (actionLock.current || gracePeriodActive.current) return;
-
-            // 3. ACTION TRIGGERS
             if (delta > TRIGGER_DELTA) {
-                handleAction(true); // TILT FORWARD
+                handleAction(true); 
             } else if (delta < -TRIGGER_DELTA) {
-                handleAction(false); // TILT BACK
+                handleAction(false); 
             }
         };
 
@@ -155,13 +143,10 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
         } else if (gameState === 'COUNTDOWN' && timeLeft === 0) {
             setGameState('PLAYING');
             setTimeLeft(GAME_DURATION);
-            
-            // Extended grace period for physical mounting
             gracePeriodActive.current = true;
             setTimeout(() => { 
                 gracePeriodActive.current = false; 
             }, 1500);
-            
         } else if (gameState === 'PLAYING' && timeLeft === 0) {
             setGameState('RESULTS');
         }
@@ -259,7 +244,6 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
         <OrientationGuard landscapeOnly={gameState === 'COUNTDOWN' || gameState === 'PLAYING'}>
              <div className="w-full h-full bg-zinc-950 overflow-hidden font-mono relative">
                 
-                {/* DYNAMIC CCTV BACKGROUND LAYER */}
                 {(gameState === 'PLAYING' || gameState === 'COUNTDOWN') && (
                     <div className="absolute inset-0 z-0 bg-zinc-950">
                         <img 
@@ -274,16 +258,16 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
                 )}
 
                 {gameState === 'COUNTDOWN' && (
-                    <div className="w-full h-full flex flex-col items-center justify-center text-center p-6 relative z-10">
-                        <div className="relative z-10 flex flex-col items-center">
-                            <div className="p-4 md:p-8 bg-pulse-500/10 border-4 border-pulse-500 rounded-[2rem] md:rounded-[3rem] mb-4 md:mb-12 shadow-[0_0_100px_rgba(225,29,72,0.3)] animate-pulse">
-                                <VoidIcon className="w-10 h-10 md:w-20 md:h-20 text-white" />
+                    <div className="w-full h-full flex flex-col items-center justify-center text-center p-4 relative z-10">
+                        <div className="relative z-10 flex flex-col items-center max-w-md w-full">
+                            <div className="p-4 md:p-6 bg-pulse-500/10 border-4 border-pulse-500 rounded-[2rem] mb-4 md:mb-8 shadow-[0_0_100px_rgba(225,29,72,0.3)] animate-pulse">
+                                <VoidIcon className="w-10 h-10 md:w-16 md:h-16 text-white" />
                             </div>
-                            <h2 className="text-xl md:text-3xl font-black text-white italic uppercase tracking-widest mb-2 md:mb-4">CALIBRATING_SENSORS</h2>
-                            <div className="inline-block px-8 py-2 md:px-12 md:py-4 bg-white text-black font-black uppercase italic tracking-[0.4em] rounded-full mb-6 md:mb-12 shadow-2xl border-4 border-black/10 text-[10px] md:text-base">
+                            <h2 className="text-lg md:text-2xl font-black text-white italic uppercase tracking-widest mb-1 md:mb-4">CALIBRATING_SENSORS</h2>
+                            <div className="inline-block px-6 py-1.5 md:px-12 md:py-4 bg-white text-black font-black uppercase italic tracking-[0.4em] rounded-full mb-4 md:mb-8 shadow-2xl border-2 border-black/10 text-[8px] md:text-base">
                                 PLACE_ON_FOREHEAD_NOW
                             </div>
-                            <div className="text-[clamp(6rem,30vw,20rem)] font-black text-white italic animate-ping leading-none drop-shadow-[0_0_60px_rgba(255,255,255,0.4)]">
+                            <div className="text-[clamp(4rem,20vw,12rem)] font-black text-white italic animate-ping leading-none drop-shadow-[0_0_60px_rgba(255,255,255,0.4)]">
                                 {timeLeft}
                             </div>
                         </div>
@@ -291,22 +275,22 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
                 )}
 
                 {gameState === 'PLAYING' && (
-                    <div className="w-full h-full p-2 md:p-12 relative z-10">
-                        <div className={`w-full h-full border-[6px] md:border-[16px] border-zinc-900 rounded-[1.5rem] md:rounded-[4rem] overflow-hidden flex flex-col transition-all duration-500 relative shadow-[0_0_100px_rgba(0,0,0,0.8)] ${timeLeft <= 10 ? 'bg-red-950/25 border-red-900/40' : 'bg-black/30 border-zinc-800'}`}>
+                    <div className="w-full h-full p-1 md:p-6 landscape:p-1 relative z-10">
+                        <div className={`w-full h-full border-[3px] md:border-[12px] landscape:border-[4px] border-zinc-900 rounded-[1rem] md:rounded-[3rem] landscape:rounded-[1.5rem] overflow-hidden flex flex-col transition-all duration-500 relative shadow-[0_0_100px_rgba(0,0,0,0.8)] ${timeLeft <= 10 ? 'bg-red-950/25 border-red-900/40' : 'bg-black/30 border-zinc-800'}`}>
                             
                             <div className="absolute inset-0 pointer-events-none shadow-[inset_0_0_40px_rgba(0,0,0,0.5)] z-20" />
 
-                            <header className="px-6 py-4 md:px-12 md:py-8 flex justify-between items-start shrink-0 z-50 landscape:py-2">
+                            <header className="px-4 py-2 md:px-12 md:py-6 landscape:py-2 flex justify-between items-center shrink-0 z-50">
                                 <button 
                                     onClick={abortNode} 
-                                    className="flex items-center gap-2 px-4 py-2 bg-zinc-900/90 border-2 border-pulse-500/40 rounded-xl text-pulse-500 font-black uppercase italic text-[9px] tracking-widest backdrop-blur-md active:scale-95 transition-all shadow-xl"
+                                    className="flex items-center gap-2 px-3 py-1.5 md:px-5 md:py-2 bg-zinc-900/95 border-2 border-pulse-500/40 rounded-lg text-pulse-500 font-black uppercase italic text-[8px] md:text-[10px] tracking-widest backdrop-blur-md active:scale-95 transition-all shadow-lg"
                                 >
-                                    <XIcon className="w-4 h-4" />
+                                    <XIcon className="w-3 h-3 md:w-4 md:h-4" />
                                     <span>ABORT</span>
                                 </button>
 
                                 <div className="flex flex-col items-end">
-                                    <span className="text-[8px] font-black text-emerald-500 uppercase tracking-[0.4em] leading-none italic animate-pulse flex items-center gap-2">
+                                    <span className="text-[8px] md:text-xs font-black text-emerald-500 uppercase tracking-[0.3em] leading-none italic animate-pulse">
                                         NODE {String(currentIndex + 1).padStart(3, '0')} / {activePool.length}
                                     </span>
                                 </div>
@@ -319,37 +303,39 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
                                 />
                             </div>
 
-                            <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-20 text-center relative z-10">
+                            <div className="flex-1 flex flex-col items-center justify-center p-2 md:p-12 landscape:p-2 text-center relative z-10 min-h-0 overflow-hidden">
                                 {neutralLock.current && (
-                                    <div className="absolute top-2 md:top-12 left-1/2 -translate-x-1/2 flex items-center gap-3 px-6 py-2 bg-white/10 border-2 border-white/20 rounded-full animate-fade-in backdrop-blur-xl shadow-2xl z-50">
-                                        <ArrowPathIcon className="w-4 h-4 text-white animate-spin" />
-                                        <span className="text-[10px] font-black text-white uppercase tracking-[0.4em] italic">RE-CENTERING</span>
+                                    <div className="absolute top-1 md:top-8 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-1.5 bg-white/10 border-2 border-white/20 rounded-full animate-fade-in backdrop-blur-xl shadow-2xl z-50">
+                                        <ArrowPathIcon className="w-3 h-3 text-white animate-spin" />
+                                        <span className="text-[8px] font-black text-white uppercase tracking-[0.2em] italic">RE-CENTERING</span>
                                     </div>
                                 )}
 
-                                <div className={`text-[8px] md:text-sm font-black tracking-[0.6em] mb-4 md:mb-16 flex items-center gap-4 ${timeLeft <= 10 ? 'text-red-500 animate-pulse' : 'text-zinc-600'}`}>
+                                <div className={`text-[7px] md:text-sm font-black tracking-[0.4em] mb-2 md:mb-12 landscape:mb-2 flex items-center gap-3 ${timeLeft <= 10 ? 'text-red-500 animate-pulse' : 'text-zinc-600'}`}>
                                     DECRYPTING: {selectedCatName}
                                 </div>
                                 
-                                <h2 className="text-[clamp(2.5rem,12vw,9rem)] font-black text-emerald-400 uppercase italic tracking-tighter leading-none mb-4 md:mb-20 font-horror drop-shadow-[0_10px_60px_rgba(0,0,0,1)] transition-all duration-300 w-full px-4 break-words">
-                                    {activePool[currentIndex] || "NODE_EMPTY"}
-                                </h2>
+                                <div className="max-w-full w-full flex items-center justify-center flex-1 max-h-[60vh]">
+                                    <h2 className="text-[clamp(2rem,15vh,7rem)] md:text-[clamp(3rem,12vw,9rem)] font-black text-emerald-400 uppercase italic tracking-tighter leading-[0.95] font-horror drop-shadow-[0_10px_60px_rgba(0,0,0,1)] transition-all duration-300 w-full px-4 break-words">
+                                        {activePool[currentIndex] || "NODE_EMPTY"}
+                                    </h2>
+                                </div>
                                 
-                                <div className="flex items-center gap-8 md:gap-16">
-                                    <div className="px-6 py-2 md:px-10 md:py-5 bg-zinc-900/80 border-2 border-white/10 rounded-xl md:rounded-[2rem] text-white/50 font-black text-2xl md:text-5xl italic shadow-2xl backdrop-blur-md">
+                                <div className="flex items-center gap-6 md:gap-16 mt-2 md:mt-12 landscape:mt-2 mb-2 landscape:mb-1">
+                                    <div className="px-4 py-1 md:px-10 md:py-5 bg-zinc-900/80 border border-white/10 rounded-lg md:rounded-[2rem] text-white/50 font-black text-xl md:text-5xl italic shadow-2xl backdrop-blur-md">
                                         {timeLeft}S
                                     </div>
-                                    <div className="px-6 py-2 md:px-10 md:py-5 bg-emerald-500/10 border-2 border-emerald-500/30 rounded-xl md:rounded-[2rem] text-emerald-400 font-black text-2xl md:text-5xl italic shadow-2xl backdrop-blur-md">
+                                    <div className="px-4 py-1 md:px-10 md:py-5 bg-emerald-500/10 border border-emerald-500/30 rounded-lg md:rounded-[2rem] text-emerald-400 font-black text-xl md:text-5xl italic shadow-2xl backdrop-blur-md">
                                         {score}
                                     </div>
                                 </div>
                             </div>
                             
-                            <footer className="px-8 py-4 flex justify-between items-end shrink-0 z-20 pointer-events-none border-t border-white/5 landscape:py-2">
-                                <div className="text-[8px] font-black text-white/20 uppercase tracking-widest leading-loose italic">
+                            <footer className="px-6 py-1.5 md:py-4 landscape:py-1.5 flex justify-between items-end shrink-0 z-20 pointer-events-none border-t border-white/5">
+                                <div className="text-[7px] md:text-[8px] font-black text-white/20 uppercase tracking-widest italic">
                                     PITCH: {referencePitch.current ? referencePitch.current.toFixed(1) : 'CAL...'}°
                                 </div>
-                                <div className="text-[8px] font-black text-zinc-700 uppercase tracking-[0.5em] italic">
+                                <div className="text-[7px] md:text-[8px] font-black text-zinc-800 uppercase tracking-[0.4em] italic">
                                     VOID_RECRUIT_OS
                                 </div>
                             </footer>

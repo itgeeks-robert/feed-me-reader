@@ -23,6 +23,7 @@ interface Ghost {
     color: string;
     state: 'HOUSE' | 'EXITING' | 'FRIGHTENED' | 'SCATTER' | 'CHASE';
     exitDelay: number;
+    scatterTarget: { x: number, y: number };
 }
 
 const TILE_SIZE = 20;
@@ -54,14 +55,14 @@ const MAZE_LAYOUT = [
 ];
 
 const SECTOR_INTEL = [
-    { title: "Local Network", Intel: "Silhouette of an 80s arcade cabinet. Red static fills the screen. CRITICAL FAILURE detected.", color: "#ef4444" },
-    { title: "Sub-station 02", Intel: "Three BMX bikes on a hill. Power station hums with sickly green glow under heavy mist.", color: "#22c55e" },
-    { title: "Void Gateway", Intel: "Trees bend towards a central point—a vertical tear in reality pulsing with crimson light.", color: "#be123c" },
-    { title: "Recon Dataset", Intel: "Van interior. CRT monitors stacked, displaying purple maps and scrolling data streams.", color: "#a855f7" },
-    { title: "Firebase Zero", Intel: "Direct access to the 1984 supercomputer. The mainframe is processing at critical limit.", color: "#3b82f6" },
-    { title: "The Wasteland", Intel: "Broken code, constant segment errors, and legacy systems. A digital graveyard.", color: "#71717a" },
-    { title: "The Core", Intel: "Face the GEOMETRIC EYE. A pulsing octagon of red light. Digital artifacts appearing.", color: "#f43f5e" },
-    { title: "Total System", Intel: "Heroic low-poly sunrise. The red static is gone. Warm gold horizon reached.", color: "#fbbf24" }
+    { title: "Local Network", Intel: "Silhouette of an 80s arcade cabinet. Red static fills the screen.", color: "#ef4444" },
+    { title: "Sub-station 02", Intel: "BMX bikes on a hill. Sickly green glow under heavy digital mist.", color: "#22c55e" },
+    { title: "Void Gateway", Intel: "A vertical tear in reality pulsing with crimson light.", color: "#be123c" },
+    { title: "Recon Dataset", Intel: "CRT monitors stacked, displaying purple maps and scrolling data.", color: "#a855f7" },
+    { title: "Firebase Zero", Intel: "Direct access to the 1984 supercomputer. Mainframe at critical limit.", color: "#3b82f6" },
+    { title: "The Wasteland", Intel: "Broken code, segment errors, and legacy graveyard systems.", color: "#71717a" },
+    { title: "The Core", Intel: "Face the GEOMETRIC EYE. A pulsing octagon of red light.", color: "#f43f5e" },
+    { title: "Total System", Intel: "Heroic low-poly sunrise. The red static is gone.", color: "#fbbf24" }
 ];
 
 const RunnerGraphic: React.FC = () => (
@@ -71,7 +72,7 @@ const RunnerGraphic: React.FC = () => (
         <div className="relative z-10 p-6 bg-zinc-900 rounded-[2rem] border-4 border-pulse-500 shadow-[0_0_30px_rgba(225,29,72,0.4)]">
             <VoidIcon className="w-14 h-14 text-white" />
         </div>
-        <div className="absolute -bottom-2 -right-2 text-[6px] font-mono text-pulse-500 uppercase tracking-widest animate-pulse font-black italic">PATHFINDER_v1</div>
+        <div className="absolute -bottom-2 -right-2 text-[6px] font-mono text-pulse-500 uppercase tracking-widest animate-pulse font-black italic">PATHFINDER_v2</div>
     </div>
 );
 
@@ -156,8 +157,19 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
         const ty = Math.round(y / TILE_SIZE);
         const res: Direction[] = [];
         const opp: Record<Direction, Direction> = { UP: 'DOWN', DOWN: 'UP', LEFT: 'RIGHT', RIGHT: 'LEFT', NONE: 'NONE' };
-        const check = (dtx: number, dty: number, dir: Direction) => { if (dir === opp[currentDir]) return; if (!isWall(tx + dtx, ty + dty)) res.push(dir); };
-        check(0, -1, 'UP'); check(0, 1, 'DOWN'); check(-1, 0, 'LEFT'); check(1, 0, 'RIGHT');
+        
+        const directions: {dir: Direction, dx: number, dy: number}[] = [
+            {dir: 'UP', dx: 0, dy: -1},
+            {dir: 'DOWN', dx: 0, dy: 1},
+            {dir: 'LEFT', dx: -1, dy: 0},
+            {dir: 'RIGHT', dx: 1, dy: 0}
+        ];
+
+        directions.forEach(({dir, dx, dy}) => {
+            if (dir === opp[currentDir]) return;
+            if (!isWall(tx + dx, ty + dy)) res.push(dir);
+        });
+        
         return res;
     };
 
@@ -166,21 +178,25 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
         if (s === 8) { setGameState('WON'); return; }
         gameData.current.maze = JSON.parse(JSON.stringify(MAZE_LAYOUT));
         gameData.current.player = { x: 9 * TILE_SIZE, y: 15 * TILE_SIZE, dir: 'NONE', nextDir: 'NONE', isMoving: false };
+        
         gameData.current.ghosts = [
-            { id: 1, x: 9 * TILE_SIZE, y: 9 * TILE_SIZE, dir: 'UP', color: '#ef4444', state: 'HOUSE', exitDelay: 0 },
-            { id: 2, x: 8 * TILE_SIZE, y: 9 * TILE_SIZE, dir: 'UP', color: '#ec4899', state: 'HOUSE', exitDelay: 120 },
-            { id: 3, x: 10 * TILE_SIZE, y: 9 * TILE_SIZE, dir: 'UP', color: '#06b6d4', state: 'HOUSE', exitDelay: 240 }
+            { id: 1, x: 9 * TILE_SIZE, y: 7 * TILE_SIZE, dir: 'LEFT', color: '#ef4444', state: 'CHASE', exitDelay: 0, scatterTarget: { x: 18, y: 0 } }, // BLINKY
+            { id: 2, x: 9 * TILE_SIZE, y: 9 * TILE_SIZE, dir: 'UP', color: '#ec4899', state: 'HOUSE', exitDelay: 60, scatterTarget: { x: 0, y: 0 } },  // PINKY
+            { id: 3, x: 8 * TILE_SIZE, y: 9 * TILE_SIZE, dir: 'UP', color: '#06b6d4', state: 'HOUSE', exitDelay: 180, scatterTarget: { x: 18, y: 20 } }, // INKY
+            { id: 4, x: 10 * TILE_SIZE, y: 9 * TILE_SIZE, dir: 'UP', color: '#fbbf24', state: 'HOUSE', exitDelay: 300, scatterTarget: { x: 0, y: 20 } }  // CLYDE
         ];
+        
         let count = 0; MAZE_LAYOUT.forEach(row => row.forEach(cell => { if (cell === 0 || cell === 3) count++; }));
         gameData.current.packetsRemaining = count; gameData.current.packetsCollected = 0; gameData.current.bonus = null;
-        gameData.current.modeTimer = 0; gameData.current.currentMode = 'SCATTER'; gameData.current.activeInputKeys.clear();
+        gameData.current.modeTimer = 0; gameData.current.currentMode = 'SCATTER' as any; gameData.current.activeInputKeys.clear();
         setIsFrightened(false); gameData.current.frightenedTimer = 0;
         setGameState('STORY_BEAT');
     }, []);
 
     const update = useCallback(() => {
         const { player, ghosts, maze, bonus } = gameData.current;
-        const pAligned = Math.abs(player.x % TILE_SIZE) < 0.1 && Math.abs(player.y % TILE_SIZE) < 0.1;
+        const currentSpeed = BASE_SPEED + (sector * 0.08);
+        const pAligned = Math.abs(player.x % TILE_SIZE) < currentSpeed && Math.abs(player.y % TILE_SIZE) < currentSpeed;
         const tx = Math.round(player.x / TILE_SIZE);
         const ty = Math.round(player.y / TILE_SIZE);
 
@@ -193,27 +209,37 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
                 else if (player.nextDir === 'DOWN') canTurn = !isWall(tx, ty + 1);
                 else if (player.nextDir === 'LEFT') canTurn = !isWall(tx - 1, ty);
                 else if (player.nextDir === 'RIGHT') canTurn = !isWall(tx + 1, ty);
-                if (canTurn) player.dir = player.nextDir;
+                
+                if (canTurn) {
+                    player.dir = player.nextDir;
+                    player.x = tx * TILE_SIZE;
+                    player.y = ty * TILE_SIZE;
+                }
             }
         }
 
         if (player.isMoving && player.dir !== 'NONE') {
             let blocked = false;
             if (pAligned) {
-                if (player.dir === 'UP') blocked = isWall(tx, ty - 1);
-                else if (player.dir === 'DOWN') blocked = isWall(tx, ty + 1);
-                else if (player.dir === 'LEFT') blocked = isWall(tx - 1, ty);
-                else if (player.dir === 'RIGHT') blocked = isWall(tx + 1, ty);
-                if (blocked) { player.dir = 'NONE'; player.x = tx * TILE_SIZE; player.y = ty * TILE_SIZE; }
+                const nextTx = player.dir === 'LEFT' ? tx - 1 : player.dir === 'RIGHT' ? tx + 1 : tx;
+                const nextTy = player.dir === 'UP' ? ty - 1 : player.dir === 'DOWN' ? ty + 1 : ty;
+                blocked = isWall(nextTx, nextTy);
+                
+                if (blocked) { 
+                    player.dir = 'NONE'; 
+                    player.x = tx * TILE_SIZE; 
+                    player.y = ty * TILE_SIZE; 
+                }
             }
             if (!blocked) {
-                if (player.dir === 'UP') { player.y -= BASE_SPEED; player.x += (tx * TILE_SIZE - player.x) * 0.2; }
-                else if (player.dir === 'DOWN') { player.y += BASE_SPEED; player.x += (tx * TILE_SIZE - player.x) * 0.2; }
-                else if (player.dir === 'LEFT') { player.x -= BASE_SPEED; player.y += (ty * TILE_SIZE - player.y) * 0.2; }
-                else if (player.dir === 'RIGHT') { player.x += BASE_SPEED; player.y += (ty * TILE_SIZE - player.y) * 0.2; }
+                if (player.dir === 'UP') player.y -= currentSpeed;
+                else if (player.dir === 'DOWN') player.y += currentSpeed;
+                else if (player.dir === 'LEFT') player.x -= currentSpeed;
+                else if (player.dir === 'RIGHT') player.x += currentSpeed;
             }
         }
 
+        // Screen Wrap
         if (player.x < -TILE_SIZE/2) player.x = (maze[0].length - 0.5) * TILE_SIZE;
         else if (player.x > (maze[0].length - 0.5) * TILE_SIZE) player.x = -TILE_SIZE/2;
 
@@ -222,57 +248,204 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
             const isPower = maze[curTy][curTx] === 3; maze[curTy][curTx] = 2;
             setScore(s => s + (isPower ? 50 : 10)); gameData.current.packetsRemaining--; gameData.current.packetsCollected++;
             onCollectPacket?.();
-            if (isPower) { setIsFrightened(true); gameData.current.frightenedTimer = 480 - (sector * 30); ghosts.forEach(g => { if(g.state !== 'HOUSE' && g.state !== 'EXITING') g.state = 'FRIGHTENED'; }); }
+            if (isPower) { 
+                setIsFrightened(true); 
+                gameData.current.frightenedTimer = 480 - (sector * 30); 
+                ghosts.forEach(g => { 
+                    if(g.state !== 'HOUSE' && g.state !== 'EXITING') {
+                        g.state = 'FRIGHTENED'; 
+                        // Reverse direction instantly on frightening
+                        const opp: Record<Direction, Direction> = { UP: 'DOWN', DOWN: 'UP', LEFT: 'RIGHT', RIGHT: 'LEFT', NONE: 'NONE' };
+                        g.dir = opp[g.dir];
+                    }
+                }); 
+            }
             if (gameData.current.packetsCollected === 70 || gameData.current.packetsCollected === 150) gameData.current.bonus = { x: 9 * TILE_SIZE, y: 11 * TILE_SIZE, type: Math.random() > 0.5 ? 'BURGER' : 'SHAKE', timer: 400 };
         }
+        
         if (bonus && Math.abs(player.x - bonus.x) < 12 && Math.abs(player.y - bonus.y) < 12) { setScore(s => s + 500); gameData.current.bonus = null; }
         if (bonus) { bonus.timer--; if (bonus.timer <= 0) gameData.current.bonus = null; }
-        if (gameData.current.packetsRemaining <= 0) { if (sector < MAX_PLAYABLE_SECTORS) { setGameState('SECTOR_CLEAR'); setTimeout(() => initSector(sector + 1), 2000); } else initSector(8); return; }
-        if (gameData.current.frightenedTimer > 0) { gameData.current.frightenedTimer--; if (gameData.current.frightenedTimer <= 0) { setIsFrightened(false); ghosts.forEach(g => { if(g.state === 'FRIGHTENED') g.state = gameData.current.currentMode; }); } } 
-        else { gameData.current.modeTimer++; const cycle = 1800; if (gameData.current.modeTimer % cycle === 0) { gameData.current.currentMode = 'SCATTER'; ghosts.forEach(g => { if(g.state === 'CHASE') g.state = 'SCATTER'; }); } else if (gameData.current.modeTimer % cycle === 480) { gameData.current.currentMode = 'CHASE'; ghosts.forEach(g => { if(g.state === 'SCATTER') g.state = 'CHASE'; }); } }
+        
+        if (gameData.current.packetsRemaining <= 0) { 
+            if (sector < MAX_PLAYABLE_SECTORS) { 
+                setGameState('SECTOR_CLEAR'); 
+                setTimeout(() => initSector(sector + 1), 2000); 
+            } else initSector(8); 
+            return; 
+        }
+
+        if (gameData.current.frightenedTimer > 0) { 
+            gameData.current.frightenedTimer--; 
+            if (gameData.current.frightenedTimer <= 0) { 
+                setIsFrightened(false); 
+                ghosts.forEach(g => { if(g.state === 'FRIGHTENED') g.state = gameData.current.currentMode as any; }); 
+            } 
+        } else { 
+            gameData.current.modeTimer++; 
+            const cycle = 2400; 
+            if (gameData.current.modeTimer % cycle === 0) { 
+                gameData.current.currentMode = 'SCATTER'; 
+                ghosts.forEach(g => { if(g.state === 'CHASE') g.state = 'SCATTER'; }); 
+            } else if (gameData.current.modeTimer % cycle === 600) { 
+                gameData.current.currentMode = 'CHASE'; 
+                ghosts.forEach(g => { if(g.state === 'SCATTER') g.state = 'CHASE'; }); 
+            } 
+        }
 
         ghosts.forEach(ghost => {
-            const speedMultiplier = 0.85 + (sector * 0.05); const speed = (isFrightened && ghost.state === 'FRIGHTENED') ? 0.6 : (BASE_SPEED * speedMultiplier);
+            const speedMultiplier = 0.75 + (sector * 0.06); 
+            const speed = (isFrightened && ghost.state === 'FRIGHTENED') ? (currentSpeed * 0.5) : (currentSpeed * speedMultiplier);
             const aligned = Math.abs(ghost.x % TILE_SIZE) < speed && Math.abs(ghost.y % TILE_SIZE) < speed;
-            if (ghost.state === 'HOUSE') { ghost.exitDelay--; if (ghost.y <= 9 * TILE_SIZE - 4) ghost.dir = 'DOWN'; if (ghost.y >= 9 * TILE_SIZE + 4) ghost.dir = 'UP'; ghost.y += (ghost.dir === 'UP' ? -0.5 : 0.5); if (ghost.exitDelay <= 0) ghost.state = 'EXITING'; } 
-            else if (ghost.state === 'EXITING') { const gateX = 9 * TILE_SIZE; const gateY = 7 * TILE_SIZE; if (Math.abs(ghost.x - gateX) > 1) ghost.x += (ghost.x < gateX ? 1 : -1); else if (ghost.y > gateY) ghost.y -= 1; else { ghost.x = gateX; ghost.y = gateY; ghost.state = isFrightened ? 'FRIGHTENED' : gameData.current.currentMode; ghost.dir = 'LEFT'; } } 
-            else {
+            
+            // Fix: Cast ghost.state to string to prevent incorrect type narrowing from removing 'HOUSE' or 'EXITING'
+            if ((ghost.state as string) === 'HOUSE') { 
+                ghost.exitDelay--; 
+                if (ghost.y <= 9 * TILE_SIZE - 4) ghost.dir = 'DOWN'; 
+                if (ghost.y >= 9 * TILE_SIZE + 4) ghost.dir = 'UP'; 
+                ghost.y += (ghost.dir === 'UP' ? -0.5 : 0.5); 
+                if (ghost.exitDelay <= 0) ghost.state = 'EXITING'; 
+            } else if ((ghost.state as string) === 'EXITING') { 
+                const gateX = 9 * TILE_SIZE; 
+                const gateY = 7 * TILE_SIZE; 
+                if (Math.abs(ghost.x - gateX) > 1) ghost.x += (ghost.x < gateX ? 1 : -1); 
+                else if (ghost.y > gateY) ghost.y -= 1; 
+                else { 
+                    ghost.x = gateX; ghost.y = gateY; 
+                    ghost.state = isFrightened ? 'FRIGHTENED' : gameData.current.currentMode as any; 
+                    ghost.dir = 'LEFT'; 
+                } 
+            } else {
                 if (aligned) {
-                    ghost.x = Math.round(ghost.x / TILE_SIZE) * TILE_SIZE; ghost.y = Math.round(ghost.y / TILE_SIZE) * TILE_SIZE;
-                    const gtx = Math.round(ghost.x / TILE_SIZE), gty = Math.round(ghost.y / TILE_SIZE); const valid = getValidDirs(ghost.x, ghost.y, ghost.dir);
+                    ghost.x = Math.round(ghost.x / TILE_SIZE) * TILE_SIZE; 
+                    ghost.y = Math.round(ghost.y / TILE_SIZE) * TILE_SIZE;
+                    const valid = getValidDirs(ghost.x, ghost.y, ghost.dir);
+                    
                     if (valid.length > 0) {
-                        let targetX = 0, targetY = 0; if (ghost.state === 'FRIGHTENED') { ghost.dir = valid[Math.floor(Math.random() * valid.length)]; } 
-                        else {
-                            if (ghost.state === 'SCATTER') { if (ghost.id === 1) { targetX = 18; targetY = 0; } else if (ghost.id === 2) { targetX = 0; targetY = 0; } else { targetX = 0; targetY = 20; } } 
-                            else { const ptx = Math.round(player.x / TILE_SIZE), pty = Math.round(player.y / TILE_SIZE); if (ghost.id === 1) { targetX = ptx; targetY = pty; } else if (ghost.id === 2) { targetX = ptx; targetY = pty; if (player.dir === 'UP') targetY -= 4; else if (player.dir === 'DOWN') targetY += 4; else if (player.dir === 'LEFT') targetX -= 4; else targetX += 4; } else { targetX = ptx; targetY = pty; if (player.dir === 'UP') targetY += 4; else if (player.dir === 'DOWN') targetY -= 4; else if (player.dir === 'LEFT') targetX += 4; else targetX -= 4; } }
-                            valid.sort((a, b) => { let ax = gtx, ay = gty, bx = gtx, by = gty; if (a === 'UP') ay--; else if (a === 'DOWN') ay++; else if (a === 'LEFT') ax--; else ax++; if (b === 'UP') by--; else if (b === 'DOWN') by++; else if (b === 'LEFT') bx--; else bx++; return ((ax-targetX)**2 + (ay-targetY)**2) - ((bx-targetX)**2 + (by-targetY)**2); });
-                            ghost.dir = valid[0];
+                        let targetX = ghost.scatterTarget.x, targetY = ghost.scatterTarget.y; 
+                        
+                        if (ghost.state === 'FRIGHTENED') { 
+                            ghost.dir = valid[Math.floor(Math.random() * valid.length)]; 
+                        } else if (ghost.state === 'CHASE') {
+                            const ptx = Math.round(player.x / TILE_SIZE), pty = Math.round(player.y / TILE_SIZE);
+                            
+                            switch(ghost.id) {
+                                case 1: // BLINKY: Direct target
+                                    targetX = ptx; targetY = pty; break;
+                                case 2: // PINKY: 4 tiles ahead
+                                    targetX = ptx; targetY = pty;
+                                    if (player.dir === 'UP') { targetX -= 4; targetY -= 4; } // Classic bug recreations
+                                    else if (player.dir === 'DOWN') targetY += 4;
+                                    else if (player.dir === 'LEFT') targetX -= 4;
+                                    else if (player.dir === 'RIGHT') targetX += 4;
+                                    break;
+                                case 3: // INKY: Pivot logic
+                                    const blinky = ghosts.find(g => g.id === 1)!;
+                                    const btx = Math.round(blinky.x / TILE_SIZE), bty = Math.round(blinky.y / TILE_SIZE);
+                                    let offsetX = ptx, offsetY = pty;
+                                    if (player.dir === 'UP') { offsetX -= 2; offsetY -= 2; }
+                                    else if (player.dir === 'DOWN') offsetY += 2;
+                                    else if (player.dir === 'LEFT') offsetX -= 2;
+                                    else if (player.dir === 'RIGHT') offsetX += 2;
+                                    targetX = offsetX + (offsetX - btx);
+                                    targetY = offsetY + (offsetY - bty);
+                                    break;
+                                case 4: // CLYDE: Distance-based
+                                    const distToPlayer = Math.sqrt((tx - ptx)**2 + (ty - pty)**2);
+                                    if (distToPlayer > 8) { targetX = ptx; targetY = pty; }
+                                    else { targetX = ghost.scatterTarget.x; targetY = ghost.scatterTarget.y; }
+                                    break;
+                            }
                         }
+
+                        // Pick direction that minimizes Euclidean distance to target
+                        valid.sort((a, b) => { 
+                            let ax = Math.round(ghost.x / TILE_SIZE), ay = Math.round(ghost.y / TILE_SIZE); 
+                            let bx = Math.round(ghost.x / TILE_SIZE), by = Math.round(ghost.y / TILE_SIZE); 
+                            if (a === 'UP') ay--; else if (a === 'DOWN') ay++; else if (a === 'LEFT') ax--; else ax++; 
+                            if (b === 'UP') by--; else if (b === 'DOWN') by++; else if (b === 'LEFT') bx--; else bx++; 
+                            return ((ax-targetX)**2 + (ay-targetY)**2) - ((bx-targetX)**2 + (by-targetY)**2); 
+                        });
+                        ghost.dir = valid[0];
                     }
                 }
-                if (ghost.dir === 'UP') ghost.y -= speed; else if (ghost.dir === 'DOWN') ghost.y += speed; else if (ghost.dir === 'LEFT') ghost.x -= speed; else if (ghost.dir === 'RIGHT') ghost.x += speed;
-                if (ghost.x < -TILE_SIZE/2) ghost.x = 18.5 * TILE_SIZE; else if (ghost.x > 18.5 * TILE_SIZE) ghost.x = -TILE_SIZE/2;
+                
+                if (ghost.dir === 'UP') ghost.y -= speed; 
+                else if (ghost.dir === 'DOWN') ghost.y += speed; 
+                else if (ghost.dir === 'LEFT') ghost.x -= speed; 
+                else if (ghost.dir === 'RIGHT') ghost.x += speed;
+                
+                // Ghost Wrap
+                if (ghost.x < -TILE_SIZE/2) ghost.x = 18.5 * TILE_SIZE; 
+                else if (ghost.x > 18.5 * TILE_SIZE) ghost.x = -TILE_SIZE/2;
             }
+
             const dist = Math.sqrt((player.x - ghost.x)**2 + (player.y - ghost.y)**2);
-            if (dist < TILE_SIZE * 0.7 && ghost.state !== 'HOUSE' && ghost.state !== 'EXITING') { if (isFrightened) { setScore(s => s + 200); ghost.state = 'EXITING'; ghost.x = 9 * TILE_SIZE; ghost.y = 9 * TILE_SIZE; } else { setGameState('DYING'); gameData.current.deathTimer = 60; } }
+            // Fix: Cast ghost.state to string to prevent incorrect type narrowing from removing 'HOUSE' or 'EXITING'
+            if (dist < TILE_SIZE * 0.7 && (ghost.state as string) !== 'HOUSE' && (ghost.state as string) !== 'EXITING') { 
+                if (isFrightened && ghost.state === 'FRIGHTENED') { 
+                    setScore(s => s + 200); 
+                    ghost.state = 'HOUSE'; 
+                    ghost.x = 9 * TILE_SIZE; 
+                    ghost.y = 9 * TILE_SIZE; 
+                    ghost.exitDelay = 120;
+                // Fix: Cast ghost.state to string to prevent incorrect type narrowing from removing 'HOUSE' or 'EXITING'
+                } else if ((ghost.state as string) !== 'HOUSE' && (ghost.state as string) !== 'EXITING') { 
+                    setGameState('DYING'); 
+                    gameData.current.deathTimer = 60; 
+                } 
+            }
         });
     }, [isFrightened, sector, initSector, onCollectPacket]);
 
     const draw = useCallback((ctx: CanvasRenderingContext2D) => {
         const { player, ghosts, maze, bonus, deathTimer } = gameData.current;
         ctx.fillStyle = '#050505'; ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-        maze.forEach((row, ty) => { row.forEach((cell, tx) => { if (cell === 1) { ctx.fillStyle = '#111'; ctx.fillRect(tx * TILE_SIZE, ty * TILE_SIZE, TILE_SIZE, TILE_SIZE); ctx.strokeStyle = SECTOR_INTEL[sector-1].color + '33'; ctx.strokeRect(tx * TILE_SIZE + 1, ty * TILE_SIZE + 1, TILE_SIZE - 2, TILE_SIZE - 2); } else if (cell === 0) { ctx.fillStyle = SECTOR_INTEL[sector-1].color; ctx.beginPath(); ctx.arc(tx * TILE_SIZE + 10, ty * TILE_SIZE + 10, 2, 0, Math.PI*2); ctx.fill(); } else if (cell === 3) { ctx.fillStyle = '#e11d48'; ctx.beginPath(); ctx.arc(tx * TILE_SIZE + 10, ty * TILE_SIZE + 10, 5, 0, Math.PI*2); ctx.fill(); } }); });
+        
+        maze.forEach((row, ty) => { row.forEach((cell, tx) => { 
+            if (cell === 1) { 
+                ctx.fillStyle = '#111'; ctx.fillRect(tx * TILE_SIZE, ty * TILE_SIZE, TILE_SIZE, TILE_SIZE); 
+                ctx.strokeStyle = SECTOR_INTEL[sector-1].color + '33'; ctx.strokeRect(tx * TILE_SIZE + 1, ty * TILE_SIZE + 1, TILE_SIZE - 2, TILE_SIZE - 2); 
+            } else if (cell === 0) { 
+                ctx.fillStyle = SECTOR_INTEL[sector-1].color; ctx.beginPath(); ctx.arc(tx * TILE_SIZE + 10, ty * TILE_SIZE + 10, 2, 0, Math.PI*2); ctx.fill(); 
+            } else if (cell === 3) { 
+                ctx.fillStyle = '#e11d48'; ctx.beginPath(); ctx.arc(tx * TILE_SIZE + 10, ty * TILE_SIZE + 10, 5, 0, Math.PI*2); ctx.fill(); 
+            } 
+        }); });
+
         if (bonus) { ctx.font = '20px serif'; ctx.textAlign = 'center'; ctx.fillText(bonus.type === 'BURGER' ? '🍔' : '🥤', bonus.x + 10, bonus.y + 15); }
-        if (gameState === 'DYING') { const s = deathTimer/60; ctx.fillStyle = '#e11d48'; ctx.beginPath(); ctx.arc(player.x + 10, player.y + 10, 10 * s, 0, Math.PI*2); ctx.fill(); ctx.strokeStyle = '#e11d48'; ctx.lineWidth = 2; [1, 2, 3].forEach(i => { ctx.beginPath(); ctx.arc(player.x + 10, player.y + 10, 10 * (1-s) * (i * 2.5), 0, Math.PI*2); ctx.stroke(); }); } 
-        else { ctx.fillStyle = SECTOR_INTEL[sector-1].color; ctx.shadowBlur = 15; ctx.shadowColor = SECTOR_INTEL[sector-1].color; ctx.beginPath(); ctx.arc(player.x + 10, player.y + 10, 8, 0, Math.PI*2); ctx.fill(); ctx.shadowBlur = 0; }
-        ghosts.forEach(g => { const c = (isFrightened && g.state === 'FRIGHTENED') ? '#3b82f6' : g.color; ctx.fillStyle = c; ctx.shadowBlur = 15; ctx.shadowColor = c; ctx.fillRect(g.x + 2, g.y + 2, 16, 16); ctx.fillStyle = 'white'; ctx.fillRect(g.x + 4, g.y + 6, 4, 4); ctx.fillRect(g.x + 12, g.y + 6, 4, 4); ctx.shadowBlur = 0; });
+        
+        if (gameState === 'DYING') { 
+            const s = deathTimer/60; 
+            ctx.fillStyle = '#e11d48'; ctx.beginPath(); ctx.arc(player.x + 10, player.y + 10, 10 * s, 0, Math.PI*2); ctx.fill(); 
+            ctx.strokeStyle = '#e11d48'; ctx.lineWidth = 2; 
+            [1, 2, 3].forEach(i => { ctx.beginPath(); ctx.arc(player.x + 10, player.y + 10, 10 * (1-s) * (i * 2.5), 0, Math.PI*2); ctx.stroke(); }); 
+        } else { 
+            ctx.fillStyle = SECTOR_INTEL[sector-1].color; ctx.shadowBlur = 15; ctx.shadowColor = SECTOR_INTEL[sector-1].color; 
+            ctx.beginPath(); ctx.arc(player.x + 10, player.y + 10, 8, 0, Math.PI*2); ctx.fill(); 
+            // Fix: Added 'ctx.' prefix to shadowBlur
+            ctx.shadowBlur = 0; 
+        }
+
+        ghosts.forEach(g => { 
+            const c = (isFrightened && g.state === 'FRIGHTENED') ? '#3b82f6' : g.color; 
+            ctx.fillStyle = c; ctx.shadowBlur = 15; ctx.shadowColor = c; ctx.fillRect(g.x + 2, g.y + 2, 16, 16); 
+            ctx.fillStyle = 'white'; ctx.fillRect(g.x + 4, g.y + 6, 4, 4); ctx.fillRect(g.x + 12, g.y + 6, 4, 4); ctx.shadowBlur = 0; 
+        });
+
         ctx.fillStyle = 'rgba(0,0,0,0.1)'; for (let i = 0; i < ctx.canvas.height; i += 4) ctx.fillRect(0, i, ctx.canvas.width, 1);
     }, [isFrightened, sector, gameState]);
 
     useEffect(() => {
         const loop = () => {
             const ctx = canvasRef.current?.getContext('2d');
-            if (ctx) { if (gameState === 'PLAYING') update(); else if (gameState === 'DYING') { gameData.current.deathTimer--; if (gameData.current.deathTimer <= 0) setGameState('LOST'); } draw(ctx); }
+            if (ctx) { 
+                if (gameState === 'PLAYING') update(); 
+                else if (gameState === 'DYING') { 
+                    gameData.current.deathTimer--; 
+                    if (gameData.current.deathTimer <= 0) setGameState('LOST'); 
+                } 
+                draw(ctx); 
+            }
             requestRef.current = requestAnimationFrame(loop);
         };
         requestRef.current = requestAnimationFrame(loop);
@@ -289,7 +462,13 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
         if (btn === 'start') { if (gameState === 'INTRO') initSector(1); else if (gameState === 'STORY_BEAT') setGameState('PLAYING'); else if (gameState === 'WON' || gameState === 'LOST') { setGameState('INTRO'); setScore(0); setSector(1); } }
     }, [gameState, initSector, onBackToHub]);
 
-    const handleInputRelease = useCallback((btn: GameboyButton) => { const { player } = gameData.current; if (['up', 'down', 'left', 'right'].includes(btn)) { player.isMoving = false; player.nextDir = 'NONE'; } }, []);
+    const handleInputRelease = useCallback((btn: GameboyButton) => { 
+        const { player } = gameData.current; 
+        if (['up', 'down', 'left', 'right'].includes(btn)) { 
+            player.isMoving = false; 
+            player.nextDir = 'NONE'; 
+        } 
+    }, []);
 
     return (
         <main className="w-full h-full bg-zinc-950 flex flex-col items-center justify-center p-4 font-mono overflow-y-auto scrollbar-hide pt-[env(safe-area-inset-top)]">

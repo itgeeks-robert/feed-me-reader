@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { XIcon, VoidIcon, CpuChipIcon, ArrowPathIcon, SparklesIcon, BookOpenIcon } from './icons';
 import { saveHighScore, getHighScores, HighScoreEntry } from '../services/highScoresService';
 import HighScoreTable from './HighScoreTable';
+import Tooltip from './Tooltip';
 
 type Grid = boolean[][];
 
@@ -261,14 +262,18 @@ const GridResetPage: React.FC<{ onBackToHub: () => void; onComplete?: () => void
 
                 <div className="flex flex-col gap-4">
                     <div className="flex gap-4">
-                        <button onClick={requestHint} className="flex-1 py-4 bg-zinc-900 border-2 border-amber-500/30 text-amber-500 rounded-2xl flex items-center justify-center gap-3 font-black uppercase italic text-[10px] hover:border-amber-500 transition-all active:scale-95 shadow-lg">
-                            <SparklesIcon className="w-4 h-4 animate-pulse" />
-                            <span>Neural Probe</span>
-                        </button>
+                        <Tooltip text="Neural Probe: Calculate the hidden toggle sequence to resolve the grid.">
+                            <button onClick={requestHint} className="flex-1 py-4 bg-zinc-900 border-2 border-amber-500/30 text-amber-500 rounded-2xl flex items-center justify-center gap-3 font-black uppercase italic text-[10px] hover:border-amber-500 transition-all active:scale-95 shadow-lg w-full h-full">
+                                <SparklesIcon className="w-4 h-4 animate-pulse" />
+                                <span>Neural Probe</span>
+                            </button>
+                        </Tooltip>
                         
-                        <button onClick={generateSolvableLevel} className="px-6 py-4 bg-zinc-900 border border-white/5 rounded-2xl flex items-center justify-center text-zinc-500 hover:text-white transition-all active:scale-95">
-                            <ArrowPathIcon className="w-4 h-4" />
-                        </button>
+                        <Tooltip text="Sync Sector: Re-scramble grid into a new solvable state.">
+                            <button onClick={generateSolvableLevel} className="px-6 py-4 bg-zinc-900 border border-white/5 rounded-2xl flex items-center justify-center text-zinc-500 hover:text-white transition-all active:scale-95 w-full h-full">
+                                <ArrowPathIcon className="w-4 h-4" />
+                            </button>
+                        </Tooltip>
                     </div>
                     
                     <div className="bg-void-900 border border-pulse-500/20 p-5 rounded-2xl">

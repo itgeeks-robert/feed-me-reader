@@ -5,12 +5,14 @@ import type { SudokuStats, SudokuDifficulty as Difficulty } from '../src/App';
 import { saveHighScore, getHighScores, ScoreCategory } from '../services/highScoresService';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import HighScoreTable from './HighScoreTable';
+import Tooltip from './Tooltip';
 
 type GameState = 'LOADING' | 'IDLE' | 'PLAYING' | 'ERROR' | 'WON' | 'LOST';
 
 interface Cell {
   value: number | null;
   isPrefilled: boolean;
+  isCorrect?: boolean;
   notes: number[]; 
   isError: boolean;
 }
@@ -279,9 +281,15 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
                     {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
                         <button key={num} onClick={() => handleNumberInput(num)} className="aspect-square bg-zinc-900 border border-white/10 rounded-xl text-xl font-black italic hover:bg-neon-500 hover:text-black active:scale-90 shadow-lg">{num}</button>
                     ))}
-                    <button onClick={() => setIsNotesMode(!isNotesMode)} className={`aspect-square rounded-xl flex items-center justify-center transition-all border-2 ${isNotesMode ? 'bg-neon-400 border-white text-black' : 'bg-zinc-800 border-white/5 text-zinc-500'}`}><PencilIcon className="w-6 h-6" /></button>
-                    <button onClick={() => { if (!selectedCell || !grid || !solution) return; handleNumberInput(solution[selectedCell.row][selectedCell.col]); }} className="aspect-square bg-zinc-800 border border-white/5 rounded-xl flex items-center justify-center text-yellow-500 active:scale-90"><LightBulbIcon className="w-6 h-6" /></button>
-                    <button onClick={() => { if (!selectedCell || !grid) return; const {row, col} = selectedCell; if (grid[row][col].isPrefilled) return; const ng = grid.map(r=>r.map(c=>({...c, notes:[...c.notes]}))); ng[row][col].value = null; ng[row][col].notes = []; ng[row][col].isError = false; setGrid(ng); }} className="aspect-square bg-zinc-800 border border-white/5 rounded-xl flex items-center justify-center text-zinc-400 active:scale-90"><EraserIcon className="w-6 h-6" /></button>
+                    <Tooltip text="Neural Probe: Mark potential node values without committing.">
+                        <button onClick={() => setIsNotesMode(!isNotesMode)} className={`aspect-square rounded-xl flex items-center justify-center transition-all border-2 w-full h-full ${isNotesMode ? 'bg-neon-400 border-white text-black' : 'bg-zinc-800 border-white/5 text-zinc-500'}`}><PencilIcon className="w-6 h-6" /></button>
+                    </Tooltip>
+                    <Tooltip text="Logic Siphon: Reveal correct node value (25 SC).">
+                        <button onClick={() => { if (!selectedCell || !grid || !solution) return; handleNumberInput(solution[selectedCell.row][selectedCell.col]); }} className="aspect-square bg-zinc-800 border border-white/5 rounded-xl flex items-center justify-center text-yellow-500 active:scale-90 w-full h-full"><LightBulbIcon className="w-6 h-6" /></button>
+                    </Tooltip>
+                    <Tooltip text="Node Eraser: Clear current bit selection.">
+                        <button onClick={() => { if (!selectedCell || !grid) return; const {row, col} = selectedCell; if (grid[row][col].isPrefilled) return; const ng = grid.map(r=>r.map(c=>({...c, notes:[...c.notes]}))); ng[row][col].value = null; ng[row][col].notes = []; ng[row][col].isError = false; setGrid(ng); }} className="aspect-square bg-zinc-800 border border-white/5 rounded-xl flex items-center justify-center text-zinc-400 active:scale-90 w-full h-full"><EraserIcon className="w-6 h-6" /></button>
+                    </Tooltip>
                 </div>
             </div>
 

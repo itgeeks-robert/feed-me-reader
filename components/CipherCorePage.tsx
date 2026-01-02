@@ -3,6 +3,7 @@ import { XIcon, VoidIcon, SparklesIcon, ArrowPathIcon, WalkieTalkieIcon, BookOpe
 import { saveHighScore, getHighScores, HighScoreEntry } from '../services/highScoresService';
 import { resilientFetch } from '../services/fetch';
 import HighScoreTable from './HighScoreTable';
+import Tooltip from './Tooltip';
 
 /**
  * CIPHER CORE v5.3 - REFINED NAVIGATION
@@ -308,13 +309,15 @@ const CipherCorePage: React.FC<CipherCoreProps> = ({ onBackToHub, onWin, preload
                                         </div>
                                     ))}
                                 </div>
-                                <button 
-                                    onClick={handleTransmitLog}
-                                    className="w-full py-3 bg-white text-black font-black uppercase italic text-[10px] tracking-widest rounded-lg transition-all hover:bg-emerald-500 hover:text-white flex items-center justify-center gap-2"
-                                >
-                                    <SparklesIcon className="w-3.5 h-3.5" />
-                                    {showCopySuccess ? "PACKET_CLONED" : "TRANSMIT_GRID_LOG"}
-                                </button>
+                                <Tooltip text="Clone the frequency pattern to clipboard for social transmission.">
+                                    <button 
+                                        onClick={handleTransmitLog}
+                                        className="w-full py-3 bg-white text-black font-black uppercase italic text-[10px] tracking-widest rounded-lg transition-all hover:bg-emerald-500 hover:text-white flex items-center justify-center gap-2"
+                                    >
+                                        <SparklesIcon className="w-3.5 h-3.5" />
+                                        {showCopySuccess ? "PACKET_CLONED" : "TRANSMIT_GRID_LOG"}
+                                    </button>
+                                </Tooltip>
                             </div>
 
                             {(gameState === 'lost' || gameState === 'won') && (
@@ -364,7 +367,7 @@ const TacticalManual: React.FC<{ onClose: () => void }> = ({ onClose }) => (
                         <ManualPoint title="0x03_The_Log_Transmission" desc="Successfully decoded sequences can be transmitted as a color-grid log (emoji) to your social network buffers." />
                     </div>
                     <div className="p-5 bg-pulse-500/10 border-2 border-pulse-500/30 rounded-2xl flex items-start gap-4 animate-pulse">
-                        <ExclamationTriangleIcon className="w-6 h-6 text-pulse-500 shrink-0 mt-0.5" />
+                        <ExclamationTriangleIcon className="w-6 h-6 text-pulse-500 shrink-0 mt-0.5 animate-pulse" />
                         <div>
                             <p className="text-[9px] font-black text-pulse-500 uppercase italic mb-1">Warning: System Isolation</p>
                             <p className="text-[8px] text-zinc-500 uppercase font-bold leading-tight italic">Exceeding 6 logic faults will trigger a buffer lock. Verify your input before committing the frequency string.</p>

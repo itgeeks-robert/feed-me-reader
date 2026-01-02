@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import MainContent from '../components/MainContent';
 import type { SourceType } from '../components/AddSource';
@@ -13,6 +14,7 @@ import SignalScramblerPage from '../components/SignalScramblerPage';
 import UtilityHubPage from '../components/UtilityHubPage';
 import SignalStreamerPage from '../components/SignalStreamerPage';
 import TranscoderPage from '../components/TranscoderPage';
+import Base64ConverterPage from '../components/Base64ConverterPage';
 import SudokuPage from '../components/SudokuPage';
 import SolitairePage from '../components/SolitairePage';
 import MinesweeperPage from '../components/MinesweeperPage';
@@ -41,7 +43,7 @@ export interface SolitaireStats { gamesWon: number; currentStreak: number; }
 export interface SolitaireSettings { drawThree: boolean; }
 
 export type Selection = { 
-    type: 'splash' | 'all' | 'folder' | 'bookmarks' | 'search' | 'feed' | 'reddit' | 'game_hub' | 'daily_uplink' | 'grid_reset' | 'deep_sync' | 'signal_scrambler' | 'utility_hub' | 'signal_streamer' | 'transcoder' | 'sudoku' | 'solitaire' | 'minesweeper' | 'tetris' | 'pool' | 'cipher_core' | 'void_runner' | 'synapse_link' | 'hangman' | 'neon_signal'; 
+    type: 'splash' | 'all' | 'folder' | 'bookmarks' | 'search' | 'feed' | 'reddit' | 'game_hub' | 'daily_uplink' | 'grid_reset' | 'deep_sync' | 'signal_scrambler' | 'utility_hub' | 'signal_streamer' | 'transcoder' | 'base64_converter' | 'sudoku' | 'solitaire' | 'minesweeper' | 'tetris' | 'pool' | 'cipher_core' | 'void_runner' | 'synapse_link' | 'hangman' | 'neon_signal'; 
     id: string | number | null; 
     query?: string;
     category?: string;
@@ -115,7 +117,7 @@ const App: React.FC = () => {
     }, [selection.type]);
 
     const isUtilityActive = useMemo(() => {
-        const utilityTypes = ['signal_streamer', 'transcoder', 'deep_sync', 'signal_scrambler'];
+        const utilityTypes = ['signal_streamer', 'transcoder', 'base64_converter', 'deep_sync', 'signal_scrambler'];
         return utilityTypes.includes(selection.type);
     }, [selection.type]);
 
@@ -315,6 +317,8 @@ const App: React.FC = () => {
                     <SignalStreamerPage onBackToHub={() => updateSelection({ type: 'utility_hub', id: null })} />
                 ) : selection.type === 'transcoder' ? (
                     <TranscoderPage onBackToHub={() => updateSelection({ type: 'utility_hub', id: null })} />
+                ) : selection.type === 'base64_converter' ? (
+                    <Base64ConverterPage onBackToHub={() => updateSelection({ type: 'utility_hub', id: null })} />
                 ) : selection.type === 'deep_sync' ? (
                     <DeepSyncPage onBackToHub={() => updateSelection({ type: 'utility_hub', id: null })} />
                 ) : selection.type === 'signal_scrambler' ? (

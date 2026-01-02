@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ArrowPathIcon, FlagIcon, XIcon, VoidIcon, EntityIcon, BookOpenIcon, SparklesIcon, ExclamationTriangleIcon } from './icons';
 import { saveHighScore, getHighScores, ScoreCategory } from '../services/highScoresService';
 import HighScoreTable from './HighScoreTable';
+import Tooltip from './Tooltip';
 
 type Difficulty = 'Easy' | 'Medium' | 'Hard';
 type GameState = 'IDLE' | 'PLAYING' | 'WON' | 'LOST';
@@ -218,7 +219,7 @@ const MinesweeperPage: React.FC<MinesweeperPageProps> = ({ onBackToHub, onReturn
                 .animate-glitch-in { animation: glitch-in 0.4s ease-out forwards; }
             `}</style>
             
-            <div className="w-full max-w-sm text-center bg-zinc-900 p-8 md:p-10 rounded-[3rem] border-4 border-signal-500 shadow-[0_0_50px_rgba(34,197,94,0.1)] mb-6">
+            <div className="w-full max-sm text-center bg-zinc-900 p-8 md:p-10 rounded-[3rem] border-4 border-signal-500 shadow-[0_0_50px_rgba(34,197,94,0.1)] mb-6">
                 <header className="mb-8">
                     <span className="text-[10px] font-black uppercase text-signal-500 tracking-[0.3em] italic block mb-1">Hazard Intel</span>
                     <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter leading-none">ANOMALY DETECTOR</h2>
@@ -339,19 +340,21 @@ const MinesweeperPage: React.FC<MinesweeperPageProps> = ({ onBackToHub, onReturn
                 </div>
 
                 <div className="flex flex-col gap-6 w-full lg:w-[300px] shrink-0">
-                    <button 
-                        onClick={() => setIsFlagMode(!isFlagMode)} 
-                        className={`w-full py-5 rounded-2xl font-black uppercase text-xs italic tracking-widest border-2 transition-all shadow-xl group
-                            ${isFlagMode 
-                                ? 'bg-pulse-600 border-pulse-400 text-white shadow-[0_0_30px_rgba(225,29,72,0.3)]' 
-                                : 'bg-void-900 border-white/10 text-zinc-500 hover:text-white'
-                            }`}
-                    >
-                        <span className="flex items-center justify-center gap-3">
-                            <FlagIcon className={`w-5 h-5 ${isFlagMode ? 'animate-bounce' : ''}`} />
-                            {isFlagMode ? 'PLACING BEACONS' : 'ANALYSIS MODE'}
-                        </span>
-                    </button>
+                    <Tooltip text="Beacon Protocol: Deploy markers to suspected hazard nodes.">
+                        <button 
+                            onClick={() => setIsFlagMode(!isFlagMode)} 
+                            className={`w-full py-5 rounded-2xl font-black uppercase text-xs italic tracking-widest border-2 transition-all shadow-xl group
+                                ${isFlagMode 
+                                    ? 'bg-pulse-600 border-pulse-400 text-white shadow-[0_0_30px_rgba(225,29,72,0.3)]' 
+                                    : 'bg-void-900 border-white/10 text-zinc-500 hover:text-white'
+                                }`}
+                        >
+                            <span className="flex items-center justify-center gap-3">
+                                <FlagIcon className={`w-5 h-5 ${isFlagMode ? 'animate-bounce' : ''}`} />
+                                {isFlagMode ? 'PLACING BEACONS' : 'ANALYSIS MODE'}
+                            </span>
+                        </button>
+                    </Tooltip>
                     <p className="text-[9px] text-zinc-600 uppercase font-bold text-center tracking-widest font-mono">
                         {isFlagMode ? 'Tap to mark anomalies' : 'Tap to reveal grid data'}
                     </p>

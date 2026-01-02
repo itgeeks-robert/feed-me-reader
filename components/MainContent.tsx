@@ -10,6 +10,7 @@ import { getCacheCount } from '../services/cacheService';
 import FeedOnboarding, { PRESETS, Category } from './FeedOnboarding';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { discoverFeedSignals } from '../services/feedDiscoveryService';
+import Tooltip from './Tooltip';
 
 interface MainContentProps {
     feedsToDisplay: Feed[];
@@ -53,25 +54,27 @@ const ARTICLES_PER_PAGE = 25;
 const LOAD_MORE_BATCH = 15;
 
 const CATEGORY_MAP = [
-    { id: 'NEWS', icon: <GlobeAltIcon className="w-3.5 h-3.5" /> },
-    { id: 'TECH', icon: <CpuChipIcon className="w-3.5 h-3.5" /> },
-    { id: 'SCIENCE', icon: <BeakerIcon className="w-3.5 h-3.5" /> },
-    { id: 'FINANCE', icon: <ChartBarIcon className="w-3.5 h-3.5" /> },
-    { id: 'SPORTS', icon: <FlagIcon className="w-3.5 h-3.5" /> },
-    { id: 'CULTURE', icon: <FireIcon className="w-3.5 h-3.5" /> },
-    { id: 'GAMING', icon: <ControllerIcon className="w-3.5 h-3.5" /> }
+    { id: 'NEWS', icon: <GlobeAltIcon className="w-3 h-3" /> },
+    { id: 'TECH', icon: <CpuChipIcon className="w-3 h-3" /> },
+    { id: 'SCIENCE', icon: <BeakerIcon className="w-3 h-3" /> },
+    { id: 'FINANCE', icon: <ChartBarIcon className="w-3 h-3" /> },
+    { id: 'SPORTS', icon: <FlagIcon className="w-3 h-3" /> },
+    { id: 'CULTURE', icon: <FireIcon className="w-3 h-3" /> },
+    { id: 'GAMING', icon: <ControllerIcon className="w-3 h-3" /> }
 ];
 
 const EnergyScope: React.FC<{ value: number, onClick?: () => void }> = ({ value, onClick }) => (
-    <div className="w-full flex flex-col gap-1.5 cursor-help group" onClick={onClick}>
-        <div className="flex justify-between items-center">
-            <span className="text-[10px] font-black text-pulse-600 dark:text-pulse-500 uppercase tracking-tighter italic leading-none group-hover:text-terminal transition-colors">System Integrity</span>
-            <span className="text-[10px] font-black text-pulse-600 dark:text-pulse-500 uppercase tracking-tighter italic leading-none">{value}%</span>
+    <Tooltip text="Terminal stability. Depleted integrity requires core reboot.">
+        <div className="w-full flex flex-col gap-1 cursor-help group" onClick={onClick}>
+            <div className="flex justify-between items-baseline">
+                <span className="text-[9px] font-black text-pulse-600 dark:text-pulse-500 uppercase tracking-[0.2em] italic group-hover:text-white transition-colors">System_Integrity</span>
+                <span className="text-[9px] font-mono font-black text-pulse-500">{value}%</span>
+            </div>
+            <div className="w-full h-1 bg-black border border-white/5 rounded-none overflow-hidden relative">
+                <div className="h-full bg-pulse-500 shadow-[0_0_10px_#e11d48] transition-all duration-1000" style={{ width: `${value}%` }} />
+            </div>
         </div>
-        <div className="w-full h-1.5 bg-void-950 border border-pulse-500/20 rounded-full overflow-hidden relative">
-            <div className="h-full bg-pulse-500 shadow-[0_0_10px_#e11d48] transition-all duration-1000" style={{ width: `${value}%` }} />
-        </div>
-    </div>
+    </Tooltip>
 );
 
 const MainContent: React.FC<MainContentProps> = (props) => {
@@ -89,7 +92,6 @@ const MainContent: React.FC<MainContentProps> = (props) => {
     
     useEffect(() => { getCacheCount().then(setCacheCount); }, [refreshKey]);
 
-    // AUTO-REFRESH CYCLE: 60 SECONDS
     useEffect(() => {
         const interval = setInterval(() => {
             if (document.visibilityState === 'visible') {
@@ -124,7 +126,6 @@ const MainContent: React.FC<MainContentProps> = (props) => {
     }, [selection.category, allFeeds]);
 
     useEffect(() => {
-        // If we have initial articles passed in from boot, and we aren't filtering by category, use them.
         if (initialArticles && initialArticles.length > 0 && !selection.category && articles.length === initialArticles.length && refreshKey === 0) {
             return;
         }
@@ -181,7 +182,6 @@ const MainContent: React.FC<MainContentProps> = (props) => {
             onSelectCategory(null);
             return;
         }
-
         if (rememberGlobalWarning) {
             onSelectCategory(catId);
         } else {
@@ -224,7 +224,6 @@ const MainContent: React.FC<MainContentProps> = (props) => {
         e.preventDefault();
         const query = searchQuery.trim();
         if (!query) return;
-
         if (isUrl(query)) {
             await handleSniffSignal(query);
         } else {
@@ -288,34 +287,32 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                 onRefresh={onRefresh}
             />
             
-            <nav className="fixed top-[calc(4.5rem+var(--safe-top))] md:top-[calc(6rem+var(--safe-top))] landscape:top-[calc(4rem+var(--safe-top))] left-0 right-0 z-20 bg-void-900/90 backdrop-blur-md border-b border-zinc-300 dark:border-white/5 flex items-center h-14 landscape:h-12 overflow-x-auto scrollbar-hide px-4 md:px-12 gap-3 shadow-xl transition-all">
-                {/* YOUR INTEL BOX */}
-                <div className="flex items-center gap-2 p-1 bg-void-950 border border-zinc-300 dark:border-white/5 rounded-2xl">
+            <nav className="fixed top-[calc(4.5rem+var(--safe-top))] md:top-[calc(6rem+var(--safe-top))] landscape:top-[calc(4rem+var(--safe-top))] left-0 right-0 z-20 bg-black/80 backdrop-blur-xl border-b border-white/5 flex items-center h-14 landscape:h-12 overflow-x-auto scrollbar-hide px-4 md:px-12 gap-3 shadow-2xl transition-all">
+                <div className="flex items-center gap-1.5 p-1 bg-zinc-900 border-2 border-zinc-800 rounded-lg">
                     <button 
                         onClick={() => handleCategoryClick(null)} 
-                        className={`shrink-0 flex items-center gap-2 px-4 py-1.5 landscape:py-1 rounded-xl text-[9px] landscape:text-[8px] font-black uppercase italic transition-all border ${!selection.category ? 'bg-emerald-600 border-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-transparent border-transparent text-zinc-600 dark:text-zinc-500 hover:text-terminal'}`}
+                        className={`shrink-0 flex items-center gap-2 px-4 py-1.5 landscape:py-1 rounded-sm text-[8px] font-black uppercase italic transition-all ${!selection.category ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/20' : 'bg-transparent text-zinc-500 hover:text-white'}`}
                     >
-                        <ShieldCheckIcon className="w-3.5 h-3.5" />
-                        <span>YOUR_SIGNAL</span>
+                        <ShieldCheckIcon className="w-3 h-3" />
+                        <span>Core_Net</span>
                     </button>
                 </div>
 
-                <div className="h-6 w-px bg-zinc-300 dark:bg-zinc-800 mx-1 shrink-0" />
+                <div className="h-4 w-px bg-zinc-800 mx-1 shrink-0" />
 
-                {/* GLOBAL INTEL BOX */}
-                <div className="flex items-center gap-2 p-1 bg-void-950 border border-zinc-300 dark:border-white/5 rounded-2xl overflow-hidden shrink-0">
+                <div className="flex items-center gap-1.5 p-1 bg-zinc-900 border-2 border-zinc-800 rounded-lg overflow-hidden shrink-0">
                     <button 
                         onClick={() => handleCategoryClick('GLOBAL_SYNC')} 
-                        className={`shrink-0 flex items-center gap-2 px-4 py-1.5 landscape:py-1 rounded-xl text-[9px] landscape:text-[8px] font-black uppercase italic transition-all border ${selection.category === 'GLOBAL_SYNC' ? 'bg-pulse-500 border-pulse-400 text-white shadow-lg shadow-pulse-500/20' : 'bg-transparent border-transparent text-zinc-600 dark:text-zinc-500 hover:text-terminal'}`}
+                        className={`shrink-0 flex items-center gap-2 px-4 py-1.5 landscape:py-1 rounded-sm text-[8px] font-black uppercase italic transition-all ${selection.category === 'GLOBAL_SYNC' ? 'bg-pulse-500 text-white shadow-lg shadow-pulse-500/20' : 'bg-transparent text-zinc-500 hover:text-white'}`}
                     >
-                        <RadioIcon className="w-3.5 h-3.5" />
-                        <span>GLOBAL_SYNC</span>
+                        <RadioIcon className="w-3 h-3" />
+                        <span>Global_Sync</span>
                     </button>
                     {CATEGORY_MAP.map(cat => (
                         <button 
                             key={cat.id} 
                             onClick={() => handleCategoryClick(cat.id)} 
-                            className={`shrink-0 flex items-center gap-2 px-4 py-1.5 landscape:py-1 rounded-xl text-[9px] landscape:text-[8px] font-black uppercase italic transition-all border ${selection.category === cat.id ? 'bg-pulse-500 border-pulse-400 text-white shadow-lg shadow-pulse-500/20' : 'bg-transparent border-transparent text-zinc-600 dark:text-zinc-500 hover:text-terminal'}`}
+                            className={`shrink-0 flex items-center gap-2 px-4 py-1.5 landscape:py-1 rounded-sm text-[8px] font-black uppercase italic transition-all ${selection.category === cat.id ? 'bg-pulse-500 text-white shadow-lg' : 'bg-transparent text-zinc-500 hover:text-white'}`}
                         >
                             {cat.icon}
                             <span>{cat.id}</span>
@@ -325,17 +322,22 @@ const MainContent: React.FC<MainContentProps> = (props) => {
             </nav>
 
             <div className="px-4 md:px-8 pt-[calc(10rem+var(--safe-top))] md:pt-[calc(12rem+var(--safe-top))] landscape:pt-[calc(9rem+var(--safe-top))] max-w-[1800px] mx-auto transition-all">
-                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 pb-5 border-b border-pulse-500/20 mb-8">
+                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b-2 border-zinc-900 mb-10">
                     <div>
-                        <h1 className="text-2xl md:text-4xl font-black text-terminal italic glitch-text uppercase tracking-widest leading-none">
-                            {selection.category === 'GLOBAL_SYNC' ? 'MASS SIGNAL SYNC' : pageTitle}
+                        <h1 className="text-3xl md:text-5xl font-black text-white italic glitch-text uppercase tracking-tighter leading-none">
+                            {selection.category === 'GLOBAL_SYNC' ? 'Mass Signal Sync' : pageTitle}
                         </h1>
-                        <p className="text-[10px] md:text-[11px] font-black text-zinc-600 dark:text-zinc-500 uppercase tracking-[0.4em] mt-3 font-mono">
-                            {loading ? 'SYNCHRONIZING...' : `${unreadCount} SIGS DETECTED`} | AUTO_REFRESH: ACTIVE
-                        </p>
+                        <div className="flex items-center gap-3 mt-4">
+                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                            <p className="text-[9px] font-black text-zinc-600 uppercase tracking-[0.4em] font-mono italic">
+                                {loading ? 'Acquiring_Data...' : `${unreadCount} Active_Packets_Detected`}
+                            </p>
+                        </div>
                     </div>
                     {unreadCount > 5 && (
-                        <button onClick={() => onPurgeBuffer(filteredArticles.map(a => a.id))} className="px-5 py-2 bg-void-900 border border-pulse-500 text-pulse-600 dark:text-pulse-500 hover:bg-pulse-500 hover:text-white font-black uppercase italic text-[10px] transition-all shadow-[4px_4px_0_#e11d48] active:translate-x-1 active:translate-y-1 active:shadow-none">Clear Node</button>
+                        <Tooltip text="Purge read transmissions from node memory.">
+                            <button onClick={() => onPurgeBuffer(filteredArticles.map(a => a.id))} className="px-6 py-2.5 bg-zinc-900 border-2 border-pulse-600 text-pulse-500 hover:bg-pulse-600 hover:text-white font-black uppercase italic text-[9px] tracking-widest transition-all shadow-[4px_4px_0_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none">Clear_Buffer</button>
+                        </Tooltip>
                     )}
                 </div>
                 
@@ -345,19 +347,22 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                     </div>
                 )}
                 
-                <div className="mt-8 landscape:mt-6">
-                    <div className="flex items-center gap-5 mb-8 landscape:mb-6 border-l-[6px] border-pulse-500 pl-5">
-                        <h2 className="font-black text-xl md:text-3xl text-terminal italic uppercase tracking-tighter">Live Transmissions</h2>
+                <div className="mt-12 landscape:mt-8">
+                    <div className="flex items-center gap-6 mb-10 border-l-[4px] border-emerald-500 pl-6">
+                        <h2 className="font-black text-xl md:text-3xl text-white italic uppercase tracking-tighter">Decoded Frequency</h2>
                         <UnreadFilterToggle checked={showOnlyUnread} onChange={setShowOnlyUnread} />
                     </div>
 
                     {loading && filteredArticles.length === 0 ? (
-                        <div className="text-center py-24 flex flex-col items-center gap-6"><div className="w-12 h-12 border-t-4 border-pulse-500 rounded-full animate-spin"></div><span className="text-pulse-600 dark:text-pulse-500 font-mono text-xs uppercase tracking-widest animate-pulse italic">Decrypting Frequency...</span></div>
+                        <div className="text-center py-32 flex flex-col items-center gap-8">
+                            <div className="w-14 h-14 border-4 border-pulse-500 border-t-transparent rounded-full animate-spin shadow-[0_0_20px_#e11d48]" />
+                            <span className="text-pulse-500 font-black font-mono text-[10px] uppercase tracking-[0.6em] animate-pulse italic">Interrogating_Network...</span>
+                        </div>
                     ) : filteredArticles.length === 0 ? (
-                        <div className="text-center py-24 border-4 border-dashed border-zinc-300 dark:border-zinc-800 rounded-[3rem] bg-void-900/20">
-                            <ExclamationTriangleIcon className="w-14 h-14 text-zinc-500 dark:text-zinc-700 mx-auto mb-6" />
-                            <h3 className="text-2xl font-black text-zinc-600 dark:text-zinc-700 uppercase italic mb-3 tracking-tighter">Frequency Silent</h3>
-                            <p className="text-[11px] text-zinc-600 dark:text-zinc-700 uppercase tracking-widest mb-8 font-mono italic">No matches detected for "{selection.query || 'current selection'}".</p>
+                        <div className="text-center py-24 border-4 border-dashed border-zinc-900 rounded-[3rem] bg-black/20">
+                            <ExclamationTriangleIcon className="w-14 h-14 text-zinc-800 mx-auto mb-6" />
+                            <h3 className="text-2xl font-black text-zinc-600 uppercase italic mb-3 tracking-tighter">Frequency Silent</h3>
+                            <p className="text-[9px] text-zinc-700 uppercase tracking-[0.3em] mb-8 font-mono italic leading-loose">No logical matches detected for packet request:<br/>"{selection.query || 'current_selection'}"</p>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 md:gap-8">
@@ -368,52 +373,39 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                     )}
 
                     {articlesToDisplay.length > visibleArticlesToDisplay.length && (
-                        <div className="mt-16 text-center">
-                            <button onClick={() => setVisibleCount(c => c + LOAD_MORE_BATCH)} className="bg-void-950 border-4 border-pulse-500 text-pulse-600 dark:text-pulse-500 hover:bg-pulse-500 hover:text-white font-black uppercase italic py-4 px-12 transition-all shadow-[6px_6px_0_#e11d48] text-xs active:translate-x-1 active:translate-y-1 active:shadow-none">Decode {LOAD_MORE_BATCH} More</button>
+                        <div className="mt-20 text-center">
+                            <button onClick={() => setVisibleCount(c => c + LOAD_MORE_BATCH)} className="bg-zinc-100 border-4 border-black text-black font-black uppercase italic py-5 px-16 transition-all shadow-[8px_8px_0px_#e11d48] text-[10px] tracking-widest active:translate-x-1 active:translate-y-1 active:shadow-none">Fetch {LOAD_MORE_BATCH} Additional Nodes</button>
                         </div>
                     )}
                 </div>
             </div>
 
             {pendingCategory && (
-                <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[100] flex items-center justify-center p-6 font-mono">
-                    <div className="bg-zinc-900 border-4 border-zinc-800 shadow-2xl w-full max-w-md relative overflow-hidden flex flex-col">
-                        <header className="h-10 bg-zinc-800 flex items-center justify-between px-2 relative z-20 border-b-2 border-black">
+                <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-[100] flex items-center justify-center p-6 font-mono animate-fade-in">
+                    <div className="bg-zinc-900 border-4 border-zinc-800 shadow-2xl w-full max-w-md relative overflow-hidden flex flex-col rounded-3xl">
+                        <header className="h-10 bg-zinc-800 flex items-center justify-between px-1 border-b-2 border-black">
                             <div className="flex items-center gap-2 h-full">
-                                <div className="w-8 h-7 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center">
-                                   <div className="w-4 h-1 bg-black shadow-[0_4px_0_black]" />
-                                </div>
-                                <h2 className="text-white text-[10px] font-black uppercase tracking-[0.2em] italic px-2">SYST_WARNING.EXE</h2>
+                                <div className="w-8 h-7 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center"><div className="w-4 h-1 bg-black shadow-[0_4px_0_black]" /></div>
+                                <h2 className="text-white text-[9px] font-black uppercase tracking-[0.2em] italic px-2">SYST_UPLINK.EXE</h2>
                             </div>
-                            <button onClick={() => setPendingCategory(null)} className="w-8 h-7 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center active:bg-zinc-400">
-                                <XIcon className="w-4 h-4 text-black" />
-                            </button>
                         </header>
-
-                        <div className="p-8 bg-void-950 text-center space-y-6">
+                        <div className="p-10 bg-void-950 text-center space-y-8">
                             <div className="mx-auto w-16 h-16 bg-pulse-500/10 rounded-full flex items-center justify-center border-2 border-pulse-500 animate-pulse">
-                                <ExclamationTriangleIcon className="w-8 h-8 text-pulse-500" />
+                                <RadioIcon className="w-8 h-8 text-pulse-500" />
                             </div>
-                            <h3 className="text-lg font-black text-white italic uppercase tracking-tighter leading-none">Mass Signal Establishment</h3>
-                            <p className="text-[10px] text-zinc-500 leading-relaxed uppercase tracking-widest italic">
-                                Operator, linking to <span className="text-pulse-500 font-black">ALL {pendingCategory === 'GLOBAL_SYNC' ? 'GLOBAL' : pendingCategory} NODES</span> concurrently requires high bandwidth. Sequence lag may occur.
-                            </p>
-                            
-                            <label className="flex items-center justify-center gap-3 cursor-pointer group pt-2">
-                                <input 
-                                    type="checkbox" 
-                                    className="sr-only" 
-                                    checked={rememberGlobalWarning}
-                                    onChange={(e) => setRememberGlobalWarning(e.target.checked)}
-                                />
-                                <div className={`w-4 h-4 border-2 flex-shrink-0 transition-colors ${rememberGlobalWarning ? 'bg-pulse-500 border-pulse-400 shadow-[0_0_10px_#e11d48]' : 'bg-transparent border-zinc-700'}`} />
-                                <span className="text-[9px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-terminal italic">Do not warn again</span>
+                            <div className="space-y-3">
+                                <h3 className="text-lg font-black text-white italic uppercase tracking-tighter">Establish Mass Uplink?</h3>
+                                <p className="text-[10px] text-zinc-500 leading-relaxed uppercase tracking-widest italic px-4">Operator, syncing with <span className="text-pulse-500 font-black">ALL {pendingCategory === 'GLOBAL_SYNC' ? 'GLOBAL' : pendingCategory} NODES</span> will saturate the buffer. Performance degradation possible.</p>
+                            </div>
+                            <label className="flex items-center justify-center gap-3 cursor-pointer group">
+                                <input type="checkbox" className="sr-only" checked={rememberGlobalWarning} onChange={(e) => setRememberGlobalWarning(e.target.checked)} />
+                                <div className={`w-4 h-4 border-2 flex-shrink-0 transition-colors ${rememberGlobalWarning ? 'bg-pulse-500 border-pulse-400' : 'bg-transparent border-zinc-700'}`} />
+                                <span className="text-[9px] font-black uppercase tracking-widest text-zinc-600 group-hover:text-white italic">Acknowledge_Risk</span>
                             </label>
                         </div>
-
-                        <footer className="p-4 bg-zinc-300 border-t-2 border-black flex gap-2">
-                            <button onClick={() => setPendingCategory(null)} className="flex-1 py-3 bg-zinc-100 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-400 text-[10px] font-black uppercase italic text-zinc-600 active:bg-zinc-200">ABORT</button>
-                            <button onClick={() => { onSelectCategory(pendingCategory); setPendingCategory(null); }} className="flex-1 py-3 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 text-[10px] font-black uppercase italic text-black hover:bg-white active:bg-zinc-400">ESTABLISH</button>
+                        <footer className="p-4 bg-zinc-300 border-t-2 border-black flex gap-3">
+                            <button onClick={() => setPendingCategory(null)} className="flex-1 py-3 bg-zinc-100 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-400 text-[10px] font-black uppercase italic text-zinc-600 active:bg-zinc-200">Abort</button>
+                            <button onClick={() => { onSelectCategory(pendingCategory); setPendingCategory(null); }} className="flex-1 py-3 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 text-[10px] font-black uppercase italic text-black hover:bg-white active:bg-zinc-400">Establish</button>
                         </footer>
                     </div>
                 </div>
@@ -423,50 +415,38 @@ const MainContent: React.FC<MainContentProps> = (props) => {
 };
 
 const Header: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuery, onOpenSidebar, theme, onToggleTheme, uptime, cacheCount, isSniffing, onSniff, onOpenSearchExplainer, onOpenIntegrityBriefing, onRefresh }) => {
-    const isUrl = useMemo(() => {
-        return /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([\/\w .-]*)*\/?$/.test(searchQuery);
-    }, [searchQuery]);
+    const isUrl = useMemo(() => /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([\/\w .-]*)*\/?$/.test(searchQuery), [searchQuery]);
 
     return (
         <header className="fixed top-0 left-0 right-0 z-30 h-[calc(4.5rem+var(--safe-top))] md:h-[calc(6rem+var(--safe-top))] landscape:h-[calc(4rem+var(--safe-top))] transition-all">
-            <div className="w-full h-full bg-void-950/90 backdrop-blur-xl border-b border-pulse-500/30 flex items-center justify-between px-4 md:px-12 shadow-2xl pt-[var(--safe-top)]">
-                <button onClick={onOpenSidebar} className="p-2 text-pulse-600 dark:text-pulse-500 transition-all flex-shrink-0 active:scale-90"><MenuIcon className="w-7 h-7 md:w-9 md:h-9 landscape:w-7 landscape:h-7" /></button>
-                <div className="flex-grow flex flex-col items-center mx-3 md:mx-16 max-w-2xl relative">
-                    <form onSubmit={onSearchSubmit} className="relative w-full mb-2 md:mb-4 group">
-                        <div className={`absolute top-1/2 left-3 md:left-6 -translate-y-1/2 transition-colors duration-300 ${isSniffing ? 'text-emerald-600 dark:text-emerald-500' : 'text-zinc-500 dark:text-zinc-700'}`}>
-                            {isSniffing ? <ArrowPathIcon className="w-4 h-4 md:w-6 md:h-6 landscape:w-4 landscape:h-4 animate-spin" /> : <SearchIcon className="w-4 h-4 md:w-6 md:h-6 landscape:w-4 landscape:h-4" />}
+            <div className="w-full h-full bg-void-950/80 backdrop-blur-2xl border-b-2 border-white/5 flex items-center justify-between px-4 md:px-12 shadow-2xl pt-[var(--safe-top)]">
+                <button onClick={onOpenSidebar} className="p-3 bg-zinc-900 border-2 border-zinc-800 rounded-xl text-pulse-500 hover:text-white hover:border-pulse-500 transition-all flex-shrink-0 active:scale-95"><MenuIcon className="w-7 h-7" /></button>
+                <div className="flex-grow flex flex-col items-center mx-4 md:mx-20 max-w-2xl relative">
+                    <form onSubmit={onSearchSubmit} className="relative w-full mb-3 md:mb-5 group">
+                        <div className={`absolute top-1/2 left-4 -translate-y-1/2 transition-colors duration-300 ${isSniffing ? 'text-emerald-500' : 'text-zinc-700'}`}>
+                            {isSniffing ? <ArrowPathIcon className="w-5 h-5 animate-spin" /> : <SearchIcon className="w-5 h-5" />}
                         </div>
-                        
-                        <input 
-                            type="search" 
-                            placeholder="Scan Frequencies..." 
-                            value={searchQuery} 
-                            onFocus={onOpenSearchExplainer}
-                            onChange={e => setSearchQuery(e.target.value)} 
-                            className={`w-full bg-void-900 border-2 focus:border-pulse-500 placeholder-zinc-500 dark:placeholder-zinc-700 text-terminal rounded-none py-2.5 md:py-4 landscape:py-2 pl-10 md:pl-16 landscape:pl-12 pr-16 md:pr-24 text-[10px] md:text-base landscape:text-[9px] font-mono uppercase tracking-widest outline-none shadow-inner transition-all
-                                ${isUrl ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-zinc-300 dark:border-zinc-800'}`} 
-                        />
-
+                        <Tooltip text="Scan for keywords or probe node URL." position="bottom">
+                            <input 
+                                type="search" 
+                                placeholder="Probe Frequency..." 
+                                value={searchQuery} 
+                                onFocus={onOpenSearchExplainer}
+                                onChange={e => setSearchQuery(e.target.value)} 
+                                className={`w-full bg-black border-2 rounded-lg py-3.5 md:py-4.5 pl-14 pr-16 text-[11px] md:text-sm font-mono uppercase tracking-[0.2em] outline-none shadow-inner transition-all ${isUrl ? 'border-emerald-500/40 text-emerald-400' : 'border-zinc-800 focus:border-pulse-500 text-white'}`} 
+                            />
+                        </Tooltip>
                         {isUrl && !isSniffing && (
-                            <button 
-                                type="button"
-                                onClick={onSniff}
-                                className="absolute top-1/2 right-1.5 -translate-y-1/2 bg-emerald-600 hover:bg-emerald-500 text-white font-black uppercase italic text-[7px] md:text-[10px] px-3 py-1.5 shadow-lg animate-fade-in border border-emerald-400/50"
-                            >
-                                [SNIFF]
-                            </button>
+                            <button type="button" onClick={onSniff} className="absolute top-1/2 right-2 -translate-y-1/2 bg-emerald-600 text-white font-black uppercase italic text-[8px] px-3 py-1.5 shadow-lg border border-white/20 active:scale-95">Probe</button>
                         )}
                     </form>
-                    
-                    <div className="w-full px-2 md:px-8 landscape:px-0">
+                    <div className="w-full px-2">
                         <EnergyScope value={uptime} onClick={() => onOpenIntegrityBriefing()} />
                     </div>
                 </div>
-                <div className="flex items-center gap-3 md:gap-8 flex-shrink-0">
-                    <button onClick={onRefresh} className="p-2 text-zinc-500 hover:text-terminal transition-all active:rotate-180 duration-500">
-                        <ArrowPathIcon className="w-5 h-5 md:w-7 md:h-7" />
-                    </button>
-                    <button onClick={onToggleTheme} className="p-2 text-pulse-600 dark:text-pulse-500 hover:text-terminal transition-all active:scale-90">{theme === 'dark' ? <SunIcon className="w-6 h-6 md:w-8 md:h-8 landscape:w-6 landscape:h-6" /> : <MoonIcon className="w-6 h-6 md:w-8 md:h-8 landscape:w-6 landscape:h-6" />}</button>
+                <div className="flex items-center gap-4 md:gap-6 flex-shrink-0">
+                    <button onClick={onRefresh} className="p-2 text-zinc-600 hover:text-white transition-all active:rotate-180 duration-500"><ArrowPathIcon className="w-6 h-6" /></button>
+                    <button onClick={onToggleTheme} className="p-2 text-zinc-600 hover:text-white transition-all active:scale-90">{theme === 'dark' ? <SunIcon className="w-6 h-6" /> : <MoonIcon className="w-6 h-6" />}</button>
                 </div>
             </div>
         </header>
@@ -474,10 +454,10 @@ const Header: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuery, on
 };
 
 const UnreadFilterToggle: React.FC<any> = ({ checked, onChange }) => (
-    <label className="flex items-center cursor-pointer group bg-void-900 px-3 py-1.5 landscape:py-1 border border-zinc-300 dark:border-zinc-800 transition-all hover:border-pulse-500 shadow-sm active:scale-95">
+    <label className="flex items-center cursor-pointer group bg-zinc-900 px-4 py-2 border-2 border-zinc-800 hover:border-emerald-500 transition-all shadow-lg rounded-sm active:scale-95">
         <input type="checkbox" className="sr-only" checked={checked} onChange={(e) => onChange(e.target.checked)} />
-        <div className={`w-4 h-4 landscape:w-3 landscape:h-3 border-2 flex-shrink-0 mr-3 transition-colors ${checked ? 'bg-pulse-500 border-pulse-400 shadow-[0_0_10px_#e11d48]' : 'bg-transparent border-zinc-400 dark:border-zinc-700'}`} />
-        <span className="text-[10px] landscape:text-[9px] font-black uppercase tracking-[0.2em] text-zinc-700 dark:text-zinc-500 group-hover:text-terminal font-mono italic leading-none">Unread</span>
+        <div className={`w-3.5 h-3.5 border-2 flex-shrink-0 mr-3 transition-all ${checked ? 'bg-emerald-500 border-emerald-400 shadow-[0_0_10px_#10b981]' : 'bg-transparent border-zinc-700'}`} />
+        <span className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-500 group-hover:text-white font-mono italic leading-none">Filter_Unread</span>
     </label>
 );
 
