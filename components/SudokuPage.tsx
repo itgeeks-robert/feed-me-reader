@@ -287,7 +287,7 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
                 </header>
 
                 <div className="flex-grow flex items-center justify-center min-h-0">
-                    <div className="aspect-square w-full max-w-[360px] grid grid-cols-9 bg-black border-[4px] border-app-accent shadow-[0_0_50px_rgba(34,211,238,0.3)] relative overflow-hidden ring-1 ring-white/5 rounded-lg grid-crt">
+                    <div className="aspect-square w-full max-w-[360px] grid grid-cols-9 bg-app-card border-[4px] border-app-accent shadow-[0_0_50px_rgba(34,211,238,0.3)] relative overflow-hidden ring-1 ring-white/5 rounded-lg grid-crt">
                         {grid?.map((row, r) => row.map((cell, c) => {
                             const isSelected = selectedCell?.row === r && selectedCell?.col === c;
                             const isSameValue = cell.value !== null && selectedCell && grid[selectedCell.row][selectedCell.col].value === cell.value;

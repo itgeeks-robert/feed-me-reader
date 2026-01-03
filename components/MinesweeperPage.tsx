@@ -353,7 +353,7 @@ const MinesweeperPage: React.FC<MinesweeperPageProps> = ({ onBackToHub, onReturn
                 </header>
 
                 <div className="flex flex-col lg:flex-row gap-8">
-                    <div className="bg-app-card/60 p-5 rounded-[2.5rem] border-4 border-zinc-900 shadow-2xl relative overflow-hidden grid-crt flex-grow">
+                    <div className="bg-app-card p-5 rounded-[2.5rem] border-4 border-app-accent shadow-2xl relative overflow-hidden grid-crt flex-grow">
                         <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${currentSettings.cols}, 1fr)` }}>
                           {grid.map((cell, idx) => (
                                 <div 
