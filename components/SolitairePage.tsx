@@ -10,7 +10,8 @@ import Tooltip from './Tooltip';
 const SUITS = ['♥', '♦', '♠', '♣'];
 const RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
 
-interface Card {
+// Renamed interface to CardData to avoid conflict with the component name
+interface CardData {
   id: string;
   suit: string;
   rank: string;
@@ -18,7 +19,7 @@ interface Card {
   isFaceUp: boolean;
 }
 
-type Pile = Card[];
+type Pile = CardData[];
 
 interface GameState {
   stock: Pile;
@@ -53,7 +54,7 @@ const CardBack = () => (
     </div>
 );
 
-const CardFace = ({ card }: { card: Card }) => {
+const CardFace = ({ card }: { card: CardData }) => {
     const isRed = card.suit === '♥' || card.suit === '♦';
     const color = isRed ? 'text-pulse-500' : 'text-emerald-400';
     const glow = isRed ? 'drop-shadow-[0_0_8px_rgba(225,29,72,0.6)]' : 'drop-shadow-[0_0_8px_rgba(16,185,129,0.6)]';
@@ -65,6 +66,24 @@ const CardFace = ({ card }: { card: Card }) => {
             <div className={`w-full h-full flex items-center justify-center text-[3.8em] ${color} ${glow}`}>{card.suit}</div>
             <div className={`absolute bottom-1 right-1.5 font-black italic text-[1.8em] leading-none rotate-180 ${color} ${glow}`}>{card.rank}</div>
             <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent pointer-events-none" />
+        </div>
+    );
+};
+
+// Added Card component to fix 'Card' used as value error
+const Card: React.FC<{
+    card: CardData;
+    isSelected: boolean;
+    onClick: () => void;
+    onDoubleClick: () => void;
+}> = ({ card, isSelected, onClick, onDoubleClick }) => {
+    return (
+        <div 
+            onClick={onClick} 
+            onDoubleClick={onDoubleClick}
+            className={`card-container cursor-pointer transition-transform duration-200 ${isSelected ? '-translate-y-4 shadow-[0_20px_40px_rgba(0,0,0,0.4)] z-50' : 'hover:-translate-y-1'}`}
+        >
+            {card.isFaceUp ? <CardFace card={card} /> : <CardBack />}
         </div>
     );
 };
@@ -85,6 +104,34 @@ const AlignmentGraphic: React.FC = () => (
             <RadioIcon className="w-16 h-16 text-emerald-500" />
         </div>
         <div className="absolute -top-4 -left-4 text-[8px] font-mono text-emerald-500 uppercase tracking-widest animate-pulse font-black italic">PROTOCOL_STABLE</div>
+    </div>
+);
+
+// Added IntroScreen component
+const IntroScreen: React.FC<{ 
+    onStart: () => void; 
+    onBackToHub: () => void; 
+    onShowHelp: () => void; 
+    stats: SolitaireStats; 
+    showScores: boolean;
+}> = ({ onStart, onBackToHub, onShowHelp, stats, showScores }) => (
+    <div className="w-full h-full flex flex-col items-center justify-center p-6 animate-fade-in">
+        <div className="w-full max-w-sm text-center bg-zinc-900 p-10 rounded-[3rem] border-4 border-emerald-500 shadow-2xl">
+            <header className="mb-8">
+                <span className="text-[10px] font-black uppercase text-emerald-500 tracking-[0.3em] italic block mb-1">Packet Alignment</span>
+                <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter leading-none">SIGNAL ALIGN</h2>
+            </header>
+            <div className="h-[240px] flex items-center justify-center mb-8 overflow-hidden relative">
+                <div key={showScores ? 'scores' : 'graphic'} className="w-full animate-fade-in">
+                    {showScores ? <HighScoreTable entries={getHighScores('solitaire')} title="SOLITAIRE" /> : <AlignmentGraphic />}
+                </div>
+            </div>
+            <div className="space-y-4">
+                <button onClick={onStart} className="w-full py-5 bg-white text-black font-black uppercase italic rounded-2xl shadow-xl hover:bg-emerald-500 hover:text-white transition-all text-xl">Establish Link</button>
+                <button onClick={onShowHelp} className="w-full py-3 bg-zinc-800 text-zinc-400 font-black uppercase italic rounded-xl border border-white/5 hover:text-white transition-all text-[10px] tracking-widest flex items-center justify-center gap-2"><BookOpenIcon className="w-4 h-4" /> Tactical Manual</button>
+                <button onClick={onBackToHub} className="text-zinc-600 font-bold uppercase tracking-[0.4em] text-[9px] pt-4 block w-full italic hover:text-terminal transition-colors">Abort Intercept</button>
+            </div>
+        </div>
     </div>
 );
 
@@ -190,7 +237,7 @@ const SolitairePage: React.FC<SolitairePageProps> = (props) => {
 
   useEffect(() => { return () => stopTimer(); }, [stopTimer]);
   
-  const canPlaceOnTableau = (cardToMove: Card, destinationPile: Pile): boolean => {
+  const canPlaceOnTableau = (cardToMove: CardData, destinationPile: Pile): boolean => {
     if (!cardToMove) return false;
     if (destinationPile.length === 0) return cardToMove.value === 13; 
     const topCard = destinationPile[destinationPile.length - 1];
@@ -201,7 +248,7 @@ const SolitairePage: React.FC<SolitairePageProps> = (props) => {
     return cardToMove.value === topCard.value - 1;
   };
 
-  const canPlaceOnFoundation = (cardToMove: Card, destinationPile: Pile) => {
+  const canPlaceOnFoundation = (cardToMove: CardData, destinationPile: Pile) => {
     if (!cardToMove) return false;
     if (destinationPile.length === 0) return cardToMove.value === 1; 
     const topCard = destinationPile[destinationPile.length - 1];
@@ -306,7 +353,7 @@ const SolitairePage: React.FC<SolitairePageProps> = (props) => {
   }, [history]);
 
   return (
-    <div className="w-full h-full flex flex-col bg-zinc-950 overflow-y-auto font-mono relative select-none scrollbar-hide">
+    <div className="w-full h-full flex flex-col bg-zinc-950 overflow-y-auto pt-[calc(4rem+var(--safe-top))] font-mono relative select-none scrollbar-hide">
         <style>{`
             :root { 
                 --board-gap: clamp(0.2rem, 1.2vw, 0.6rem); 
@@ -365,7 +412,7 @@ const SolitairePage: React.FC<SolitairePageProps> = (props) => {
         {gamePhase === 'intro' ? 
             <IntroScreen onStart={startNewGame} onBackToHub={onBackToHub} onShowHelp={() => { soundService.playClick(); setShowHelp(true); }} stats={stats} showScores={showScores} /> : 
             <div className="w-full h-full alley-bg p-4 flex flex-col items-center">
-                 <div className="w-full max-w-5xl flex flex-col md:flex-row justify-between items-center mb-6 px-2 game-content mt-[var(--safe-top)] gap-4">
+                 <div className="w-full max-w-5xl flex flex-col md:flex-row justify-between items-center mb-6 px-2 game-content gap-4">
                     <div className="flex gap-4">
                         <div className="bg-zinc-900 border border-emerald-500/20 px-4 py-2 rounded-lg shadow-xl flex items-center gap-4">
                             <div>
@@ -394,7 +441,7 @@ const SolitairePage: React.FC<SolitairePageProps> = (props) => {
                             pushHistoryAndSetState(newState);
                             setSelectedInfo(null);
                         }}} className="cursor-pointer relative z-10 hover:scale-105 transition-transform active:scale-95 group">
-                            {gameState?.stock.length ? <Card isSelected={false} card={{isFaceUp: false} as any} /> : <div className="card-container border-2 border-dashed border-white/10 rounded-md flex items-center justify-center text-white/20 text-xl font-black bg-black/40 group-hover:text-emerald-500 group-hover:border-emerald-500 transition-colors">↺</div>}
+                            {gameState?.stock.length ? <Card isSelected={false} onClick={() => {}} onDoubleClick={() => {}} card={{isFaceUp: false} as any} /> : <div className="card-container border-2 border-dashed border-white/10 rounded-md flex items-center justify-center text-white/20 text-xl font-black bg-black/40 group-hover:text-emerald-500 group-hover:border-emerald-500 transition-colors">↺</div>}
                         </div>
                         
                         <div className="relative">
@@ -496,137 +543,40 @@ const SolitairePage: React.FC<SolitairePageProps> = (props) => {
   );
 };
 
-const IntroScreen = ({ onStart, onBackToHub, onShowHelp, stats, showScores }: any) => {
-    const topScores = getHighScores('solitaire');
-    return (
-        <div className="w-full h-full flex items-center justify-center bg-zinc-950 p-6 overflow-y-auto scrollbar-hide">
-             <style>{`
-                @keyframes glitch-in {
-                    0% { opacity: 0; transform: scale(0.9) skew(0deg); }
-                    10% { opacity: 0.8; transform: scale(1.05) skew(5deg); filter: hue-rotate(90deg); }
-                    20% { opacity: 1; transform: scale(1) skew(0deg); filter: hue-rotate(0deg); }
-                }
-                .animate-glitch-in { animation: glitch-in 0.4s ease-out forwards; }
-            `}</style>
-            
-            <div className="w-full max-w-sm text-center bg-zinc-900 p-10 rounded-[3rem] border-4 border-emerald-500 shadow-[0_0_60px_rgba(16,185,129,0.2)]">
-                <header className="mb-10">
-                    <span className="text-[10px] font-black uppercase text-emerald-500 tracking-[0.3em] italic block mb-1">Frequency Stack</span>
-                    <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter leading-none glitch-text">SIGNAL ALIGN</h2>
-                </header>
-
-                <div className="h-[240px] flex items-center justify-center mb-8 overflow-hidden relative">
-                    <div key={showScores ? 'scores' : 'graphic'} className="w-full animate-glitch-in">
-                        {showScores ? (
-                            <HighScoreTable entries={topScores} title="ALIGNED" />
-                        ) : (
-                            <AlignmentGraphic />
-                        )}
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 mt-8 mb-10">
-                    <div className="bg-black/60 p-4 rounded-2xl border border-white/10 shadow-inner">
-                        <span className="text-[8px] font-black text-emerald-500 uppercase block tracking-[0.2em] italic">Syncs</span>
-                        <span className="text-xl font-black italic text-white leading-none">{stats.gamesWon}</span>
-                    </div>
-                    <div className="bg-black/60 p-4 rounded-2xl border border-white/10 shadow-inner">
-                        <span className="text-[8px] font-black text-pulse-500 uppercase block tracking-[0.2em] italic">Streak</span>
-                        <span className="text-xl font-black italic text-white leading-none">{stats.currentStreak}</span>
-                    </div>
-                </div>
-                <div className="space-y-4">
-                    <button onClick={onStart} className="w-full py-6 bg-white text-black font-black uppercase italic rounded-2xl transition-all shadow-[6px_6px_0_#10b981] hover:translate-x-[-1px] hover:translate-y-[-1px] active:scale-95 text-xl">Establish Sync</button>
-                    <button onClick={onShowHelp} className="w-full py-4 bg-zinc-800 text-zinc-400 font-black uppercase italic rounded-2xl border border-white/5 hover:text-white transition-all active:scale-95 text-[10px] tracking-[0.3em] flex items-center justify-center gap-3">
-                        <BookOpenIcon className="w-4 h-4" /> Tactical_Manual
-                    </button>
-                    <button onClick={() => { soundService.playWrong(); onBackToHub(); }} className="text-zinc-600 font-bold uppercase tracking-[0.4em] text-[9px] pt-6 block w-full italic hover:text-white transition-colors">Abort_Task</button>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-const TacticalManual: React.FC<{ onClose: () => void }> = ({ onClose }) => {
-    return (
-        <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 md:p-10 font-mono" onClick={onClose}>
-            <div className="max-w-xl w-full bg-zinc-900 border-4 border-emerald-500 rounded-[2.5rem] md:rounded-[3rem] shadow-2xl overflow-hidden relative flex flex-col max-h-[85vh] pt-[var(--safe-top)] pb-[var(--safe-bottom)]" onClick={e => e.stopPropagation()}>
-                
-                <header className="h-12 bg-emerald-600 flex items-center justify-between px-1 relative z-20 border-b-2 border-black shrink-0">
-                    <div className="flex items-center gap-2 h-full">
-                        <div className="w-10 h-8 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center">
-                           <BookOpenIcon className="w-5 h-5 text-black" />
-                        </div>
-                        <h2 className="text-white text-[10px] font-black uppercase tracking-[0.2em] italic px-2">SIGNAL_ALIGNMENT_PROTOCOL.PDF</h2>
-                    </div>
-                    <button onClick={onClose} className="w-10 h-8 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center active:bg-zinc-400 transition-colors">
-                        <XIcon className="w-5 h-5 text-black" />
-                    </button>
-                </header>
-
-                <div className="p-6 md:p-10 overflow-y-auto flex-grow bg-void-950/40 relative">
-                    <div className="absolute inset-0 pointer-events-none opacity-5 cctv-overlay" />
-                    
-                    <section className="space-y-8 relative z-10">
-                        <div>
-                            <div className="flex items-center gap-3 mb-4">
-                                <SparklesIcon className="w-5 h-5 text-emerald-500" />
-                                <h3 className="text-lg font-black text-white italic uppercase tracking-tighter">Data Organization</h3>
-                            </div>
-                            <p className="text-[10px] md:text-xs text-zinc-400 uppercase font-black leading-relaxed tracking-wider mb-4 border-l-2 border-emerald-500/30 pl-4">
-                                Reconstruct the fractured data stacks into a linear sequential buffer for mainframe transmission.
-                            </p>
-                        </div>
-
-                        <div className="grid grid-cols-1 gap-6">
-                            <ManualPoint title="0x01_Packet_Analysis" desc="Target hidden packets first. Unveiling the full data set is critical for sequential mapping." color="text-emerald-500" />
-                            <ManualPoint title="0x02_Buffer_Efficiency" desc="Kings act as node foundations. Only deploy them into empty sectors when you have an immediate sequence follow-up." color="text-emerald-500" />
-                            <ManualPoint title="0x03_Foundation_Uplink" desc="Transfer Aces to the top foundation buffers immediately. They anchor the entire decryption string." color="text-emerald-500" />
-                            <ManualPoint title="0x04_Alternating_Current" desc="Tableau columns must maintain alternating color patterns and strict descending order to prevent logic interference." color="text-emerald-500" />
-                        </div>
-
-                        <div className="p-5 bg-emerald-500/10 border-2 border-emerald-500/30 rounded-2xl flex items-start gap-4">
-                            <ExclamationTriangleIcon className="w-6 h-6 text-emerald-500 shrink-0 mt-0.5 animate-pulse" />
-                            <div>
-                                <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-1 italic">Pro Tip: Signal Drift</p>
-                                <p className="text-[8px] text-zinc-500 uppercase font-black leading-tight italic">
-                                    Avoid saturating the waste pile. Constant cycling leads to fragmentation. Move data to the tableau whenever logic permits.
-                                </p>
-                            </div>
-                        </div>
-                    </section>
-                </div>
-
-                <footer className="p-4 bg-zinc-300 border-t-2 border-black shrink-0">
-                    <button onClick={onClose} className="w-full py-4 bg-emerald-600 border-t-2 border-l-2 border-white/50 border-b-2 border-r-2 border-neon-950 text-[10px] font-black uppercase italic text-white hover:bg-emerald-500 active:bg-emerald-700 transition-all shadow-lg">
-                        ACKNOWLEDGE_PROTOCOLS
-                    </button>
-                </footer>
-            </div>
-        </div>
-    );
-};
-
+// Added ManualPoint component
 const ManualPoint: React.FC<{ title: string; desc: string; color: string }> = ({ title, desc, color }) => (
     <div className="space-y-2 group">
         <h4 className={`text-[9px] font-black ${color} uppercase tracking-[0.3em] italic flex items-center gap-2`}>
             <span className={`w-1.5 h-1.5 rounded-full ${color.replace('text-', 'bg-')} group-hover:scale-150 transition-transform`}></span>
             {title}
         </h4>
-        <p className="text-[10px] md:text-xs text-zinc-300 font-bold uppercase tracking-wide leading-relaxed pl-3 border-l border-zinc-800">
-            {desc}
-        </p>
+        <p className="text-[10px] md:text-xs text-zinc-300 font-bold uppercase tracking-wide leading-relaxed pl-3 border-l border-zinc-800">{desc}</p>
     </div>
 );
 
-const Card = ({ card, isSelected, onClick, onDoubleClick }: any) => (
-    <div 
-        onClick={onClick} 
-        onDoubleClick={onDoubleClick}
-        className={`card-container rounded-md shadow-2xl cursor-pointer transition-all card-animate ${isSelected ? 'ring-4 ring-emerald-500 -translate-y-4 shadow-emerald-500/40 z-[200]' : 'hover:-translate-y-1'}`}
-    >
-        {card.isFaceUp ? <CardFace card={card} /> : <CardBack />}
+// Added TacticalManual component
+const TacticalManual: React.FC<{ onClose: () => void }> = ({ onClose }) => (
+    <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 md:p-10 font-mono" onClick={onClose}>
+        <div className="max-w-xl w-full bg-void-900 border-4 border-emerald-500 rounded-[3rem] shadow-2xl overflow-hidden relative flex flex-col max-h-[85vh]" onClick={e => e.stopPropagation()}>
+            <header className="h-12 bg-emerald-600 flex items-center justify-between px-4 border-b-2 border-black shrink-0">
+                <div className="flex items-center gap-2 h-full"><BookOpenIcon className="w-4 h-4 text-black" /><h2 className="text-white text-[10px] font-black uppercase tracking-[0.2em] italic">ALIGNMENT_LOG_0xVOID.PDF</h2></div>
+                <button onClick={onClose} className="hover:scale-110 transition-transform"><XIcon className="w-5 h-5 text-black"/></button>
+            </header>
+            <div className="p-8 md:p-12 overflow-y-auto bg-void-950/40 relative flex-grow scrollbar-hide">
+                <div className="absolute inset-0 pointer-events-none opacity-5 cctv-overlay" />
+                <section className="space-y-8 relative z-10">
+                    <div><h3 className="text-lg font-black text-white italic uppercase tracking-tighter mb-4 flex items-center gap-3"><SparklesIcon className="w-5 h-5 text-emerald-500"/> Data Sorting</h3><p className="text-[10px] text-zinc-400 uppercase font-black leading-relaxed tracking-wider border-l-2 border-emerald-500 pl-4">The core stream is disorganized. You must sort the frequency packets into foundation buffers by suit, from Ace to King.</p></div>
+                    <div className="space-y-6">
+                        <ManualPoint title="0x01_Foundation_Sync" desc="Move Ace packets to the top buffer slots. Stack cards of the same suit in ascending order (A to K)." color="text-emerald-500" />
+                        <ManualPoint title="0x02_Alternating_Bits" desc="Tableau stacks must alternate in color (Red/Black) and descend in value (K to 2)." color="text-emerald-500" />
+                        <ManualPoint title="0x03_Empty_Nodes" desc="Only King packets can occupy an empty tableau sector. Use these nodes to reorganize complex packet chains." color="text-emerald-500" />
+                    </div>
+                </section>
+            </div>
+            <footer className="p-4 bg-zinc-300 border-t-2 border-black shrink-0"><button onClick={onClose} className="w-full py-4 bg-emerald-600 text-white text-[10px] font-black uppercase italic shadow-lg active:scale-95">Confirm Protocols</button></footer>
+        </div>
     </div>
 );
 
+// Added default export
 export default SolitairePage;

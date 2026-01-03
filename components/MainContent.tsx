@@ -2,15 +2,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import type { Feed, Folder, Selection, WidgetSettings, Article, ArticleView, Theme } from '../src/App';
 import type { SourceType } from './AddSource';
-import { MenuIcon, SearchIcon, SunIcon, MoonIcon, GlobeAltIcon, CpuChipIcon, BeakerIcon, ChartBarIcon, FlagIcon, FireIcon, ControllerIcon, XIcon, ExclamationTriangleIcon, ArrowPathIcon, RadioIcon, VoidIcon, ShieldCheckIcon, ContrastIcon, WandIcon, PaletteIcon, SkinsIcon, StyleIcon, MusicIcon, BoltIcon, ListIcon } from './icons';
+import { SearchIcon, GlobeAltIcon, CpuChipIcon, BeakerIcon, ChartBarIcon, FlagIcon, FireIcon, ControllerIcon, ArrowPathIcon, PaletteIcon } from './icons';
 import { resilientFetch } from '../services/fetch';
 import { parseRssXml } from '../services/rssParser';
 import FeaturedStory from './articles/FeaturedStory';
 import MagazineArticleListItem from './articles/MagazineArticleListItem';
 import { getCacheCount } from '../services/cacheService';
-import FeedOnboarding, { PRESETS, Category } from './FeedOnboarding';
-import { useLocalStorage } from '../hooks/useLocalStorage';
-import ContextualIntel from './ContextualIntel';
+import FeedOnboarding, { PRESETS } from './FeedOnboarding';
 
 interface MainContentProps {
     feedsToDisplay: Feed[];
@@ -65,7 +63,7 @@ const CATEGORY_MAP = [
 ];
 
 const MainContent: React.FC<MainContentProps> = (props) => {
-    const { selection, onSelectCategory, readArticleIds, bookmarkedArticleIds, onMarkAsRead, onSearch, onOpenReader, onOpenExternal, refreshKey, onRefresh, onOpenSidebar, theme, onToggleTheme, animationClass, pageTitle, allFeeds, onSetFeeds, onSetFolders, initialArticles, onOpenSettings } = props;
+    const { selection, onSelectCategory, readArticleIds, bookmarkedArticleIds, onMarkAsRead, onSearch, onOpenReader, onOpenExternal, refreshKey, onRefresh, theme, onToggleTheme, animationClass, allFeeds, onSetFeeds, onSetFolders, initialArticles } = props;
     
     const [articles, setArticles] = useState<Article[]>(initialArticles || []);
     const [loading, setLoading] = useState(false);
@@ -127,9 +125,9 @@ const MainContent: React.FC<MainContentProps> = (props) => {
 
     if (allFeeds.length === 0 && selection.type === 'all' && onSetFeeds && onSetFolders) {
         return (
-            <main className={`flex-grow overflow-y-auto scrollbar-hide ${animationClass} bg-void-bg pb-40 pt-2`}>
-                <Header onSearchSubmit={(e) => { e.preventDefault(); onSearch(searchQuery); }} searchQuery={searchQuery} setSearchQuery={setSearchQuery} onOpenSidebar={onOpenSidebar} onOpenSettings={onOpenSettings} onToggleTheme={onToggleTheme} onRefresh={onRefresh} selection={selection} handleCategoryClick={handleCategoryClick} />
-                <div className="pt-[calc(10rem+var(--safe-top))]">
+            <main className={`flex-grow overflow-y-auto scrollbar-hide ${animationClass} bg-void-bg pb-40`}>
+                <LocalHeader onSearchSubmit={(e) => { e.preventDefault(); onSearch(searchQuery); }} searchQuery={searchQuery} setSearchQuery={setSearchQuery} onToggleTheme={onToggleTheme} onRefresh={onRefresh} selection={selection} handleCategoryClick={handleCategoryClick} />
+                <div className="pt-[calc(10rem+var(--safe-top))] md:pt-[calc(11rem+var(--safe-top))]">
                     <FeedOnboarding onComplete={(f, fld) => { onSetFolders(fld); onSetFeeds(f); }} />
                 </div>
             </main>
@@ -142,19 +140,18 @@ const MainContent: React.FC<MainContentProps> = (props) => {
 
     return (
         <main className={`flex-grow overflow-y-auto scrollbar-hide ${animationClass} bg-void-bg pb-40 scroll-smooth`}>
-            <Header 
+            <LocalHeader 
                 onSearchSubmit={(e) => { e.preventDefault(); onSearch(searchQuery); }} 
                 searchQuery={searchQuery} 
                 setSearchQuery={setSearchQuery} 
-                onOpenSidebar={onOpenSidebar} 
-                onOpenSettings={onOpenSettings}
                 onToggleTheme={onToggleTheme}
                 onRefresh={onRefresh}
                 selection={selection} 
                 handleCategoryClick={handleCategoryClick} 
             />
             
-            <div className="pt-[calc(11rem+var(--safe-top))] md:pt-[calc(11.5rem+var(--safe-top))] max-w-[1400px] mx-auto transition-all relative">
+            {/* Lowered to clear the stacked fixed global + sub headers perfectly */}
+            <div className="pt-[calc(13.5rem+var(--safe-top))] md:pt-[calc(14.5rem+var(--safe-top))] max-w-[1400px] mx-auto transition-all relative">
                 
                 {latestArticle && (
                     <div className="px-4 md:px-6 mb-8">
@@ -218,93 +215,57 @@ const MainContent: React.FC<MainContentProps> = (props) => {
     );
 };
 
-const Header: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuery, onOpenSidebar, onOpenSettings, onToggleTheme, onRefresh, selection, handleCategoryClick }) => {
+const LocalHeader: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuery, onToggleTheme, onRefresh, selection, handleCategoryClick }) => {
     return (
-        <header className="fixed top-0 left-0 right-0 z-40 bg-void-bg/95 backdrop-blur-xl border-b border-void-border transition-all">
-            {/* Top Bar - High Density Squeezed Navigation with Safe Area Padding */}
-            <div className="bg-black pt-[var(--safe-top)]">
-                <div className="h-11 md:h-12 flex items-center px-4 md:px-8 justify-between border-b border-white/5">
-                    <div className="flex items-center h-full gap-2 md:gap-4 overflow-x-auto scrollbar-hide">
-                        <div className="flex items-center gap-2 shrink-0 pr-3 border-r border-white/10">
-                            <VoidIcon className="w-5 h-5 text-pulse-500" />
-                            <span className="text-[10px] font-black italic text-white tracking-tighter hidden sm:inline">THE VOID</span>
-                        </div>
-                        <nav className="flex h-full items-center gap-2 md:gap-4">
-                            <HeaderNavLink active={!selection.category && selection.type === 'all'} onClick={() => handleCategoryClick(null)} label="ARCADE" icon={<RadioIcon className="w-3.5 h-3.5"/>} />
-                            <HeaderNavLink active={selection.category === 'NEWS'} onClick={() => handleCategoryClick('NEWS')} label="INTEL" icon={<GlobeAltIcon className="w-3.5 h-3.5"/>} />
-                            <HeaderNavLink active={selection.category === 'GAMING'} onClick={() => handleCategoryClick('GAMING')} label="PLAY" icon={<ControllerIcon className="w-3.5 h-3.5"/>} />
-                            <HeaderNavLink active={false} onClick={onOpenSettings} label="TERMINAL" icon={<CpuChipIcon className="w-3.5 h-3.5"/>} />
-                        </nav>
-                    </div>
-                    <div className="flex items-center gap-4 shrink-0 pl-4">
-                        <button onClick={onOpenSidebar} className="text-zinc-500 hover:text-white transition-colors"><MenuIcon className="w-6 h-6" /></button>
-                    </div>
+        <div className="fixed top-11 md:top-12 left-0 right-0 z-40 bg-void-bg/95 backdrop-blur-xl border-b border-void-border transition-all px-4 md:px-8 py-3 flex flex-col md:flex-row items-center gap-4">
+            <div className="flex items-center h-10 gap-2 overflow-x-auto scrollbar-hide flex-grow w-full md:w-auto">
+                {CATEGORY_MAP.map(cat => (
+                    <button 
+                        key={cat.id} 
+                        onClick={() => handleCategoryClick(cat.id)} 
+                        className={`shrink-0 px-4 py-1.5 rounded-full text-[9px] font-black uppercase italic transition-all border
+                            ${selection.category === cat.id 
+                                ? 'bg-pulse-500 border-pulse-400 text-white' 
+                                : 'bg-void-surface border-void-border text-zinc-500 hover:text-white'}`}
+                    >
+                        {cat.id}
+                    </button>
+                ))}
+            </div>
+            
+            <div className="flex items-center gap-2 w-full md:w-auto shrink-0 justify-end">
+                <form onSubmit={onSearchSubmit} className="relative flex-grow md:w-32 lg:w-44 transition-all focus-within:md:w-48 lg:focus-within:w-60">
+                    <SearchIcon className="absolute top-1/2 left-3.5 -translate-y-1/2 w-3 h-3 text-zinc-500" />
+                    <input 
+                        type="search" 
+                        placeholder="Find..." 
+                        value={searchQuery} 
+                        onChange={e => setSearchQuery(e.target.value)} 
+                        className="w-full bg-void-surface/50 border border-void-border rounded-full py-1.5 pl-9 pr-4 text-[9px] uppercase tracking-widest outline-none text-terminal placeholder-zinc-700 focus:border-pulse-500/50 transition-all" 
+                    />
+                </form>
+
+                <div className="flex items-center gap-1.5 bg-void-surface/30 p-1 rounded-full border border-void-border">
+                    <button 
+                        onClick={onRefresh}
+                        className="p-2 bg-void-surface border border-void-border rounded-full text-zinc-500 hover:text-terminal hover:border-terminal/30 transition-all active:rotate-180 duration-500"
+                        title="Refresh Signals"
+                    >
+                        <ArrowPathIcon className="w-3.5 h-3.5" />
+                    </button>
+
+                    <button 
+                        onClick={onToggleTheme}
+                        className="p-2 bg-void-surface border border-void-border rounded-full text-zinc-500 hover:text-pulse-500 hover:border-pulse-500/30 transition-all"
+                        title="Phase Shift"
+                    >
+                        <PaletteIcon className="w-3.5 h-3.5" />
+                    </button>
                 </div>
             </div>
-
-            {/* Sub-Header - Filter Chips and Condensed Actions Cluster */}
-            <div className="px-4 md:px-8 py-3 flex flex-col md:flex-row items-center gap-4">
-                <div className="flex items-center h-10 gap-2 overflow-x-auto scrollbar-hide flex-grow w-full md:w-auto">
-                    {CATEGORY_MAP.map(cat => (
-                        <button 
-                            key={cat.id} 
-                            onClick={() => handleCategoryClick(cat.id)} 
-                            className={`shrink-0 px-4 py-1.5 rounded-full text-[9px] font-black uppercase italic transition-all border
-                                ${selection.category === cat.id 
-                                    ? 'bg-pulse-500 border-pulse-400 text-white' 
-                                    : 'bg-void-surface border-void-border text-zinc-500 hover:text-white'}`}
-                        >
-                            {cat.id}
-                        </button>
-                    ))}
-                </div>
-                
-                {/* Condensed Action Cluster */}
-                <div className="flex items-center gap-2 w-full md:w-auto shrink-0 justify-end">
-                    <form onSubmit={onSearchSubmit} className="relative flex-grow md:w-32 lg:w-44 transition-all focus-within:md:w-48 lg:focus-within:w-60">
-                        <SearchIcon className="absolute top-1/2 left-3.5 -translate-y-1/2 w-3 h-3 text-zinc-500" />
-                        <input 
-                            type="search" 
-                            placeholder="Find..." 
-                            value={searchQuery} 
-                            onChange={e => setSearchQuery(e.target.value)} 
-                            className="w-full bg-void-surface/50 border border-void-border rounded-full py-1.5 pl-9 pr-4 text-[9px] uppercase tracking-widest outline-none text-terminal placeholder-zinc-700 focus:border-pulse-500/50 transition-all" 
-                        />
-                    </form>
-
-                    <div className="flex items-center gap-1.5 bg-void-surface/30 p-1 rounded-full border border-void-border">
-                        <button 
-                            onClick={onRefresh}
-                            className="p-2 bg-void-surface border border-void-border rounded-full text-zinc-500 hover:text-terminal hover:border-terminal/30 transition-all active:rotate-180 duration-500"
-                            title="Refresh Signals"
-                        >
-                            <ArrowPathIcon className="w-3.5 h-3.5" />
-                        </button>
-
-                        <button 
-                            onClick={onToggleTheme}
-                            className="p-2 bg-void-surface border border-void-border rounded-full text-zinc-500 hover:text-pulse-500 hover:border-pulse-500/30 transition-all"
-                            title="Phase Shift"
-                        >
-                            <PaletteIcon className="w-3.5 h-3.5" />
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </header>
+        </div>
     );
 };
-
-const HeaderNavLink: React.FC<{ active: boolean; onClick: () => void; label: string; icon: React.ReactNode }> = ({ active, onClick, label, icon }) => (
-    <button 
-        onClick={onClick}
-        className={`flex items-center gap-1.5 h-full px-2 border-b-2 transition-all relative group
-            ${active ? 'border-pulse-500 text-white' : 'border-transparent text-zinc-500 hover:text-zinc-300'}`}
-    >
-        <span className="scale-90">{icon}</span>
-        <span className="text-[8.5px] font-black tracking-widest uppercase">{label}</span>
-    </button>
-);
 
 const UnreadFilterToggle: React.FC<any> = ({ checked, onChange }) => (
     <label className="flex items-center cursor-pointer group bg-void-surface/50 px-4 py-2 border border-void-border rounded-full hover:border-terminal/20 transition-all">

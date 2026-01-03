@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { XIcon, VoidIcon, CpuChipIcon, ArrowPathIcon, SparklesIcon, BookOpenIcon } from './icons';
+import { XIcon, VoidIcon, CpuChipIcon, ArrowPathIcon, SparklesIcon, BookOpenIcon, ExclamationTriangleIcon } from './icons';
 import { saveHighScore, getHighScores, HighScoreEntry } from '../services/highScoresService';
 import { soundService } from '../services/soundService';
 import HighScoreTable from './HighScoreTable';
@@ -175,7 +175,7 @@ const GridResetPage: React.FC<{ onBackToHub: () => void; onComplete?: () => void
     }
 
     return (
-        <main className="w-full h-full bg-zinc-950 text-white flex flex-col items-center justify-center p-4 overflow-y-auto scrollbar-hide font-mono relative">
+        <main className="w-full h-full bg-zinc-950 text-white flex flex-col items-center justify-center p-4 pt-[calc(4rem+var(--safe-top))] overflow-y-auto scrollbar-hide font-mono relative">
             <style>{`
                 @keyframes glitch-fast {
                     0% { transform: translate(0); filter: hue-rotate(0deg); }
@@ -270,84 +270,24 @@ const GridResetPage: React.FC<{ onBackToHub: () => void; onComplete?: () => void
                 <div className="flex flex-col gap-4">
                     <div className="flex gap-4">
                         <Tooltip text="Neural Probe: Calculate the hidden toggle sequence to resolve the grid.">
-                            <button onClick={requestHint} className="flex-1 py-4 bg-zinc-900 border-2 border-amber-500/30 text-amber-500 rounded-2xl flex items-center justify-center gap-3 font-black uppercase italic text-[10px] hover:border-amber-500 transition-all active:scale-95 shadow-lg w-full h-full">
-                                <SparklesIcon className="w-4 h-4 animate-pulse" />
-                                <span>Neural Probe</span>
-                            </button>
+                            <button onClick={requestHint} className="flex-1 py-4 bg-zinc-900 border-2 border-amber-500/30 text-amber-500 rounded-2xl font-black uppercase italic text-[10px] tracking-widest hover:bg-amber-500 hover:text-black transition-all shadow-lg active:scale-95">REQUEST_PROBE</button>
                         </Tooltip>
-                        
-                        <Tooltip text="Sync Sector: Re-scramble grid into a new solvable state.">
-                            <button onClick={generateSolvableLevel} className="px-6 py-4 bg-zinc-900 border border-white/5 rounded-2xl flex items-center justify-center text-zinc-500 hover:text-white transition-all active:scale-95 w-full h-full">
-                                <ArrowPathIcon className="w-4 h-4" />
-                            </button>
-                        </Tooltip>
-                    </div>
-                    
-                    <div className="bg-void-900 border border-pulse-500/20 p-5 rounded-2xl">
-                         <p className="text-[10px] text-zinc-500 text-center uppercase font-bold tracking-widest italic">
-                            TARGET: <span className="text-signal-500 font-black">100% BLACKOUT</span> (ALL NODES DARK)
-                         </p>
                     </div>
                 </div>
             </div>
 
-            {/* TACTICAL BRIEFING OVERLAY */}
-            {showHelp && (
-                <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-[60] flex items-center justify-center p-6" onClick={() => { soundService.playClick(); setShowHelp(false); }}>
-                    <div className="max-w-md w-full bg-void-900 p-8 rounded-[3rem] border-4 border-neon-400 shadow-[0_0_80px_rgba(34,211,238,0.2)]" onClick={e => e.stopPropagation()}>
-                        <header className="flex justify-between items-center mb-8 border-b border-neon-400/20 pb-4">
-                            <h3 className="text-2xl font-black italic uppercase text-neon-400 tracking-tighter">Tactical Briefing</h3>
-                            <button onClick={() => { soundService.playClick(); setShowHelp(false); }} className="text-zinc-500 hover:text-white"><XIcon className="w-6 h-6" /></button>
-                        </header>
-                        
-                        <div className="space-y-6 text-[11px] font-mono leading-relaxed uppercase tracking-wider text-zinc-300">
-                            <div>
-                                <p className="text-white font-black mb-3 text-sm underline">Logic: The Cross Pattern</p>
-                                <p>Every node is linked in a <span className="text-pulse-500 font-black">logic cross</span>. Toggling one node flips the state of itself and its four cardinal neighbors.</p>
-                            </div>
-
-                            <div className="bg-black/60 p-4 rounded-2xl border border-white/5 flex items-center justify-center gap-6">
-                                <div className="grid grid-cols-3 gap-1">
-                                    <div className="help-node bg-zinc-800" /><div className="help-node bg-pulse-500" /><div className="help-node bg-zinc-800" />
-                                    <div className="help-node bg-pulse-500" /><div className="help-node bg-pulse-500 animate-pulse border-2 border-white" /><div className="help-node bg-pulse-500" />
-                                    <div className="help-node bg-zinc-800" /><div className="help-node bg-pulse-500" /><div className="help-node bg-zinc-800" />
-                                </div>
-                                <div className="text-[9px] text-zinc-500 italic font-black">
-                                    NODE TRIGGERED <br/> &rarr; 5 POINTS FLIP
-                                </div>
-                            </div>
-
-                            <div>
-                                <p className="text-white font-black mb-3 text-sm underline">The 96% Trap</p>
-                                <p>If only <span className="text-pulse-500">1 node</span> remains active, clicking it will extinguish that light but <span className="text-signal-500">IGNITE 4 neighbors</span>. You cannot win by chasing only red nodes.</p>
-                            </div>
-
-                            <div className="bg-void-950 p-4 rounded-xl border border-neon-400/20">
-                                <p className="text-neon-400 font-black mb-2">PRO TIP: Neural Probes</p>
-                                <p>If stuck, deploy the <span className="text-amber-500">Neural Probe</span>. It calculates the hidden toggle path. Click the gold node—even if it's currently dark—to resolve the sequence.</p>
-                            </div>
-                        </div>
-
-                        <button onClick={() => { soundService.playClick(); setShowHelp(false); }} className="w-full mt-8 py-4 bg-neon-400 text-black font-black uppercase italic rounded-full shadow-lg active:scale-95 transition-all">Acknowledge</button>
-                    </div>
-                </div>
-            )}
+            {showHelp && <TacticalManual onClose={() => { soundService.playClick(); setShowHelp(false); }} />}
 
             {gameState === 'won' && (
-                <div className="fixed inset-0 bg-black/95 backdrop-blur-md z-50 flex items-center justify-center p-6 text-center">
-                    <div className="max-w-sm w-full bg-void-900 p-12 rounded-[3rem] border-4 border-signal-500 shadow-[0_0_100px_rgba(34,197,94,0.3)]">
-                        <div className="mb-6 mx-auto w-20 h-20 bg-signal-500/10 rounded-full flex items-center justify-center border border-signal-500/30">
-                            <VoidIcon className="w-12 h-12 text-signal-500 animate-pulse" />
-                        </div>
-                        <h2 className="text-5xl font-black italic uppercase tracking-tighter mb-4 text-signal-500 leading-none">GRID DARK</h2>
-                        <p className="text-zinc-500 font-bold uppercase tracking-widest text-[9px] mb-10 leading-relaxed italic">
-                            Signal termination successful. Node isolated.<br/>Syncing adjustments to mainframe archives.
-                        </p>
+                <div className="fixed inset-0 bg-black/95 backdrop-blur-md z-50 flex items-center justify-center p-6 text-center animate-fade-in">
+                    <div className="max-w-sm w-full bg-zinc-900 p-12 rounded-[3.5rem] border-4 border-emerald-500 shadow-[0_0_100px_rgba(16,185,129,0.3)]">
+                        <h2 className="text-4xl font-black italic uppercase tracking-tighter text-emerald-500 mb-6 leading-none">GRID NORMALIZED</h2>
+                        <p className="text-zinc-500 font-bold uppercase tracking-widest text-[9px] mb-8 italic px-4 leading-relaxed">Circuit drift rectified.<br/>Logic gates secured.</p>
                         <div className="mb-10">
-                            <p className="text-zinc-500 font-black uppercase tracking-[0.3em] text-[9px] mb-4 italic">Post Record Initials</p>
-                            <input autoFocus maxLength={3} value={initials} onChange={e => setInitials(e.target.value.toUpperCase())} className="bg-black/50 border-2 border-signal-500 text-white rounded-xl px-4 py-3 text-center text-3xl font-black w-36 outline-none uppercase italic" placeholder="???" />
+                            <p className="text-zinc-500 font-bold uppercase tracking-widest text-[9px] mb-4 italic">Post Record Token</p>
+                            <input autoFocus maxLength={3} value={initials} onChange={e => setInitials(e.target.value.toUpperCase())} className="bg-black/50 border-2 border-emerald-500 text-white rounded-xl px-4 py-4 text-center text-3xl font-black w-32 outline-none uppercase italic shadow-2xl" placeholder="???" />
                         </div>
-                        <button onClick={handleSaveScore} className="w-full py-5 bg-signal-600 text-black font-black text-xl italic uppercase rounded-full hover:scale-105 transition-all shadow-xl active:scale-95">TRANSMIT DATA</button>
+                        <button onClick={handleSaveScore} className="w-full py-5 bg-emerald-600 text-white font-black text-xl italic uppercase rounded-full hover:scale-105 transition-all shadow-xl">Commit_Update</button>
                     </div>
                 </div>
             )}
@@ -355,4 +295,40 @@ const GridResetPage: React.FC<{ onBackToHub: () => void; onComplete?: () => void
     );
 };
 
+// Added ManualPoint component
+const ManualPoint: React.FC<{ title: string; desc: string; color: string }> = ({ title, desc, color }) => (
+    <div className="space-y-2 group">
+        <h4 className={`text-[9px] font-black ${color} uppercase tracking-[0.3em] italic flex items-center gap-2`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${color.replace('text-', 'bg-')} group-hover:scale-150 transition-transform`}></span>
+            {title}
+        </h4>
+        <p className="text-[10px] md:text-xs text-zinc-300 font-bold uppercase tracking-wide leading-relaxed pl-3 border-l border-zinc-800">{desc}</p>
+    </div>
+);
+
+// Added TacticalManual component
+const TacticalManual: React.FC<{ onClose: () => void }> = ({ onClose }) => (
+    <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 md:p-10 font-mono" onClick={onClose}>
+        <div className="max-w-xl w-full bg-void-900 border-4 border-pulse-500 rounded-[3rem] shadow-2xl overflow-hidden relative flex flex-col max-h-[85vh]" onClick={e => e.stopPropagation()}>
+            <header className="h-12 bg-pulse-600 flex items-center justify-between px-4 border-b-2 border-black shrink-0">
+                <div className="flex items-center gap-2 h-full"><BookOpenIcon className="w-4 h-4 text-black" /><h2 className="text-white text-[10px] font-black uppercase tracking-[0.2em] italic">GRID_STABILIZATION.PDF</h2></div>
+                <button onClick={onClose} className="hover:scale-110 transition-transform"><XIcon className="w-5 h-5 text-black"/></button>
+            </header>
+            <div className="p-8 md:p-12 overflow-y-auto bg-void-950/40 relative flex-grow scrollbar-hide">
+                <div className="absolute inset-0 pointer-events-none opacity-5 cctv-overlay" />
+                <section className="space-y-8 relative z-10">
+                    <div><h3 className="text-lg font-black text-white italic uppercase tracking-tighter mb-4 flex items-center gap-3"><SparklesIcon className="w-5 h-5 text-pulse-500"/> Circuit Logic</h3><p className="text-[10px] text-zinc-400 uppercase font-black leading-relaxed tracking-wider border-l-2 border-pulse-500 pl-4">The grid is drifting into critical states (RED). You must toggle the nodes until all logic gates are deactivated (DARK).</p></div>
+                    <div className="space-y-6">
+                        <ManualPoint title="0x01_Cross_Toggle" desc="Toggling a node also flips the state of its four immediate cardinal neighbors. Plan for the ripple effect." color="text-pulse-500" />
+                        <ManualPoint title="0x02_Neural_Probe" desc="If the sequence is lost, use Request_Probe to identify a node that must be toggled to reach the solution state." color="text-pulse-500" />
+                        <ManualPoint title="0x03_Minimal_Attempts" desc="System stability is graded on moves. Fewer attempts indicate a higher-fidelity link with the core." color="text-pulse-500" />
+                    </div>
+                </section>
+            </div>
+            <footer className="p-4 bg-zinc-300 border-t-2 border-black shrink-0"><button onClick={onClose} className="w-full py-4 bg-pulse-600 text-white text-[10px] font-black uppercase italic shadow-lg active:scale-95">Confirm Protocols</button></footer>
+        </div>
+    </div>
+);
+
+// Added default export
 export default GridResetPage;

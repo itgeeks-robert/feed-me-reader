@@ -3,14 +3,10 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import MainContent from '../components/MainContent';
 import type { SourceType } from '../components/AddSource';
 import SettingsModal from '../components/SettingsModal';
-import AddSourceModal from '../components/AddSourceModal';
-import BottomNavBar from '../components/BottomNavBar';
+import Sidebar from '../components/Sidebar';
 import GameHubPage from '../components/GameHubPage';
-import DailyUplinkPage from '../components/DailyUplinkPage';
 import ReaderViewModal from '../components/ReaderViewModal';
 import SplashScreen from '../components/SplashScreen';
-import DeepSyncPage from '../components/DeepSyncPage';
-import SignalScramblerPage from '../components/SignalScramblerPage';
 import UtilityHubPage from '../components/UtilityHubPage';
 import SignalStreamerPage from '../components/SignalStreamerPage';
 import SurveillanceRadarPage from '../components/SurveillanceRadarPage';
@@ -31,15 +27,15 @@ import OrientationGuard from '../components/OrientationGuard';
 import { resilientFetch } from '../services/fetch';
 import { parseRssXml } from '../services/rssParser';
 import { useLocalStorage } from '../hooks/useLocalStorage';
-import { GlobeAltIcon, RadioIcon, XIcon, ShieldCheckIcon, SearchIcon, BeakerIcon, SparklesIcon, ExclamationTriangleIcon } from '../components/icons';
+import { GlobeAltIcon, RadioIcon, XIcon, SearchIcon, VoidIcon, ControllerIcon, CpuChipIcon, MenuIcon, BoltIcon, ShieldCheckIcon } from '../components/icons';
 import { soundService } from '../services/soundService';
 
 export interface Folder { id: number; name: string; }
 export interface Feed { id: number; url: string; title: string; iconUrl: string; folderId: number | null; sourceType?: SourceType; category?: string; }
 export interface Article { id: string; title: string; link: string; source: string; publishedDate: Date | null; snippet: string; imageUrl: string | null; feedCategory?: string; }
 
-export interface SudokuStats { totalWins: number; }
 export type SudokuDifficulty = 'Easy' | 'Medium' | 'Hard' | 'Expert';
+export interface SudokuStats { totalWins: number; }
 export interface SolitaireStats { gamesWon: number; currentStreak: number; }
 export interface SolitaireSettings { drawThree: boolean; }
 
@@ -71,14 +67,14 @@ const AMBIENT_SOUND_KEY = `void_ambient_sound_${GUEST_USER_ID}`;
 const FALLBACK_WORD = "FABLE";
 const SECTOR_LIMIT = 7;
 
-const TerminalView: React.FC<{ children: React.ReactNode; hasBottomNav?: boolean }> = ({ children, hasBottomNav }) => (
-    <div className={`flex-1 flex flex-col min-w-0 relative h-full overflow-hidden ${hasBottomNav ? 'pb-16 md:pb-0' : ''}`}>
+const TerminalView: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+    <div className="flex-1 flex flex-col min-w-0 relative h-full overflow-hidden">
         {children}
     </div>
 );
 
 const App: React.FC = () => {
-    const [theme, setTheme] = useLocalStorage<Theme>(THEME_KEY, 'liquid-glass');
+    const [theme, setTheme] = useLocalStorage<Theme>(THEME_KEY, 'noir');
     const [articleView, setArticleView] = useLocalStorage<ArticleView>(ARTICLE_VIEW_KEY, 'list');
     const [widgetSettings, setWidgetSettings] = useLocalStorage<WidgetSettings>(WIDGET_SETTINGS_KEY, { showWeather: true, showFinance: false, weatherLocation: 'London' });
     const [folders, setFolders] = useLocalStorage<Folder[]>(FOLDERS_KEY, []);
@@ -92,17 +88,11 @@ const App: React.FC = () => {
     const [selection, setSelection] = useLocalStorage<Selection>(SELECTION_KEY, { type: 'splash', id: null });
 
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
-    const [isAddSourceModalOpen, setIsAddSourceModalOpen] = useState(false);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [readerArticle, setReaderArticle] = useState<Article | null>(null);
     const [prefetchedArticles, setPrefetchedArticles] = useState<Article[]>([]);
     const [isDecoding, setIsDecoding] = useState(false);
     const [lastRefresh, setLastRefresh] = useState(() => Date.now());
-
-    const [outboundLink, setOutboundLink] = useState<{url: string, id: string} | null>(null);
-    const [showSniffErrorModal, setShowSniffErrorModal] = useState(false);
-    const [showSearchExplainer, setShowSearchExplainer] = useState(false);
-    const [showIntegrityBriefing, setShowIntegrityBriefing] = useState(false);
-    const [skipExternalWarning, setSkipExternalWarning] = useLocalStorage<boolean>('void_skip_external_warning', false);
 
     const [cipherData, setCipherData] = useState<{ archiveMap: { date: string; word: string; label: string }[]; isSynced: boolean; loading: boolean }>({
         archiveMap: [],
@@ -110,9 +100,7 @@ const App: React.FC = () => {
         loading: true
     });
 
-    useEffect(() => {
-        soundService.setAmbient(ambientEnabled, theme);
-    }, [ambientEnabled, theme]);
+    useEffect(() => { soundService.setAmbient(ambientEnabled, theme); }, [ambientEnabled, theme]);
 
     const isGameActive = useMemo(() => {
         const gameTypes = ['sudoku', 'solitaire', 'minesweeper', 'tetris', 'pool', 'cipher_core', 'void_runner', 'synapse_link', 'grid_reset', 'hangman', 'neon_signal'];
@@ -120,8 +108,8 @@ const App: React.FC = () => {
     }, [selection.type]);
 
     const isUtilityActive = useMemo(() => {
-        const utilityTypes = ['signal_streamer', 'surveillance_radar', 'transcoder', 'base64_converter', 'deep_sync', 'signal_scrambler'];
-        return utilityTypes.includes(selection.type);
+        const utilTypes = ['utility_hub', 'signal_streamer', 'surveillance_radar', 'transcoder', 'base64_converter'];
+        return utilTypes.includes(selection.type);
     }, [selection.type]);
 
     const handleToggleTheme = useCallback(() => {
@@ -139,6 +127,15 @@ const App: React.FC = () => {
         setSelection({ type: 'all', id: null });
         setIsSettingsModalOpen(false);
     }, [setFeeds, setFolders, setReadArticleIds, setBookmarkedArticleIds, setSelection]);
+
+    const handleAddSource = useCallback(async (url: string, type: SourceType) => {
+        setFeeds(prev => [...prev, { 
+            id: Date.now() + Math.random(), 
+            url, title: 'New Signal', 
+            iconUrl: `https://www.google.com/s2/favicons?sz=32&domain_url=${new URL(url).hostname}`, 
+            folderId: null, sourceType: type 
+        }]);
+    }, [setFeeds]);
 
     const prefetchCipherFrequency = useCallback(async () => {
         const results = new Map<string, string>();
@@ -164,17 +161,14 @@ const App: React.FC = () => {
                     });
                 });
             }
-        } catch (e) { console.warn("Signal Leak in Startup Interceptor."); }
+        } catch (e) {}
 
         const finalMap = Array.from({ length: SECTOR_LIMIT }, (_, i) => {
-            const d = new Date();
-            d.setDate(d.getDate() - i);
+            const d = new Date(); d.setDate(d.getDate() - i);
             const iso = d.toISOString().split('T')[0];
             let word = results.get(iso) || FALLBACK_WORD;
-            if (i === 0 && iso === '2026-01-01') word = "FABLE"; 
             return { date: iso, word, label: i === 0 ? "TODAY" : `T-${i}` };
         });
-
         setCipherData({ archiveMap: finalMap, isSynced: results.size > 0, loading: false });
     }, []);
 
@@ -188,300 +182,98 @@ const App: React.FC = () => {
                 .then(xml => parseRssXml(xml, feed.title, feed.url))
                 .catch(() => [])
         );
-
         try {
             const results = await Promise.all(promises);
             const all = results.flat().sort((a, b) => (b.publishedDate?.getTime() || 0) - (a.publishedDate?.getTime() || 0));
-            const unique = Array.from(new Map(all.map(a => [a.id, a])).values());
-            setPrefetchedArticles(unique);
-        } catch (e) {
-            console.warn("Background Decode Interrupted.");
-        } finally {
-            setIsDecoding(false);
-        }
+            setPrefetchedArticles(Array.from(new Map(all.map(a => [a.id, a])).values()));
+        } finally { setIsDecoding(false); }
     }, [feeds]);
 
     useEffect(() => {
         prefetchCipherFrequency();
-        if (selection.type === 'splash' && feeds.length > 0) {
-            prefetchContentFrequencies();
-        }
+        if (selection.type === 'splash' && feeds.length > 0) prefetchContentFrequencies();
     }, [prefetchCipherFrequency, prefetchContentFrequencies, selection.type, feeds.length]);
-
-    useEffect(() => {
-        if (!window.history.state || !window.history.state.selection) {
-            window.history.replaceState({ selection }, '');
-        }
-    }, []);
-
-    useEffect(() => {
-        const handlePopState = (event: PopStateEvent) => {
-            if (event.state?.isReader) {
-            } else if (event.state?.isOutbound || event.state?.isExplainer || event.state?.isIntegrity) {
-            } else if (readerArticle) {
-                setReaderArticle(null);
-            } else if (outboundLink) {
-                setOutboundLink(null);
-            } else if (showSearchExplainer) {
-                setShowSearchExplainer(false);
-            } else if (showIntegrityBriefing) {
-                setShowIntegrityBriefing(false);
-            } 
-            else if (event.state?.selection) {
-                setSelection(event.state.selection);
-            } else {
-                setSelection({ type: 'splash', id: null });
-            }
-        };
-        window.addEventListener('popstate', handlePopState);
-        return () => window.removeEventListener('popstate', handlePopState);
-    }, [readerArticle, outboundLink, showSearchExplainer, showIntegrityBriefing, setSelection]);
-
-    useEffect(() => {
-        const root = document.documentElement;
-        root.className = Array.from(root.classList).filter(c => !c.startsWith('theme-')).join(' ');
-        if (theme !== 'noir') {
-            root.classList.add(`theme-${theme}`);
-        }
-    }, [theme]);
 
     const updateSelection = useCallback((newSel: Selection, replace: boolean = false) => {
         setSelection(newSel);
-        if (replace) {
-            window.history.replaceState({ selection: newSel }, '');
-        } else {
-            window.history.pushState({ selection: newSel }, '');
-        }
+        if (replace) window.history.replaceState({ selection: newSel }, '');
+        else window.history.pushState({ selection: newSel }, '');
+        setIsSidebarOpen(false);
     }, [setSelection]);
 
-    const openReader = useCallback((article: Article) => {
-        setReaderArticle(article);
-        window.history.pushState({ isReader: true }, '');
-    }, []);
-
-    const closeReader = useCallback(() => {
-        setReaderArticle(null);
-        if (window.history.state?.isReader) {
-            window.history.back();
-        }
-    }, []);
-
-    const handleMarkAsRead = useCallback((id: string) => {
-        setReadArticleIds(prev => {
-            if (prev.has(id)) return prev;
-            return new Set(prev).add(id);
-        });
-    }, [setReadArticleIds]);
-
-    const openExternal = useCallback((url: string, id: string) => {
-        if (skipExternalWarning) {
-            handleMarkAsRead(id);
-            window.open(url, '_blank', 'noopener,noreferrer');
-        } else {
-            setOutboundLink({ url, id });
-            window.history.pushState({ isOutbound: true }, '');
-        }
-    }, [skipExternalWarning, handleMarkAsRead]);
-
-    const confirmExternalLink = useCallback(() => {
-        if (outboundLink) {
-            handleMarkAsRead(outboundLink.id);
-            window.open(outboundLink.url, '_blank', 'noopener,noreferrer');
-            setOutboundLink(null);
-            if (window.history.state?.isOutbound) {
-                window.history.back();
-            }
-        }
-    }, [outboundLink, handleMarkAsRead]);
-
-    const toggleFavoriteGame = useCallback((id: string) => {
-        setFavoriteGameIds(prev => {
-            const next = new Set(prev);
-            if (next.has(id)) next.delete(id);
-            else next.add(id);
-            return next;
-        });
-    }, [setFavoriteGameIds]);
-
-    const pageTitle = useMemo(() => {
-        if (selection.type === 'search') return `SCANNING: "${selection.query}"`;
-        if (selection.type === 'bookmarks') return 'SAVED PACKETS';
-        if (selection.type === 'game_hub') return 'VOID ARCADE';
-        if (selection.type === 'utility_hub') return 'SECTOR UTILITIES';
-        if (selection.category) return `${selection.category} NODE`;
-        if (selection.type === 'feed') return feeds.find(f => f.id === selection.id)?.title || 'Feed';
-        return 'INCOMING INTEL';
-    }, [selection, feeds]);
-
     if (selection.type === 'splash') {
-        return <SplashScreen 
-            onEnterFeeds={() => updateSelection({ type: 'all', id: null })} 
-            onEnterArcade={() => updateSelection({ type: 'game_hub', id: null })} 
-            isDecoding={isDecoding}
-            onReset={handleResetSystem}
-        />;
+        return <SplashScreen onEnterFeeds={() => updateSelection({ type: 'all', id: null })} onEnterArcade={() => updateSelection({ type: 'game_hub', id: null })} isDecoding={isDecoding} onReset={handleResetSystem} />;
     }
-
-    const hasBottomNav = !isGameActive && !isUtilityActive;
 
     return (
         <div className="h-screen w-full font-sans text-sm relative flex flex-col overflow-hidden bg-void-bg text-terminal transition-colors duration-300">
-            <TerminalView hasBottomNav={hasBottomNav}>
-                {selection.type === 'utility_hub' ? (
-                    <UtilityHubPage 
-                        onSelect={(id) => updateSelection({ type: id as any, id: null })} 
-                        onBackToHub={() => updateSelection({ type: 'all', id: null })} 
-                        theme={theme}
-                        onToggleTheme={handleToggleTheme}
-                    />
-                ) : selection.type === 'surveillance_radar' ? (
-                    <SurveillanceRadarPage onBackToHub={() => updateSelection({ type: 'utility_hub', id: null })} />
-                ) : selection.type === 'signal_streamer' ? (
-                    <SignalStreamerPage onBackToHub={() => updateSelection({ type: 'utility_hub', id: null })} />
-                ) : selection.type === 'transcoder' ? (
-                    <TranscoderPage onBackToHub={() => updateSelection({ type: 'utility_hub', id: null })} />
-                ) : selection.type === 'base64_converter' ? (
-                    <Base64ConverterPage onBackToHub={() => updateSelection({ type: 'utility_hub', id: null })} />
-                ) : selection.type === 'deep_sync' ? (
-                    <DeepSyncPage onBackToHub={() => updateSelection({ type: 'utility_hub', id: null })} />
-                ) : selection.type === 'signal_scrambler' ? (
-                    <SignalScramblerPage onBackToHub={() => updateSelection({ type: 'utility_hub', id: null })} />
-                ) : selection.type === 'game_hub' ? (
-                    <GameHubPage 
-                        onSelect={(type: any) => updateSelection({ type, id: null })} 
-                        onReturnToFeeds={() => updateSelection({ type: 'all', id: null })}
-                        favoriteGameIds={favoriteGameIds}
-                        onToggleFavorite={toggleFavoriteGame}
-                        theme={theme}
-                        onToggleTheme={handleToggleTheme}
-                    />
+            {/* STATIC GLOBAL HEADER */}
+            <header className="fixed top-0 left-0 right-0 z-[60] bg-black border-b border-white/10 pt-[var(--safe-top)] shrink-0">
+                <div className="h-11 md:h-12 flex items-center px-2 md:px-8 justify-between">
+                    <div className="flex items-center h-full gap-2 md:gap-3 overflow-x-auto scrollbar-hide">
+                        <div onClick={() => updateSelection({ type: 'all', id: null })} className="flex items-center gap-1.5 shrink-0 pr-2 border-r border-white/10 cursor-pointer active:scale-95 transition-transform">
+                            <VoidIcon className="w-4 h-4 md:w-5 md:h-5 text-pulse-500" />
+                            <span className="text-[10px] font-black italic text-white tracking-tighter hidden sm:inline uppercase">Void</span>
+                        </div>
+                        <nav className="flex h-full items-center gap-1 md:gap-2">
+                            <GlobalNavLink active={selection.type === 'game_hub'} onClick={() => updateSelection({ type: 'game_hub', id: null })} label="ARCADE" icon={<RadioIcon className="w-3.5 h-3.5"/>} />
+                            <GlobalNavLink active={selection.type === 'all' && !selection.category} onClick={() => updateSelection({ type: 'all', id: null })} label="INTEL" icon={<GlobeAltIcon className="w-3.5 h-3.5"/>} />
+                            <GlobalNavLink active={isUtilityActive} onClick={() => updateSelection({ type: 'utility_hub', id: null })} label="UTIL" icon={<BoltIcon className="w-3.5 h-3.5"/>} />
+                            <GlobalNavLink active={isSettingsModalOpen} onClick={() => setIsSettingsModalOpen(true)} label="CORE" icon={<CpuChipIcon className="w-3.5 h-3.5"/>} />
+                        </nav>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0 pl-1">
+                        <button onClick={() => setIsSidebarOpen(true)} className="p-1.5 md:p-2 text-zinc-500 hover:text-white transition-colors active:scale-90"><MenuIcon className="w-5 h-5 md:w-6 md:h-6" /></button>
+                    </div>
+                </div>
+            </header>
+
+            <TerminalView>
+                {selection.type === 'game_hub' ? (
+                    <GameHubPage onSelect={(type: any) => updateSelection({ type, id: null })} onReturnToFeeds={() => updateSelection({ type: 'all', id: null })} favoriteGameIds={favoriteGameIds} onToggleFavorite={(id: string) => setFavoriteGameIds(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; })} theme={theme} onToggleTheme={handleToggleTheme} />
                 ) : isGameActive ? (
+                    <OrientationGuard portraitOnly>
+                        {selection.type === 'sudoku' && <SudokuPage stats={{totalWins: 0}} onGameWin={() => {}} onGameLoss={() => {}} onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} onReturnToFeeds={() => updateSelection({ type: 'all', id: null })} />}
+                        {selection.type === 'solitaire' && <SolitairePage stats={{gamesWon: 0, currentStreak: 0}} onGameWin={() => {}} onGameStart={() => {}} settings={{drawThree: true}} onUpdateSettings={() => {}} onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} onReturnToFeeds={() => updateSelection({ type: 'all', id: null })} />}
+                        {selection.type === 'minesweeper' && <MinesweeperPage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} onReturnToFeeds={() => updateSelection({ type: 'all', id: null })} onDefuse={() => {}} />}
+                        {selection.type === 'tetris' && <TetrisPage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} onReturnToFeeds={() => updateSelection({ type: 'all', id: null })} />}
+                        {selection.type === 'pool' && <PoolGamePage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} onReturnToFeeds={() => updateSelection({ type: 'all', id: null })} />}
+                        {selection.type === 'cipher_core' && <CipherCorePage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} uptime={uptime} setUptime={setUptime} preloadedData={cipherData} onWin={() => setUptime(prev => Math.min(100, prev + 15))} />}
+                        {selection.type === 'void_runner' && <VoidRunnerPage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} onReturnToFeeds={() => updateSelection({ type: 'all', id: null })} />}
+                        {selection.type === 'synapse_link' && <SynapseLinkPage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} />}
+                        {selection.type === 'grid_reset' && <GridResetPage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} />}
+                        {selection.type === 'hangman' && <HangmanPage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} />}
+                        {selection.type === 'neon_signal' && <NeonSignalPage onBack={() => updateSelection({ type: 'game_hub', id: null })} onReturnToFeeds={() => updateSelection({ type: 'all', id: null })} />}
+                    </OrientationGuard>
+                ) : isUtilityActive ? (
                     <>
-                        {selection.type === 'neon_signal' ? (
-                            <NeonSignalPage 
-                                onBack={() => updateSelection({ type: 'game_hub', id: null })} 
-                                onReturnToFeeds={() => updateSelection({ type: 'all', id: null })}
-                            />
-                        ) : (
-                            <OrientationGuard portraitOnly>
-                                {selection.type === 'sudoku' && <SudokuPage stats={{totalWins: 0}} onGameWin={() => {}} onGameLoss={() => {}} onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} onReturnToFeeds={() => updateSelection({ type: 'all', id: null })} />}
-                                {selection.type === 'solitaire' && <SolitairePage stats={{gamesWon: 0, currentStreak: 0}} onGameWin={() => {}} onGameStart={() => {}} settings={{drawThree: true}} onUpdateSettings={() => {}} onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} onReturnToFeeds={() => updateSelection({ type: 'all', id: null })} />}
-                                {selection.type === 'minesweeper' && <MinesweeperPage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} onReturnToFeeds={() => updateSelection({ type: 'all', id: null })} onDefuse={() => {}} />}
-                                {selection.type === 'tetris' && <TetrisPage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} onReturnToFeeds={() => updateSelection({ type: 'all', id: null })} />}
-                                {selection.type === 'pool' && <PoolGamePage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} onReturnToFeeds={() => updateSelection({ type: 'all', id: null })} />}
-                                {selection.type === 'cipher_core' && (
-                                    <CipherCorePage 
-                                        onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} 
-                                        uptime={uptime} 
-                                        setUptime={setUptime} 
-                                        preloadedData={cipherData}
-                                        onWin={() => {
-                                            setUptime(prev => Math.min(100, prev + 15));
-                                        }}
-                                    />
-                                )}
-                                {selection.type === 'void_runner' && <VoidRunnerPage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} onReturnToFeeds={() => updateSelection({ type: 'all', id: null })} />}
-                                {selection.type === 'synapse_link' && <SynapseLinkPage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} />}
-                                {selection.type === 'grid_reset' && <GridResetPage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} />}
-                                {selection.type === 'hangman' && <HangmanPage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} />}
-                            </OrientationGuard>
-                        )}
+                        {selection.type === 'utility_hub' && <UtilityHubPage onSelect={(id) => updateSelection({ type: id as any, id: null })} onBackToHub={() => updateSelection({ type: 'all', id: null })} theme={theme} onToggleTheme={handleToggleTheme} />}
+                        {selection.type === 'signal_streamer' && <SignalStreamerPage onBackToHub={() => updateSelection({ type: 'utility_hub', id: null })} />}
+                        {selection.type === 'surveillance_radar' && <SurveillanceRadarPage onBackToHub={() => updateSelection({ type: 'utility_hub', id: null })} />}
+                        {selection.type === 'transcoder' && <TranscoderPage onBackToHub={() => updateSelection({ type: 'utility_hub', id: null })} />}
+                        {selection.type === 'base64_converter' && <Base64ConverterPage onBackToHub={() => updateSelection({ type: 'utility_hub', id: null })} />}
                     </>
                 ) : (
-                    <MainContent
-                        key={selection.type + String(selection.id) + (selection.category || '')}
-                        animationClass="animate-fade-in"
-                        pageTitle={pageTitle}
-                        onSearch={(query: string) => updateSelection({ type: 'search', id: null, query })}
-                        feedsToDisplay={feeds}
-                        selection={selection}
-                        onSelectCategory={(cat) => updateSelection(cat ? { type: 'all', id: null, category: cat } : { type: 'all', id: null }, false)}
-                        readArticleIds={readArticleIds}
-                        bookmarkedArticleIds={bookmarkedArticleIds}
-                        articleTags={new Map()}
-                        onMarkAsRead={handleMarkAsRead}
-                        onPurgeBuffer={(ids) => setReadArticleIds(new Set([...Array.from(readArticleIds), ...ids]))}
-                        onMarkAsUnread={(id) => { const n = new Set(readArticleIds); n.delete(id); setReadArticleIds(n); }}
-                        onMarkMultipleAsRead={(ids) => setReadArticleIds(new Set([...Array.from(readArticleIds), ...ids]))}
-                        onToggleBookmark={(id) => { const n = new Set(bookmarkedArticleIds); if (n.has(id)) n.delete(id); else n.add(id); setBookmarkedArticleIds(n); }}
-                        onSetArticleTags={() => {}}
-                        onOpenReader={openReader}
-                        onOpenExternal={openExternal}
-                        allFeeds={feeds}
-                        onSetFeeds={setFeeds}
-                        onSetFolders={setFolders}
-                        refreshKey={lastRefresh}
-                        onRefresh={() => { setPrefetchedArticles([]); setLastRefresh(Date.now()); }}
-                        widgetSettings={widgetSettings}
-                        articleView={articleView}
-                        theme={theme}
-                        onToggleTheme={handleToggleTheme}
-                        onOpenSettings={() => setIsSettingsModalOpen(true)}
-                        onOpenAddSource={() => setIsAddSourceModalOpen(true)}
-                        onAddSource={async (url, type) => { setFeeds([...feeds, { id: Date.now(), url, title: 'New Signal', iconUrl: '', folderId: null, sourceType: type }]); }}
-                        onOpenSidebar={() => setIsSettingsModalOpen(true)}
-                        initialArticles={prefetchedArticles}
-                        onSetSniffErrorModal={setShowSniffErrorModal}
-                        onOpenSearchExplainer={() => { setShowSearchExplainer(true); window.history.pushState({isExplainer: true}, ''); }}
-                        onOpenIntegrityBriefing={() => { setShowIntegrityBriefing(true); window.history.pushState({isIntegrity: true}, ''); }}
-                        ambientEnabled={ambientEnabled}
-                        onToggleAmbient={() => setAmbientEnabled(!ambientEnabled)}
-                    />
+                    <MainContent animationClass="animate-fade-in" pageTitle={selection.type === 'search' ? `SCANNING: "${selection.query}"` : 'INCOMING INTEL'} onSearch={(query: string) => updateSelection({ type: 'search', id: null, query })} feedsToDisplay={feeds} selection={selection} onSelectCategory={(cat) => updateSelection(cat ? { type: 'all', id: null, category: cat } : { type: 'all', id: null }, false)} readArticleIds={readArticleIds} bookmarkedArticleIds={bookmarkedArticleIds} articleTags={new Map()} onMarkAsRead={(id) => setReadArticleIds(prev => new Set(prev).add(id))} onPurgeBuffer={(ids) => setReadArticleIds(new Set([...Array.from(readArticleIds), ...ids]))} onMarkAsUnread={(id) => { const n = new Set(readArticleIds); n.delete(id); setReadArticleIds(n); }} onMarkMultipleAsRead={(ids) => setReadArticleIds(new Set([...Array.from(readArticleIds), ...ids]))} onToggleBookmark={(id) => { const n = new Set(bookmarkedArticleIds); if (n.has(id)) n.delete(id); else n.add(id); setBookmarkedArticleIds(n); }} onSetArticleTags={() => {}} onOpenReader={(a) => { setReaderArticle(a); window.history.pushState({ isReader: true }, ''); }} onOpenExternal={(url, id) => { setReadArticleIds(prev => new Set(prev).add(id)); window.open(url, '_blank', 'noopener,noreferrer'); }} allFeeds={feeds} onSetFeeds={setFeeds} onSetFolders={setFolders} refreshKey={lastRefresh} onRefresh={() => { setPrefetchedArticles([]); setLastRefresh(Date.now()); }} widgetSettings={widgetSettings} articleView={articleView} theme={theme} onToggleTheme={handleToggleTheme} onOpenSettings={() => setIsSettingsModalOpen(true)} onOpenAddSource={() => {}} onOpenSidebar={() => setIsSidebarOpen(true)} onAddSource={handleAddSource} initialArticles={prefetchedArticles} onSetSniffErrorModal={() => {}} onOpenSearchExplainer={() => {}} onOpenIntegrityBriefing={() => {}} ambientEnabled={ambientEnabled} onToggleAmbient={() => setAmbientEnabled(!ambientEnabled)} />
                 )}
             </TerminalView>
             
-            {hasBottomNav && (
-                <BottomNavBar selection={selection} onSelect={(s) => updateSelection(s)} onOpenSettings={() => setIsSettingsModalOpen(true)} />
-            )}
-            
-            <SettingsModal 
-                isOpen={isSettingsModalOpen} 
-                onClose={() => setIsSettingsModalOpen(false)} 
-                settings={{ feeds, folders, theme, articleView, widgets: widgetSettings }} 
-                onUpdateSettings={(s) => { if(s.theme) setTheme(s.theme as Theme); if(s.articleView) setArticleView(s.articleView); }} 
-                onSelect={(s) => { updateSelection(s); setIsSettingsModalOpen(false); }}
-                onAddFolder={(n) => setFolders([...folders, {id: Date.now(), name: n}])}
-                onRenameFolder={(id, n) => setFolders(folders.map(x => x.id === id ? {...x, name: n} : x))}
-                onDeleteFolder={(id) => setFolders(folders.filter(x => x.id !== id))}
-                onRemoveFeed={(id) => setFeeds(feeds.filter(x => x.id !== id))}
-                onImportOpml={(f, fld) => { setFeeds([...feeds, ...f.map(i => ({...i, id: Date.now() + Math.random()}))]); setFolders([...folders, ...fld]); }}
-                onExportOpml={() => {}} onImportSettings={() => {}} onExportSettings={() => {}}
-                onAddSource={async (url, type) => { setFeeds([...feeds, { id: Date.now(), url, title: 'New Signal', iconUrl: '', folderId: null, sourceType: type }]); }}
-                onEnterUtils={() => updateSelection({ type: 'utility_hub', id: null })}
-                onResetFeeds={handleResetSystem}
-            />
-            
-            {readerArticle && <ReaderViewModal article={readerArticle} onClose={closeReader} onMarkAsRead={handleMarkAsRead} onOpenExternal={openExternal} />}
-
-            {/* External Frequency Drift Warning Pop-up - Switched to White/Black Theme */}
-            {outboundLink && (
-                <div className="fixed inset-0 bg-black/95 backdrop-blur-md z-[100] flex items-center justify-center p-6 font-mono animate-fade-in">
-                    <div className="bg-white border-4 border-black w-full max-w-sm relative overflow-hidden flex flex-col p-8 text-center space-y-6 shadow-2xl">
-                        <div className="mx-auto w-16 h-16 bg-black rounded-full flex items-center justify-center animate-pulse">
-                            <GlobeAltIcon className="w-8 h-8 text-white" />
-                        </div>
-                        <div className="space-y-2">
-                            <h3 className="text-xl font-black text-black italic uppercase tracking-tighter leading-none">External Frequency Drift</h3>
-                            <p className="text-[10px] text-black leading-relaxed uppercase tracking-widest italic px-4 font-bold">
-                                Operator, you are jumping to an <span className="bg-black text-white px-1">external node</span>. System encryption cannot follow this transmission.
-                            </p>
-                        </div>
-                        
-                        <label className="flex items-center justify-center gap-3 cursor-pointer group pt-2">
-                            <input type="checkbox" className="sr-only" checked={skipExternalWarning} onChange={(e) => setSkipExternalWarning(e.target.checked)} />
-                            <div className={`w-4 h-4 border-2 border-black flex-shrink-0 transition-colors ${skipExternalWarning ? 'bg-black' : 'bg-transparent'}`} />
-                            <span className="text-[9px] font-black uppercase tracking-widest text-black group-hover:underline transition-colors italic leading-none">Do not warn again</span>
-                        </label>
-
-                        <footer className="pt-4 flex gap-3">
-                            <button onClick={() => setOutboundLink(null)} className="flex-1 py-4 border-2 border-black text-black text-[10px] font-black uppercase italic active:bg-zinc-100 transition-all">ABORT</button>
-                            <button onClick={confirmExternalLink} className="flex-1 py-4 bg-black text-white text-[10px] font-black uppercase italic shadow-lg active:scale-95">LINK_ESTABLISH</button>
-                        </footer>
-                    </div>
-                </div>
-            )}
+            <Sidebar feeds={feeds} folders={folders} selection={selection} onAddSource={handleAddSource} onRemoveFeed={(id) => setFeeds(feeds.filter(x => x.id !== id))} onSelect={updateSelection} onAddFolder={(n) => setFolders([...folders, {id: Date.now(), name: n}])} onRenameFolder={(id, n) => setFolders(folders.map(x => x.id === id ? {...x, name: n} : x))} onDeleteFolder={(id) => setFolders(folders.filter(x => x.id !== id))} onMoveFeedToFolder={(fid, foldId) => setFeeds(feeds.map(x => x.id === fid ? {...x, folderId: foldId} : x))} isSidebarOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} onOpenSettings={() => setIsSettingsModalOpen(true)} />
+            <SettingsModal isOpen={isSettingsModalOpen} onClose={() => setIsSettingsModalOpen(false)} settings={{ feeds, folders, theme, articleView, widgets: widgetSettings }} onUpdateSettings={(s) => { if(s.theme) setTheme(s.theme as Theme); if(s.articleView) setArticleView(s.articleView); }} onSelect={(s) => { updateSelection(s); setIsSettingsModalOpen(false); }} onAddFolder={(n) => setFolders([...folders, {id: Date.now(), name: n}])} onRenameFolder={(id, n) => setFolders(folders.map(x => x.id === id ? {...x, name: n} : x))} onDeleteFolder={(id) => setFolders(folders.filter(x => x.id !== id))} onRemoveFeed={(id) => setFeeds(feeds.filter(x => x.id !== id))} onImportOpml={(f, fld) => { setFeeds([...feeds, ...f.map(i => ({...i, id: Date.now() + Math.random()}))]); setFolders([...folders, ...fld]); }} onExportOpml={() => {}} onImportSettings={() => {}} onExportSettings={() => {}} onAddSource={handleAddSource} onEnterUtils={() => updateSelection({ type: 'utility_hub', id: null })} onResetFeeds={handleResetSystem} />
+            {readerArticle && <ReaderViewModal article={readerArticle} onClose={() => setReaderArticle(null)} onMarkAsRead={(id) => setReadArticleIds(prev => new Set(prev).add(id))} onOpenExternal={(url) => window.open(url, '_blank')} />}
         </div>
     );
 };
+
+const GlobalNavLink: React.FC<{ active: boolean; onClick: () => void; label: string; icon: React.ReactNode }> = ({ active, onClick, label, icon }) => (
+    <button 
+        onClick={onClick}
+        className={`flex items-center gap-1 md:gap-1.5 h-11 md:h-12 px-2 md:px-3 border-b-2 transition-all relative group shrink-0
+            ${active ? 'border-pulse-500 text-white' : 'border-transparent text-zinc-500 hover:text-zinc-300'}`}
+    >
+        <span className="scale-90 md:scale-100">{icon}</span>
+        <span className="text-[8px] md:text-[9.5px] font-black tracking-widest uppercase">{label}</span>
+    </button>
+);
 
 export default App;

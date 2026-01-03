@@ -203,7 +203,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onEnterFeeds, onEnterArcade
                         <div className="glass-reveal p-1 rounded-[2.25rem] shadow-2xl overflow-hidden">
                             <button 
                                 onClick={onEnterFeeds}
-                                className="group relative w-full py-5 bg-slate-900 text-inverse font-black uppercase italic text-base rounded-[1.75rem] shadow-xl hover:translate-y-[-2px] transition-all active:scale-95 active:bg-blue-600 flex items-center justify-center gap-4 border border-white/10"
+                                className="group relative w-full py-5 bg-slate-900 text-white font-black uppercase italic text-base rounded-[1.75rem] shadow-xl hover:translate-y-[-2px] transition-all active:scale-95 active:bg-blue-600 flex items-center justify-center gap-4 border border-white/10"
                             >
                                 <ListIcon className="w-6 h-6" />
                                 <span>RECON_INTELLIGENCE</span>

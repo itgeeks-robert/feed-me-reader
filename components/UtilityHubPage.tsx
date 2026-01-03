@@ -59,7 +59,7 @@ const UtilityHubPage: React.FC<{ onSelect: (id: string) => void; onBackToHub: ()
     ];
 
     return (
-        <main className="h-full min-h-0 flex-grow overflow-y-auto bg-void-bg p-4 md:p-16 pt-[calc(1.5rem+env(safe-area-inset-top))] pb-[calc(10rem+env(safe-area-inset-bottom))] animate-fade-in relative scrollbar-hide font-mono">
+        <main className="h-full min-h-0 flex-grow overflow-y-auto bg-void-bg p-4 md:p-16 pt-[calc(4rem+var(--safe-top))] pb-[calc(10rem+env(safe-area-inset-bottom))] animate-fade-in relative scrollbar-hide font-mono">
             <ContextualIntel 
                 tipId="utility_intel" 
                 title="Tactical Hub" 
@@ -85,7 +85,7 @@ const UtilityHubPage: React.FC<{ onSelect: (id: string) => void; onBackToHub: ()
                         <button onClick={onToggleTheme} className="p-3 md:p-4 bg-void-surface rounded-2xl text-muted border border-void-border active:scale-90 transition-transform hover:text-pulse-500 shadow-xl">
                             <ThemeIcon className="w-5 h-5 md:w-7 md:h-7" />
                         </button>
-                        <button onClick={onBackToHub} className="group p-3 md:p-4 bg-void-surface border-2 border-void-border rounded-void text-muted hover:text-terminal hover:border-pulse-500 transition-all active:scale-90 shadow-xl flex items-center gap-3">
+                        <button onClick={onBackToHub} className="group p-3 md:p-4 bg-void-surface border-2 border-void-border rounded-void text-muted hover:text-terminal hover:border-pulse-500 transition-all active:scale-90 shadow-xl flex items-center justify-center gap-3">
                             <span className="text-[9px] font-black uppercase tracking-widest hidden sm:block">Close_Console</span>
                             <XIcon className="w-5 h-5 md:w-7 md:h-7" />
                         </button>

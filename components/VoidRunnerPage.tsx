@@ -483,7 +483,7 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
     }, []);
 
     return (
-        <main className="w-full h-full bg-zinc-950 flex flex-col items-center justify-center p-4 font-mono overflow-y-auto scrollbar-hide pt-[env(safe-area-inset-top)]">
+        <main className="w-full h-full bg-zinc-950 flex flex-col items-center justify-center p-4 pt-[calc(4rem+var(--safe-top))] font-mono overflow-y-auto scrollbar-hide">
             <style>{`
                 .arcade-silhouette { width: 120px; height: 180px; background: #111; clip-path: polygon(0 20%, 10% 0, 90% 0, 100% 20%, 100% 100%, 0 100%); position: relative; border: 2px solid #333; }
                 .arcade-screen { position: absolute; top: 25px; left: 10px; right: 10px; bottom: 80px; background: #000; overflow: hidden; }
@@ -572,7 +572,7 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
                             <div className={`max-w-sm w-full bg-zinc-900 p-12 rounded-[3rem] border-4 ${gameState === 'WON' ? 'border-signal-500 shadow-[0_0_100px_rgba(34,197,94,0.3)]' : 'border-pulse-500 shadow-[0_0_100px_rgba(225,29,72,0.23)]'}`}>
                                 {gameState === 'WON' && <div className="mb-10 flex flex-col items-center"><div className="lowpoly-sun mb-6" /><h2 className="text-4xl font-black italic uppercase tracking-tighter mb-4 text-signal-500">SYNC SUCCESS</h2><p className="text-zinc-500 font-bold uppercase tracking-widest text-[9px] mb-8 italic leading-relaxed">{SECTOR_INTEL[7].Intel}</p></div>}
                                 {gameState === 'LOST' && <><h2 className="text-4xl font-black italic uppercase tracking-tighter mb-4 text-pulse-500">LINK SEVERED</h2><p className="text-zinc-500 font-bold uppercase tracking-widest text-[9px] mb-8 italic leading-relaxed">Sentinels have isolated your node.</p></>}
-                                <div className="mb-10"><p className="text-zinc-500 font-black uppercase tracking-[0.3em] text-[9px] mb-4">Post Signal Initials</p><input autoFocus maxLength={3} value={initials} onChange={e => setInitials(e.target.value.toUpperCase())} className="bg-black/50 border-2 border-pulse-500 text-white rounded-xl px-4 py-3 text-center text-3xl font-black w-36 outline-none uppercase italic" placeholder="???" /></div>
+                                <div className="mb-10"><p className="text-zinc-500 font-black uppercase tracking-[0.3em] text-[9px] mb-4">Post Signal Initials</p><input autoFocus maxLength={3} value={initials} onChange={e => setInitials(e.target.value.toUpperCase())} className="bg-black/50 border-2 border-pulse-500 text-white rounded-xl px-4 py-4 text-center text-3xl font-black w-36 outline-none uppercase italic" placeholder="???" /></div>
                                 <button onClick={() => { soundService.playClick(); saveHighScore('void_runner', { name: initials.toUpperCase() || "???", score, displayValue: `${score} DATA`, date: new Date().toISOString() }); setGameState('INTRO'); setScore(0); setSector(1); }} className="w-full py-5 bg-pulse-600 text-white font-black text-xl italic uppercase rounded-full hover:scale-105 transition-transform shadow-xl active:scale-95">Transmit Record</button>
                             </div>
                         </div>
@@ -584,80 +584,44 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
                 </div>
             </div>
             {showHelp && <TacticalManual onClose={() => { soundService.playClick(); setShowHelp(false); }} />}
-        </main>
-    );
-};
-
-const TacticalManual: React.FC<{ onClose: () => void }> = ({ onClose }) => {
-    return (
-        <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 md:p-10 font-mono" onClick={onClose}>
-            <div className="max-w-xl w-full bg-void-900 border-4 border-pulse-500 rounded-[2.5rem] md:rounded-[3rem] shadow-2xl overflow-hidden relative flex flex-col max-h-[85vh] pt-[var(--safe-top)] pb-[var(--safe-bottom)]" onClick={e => e.stopPropagation()}>
-                
-                <header className="h-12 bg-pulse-600 flex items-center justify-between px-1 relative z-20 border-b-2 border-black shrink-0">
-                    <div className="flex items-center gap-2 h-full">
-                        <div className="w-10 h-8 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center">
-                           <BookOpenIcon className="w-5 h-5 text-black" />
-                        </div>
-                        <h2 className="text-white text-[10px] font-black uppercase tracking-[0.2em] italic px-2">PATHFINDING_MANUAL.PDF</h2>
-                    </div>
-                    <button onClick={onClose} className="w-10 h-8 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center active:bg-zinc-400 transition-colors">
-                        <XIcon className="w-5 h-5 text-black" />
-                    </button>
-                </header>
-
-                <div className="p-6 md:p-10 overflow-y-auto flex-grow bg-void-950/40 relative">
-                    <div className="absolute inset-0 pointer-events-none opacity-5 cctv-overlay" />
-                    
-                    <section className="space-y-8 relative z-10">
-                        <div>
-                            <div className="flex items-center gap-3 mb-4">
-                                <SparklesIcon className="w-5 h-5 text-pulse-500" />
-                                <h3 className="text-lg font-black text-white italic uppercase tracking-tighter">Maze Navigation</h3>
-                            </div>
-                            <p className="text-[10px] md:text-xs text-zinc-400 uppercase font-black leading-relaxed tracking-wider mb-4 border-l-2 border-pulse-500/30 pl-4">
-                                Collect all data packets while evading the sentinel nodes patrolling the network.
-                            </p>
-                        </div>
-
-                        <div className="grid grid-cols-1 gap-6">
-                            <ManualPoint title="0x01_Perimeter_Safety" desc="Utilize the edge buffers (left and right tunnels) to instantly loop across the grid. Sentinels lose velocity during these jumps." color="text-pulse-500" />
-                            <ManualPoint title="0x02_Aggression_Window" desc="Power packets (red circles) temporarily destabilize sentinel logic. Use this window to purge them for high-value credits." color="text-pulse-500" />
-                            <ManualPoint title="0x03_Pattern_Evasion" desc="Sentinels follow specific logical paths based on your position. Blinky (red) is the hunter; others use diversionary logic." color="text-pulse-500" />
-                            <ManualPoint title="0x04_Corner_Priority" desc="Clear the corners first. They are the easiest places to get trapped when the network enters CHASE mode." color="text-pulse-500" />
-                        </div>
-
-                        <div className="p-5 bg-pulse-500/10 border-2 border-pulse-500/30 rounded-2xl flex items-start gap-4">
-                            <ExclamationTriangleIcon className="w-6 h-6 text-pulse-500 shrink-0 mt-0.5 animate-pulse" />
-                            <div>
-                                <p className="text-[9px] font-black text-pulse-500 uppercase tracking-widest mb-1 italic">Pro Tip: Bonus Packets</p>
-                                <p className="text-[8px] text-zinc-500 uppercase font-black leading-tight italic">
-                                    High-value data burgers and shakes appear after 70 and 150 packets. Intercept them for significant credit boosts.
-                                </p>
-                            </div>
-                        </div>
-                    </section>
-                </div>
-
-                <footer className="p-4 bg-zinc-300 border-t-2 border-black shrink-0">
-                    <button onClick={onClose} className="w-full py-4 bg-emerald-600 border-t-2 border-l-2 border-white/50 border-b-2 border-r-2 border-emerald-950 text-[10px] font-black uppercase italic text-white hover:bg-emerald-500 active:bg-emerald-700 transition-all shadow-lg">
-                        ACKNOWLEDGE_PROTOCOLS
-                    </button>
-                </footer>
-            </div>
         </div>
     );
 };
 
+// Added ManualPoint component
 const ManualPoint: React.FC<{ title: string; desc: string; color: string }> = ({ title, desc, color }) => (
     <div className="space-y-2 group">
         <h4 className={`text-[9px] font-black ${color} uppercase tracking-[0.3em] italic flex items-center gap-2`}>
             <span className={`w-1.5 h-1.5 rounded-full ${color.replace('text-', 'bg-')} group-hover:scale-150 transition-transform`}></span>
             {title}
         </h4>
-        <p className="text-[10px] md:text-xs text-zinc-300 font-bold uppercase tracking-wide leading-relaxed pl-3 border-l border-zinc-800">
-            {desc}
-        </p>
+        <p className="text-[10px] md:text-xs text-zinc-300 font-bold uppercase tracking-wide leading-relaxed pl-3 border-l border-zinc-800">{desc}</p>
     </div>
 );
 
+// Added TacticalManual component
+const TacticalManual: React.FC<{ onClose: () => void }> = ({ onClose }) => (
+    <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 md:p-10 font-mono" onClick={onClose}>
+        <div className="max-w-xl w-full bg-void-900 border-4 border-pulse-500 rounded-[3rem] shadow-2xl overflow-hidden relative flex flex-col max-h-[85vh]" onClick={e => e.stopPropagation()}>
+            <header className="h-12 bg-pulse-600 flex items-center justify-between px-4 border-b-2 border-black shrink-0">
+                <div className="flex items-center gap-2 h-full"><BookOpenIcon className="w-4 h-4 text-black" /><h2 className="text-white text-[10px] font-black uppercase tracking-[0.2em] italic">PATH_RECON_PROTOCOLS.PDF</h2></div>
+                <button onClick={onClose} className="hover:scale-110 transition-transform"><XIcon className="w-5 h-5 text-black"/></button>
+            </header>
+            <div className="p-8 md:p-12 overflow-y-auto bg-void-950/40 relative flex-grow scrollbar-hide">
+                <div className="absolute inset-0 pointer-events-none opacity-5 cctv-overlay" />
+                <section className="space-y-8 relative z-10">
+                    <div><h3 className="text-lg font-black text-white italic uppercase tracking-tighter mb-4 flex items-center gap-3"><SparklesIcon className="w-5 h-5 text-pulse-500"/> Sector Navigation</h3><p className="text-[10px] text-zinc-400 uppercase font-black leading-relaxed tracking-wider border-l-2 border-pulse-500 pl-4">Navigate the network architecture to collect all data packets while avoiding sentinel interceptors.</p></div>
+                    <div className="space-y-6">
+                        <ManualPoint title="0x01_Packet_Sync" desc="Collect all small data bits in a sector to stabilize the node and advance to the next frequency." color="text-pulse-500" />
+                        <ManualPoint title="0x02_Core_Breach" desc="Large red nodes grant temporary sentinel vulnerability. Use this window to purge interceptors from the local rail." color="text-pulse-500" />
+                        <ManualPoint title="0x03_Thermal_Drift" desc="Sentinels follow predictable logic loops until triggered. Use the tunnel junctions for rapid cross-sector repositioning." color="text-pulse-500" />
+                    </div>
+                </section>
+            </div>
+            <footer className="p-4 bg-zinc-300 border-t-2 border-black shrink-0"><button onClick={onClose} className="w-full py-4 bg-pulse-600 text-white text-[10px] font-black uppercase italic shadow-lg active:scale-95">Confirm Protocols</button></footer>
+        </div>
+    </div>
+);
+
+// Added default export
 export default VoidRunnerPage;

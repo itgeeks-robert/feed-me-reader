@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { XIcon, VoidIcon, SparklesIcon, ArrowPathIcon, ListIcon, BookOpenIcon, ExclamationTriangleIcon } from './icons';
 import { saveHighScore, getHighScores, HighScoreEntry } from '../services/highScoresService';
@@ -306,14 +307,14 @@ const SynapseLinkPage: React.FC<{ onBackToHub: () => void; onComplete?: () => vo
     if (gameState === 'idle') {
         return (
             <div className="w-full h-full bg-zinc-950 flex flex-col items-center justify-center p-6 overflow-y-auto scrollbar-hide">
-                <div className="w-full max-w-sm text-center bg-zinc-900 p-8 md:p-10 rounded-[3rem] border-4 border-pulse-500 shadow-[0_0_50px_rgba(225,29,72,0.1)] mb-6">
+                <div className="w-full max-w-sm text-center bg-zinc-900 p-8 md:p-10 rounded-[3rem] border-4 border-pulse-500 shadow-2xl">
                     <header className="mb-10">
                         <span className="text-[10px] font-black uppercase text-neon-400 tracking-[0.3em] italic block mb-1">Cluster Analysis</span>
                         <h1 className="text-3xl font-black italic uppercase text-white tracking-tighter leading-none">SYNAPSE LINK</h1>
                     </header>
 
                     <div className="h-[240px] flex items-center justify-center mb-8 overflow-hidden relative">
-                        <div key={showScores ? 'scores' : 'graphic'} className="w-full animate-glitch-in">
+                        <div key={showScores ? 'scores' : 'graphic'} className="w-full animate-fade-in">
                             {showScores ? (
                                 <HighScoreTable entries={getHighScores('synapse_link')} title="SYNAPSE" />
                             ) : (
@@ -341,7 +342,7 @@ const SynapseLinkPage: React.FC<{ onBackToHub: () => void; onComplete?: () => vo
     }
 
     return (
-        <main className="w-full h-full bg-zinc-950 flex flex-col items-center p-4 overflow-y-auto scrollbar-hide pb-[calc(2rem+var(--safe-bottom))]">
+        <main className="w-full h-full bg-zinc-950 flex flex-col items-center p-4 pt-[calc(4rem+var(--safe-top))] overflow-y-auto scrollbar-hide pb-[calc(2rem+var(--safe-bottom))]">
             <style>{`
                 @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
                 .animate-shake { animation: shake 0.2s ease-in-out 2; }
@@ -353,7 +354,7 @@ const SynapseLinkPage: React.FC<{ onBackToHub: () => void; onComplete?: () => vo
                 .animate-glitch-in { animation: glitch-in 0.4s ease-out forwards; }
             `}</style>
             
-            <header className="w-full max-w-lg flex justify-between items-center mb-8 bg-zinc-900/50 p-4 rounded-3xl border border-white/5 flex-shrink-0 mt-[var(--safe-top)]">
+            <header className="w-full max-w-lg flex justify-between items-center mb-8 bg-zinc-900/50 p-4 rounded-3xl border border-white/5 flex-shrink-0">
                 <button onClick={() => { soundService.playWrong(); onBackToHub(); }} className="p-2 bg-zinc-800 rounded-xl text-zinc-400 hover:text-white transition-colors">
                     <XIcon className="w-6 h-6" />
                 </button>

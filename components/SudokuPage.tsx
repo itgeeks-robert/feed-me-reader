@@ -264,7 +264,7 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
     }
 
     return (
-        <main className="w-full h-full bg-zinc-950 text-white flex flex-col items-center justify-center font-sans overflow-y-auto scrollbar-hide relative pb-20">
+        <main className="w-full h-full bg-zinc-950 text-white flex flex-col items-center justify-center font-sans overflow-y-auto scrollbar-hide pt-[calc(4rem+var(--safe-top))] relative pb-20">
             <style>{`
                 .grid-crt::before {
                     content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0;
@@ -275,7 +275,7 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
             `}</style>
 
             <div className="max-w-md w-full h-full flex flex-col p-4 gap-4 z-10">
-                <header className="flex justify-between items-center bg-zinc-900/80 p-4 rounded-3xl border border-white/5 backdrop-blur-xl shrink-0 mt-[var(--safe-top)]">
+                <header className="flex justify-between items-center bg-zinc-900/80 p-4 rounded-3xl border border-white/5 backdrop-blur-xl shrink-0">
                     <button onClick={() => { soundService.playWrong(); setView('IDLE'); }} className="p-2 bg-zinc-800 rounded-xl text-zinc-400 hover:text-white transition-colors"><XIcon className="w-6 h-6" /></button>
                     <div className="flex gap-4 items-center">
                         <div className="flex items-center gap-1">

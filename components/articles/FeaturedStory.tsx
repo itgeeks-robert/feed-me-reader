@@ -27,7 +27,6 @@ const CCTVMonitor: React.FC<{ src: string | null; label: string; headline: strin
                 <ImageWithProxy
                     src={activeSrc}
                     alt=""
-                    /* Fully Restored Color: No saturation filters. Enhanced for high-contrast clarity. */
                     className="w-full h-full object-cover transition-transform duration-[20s] group-hover/monitor:scale-110 contrast-[1.1] brightness-[1.0]"
                     wrapperClassName="w-full h-full"
                     fallback={
@@ -57,43 +56,45 @@ const CCTVMonitor: React.FC<{ src: string | null; label: string; headline: strin
 
 const FeaturedStory: React.FC<{article: Article; onReadHere: () => void; onReadExternal: () => void; isRead: boolean;}> = ({ article, onReadHere, onReadExternal, isRead }) => {
     return (
-        <div className={`group relative grid grid-cols-1 lg:grid-cols-[1.5fr,1fr] bg-black border border-white/10 overflow-hidden min-h-[450px] md:min-h-[500px] transition-all duration-500 hover:border-white/20 rounded-void shadow-[0_20px_60px_rgba(0,0,0,0.8)] ${isRead ? 'opacity-40' : ''}`}>
-            
-            <div className="h-64 sm:h-96 lg:h-auto border-b lg:border-b-0 lg:border-r border-white/10">
-                <CCTVMonitor src={article.imageUrl} label={article.source} headline={article.title} url={article.link} />
-            </div>
+        <div className="relative group/wrapper mb-8">
+            <div 
+                onClick={onReadHere}
+                className={`group relative grid grid-cols-1 lg:grid-cols-[1.5fr,1fr] bg-black border border-white/10 overflow-hidden min-h-[450px] md:min-h-[500px] transition-all duration-500 hover:border-white/30 hover:shadow-[0_0_40px_rgba(255,255,255,0.05)] cursor-pointer rounded-void shadow-[0_20px_60px_rgba(0,0,0,0.8)] ${isRead ? 'opacity-40' : ''}`}
+            >
+                <div className="h-64 sm:h-96 lg:h-auto border-b lg:border-b-0 lg:border-r border-white/10">
+                    <CCTVMonitor src={article.imageUrl} label={article.source} headline={article.title} url={article.link} />
+                </div>
 
-            <div className="relative p-6 md:p-12 flex flex-col justify-center bg-zinc-950">
-                <div className="flex items-center gap-3 mb-6">
-                    <span className="bg-pulse-600 text-white text-[8px] font-black px-2 py-0.5 uppercase tracking-widest italic rounded-sm">BREAKING_INTEL</span>
-                    <span className="text-zinc-500 text-[8px] font-black uppercase tracking-widest truncate">{article.source}</span>
-                </div>
-                
-                <h1 className="text-2xl md:text-5xl font-black italic uppercase tracking-tighter mb-8 leading-[0.95] line-clamp-4 text-white group-hover:text-pulse-400 transition-colors drop-shadow-md">
-                    {article.title}
-                </h1>
-                
-                <p className="text-sm md:text-base text-zinc-400 line-clamp-3 mb-10 leading-relaxed uppercase tracking-tight italic border-l border-zinc-800 pl-6">
-                    {article.snippet}
-                </p>
-                
-                <div className="mt-auto flex flex-col sm:flex-row gap-4">
-                    <button 
-                        onClick={onReadHere}
-                        className="flex-1 inline-flex items-center justify-center gap-3 bg-white text-black hover:bg-pulse-500 hover:text-white transition-all font-black uppercase italic py-4 px-8 text-xs tracking-widest rounded-sm"
-                    >
-                        <BoltIcon className="w-5 h-5" />
-                        <span>Link_Core</span>
-                    </button>
+                <div className="relative p-6 md:p-12 flex flex-col justify-center bg-zinc-950">
+                    <div className="flex items-center gap-3 mb-6">
+                        <span className="bg-pulse-600 text-white text-[8px] font-black px-2 py-0.5 uppercase tracking-widest italic rounded-sm">BREAKING_INTEL</span>
+                        <span className="text-zinc-500 text-[8px] font-black uppercase tracking-widest truncate">{article.source}</span>
+                    </div>
                     
-                    <button 
-                        onClick={(e) => { e.preventDefault(); onReadExternal(); }}
-                        className="flex items-center justify-center gap-3 text-[9px] font-black uppercase tracking-widest text-zinc-500 hover:text-white transition-colors italic border border-white/10 px-6 py-4 rounded-sm"
-                    >
-                        Raw_Dat
-                    </button>
+                    <h1 className="text-2xl md:text-5xl font-black italic uppercase tracking-tighter mb-8 leading-[0.95] line-clamp-4 text-white group-hover:text-pulse-400 transition-colors drop-shadow-md">
+                        {article.title}
+                    </h1>
+                    
+                    <p className="text-sm md:text-base text-zinc-400 line-clamp-3 mb-10 leading-relaxed uppercase tracking-tight italic border-l border-zinc-800 pl-6">
+                        {article.snippet}
+                    </p>
+                    
+                    <div className="mt-auto">
+                        <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-sm">
+                            <BoltIcon className="w-4 h-4 text-pulse-500" />
+                            <span className="text-[10px] font-black uppercase text-white/50 tracking-widest italic">TAP_TO_DECODE</span>
+                        </div>
+                    </div>
                 </div>
             </div>
+            
+            {/* Raw Data Link: Placed outside frame at bottom right */}
+            <button 
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); onReadExternal(); }}
+                className="absolute -bottom-6 right-2 text-[8px] font-black uppercase tracking-[0.3em] text-zinc-600 hover:text-white transition-colors italic z-20"
+            >
+                Access_Raw_Data_Stream_0x{article.id.substring(0,4)}
+            </button>
         </div>
     );
 };

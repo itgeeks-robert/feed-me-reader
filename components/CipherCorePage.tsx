@@ -91,9 +91,9 @@ const CipherCorePage: React.FC<CipherCoreProps> = ({ onBackToHub, onWin, preload
         localStorage.setItem(storageKey, JSON.stringify({ guesses: g, state: s, posted: p }));
     }, [storageKey]);
 
-    const getStatus = (guess: string, i: number, sol: string) => {
-        if (sol[i] === guess[i]) return 2; // Correct (Green)
-        if (sol.includes(guess[i])) return 1; // Displaced (Pink)
+    const getStatus = (guesses: string, i: number, sol: string) => {
+        if (sol[i] === guesses[i]) return 2; // Correct (Green)
+        if (sol.includes(guesses[i])) return 1; // Displaced (Pink)
         return 0; // Absent (Dark)
     };
 
@@ -253,7 +253,7 @@ const CipherCorePage: React.FC<CipherCoreProps> = ({ onBackToHub, onWin, preload
     const activeWord = archiveMap[activeSector]?.word || FALLBACK_WORD;
 
     return (
-        <main className="w-full h-full bg-zinc-950 flex flex-col items-center p-4 overflow-y-auto scrollbar-hide font-mono">
+        <main className="w-full h-full bg-zinc-950 flex flex-col items-center p-4 pt-[calc(4rem+var(--safe-top))] overflow-y-auto scrollbar-hide font-mono">
             <style>{`
                 @keyframes flip { 0% { transform: rotateX(0); } 45% { transform: rotateX(90deg); } 55% { transform: rotateX(90deg); } 100% { transform: rotateX(0); } }
                 @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
@@ -264,7 +264,7 @@ const CipherCorePage: React.FC<CipherCoreProps> = ({ onBackToHub, onWin, preload
                 .animate-shake { animation: shake 0.4s ease-in-out; }
             `}</style>
 
-            <header className="w-full max-w-lg flex justify-between items-center mb-8 bg-zinc-900/50 p-4 rounded-3xl border border-white/5 shrink-0 mt-[var(--safe-top)]">
+            <header className="w-full max-w-lg flex justify-between items-center mb-8 bg-zinc-900/50 p-4 rounded-3xl border border-white/5 shrink-0">
                 <button onClick={() => { soundService.playWrong(); onBackToHub(); }} className="p-2 bg-zinc-800 rounded-xl text-zinc-400 hover:text-white transition-all active:scale-95"><XIcon className="w-6 h-6"/></button>
                 <div className="text-center">
                     <span className="text-[10px] font-black uppercase text-pulse-500 tracking-[0.3em] italic">Sector: {archiveMap[activeSector]?.label || 'TODAY'}</span>
@@ -342,9 +342,21 @@ const CipherCorePage: React.FC<CipherCoreProps> = ({ onBackToHub, onWin, preload
     );
 };
 
+// Added ManualPoint component
+const ManualPoint: React.FC<{ title: string; desc: string; color: string }> = ({ title, desc, color }) => (
+    <div className="space-y-2 group">
+        <h4 className={`text-[9px] font-black ${color} uppercase tracking-[0.3em] italic flex items-center gap-2`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${color.replace('text-', 'bg-')} group-hover:scale-150 transition-transform`}></span>
+            {title}
+        </h4>
+        <p className="text-[10px] md:text-xs text-zinc-300 font-bold uppercase tracking-wide leading-relaxed pl-3 border-l border-zinc-800">{desc}</p>
+    </div>
+);
+
+// Added TacticalManual component
 const TacticalManual: React.FC<{ onClose: () => void }> = ({ onClose }) => (
     <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 md:p-10 font-mono" onClick={onClose}>
-        <div className="max-w-xl w-full bg-zinc-900 border-4 border-pulse-500 rounded-[3rem] shadow-2xl overflow-hidden relative flex flex-col max-h-[85vh] pt-[var(--safe-top)] pb-[var(--safe-bottom)]" onClick={e => e.stopPropagation()}>
+        <div className="max-w-xl w-full bg-void-900 border-4 border-pulse-500 rounded-[3rem] shadow-2xl overflow-hidden relative flex flex-col max-h-[85vh] pt-[var(--safe-top)] pb-[var(--safe-bottom)]" onClick={e => e.stopPropagation()}>
             <header className="h-12 bg-pulse-600 flex items-center justify-between px-4 border-b-2 border-black shrink-0">
                 <div className="flex items-center gap-2 h-full">
                     <BookOpenIcon className="w-4 h-4 text-black" />
@@ -357,12 +369,12 @@ const TacticalManual: React.FC<{ onClose: () => void }> = ({ onClose }) => (
                 <section className="space-y-8 relative z-10">
                     <div>
                         <h3 className="text-lg font-black text-white italic uppercase tracking-tighter mb-4 flex items-center gap-3"><SparklesIcon className="w-5 h-5 text-emerald-500"/> Frequency Intercept</h3>
-                        <p className="text-[10px] text-zinc-400 uppercase font-black leading-relaxed tracking-wider border-l-2 border-pulse-500 pl-4">To stabilize the core, you must identify the 5-bit sequence. The system interrogates ScreenRant archive nodes to verify global consistency.</p>
+                        <p className="text-[10px] text-zinc-400 uppercase font-black leading-relaxed tracking-wider border-l-2 border-pulse-500 pl-4">To stabilize the core, you must identify the 5-bit sequence. The system interrogates archive nodes to verify global consistency.</p>
                     </div>
                     <div className="space-y-6">
-                        <ManualPoint title="0x01_Logic_Protocol" desc="Only valid English 5-letter words will be processed. Binary noise or fragmented strings will result in a bit mismatch error." />
-                        <ManualPoint title="0x02_Color_Heuristics" desc="GREEN: Bit confirmed in correct node. PINK: Bit present but displaced. DARK: Frequency is absent from current transmission packet." />
-                        <ManualPoint title="0x03_The_Log_Transmission" desc="Successfully decoded sequences can be transmitted as a color-grid log (emoji) to your social network buffers." />
+                        <ManualPoint title="0x01_Logic_Protocol" desc="Only valid English 5-letter words will be processed. Binary noise or fragmented strings will result in a bit mismatch error." color="text-emerald-500" />
+                        <ManualPoint title="0x02_Color_Heuristics" desc="GREEN: Bit confirmed in correct node. PINK: Bit present but displaced. DARK: Frequency is absent from current transmission packet." color="text-emerald-500" />
+                        <ManualPoint title="0x03_The_Log_Transmission" desc="Successfully decoded sequences can be transmitted as a color-grid log (emoji) to your social network buffers." color="text-emerald-500" />
                     </div>
                     <div className="p-5 bg-pulse-500/10 border-2 border-pulse-500/30 rounded-2xl flex items-start gap-4 animate-pulse">
                         <ExclamationTriangleIcon className="w-6 h-6 text-pulse-500 shrink-0 mt-0.5" />
@@ -380,11 +392,5 @@ const TacticalManual: React.FC<{ onClose: () => void }> = ({ onClose }) => (
     </div>
 );
 
-const ManualPoint: React.FC<{ title: string; desc: string }> = ({ title, desc }) => (
-    <div className="space-y-1">
-        <h4 className="text-[9px] font-black text-emerald-500 uppercase tracking-widest italic">{title}</h4>
-        <p className="text-[10px] text-zinc-300 font-bold uppercase leading-relaxed pl-3 border-l border-zinc-800">{desc}</p>
-    </div>
-);
-
+// Added default export
 export default CipherCorePage;

@@ -263,7 +263,7 @@ const MinesweeperPage: React.FC<MinesweeperPageProps> = ({ onBackToHub, onReturn
   }, [grid, gameState, currentSettings]);
 
   return (
-    <div className="w-full h-full bg-void-950 flex flex-col items-center p-4 overflow-y-auto scrollbar-hide relative">
+    <div className="w-full h-full bg-void-950 flex flex-col items-center p-4 pt-[calc(4rem+var(--safe-top))] overflow-y-auto scrollbar-hide relative">
         <CircuitBackground />
         
         <style>{`
@@ -341,7 +341,7 @@ const MinesweeperPage: React.FC<MinesweeperPageProps> = ({ onBackToHub, onReturn
             </div>
         ) : (
             <div className="max-w-4xl w-full flex flex-col gap-6 animate-fade-in pb-20 relative z-10">
-                <header className="flex flex-col md:flex-row justify-between items-center bg-void-900/80 p-6 rounded-[2rem] border-2 border-white/5 backdrop-blur-xl gap-4 mt-[var(--safe-top)]">
+                <header className="flex flex-col md:flex-row justify-between items-center bg-void-900/80 p-6 rounded-[2rem] border-2 border-white/5 backdrop-blur-xl gap-4">
                     <div className="flex items-center gap-4">
                         <button onClick={onBackToHub} className="p-3 bg-zinc-900 rounded-2xl text-zinc-400 hover:text-white transition-all active:scale-95 shadow-lg border border-white/5"><XIcon className="w-6 h-6" /></button>
                         <div><span className="text-[9px] font-black uppercase text-signal-500 tracking-[0.4em] block mb-1 italic">Mainframe Maintenance</span><h2 className="text-xl md:text-2xl font-black italic uppercase text-white tracking-tighter leading-none">ANOMALY PURGE</h2></div>
