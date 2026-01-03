@@ -13,6 +13,7 @@ import DeepSyncPage from '../components/DeepSyncPage';
 import SignalScramblerPage from '../components/SignalScramblerPage';
 import UtilityHubPage from '../components/UtilityHubPage';
 import SignalStreamerPage from '../components/SignalStreamerPage';
+import SurveillanceRadarPage from '../components/SurveillanceRadarPage';
 import TranscoderPage from '../components/TranscoderPage';
 import Base64ConverterPage from '../components/Base64ConverterPage';
 import SudokuPage from '../components/SudokuPage';
@@ -31,20 +32,21 @@ import { resilientFetch } from '../services/fetch';
 import { parseRssXml } from '../services/rssParser';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { GlobeAltIcon, RadioIcon, XIcon, ShieldCheckIcon, SearchIcon, BeakerIcon, SparklesIcon, ExclamationTriangleIcon } from '../components/icons';
+import { soundService } from '../services/soundService';
 
 export interface Folder { id: number; name: string; }
 export interface Feed { id: number; url: string; title: string; iconUrl: string; folderId: number | null; sourceType?: SourceType; category?: string; }
 export interface Article { id: string; title: string; link: string; source: string; publishedDate: Date | null; snippet: string; imageUrl: string | null; feedCategory?: string; }
 
+export interface SudokuStats { totalWins: number; }
 export type SudokuDifficulty = 'Easy' | 'Medium' | 'Hard' | 'Expert';
-export interface SudokuStats { totalWins: number; lastDailyCompletionDate?: string; }
 export interface SolitaireStats { gamesWon: number; currentStreak: number; }
 export interface SolitaireSettings { drawThree: boolean; }
 
 export type Theme = 'noir' | 'liquid-glass' | 'bento-grid' | 'brutalist' | 'claymorphism' | 'monochrome-zen' | 'y2k' | 'terminal';
 
 export type Selection = { 
-    type: 'splash' | 'all' | 'folder' | 'bookmarks' | 'search' | 'feed' | 'reddit' | 'game_hub' | 'daily_uplink' | 'grid_reset' | 'deep_sync' | 'signal_scrambler' | 'utility_hub' | 'signal_streamer' | 'transcoder' | 'base64_converter' | 'sudoku' | 'solitaire' | 'minesweeper' | 'tetris' | 'pool' | 'cipher_core' | 'void_runner' | 'synapse_link' | 'hangman' | 'neon_signal'; 
+    type: 'splash' | 'all' | 'folder' | 'bookmarks' | 'search' | 'feed' | 'reddit' | 'game_hub' | 'daily_uplink' | 'grid_reset' | 'deep_sync' | 'signal_scrambler' | 'utility_hub' | 'signal_streamer' | 'surveillance_radar' | 'transcoder' | 'base64_converter' | 'sudoku' | 'solitaire' | 'minesweeper' | 'tetris' | 'pool' | 'cipher_core' | 'void_runner' | 'synapse_link' | 'hangman' | 'neon_signal'; 
     id: string | number | null; 
     query?: string;
     category?: string;
@@ -64,6 +66,7 @@ const WIDGET_SETTINGS_KEY = `void_widget_settings_${GUEST_USER_ID}`;
 const UPTIME_KEY = `void_uptime_${GUEST_USER_ID}`;
 const SELECTION_KEY = `void_selection_${GUEST_USER_ID}`;
 const FAV_GAMES_KEY = `void_fav_games_${GUEST_USER_ID}`;
+const AMBIENT_SOUND_KEY = `void_ambient_sound_${GUEST_USER_ID}`;
 
 const FALLBACK_WORD = "FABLE";
 const SECTOR_LIMIT = 7;
@@ -75,7 +78,7 @@ const TerminalView: React.FC<{ children: React.ReactNode; hasBottomNav?: boolean
 );
 
 const App: React.FC = () => {
-    const [theme, setTheme] = useLocalStorage<Theme>(THEME_KEY, 'noir');
+    const [theme, setTheme] = useLocalStorage<Theme>(THEME_KEY, 'liquid-glass');
     const [articleView, setArticleView] = useLocalStorage<ArticleView>(ARTICLE_VIEW_KEY, 'list');
     const [widgetSettings, setWidgetSettings] = useLocalStorage<WidgetSettings>(WIDGET_SETTINGS_KEY, { showWeather: true, showFinance: false, weatherLocation: 'London' });
     const [folders, setFolders] = useLocalStorage<Folder[]>(FOLDERS_KEY, []);
@@ -83,9 +86,9 @@ const App: React.FC = () => {
     const [readArticleIds, setReadArticleIds] = useLocalStorage<Set<string>>(READ_ARTICLES_KEY, () => new Set());
     const [bookmarkedArticleIds, setBookmarkedArticleIds] = useLocalStorage<Set<string>>(BOOKMARKED_ARTICLES_KEY, () => new Set());
     const [favoriteGameIds, setFavoriteGameIds] = useLocalStorage<Set<string>>(FAV_GAMES_KEY, () => new Set());
+    const [ambientEnabled, setAmbientEnabled] = useLocalStorage<boolean>(AMBIENT_SOUND_KEY, false);
     
     const [uptime, setUptime] = useLocalStorage<number>(UPTIME_KEY, 25);
-
     const [selection, setSelection] = useLocalStorage<Selection>(SELECTION_KEY, { type: 'splash', id: null });
 
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
@@ -107,13 +110,17 @@ const App: React.FC = () => {
         loading: true
     });
 
+    useEffect(() => {
+        soundService.setAmbient(ambientEnabled, theme);
+    }, [ambientEnabled, theme]);
+
     const isGameActive = useMemo(() => {
         const gameTypes = ['sudoku', 'solitaire', 'minesweeper', 'tetris', 'pool', 'cipher_core', 'void_runner', 'synapse_link', 'grid_reset', 'hangman', 'neon_signal'];
         return gameTypes.includes(selection.type);
     }, [selection.type]);
 
     const isUtilityActive = useMemo(() => {
-        const utilityTypes = ['signal_streamer', 'transcoder', 'base64_converter', 'deep_sync', 'signal_scrambler'];
+        const utilityTypes = ['signal_streamer', 'surveillance_radar', 'transcoder', 'base64_converter', 'deep_sync', 'signal_scrambler'];
         return utilityTypes.includes(selection.type);
     }, [selection.type]);
 
@@ -122,6 +129,16 @@ const App: React.FC = () => {
         const nextIndex = (themes.indexOf(theme) + 1) % themes.length;
         setTheme(themes[nextIndex]);
     }, [theme, setTheme]);
+
+    const handleResetSystem = useCallback(() => {
+        soundService.playWrong();
+        setFeeds([]);
+        setFolders([]);
+        setReadArticleIds(new Set());
+        setBookmarkedArticleIds(new Set());
+        setSelection({ type: 'all', id: null });
+        setIsSettingsModalOpen(false);
+    }, [setFeeds, setFolders, setReadArticleIds, setBookmarkedArticleIds, setSelection]);
 
     const prefetchCipherFrequency = useCallback(async () => {
         const results = new Map<string, string>();
@@ -222,7 +239,6 @@ const App: React.FC = () => {
 
     useEffect(() => {
         const root = document.documentElement;
-        // Strip previous theme classes
         root.className = Array.from(root.classList).filter(c => !c.startsWith('theme-')).join(' ');
         if (theme !== 'noir') {
             root.classList.add(`theme-${theme}`);
@@ -298,7 +314,12 @@ const App: React.FC = () => {
     }, [selection, feeds]);
 
     if (selection.type === 'splash') {
-        return <SplashScreen onEnterFeeds={() => updateSelection({ type: 'all', id: null })} onEnterArcade={() => updateSelection({ type: 'game_hub', id: null })} isDecoding={isDecoding} />;
+        return <SplashScreen 
+            onEnterFeeds={() => updateSelection({ type: 'all', id: null })} 
+            onEnterArcade={() => updateSelection({ type: 'game_hub', id: null })} 
+            isDecoding={isDecoding}
+            onReset={handleResetSystem}
+        />;
     }
 
     const hasBottomNav = !isGameActive && !isUtilityActive;
@@ -313,6 +334,8 @@ const App: React.FC = () => {
                         theme={theme}
                         onToggleTheme={handleToggleTheme}
                     />
+                ) : selection.type === 'surveillance_radar' ? (
+                    <SurveillanceRadarPage onBackToHub={() => updateSelection({ type: 'utility_hub', id: null })} />
                 ) : selection.type === 'signal_streamer' ? (
                     <SignalStreamerPage onBackToHub={() => updateSelection({ type: 'utility_hub', id: null })} />
                 ) : selection.type === 'transcoder' ? (
@@ -401,6 +424,8 @@ const App: React.FC = () => {
                         onSetSniffErrorModal={setShowSniffErrorModal}
                         onOpenSearchExplainer={() => { setShowSearchExplainer(true); window.history.pushState({isExplainer: true}, ''); }}
                         onOpenIntegrityBriefing={() => { setShowIntegrityBriefing(true); window.history.pushState({isIntegrity: true}, ''); }}
+                        ambientEnabled={ambientEnabled}
+                        onToggleAmbient={() => setAmbientEnabled(!ambientEnabled)}
                     />
                 )}
             </TerminalView>
@@ -423,6 +448,7 @@ const App: React.FC = () => {
                 onExportOpml={() => {}} onImportSettings={() => {}} onExportSettings={() => {}}
                 onAddSource={async (url, type) => { setFeeds([...feeds, { id: Date.now(), url, title: 'New Signal', iconUrl: '', folderId: null, sourceType: type }]); }}
                 onEnterUtils={() => updateSelection({ type: 'utility_hub', id: null })}
+                onResetFeeds={handleResetSystem}
             />
             
             {readerArticle && <ReaderViewModal article={readerArticle} onClose={closeReader} onMarkAsRead={handleMarkAsRead} onOpenExternal={openExternal} />}
@@ -443,11 +469,11 @@ const App: React.FC = () => {
                         <label className="flex items-center justify-center gap-3 cursor-pointer group pt-2">
                             <input type="checkbox" className="sr-only" checked={skipExternalWarning} onChange={(e) => setSkipExternalWarning(e.target.checked)} />
                             <div className={`w-4 h-4 border-2 flex-shrink-0 transition-colors ${skipExternalWarning ? 'bg-pulse-500 border-pulse-400' : 'bg-transparent border-zinc-700'}`} />
-                            <span className="text-[9px] font-black uppercase tracking-widest text-muted group-hover:text-terminal italic leading-none">Do not warn again</span>
+                            <span className="text-[9px] font-black uppercase tracking-widest text-muted group-hover:text-terminal transition-colors italic leading-none">Do not warn again</span>
                         </label>
 
                         <footer className="pt-4 flex gap-3">
-                            <button onClick={() => setOutboundLink(null)} className="flex-1 py-3 bg-void-bg border border-void-border text-terminal text-[10px] font-black uppercase italic rounded-xl">ABORT</button>
+                            <button onClick={() => setOutboundLink(null)} className="flex-1 py-3 bg-void-surface text-terminal text-[10px] font-black uppercase italic rounded-xl active:scale-95 transition-all">ABORT</button>
                             <button onClick={confirmExternalLink} className="flex-1 py-3 bg-pulse-600 text-white text-[10px] font-black uppercase italic rounded-xl shadow-lg">LINK_ESTABLISH</button>
                         </footer>
                     </div>

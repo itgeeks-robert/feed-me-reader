@@ -47,7 +47,7 @@ const MagazineArticleListItem: React.FC<MagazineArticleListItemProps> = ({ artic
                 />
                 <div className="absolute inset-0 cctv-overlay pointer-events-none opacity-20" />
                 <div className="absolute top-2 right-2 flex items-center gap-1.5 px-2 py-0.5 bg-black/80 backdrop-blur-md border border-white/5 rounded-sm">
-                    <span className="text-[8px] font-mono font-black text-zinc-500 uppercase tracking-tighter">
+                    <span className="text-[8px] font-mono font-black text-zinc-400 uppercase tracking-tighter">
                         {article.feedCategory || 'CORE'}
                     </span>
                 </div>
@@ -63,7 +63,7 @@ const MagazineArticleListItem: React.FC<MagazineArticleListItemProps> = ({ artic
                     {article.title}
                 </h3>
                 
-                <p className="text-[10px] md:text-[11px] text-void-text-muted font-mono line-clamp-3 md:line-clamp-4 uppercase tracking-tight mb-8 leading-relaxed italic opacity-70">
+                <p className="text-[10px] md:text-[11px] text-void-text-muted font-mono line-clamp-3 md:line-clamp-4 uppercase tracking-tight mb-8 leading-relaxed italic border-l-2 border-void-border/20 pl-3">
                     {article.snippet}
                 </p>
 

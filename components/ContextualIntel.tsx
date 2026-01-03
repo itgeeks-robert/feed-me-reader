@@ -23,7 +23,8 @@ const ContextualIntel: React.FC<ContextualIntelProps> = ({ tipId, title, content
         }
     }, [storageKey]);
 
-    const handleClose = () => {
+    const handleClose = (e: React.MouseEvent) => {
+        e.stopPropagation();
         if (dontShowAgain) {
             localStorage.setItem(storageKey, 'true');
         }
@@ -34,7 +35,10 @@ const ContextualIntel: React.FC<ContextualIntelProps> = ({ tipId, title, content
     if (!isVisible) return null;
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm animate-fade-in pointer-events-auto">
+        <div 
+            className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm animate-fade-in pointer-events-auto"
+            onClick={(e) => e.stopPropagation()}
+        >
             <div className="void-card w-full max-w-sm relative overflow-hidden group shadow-[0_30px_100px_rgba(0,0,0,0.8)] border-2 border-pulse-500/30">
                 <div className="absolute inset-0 cctv-overlay opacity-10 pointer-events-none" />
                 
@@ -43,7 +47,10 @@ const ContextualIntel: React.FC<ContextualIntelProps> = ({ tipId, title, content
                         <ShieldCheckIcon className="w-4 h-4 text-pulse-500" />
                         <span className="text-[10px] font-black text-pulse-500 uppercase tracking-[0.2em] italic">Tactical_Intel</span>
                     </div>
-                    <button onClick={() => setIsVisible(false)} className="text-muted hover:text-terminal transition-colors p-1">
+                    <button 
+                        onClick={(e) => { e.stopPropagation(); setIsVisible(false); }} 
+                        className="text-muted hover:text-terminal transition-colors p-1"
+                    >
                         <XIcon className="w-5 h-5" />
                     </button>
                 </header>
@@ -56,7 +63,10 @@ const ContextualIntel: React.FC<ContextualIntelProps> = ({ tipId, title, content
                 </div>
 
                 <footer className="p-5 pt-0 relative z-10 space-y-4">
-                    <label className="flex items-center gap-3 cursor-pointer group/check">
+                    <label 
+                        className="flex items-center gap-3 cursor-pointer group/check"
+                        onClick={(e) => e.stopPropagation()}
+                    >
                         <input 
                             type="checkbox" 
                             className="sr-only" 
@@ -71,7 +81,7 @@ const ContextualIntel: React.FC<ContextualIntelProps> = ({ tipId, title, content
 
                     <button 
                         onClick={handleClose}
-                        className="w-full py-4 bg-terminal text-void-bg hover:bg-pulse-500 hover:text-white text-[10px] font-black uppercase italic rounded-xl transition-all shadow-xl active:scale-95"
+                        className="w-full py-4 bg-terminal text-inverse text-[10px] font-black uppercase italic rounded-xl transition-all shadow-xl active:scale-95"
                     >
                         Acknowledge Protocol
                     </button>

@@ -7,16 +7,18 @@ import { soundService } from '../services/soundService';
 import OrientationGuard from './OrientationGuard';
 
 /**
- * NEON SIGNAL: DATA_SYNC v19.3
- * Refined for Responsive Landscape & Tilt Reliability:
- * - Integrated Sound FX for Sync/Void actions.
- * - Improved tilt-back (PASS) sensitivity.
+ * NEON SIGNAL: DATA_SYNC v19.4
+ * Refined Tilt-Back Calibration:
+ * - PASS_DELTA increased to -25 for more deliberate triggers.
+ * - Contrast improvements for readability in light themes.
  */
 
 const GAME_DURATION = 60;
-const CORRECT_DELTA = 25; 
-const PASS_DELTA = -15;    
-const NEUTRAL_DELTA = 10;  
+const TILT_CONFIG = {
+    CORRECT: 25, // Tilt Down threshold
+    PASS: -25,    // Tilt Up threshold (Pass/Pass Known)
+    NEUTRAL: 12   // Threshold to return to center before next action
+};
 
 interface NeonSignalProps {
     onBack: () => void;
@@ -130,7 +132,7 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
             const delta = currentPitch - referencePitch.current;
 
             if (neutralLock.current) {
-                if (Math.abs(delta) < NEUTRAL_DELTA) {
+                if (Math.abs(delta) < TILT_CONFIG.NEUTRAL) {
                     neutralLock.current = false;
                     referencePitch.current = currentPitch; 
                 }
@@ -139,10 +141,10 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
 
             if (actionLock.current || gracePeriodActive.current) return;
 
-            if (delta > CORRECT_DELTA) {
-                handleAction(true); // TILT DOWN
-            } else if (delta < PASS_DELTA) {
-                handleAction(false); // TILT UP
+            if (delta > TILT_CONFIG.CORRECT) {
+                handleAction(true); // TILT DOWN (Towards ground)
+            } else if (delta < TILT_CONFIG.PASS) {
+                handleAction(false); // TILT UP (Towards sky)
             }
         };
 
@@ -245,7 +247,7 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
                 <div className="h-px w-24 bg-zinc-800" />
                 <button 
                     onClick={() => { soundService.playClick(); onReturnToFeeds(); }} 
-                    className="w-full max-w-xs py-4 md:py-5 bg-zinc-900 border border-white/5 rounded-2xl text-[9px] font-black text-zinc-500 uppercase italic tracking-[0.4em] hover:text-white hover:bg-zinc-800 transition-all shadow-xl active:scale-95"
+                    className="w-full max-w-xs py-4 md:py-5 bg-zinc-900 border border-white/10 rounded-2xl text-[9px] font-black text-zinc-400 uppercase italic tracking-[0.4em] hover:text-white transition-all shadow-xl active:scale-95"
                 >
                     Abort_To_Intel
                 </button>
@@ -310,7 +312,7 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
                                     </div>
                                 )}
 
-                                <div className={`text-[7px] md:text-sm font-black tracking-[0.3em] mb-2 md:mb-12 landscape:mb-1 flex items-center gap-3 ${timeLeft <= 10 ? 'text-red-500 animate-pulse' : 'text-zinc-600'}`}>
+                                <div className={`text-[7px] md:text-sm font-black tracking-[0.3em] mb-2 md:mb-12 landscape:mb-1 flex items-center gap-3 ${timeLeft <= 10 ? 'text-red-500 animate-pulse' : 'text-zinc-400'}`}>
                                     DECRYPTING: {selectedCatName}
                                 </div>
                                 
@@ -321,7 +323,7 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
                                 </div>
                                 
                                 <div className="flex items-center gap-4 md:gap-16 mt-2 mb-2 landscape:mt-1 landscape:mb-0">
-                                    <div className="px-4 py-1 md:px-10 md:py-5 bg-zinc-900/80 border border-white/10 rounded-lg text-white/50 font-black text-lg md:text-5xl italic shadow-2xl backdrop-blur-md">
+                                    <div className="px-4 py-1 md:px-10 md:py-5 bg-zinc-900/80 border border-white/10 rounded-lg text-white/70 font-black text-lg md:text-5xl italic shadow-2xl backdrop-blur-md">
                                         {timeLeft}S
                                     </div>
                                     <div className="px-4 py-1 md:px-10 md:py-5 bg-emerald-500/10 border border-emerald-500/30 rounded-lg text-emerald-400 font-black text-lg md:text-5xl italic shadow-2xl backdrop-blur-md">
@@ -331,10 +333,10 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
                             </div>
                             
                             <footer className="px-6 py-1 flex justify-between items-end shrink-0 z-20 pointer-events-none border-t border-white/5">
-                                <div className="text-[6px] md:text-[8px] font-black text-white/20 uppercase tracking-widest italic">
+                                <div className="text-[6px] md:text-[8px] font-black text-zinc-500 uppercase tracking-widest italic">
                                     PITCH: {referencePitch.current ? referencePitch.current.toFixed(1) : 'CAL...'}°
                                 </div>
-                                <div className="text-[6px] md:text-[8px] font-black text-zinc-800 uppercase tracking-[0.4em] italic">
+                                <div className="text-[6px] md:text-[8px] font-black text-zinc-700 uppercase tracking-[0.4em] italic">
                                     VOID_RECRUIT_OS
                                 </div>
                             </footer>
@@ -345,7 +347,7 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
                 {gameState === 'RESULTS' && (
                     <div className="w-full h-full bg-zinc-950 p-4 md:p-6 flex flex-col overflow-hidden animate-fade-in relative z-10">
                         <div className="text-center mt-2 md:mt-12 shrink-0 relative">
-                            <div className="absolute -top-4 md:-top-10 left-1/2 -translate-x-1/2 text-[40px] md:text-[120px] font-black text-white/5 italic select-none leading-none">DONE</div>
+                            <div className="absolute -top-4 md:-top-10 left-1/2 -translate-x-1/2 text-[40px] md:text-[120px] font-black text-white/5 italic select-none leading-none uppercase">Synced</div>
                             <h2 className="text-xl md:text-7xl font-black italic uppercase text-white tracking-tighter leading-none mb-2 md:mb-6 relative z-10">DATA_SYNC_COMPLETE</h2>
                             <div className="inline-block px-6 py-1 md:px-12 md:py-4 bg-emerald-500/10 border border-emerald-500/30 rounded-lg md:rounded-[2.5rem] shadow-2xl relative z-10">
                                 <span className="text-emerald-400 font-black text-sm md:text-4xl italic uppercase tracking-widest">{score} PACKETS EXTRACTED</span>
@@ -354,7 +356,7 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
 
                         <div className="flex-1 overflow-y-auto mt-4 md:mt-12 space-y-2 md:space-y-4 mb-4 md:mb-10 scrollbar-hide bg-black/60 rounded-xl md:rounded-[4rem] p-4 md:p-10 border border-white/5 shadow-inner">
                             {history.map((h, i) => (
-                                <div key={i} className={`p-2 md:p-6 rounded-lg md:rounded-3xl flex justify-between items-center border animate-fade-in ${h.correct ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-400' : 'bg-red-500/5 border-red-500/20 text-red-500/40'}`} style={{ animationDelay: `${i * 80}ms` }}>
+                                <div key={i} className={`p-2 md:p-6 rounded-lg md:rounded-3xl flex justify-between items-center border animate-fade-in ${h.correct ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-400' : 'bg-red-500/5 border-red-500/20 text-red-500/60'}`} style={{ animationDelay: `${i * 80}ms` }}>
                                     <span className="font-black italic uppercase text-sm md:text-3xl tracking-tighter truncate max-w-[75%] font-horror">{h.word}</span>
                                     <span className={`text-[7px] md:text-[10px] font-black border px-2 py-0.5 md:px-5 md:py-2 rounded-full uppercase tracking-widest ${h.correct ? 'border-emerald-500/40 text-emerald-500' : 'border-red-500/40 text-red-500'}`}>
                                         {h.correct ? 'SYNCED' : 'VOID'}
@@ -367,7 +369,7 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
                             <button onClick={() => { soundService.playClick(); setGameState('MENU'); }} className="w-full py-3 md:py-8 bg-white text-black font-black uppercase italic rounded-xl md:rounded-3xl text-sm md:text-3xl shadow-[0_4px_0px_#10b981] active:translate-y-1 active:shadow-none transition-all hover:bg-emerald-50">
                                 New_Uplink
                             </button>
-                            <button onClick={() => { soundService.playClick(); onBack(); }} className="w-full py-1 text-zinc-700 font-black uppercase text-[8px] tracking-[0.5em] italic hover:text-zinc-400 transition-colors text-center">
+                            <button onClick={() => { soundService.playClick(); onBack(); }} className="w-full py-1 text-zinc-500 font-black uppercase text-[8px] tracking-[0.5em] italic hover:text-white transition-colors text-center uppercase">
                                 [ TERMINATE ]
                             </button>
                         </div>

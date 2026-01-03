@@ -7,7 +7,7 @@
     <title>THE VOID | Signal Reader</title>
     <link rel="manifest" href="data:application/manifest+json;base64,eyJuYW1lIjoiVGhlIFZvaWQiLCJzaG9ydF9uYW1lIjoiVGhlIFZvaWQiLCJzdGFydF91cmwiOiIuIiwiZGlzcGxheSI6InN0YW5kYWxvbmUiLCJiYWNrZ3JvdW5kX2NvbG9yIjoiIzBhMGEwYSIsInRoZW1lX2NvbG9yIjoiI2UxMWQ0OCIsImRlc2NyaXB0aW9uIjoiQSB0ZWNobmljYWwgbm9pciBzaWduYWwgcmVhZGVyLiIsImljb25zIjpbeyJzcmMiOiJkYXRhOmltYWdlL3N2Zyt4bWw7YmFzZTY0LFBITjJaeUI0Yld4VmJDQXhNREFnTVRBd0lIUm9aVzFsUFNKalluUmxibWRoZEdsdmJpSTdabTl1ZEMweE1EQWdNRFFnTVRRNU1EQXVOell3TXk0eU16QXdJSDE0WkdWdWRHbG1hV05oZEdsdmJpQjNjeUI0Yld4VmJHbHphR1Z5WVhScGIyNG5JSFpwWlhoMFBTSTBNVEF3TFM0M016UXA+PGEvbj48L2c+PC9zdmc+Iiwic2l6ZXMiOiJhbnkiLCJ0eXBlIjoiaW1hZ2Uvc3ZnK3htbCJ9XX0=" />
     <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PScwIDAgODAgODAnIHhtbG5zPSdodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2Zyc+PGcgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZTExZDQ4IiBzdHJva2Utd2lkdGg9IjQiPjxwYXRoIGQ9Ik0yMCA2MEw0MCAyMEw2MCA2ME0zMCA0NUg1MCIvPjwvZz48L3N2Zz4=" type="image/svg+xml" />
-    <meta name="theme-color" content="#050505" />
+    <meta name="theme-color" content="#ffffff" />
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -27,27 +27,33 @@
                             600: 'var(--void-accent-deep)',
                         },
                         terminal: 'var(--void-text-main)',
+                        inverse: 'var(--void-bg-solid)',
                         muted: 'var(--void-text-muted)'
                     },
                     borderRadius: {
-                        'void': 'var(--void-radius)'
+                        'void': 'var(--void-radius)',
+                        'xl': '1.25rem',
+                        '2xl': '1.5rem',
+                        '3xl': '2rem'
                     },
                     fontFamily: {
-                        'mono': ['Space Mono', 'Courier New', 'monospace']
+                        'mono': ['Outfit', 'sans-serif'],
+                        'sans': ['Outfit', 'sans-serif']
                     }
                 }
             }
         }
     </script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700;900&display=swap');
 
         :root {
             /* THEME 1: NOIR (Signature Default) */
             --void-bg: #050505;
+            --void-bg-solid: #050505;
             --void-surface: #101012;
             --void-text-main: #ffffff;
-            --void-text-muted: #71717a;
+            --void-text-muted: #888891;
             --void-accent: #e11d48;
             --void-accent-deep: #9f1239;
             --void-border: rgba(255, 255, 255, 0.08);
@@ -59,30 +65,32 @@
             --safe-bottom: env(safe-area-inset-bottom, 0px);
         }
 
-        /* THEME 2: LIQUID GLASS */
+        /* THEME 2: LIQUID GLASS (Frosted Crystal Light) */
         .theme-liquid-glass {
-            --void-bg: #080a0f;
-            --void-surface: rgba(255, 255, 255, 0.03);
-            --void-text-main: #ffffff;
-            --void-text-muted: #94a3b8;
-            --void-accent: #38bdf8;
-            --void-accent-deep: #0ea5e9;
-            --void-border: rgba(255, 255, 255, 0.15);
-            --void-radius: 2.5rem;
-            --void-blur: 40px;
-            --void-shadow: 0 20px 50px rgba(0,0,0,0.3);
+            --void-bg: radial-gradient(circle at 50% 50%, #ffffff 0%, #f1f5f9 100%);
+            --void-bg-solid: #ffffff;
+            --void-surface: rgba(255, 255, 255, 0.65);
+            --void-text-main: #0f172a;
+            --void-text-muted: #64748b;
+            --void-accent: #2563eb;
+            --void-accent-deep: #1e40af;
+            --void-border: rgba(255, 255, 255, 0.9);
+            --void-radius: 1.75rem;
+            --void-blur: 50px;
+            --void-shadow: 0 15px 40px rgba(0,0,0,0.06), inset 0 1px 1px rgba(255,255,255,1);
         }
 
         /* THEME 3: BENTO GRID (Sleek Light) */
         .theme-bento-grid {
             --void-bg: #f8fafc;
+            --void-bg-solid: #f8fafc;
             --void-surface: #ffffff;
             --void-text-main: #0f172a;
-            --void-text-muted: #64748b;
+            --void-text-muted: #475569;
             --void-accent: #2563eb;
             --void-accent-deep: #1d4ed8;
             --void-border: #e2e8f0;
-            --void-radius: 1.75rem;
+            --void-radius: 1.5rem;
             --void-blur: 0px;
             --void-shadow: 0 4px 12px rgba(0,0,0,0.05);
         }
@@ -90,41 +98,44 @@
         /* THEME 4: BRUTALIST PAPER */
         .theme-brutalist {
             --void-bg: #ffffff;
+            --void-bg-solid: #ffffff;
             --void-surface: #ffffff;
             --void-text-main: #000000;
-            --void-text-muted: #444444;
+            --void-text-muted: #333333;
             --void-accent: #000000;
             --void-accent-deep: #222222;
             --void-border: #000000;
-            --void-radius: 0px;
+            --void-radius: 0.25rem;
             --void-blur: 0px;
-            --void-shadow: 8px 8px 0px #000000;
+            --void-shadow: 6px 6px 0px #000000;
         }
 
         /* THEME 5: CLAYMORPHISM */
         .theme-claymorphism {
             --void-bg: #e0e7ff;
+            --void-bg-solid: #e0e7ff;
             --void-surface: #ffffff;
-            --void-text-main: #4338ca;
-            --void-text-muted: #818cf8;
+            --void-text-main: #312e81;
+            --void-text-muted: #4338ca;
             --void-accent: #ec4899;
             --void-accent-deep: #db2777;
             --void-border: transparent;
-            --void-radius: 3rem;
+            --void-radius: 2.5rem;
             --void-blur: 0px;
-            --void-shadow: 10px 10px 20px #c7d2fe, -10px -10px 20px #ffffff, inset 4px 4px 8px rgba(0,0,0,0.05);
+            --void-shadow: 8px 8px 16px #c7d2fe, -8px -8px 16px #ffffff, inset 4px 4px 8px rgba(0,0,0,0.05);
         }
 
         /* THEME 6: MONOCHROME ZEN */
         .theme-monochrome-zen {
             --void-bg: #061a1a;
+            --void-bg-solid: #061a1a;
             --void-surface: #0a2626;
             --void-text-main: #ccfbf1;
-            --void-text-muted: #2dd4bf;
+            --void-text-muted: #5eead4;
             --void-accent: #14b8a6;
             --void-accent-deep: #0f766e;
             --void-border: rgba(20, 184, 166, 0.1);
-            --void-radius: 0.75rem;
+            --void-radius: 1rem;
             --void-blur: 0px;
             --void-shadow: none;
         }
@@ -132,27 +143,29 @@
         /* THEME 7: Y2K FUTUROLOGY */
         .theme-y2k {
             --void-bg: #004d4d;
+            --void-bg-solid: #004d4d;
             --void-surface: linear-gradient(135deg, #00cccc, #008080);
             --void-text-main: #ffffff;
-            --void-text-muted: #e0f2f1;
+            --void-text-muted: #f0fdfa;
             --void-accent: #ffff00;
             --void-accent-deep: #ffcc00;
             --void-border: rgba(255, 255, 255, 0.5);
-            --void-radius: 500px;
-            --void-blur: 5px;
+            --void-radius: 3rem;
+            --void-blur: 15px;
             --void-shadow: 0 10px 20px rgba(0,0,0,0.2), inset 0 2px 4px rgba(255,255,255,0.8);
         }
 
         /* THEME 8: TERMINAL / DOS */
         .theme-terminal {
             --void-bg: #000000;
+            --void-bg-solid: #000000;
             --void-surface: #000000;
             --void-text-main: #33ff33;
-            --void-text-muted: #006600;
+            --void-text-muted: #16a34a;
             --void-accent: #33ff33;
             --void-accent-deep: #22cc22;
             --void-border: #33ff33;
-            --void-radius: 2px;
+            --void-radius: 0.75rem;
             --void-blur: 0px;
             --void-shadow: none;
         }
@@ -170,9 +183,10 @@
             margin: 0;
             padding: 0;
             overflow: hidden;
-            background-color: var(--void-bg);
+            background: var(--void-bg);
             color: var(--void-text-main);
-            transition: background-color 0.4s ease, color 0.4s ease;
+            transition: background 0.4s ease, color 0.4s ease;
+            font-family: 'Outfit', sans-serif;
         }
 
         .void-card {
@@ -183,6 +197,14 @@
             border-radius: var(--void-radius);
             box-shadow: var(--void-shadow);
             transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+
+        /* Crystal specular highlights for Glass theme */
+        .theme-liquid-glass .void-card {
+            border-top-color: rgba(255, 255, 255, 1);
+            border-left-color: rgba(255, 255, 255, 1);
+            border-bottom-color: rgba(0, 0, 0, 0.04);
+            border-right-color: rgba(0, 0, 0, 0.04);
         }
 
         .void-button {

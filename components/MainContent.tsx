@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import type { Feed, Folder, Selection, WidgetSettings, Article, ArticleView, Theme } from '../src/App';
 import type { SourceType } from './AddSource';
-import { MenuIcon, SearchIcon, SunIcon, MoonIcon, GlobeAltIcon, CpuChipIcon, BeakerIcon, ChartBarIcon, FlagIcon, FireIcon, ControllerIcon, XIcon, ExclamationTriangleIcon, ArrowPathIcon, RadioIcon, VoidIcon, ShieldCheckIcon, ContrastIcon, WandIcon, PaletteIcon, SkinsIcon, StyleIcon } from './icons';
+import { MenuIcon, SearchIcon, SunIcon, MoonIcon, GlobeAltIcon, CpuChipIcon, BeakerIcon, ChartBarIcon, FlagIcon, FireIcon, ControllerIcon, XIcon, ExclamationTriangleIcon, ArrowPathIcon, RadioIcon, VoidIcon, ShieldCheckIcon, ContrastIcon, WandIcon, PaletteIcon, SkinsIcon, StyleIcon, MusicIcon } from './icons';
 import { resilientFetch } from '../services/fetch';
 import { parseRssXml } from '../services/rssParser';
 import FeaturedStory from './articles/FeaturedStory';
@@ -49,6 +49,8 @@ interface MainContentProps {
     onSetSniffErrorModal: (show: boolean) => void;
     onOpenSearchExplainer?: () => void;
     onOpenIntegrityBriefing?: () => void;
+    ambientEnabled: boolean;
+    onToggleAmbient: () => void;
 }
 
 const ThemeIcon: React.FC<{ className?: string }> = ({ className }) => {
@@ -69,7 +71,7 @@ const CATEGORY_MAP = [
 ];
 
 const MainContent: React.FC<MainContentProps> = (props) => {
-    const { selection, onSelectCategory, readArticleIds, bookmarkedArticleIds, onMarkAsRead, onPurgeBuffer, onSearch, onOpenReader, onOpenExternal, refreshKey, onOpenSidebar, theme, onToggleTheme, animationClass, pageTitle, allFeeds, onSetFeeds, onSetFolders, initialArticles, onAddSource, onRefresh, onSetSniffErrorModal, onOpenSearchExplainer, onOpenIntegrityBriefing } = props;
+    const { selection, onSelectCategory, readArticleIds, bookmarkedArticleIds, onMarkAsRead, onPurgeBuffer, onSearch, onOpenReader, onOpenExternal, refreshKey, onOpenSidebar, theme, onToggleTheme, animationClass, pageTitle, allFeeds, onSetFeeds, onSetFolders, initialArticles, onAddSource, onRefresh, onSetSniffErrorModal, onOpenSearchExplainer, onOpenIntegrityBriefing, ambientEnabled, onToggleAmbient } = props;
     
     const [articles, setArticles] = useState<Article[]>(initialArticles || []);
     const [loading, setLoading] = useState(false);
@@ -160,7 +162,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
     if (allFeeds.length === 0 && selection.type === 'all' && onSetFeeds && onSetFolders) {
         return (
             <main className={`flex-grow overflow-y-auto scrollbar-hide ${animationClass} bg-void-bg pb-40 pt-2`}>
-                <Header onSearchSubmit={handleSearchSubmit} searchQuery={searchQuery} setSearchQuery={setSearchQuery} onOpenSidebar={onOpenSidebar} theme={theme} onToggleTheme={onToggleTheme} isSniffing={isSniffing} onOpenSearchExplainer={onOpenSearchExplainer} onOpenIntegrityBriefing={onOpenIntegrityBriefing} onRefresh={onRefresh} selection={selection} handleCategoryClick={handleCategoryClick} />
+                <Header onSearchSubmit={handleSearchSubmit} searchQuery={searchQuery} setSearchQuery={setSearchQuery} onOpenSidebar={onOpenSidebar} theme={theme} onToggleTheme={onToggleTheme} isSniffing={isSniffing} onOpenSearchExplainer={onOpenSearchExplainer} onOpenIntegrityBriefing={onOpenIntegrityBriefing} onRefresh={onRefresh} selection={selection} handleCategoryClick={handleCategoryClick} ambientEnabled={ambientEnabled} onToggleAmbient={onToggleAmbient} />
                 <div className="pt-[calc(9rem+var(--safe-top))] md:pt-[calc(11rem+var(--safe-top))]">
                     <FeedOnboarding onComplete={(f, fld) => { onSetFolders(fld); onSetFeeds(f); }} />
                 </div>
@@ -179,7 +181,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                 title="Intel Acquisition" 
                 content="Welcome to the core loop. Use the category tabs to filter by sector. The 'Signal Output' below shows live decrypted packets from your nodes." 
             />
-            <Header onSearchSubmit={handleSearchSubmit} searchQuery={searchQuery} setSearchQuery={setSearchQuery} onOpenSidebar={onOpenSidebar} theme={theme} onToggleTheme={onToggleTheme} isSniffing={isSniffing} onOpenSearchExplainer={onOpenSearchExplainer} onOpenIntegrityBriefing={onOpenIntegrityBriefing} onRefresh={onRefresh} selection={selection} handleCategoryClick={handleCategoryClick} />
+            <Header onSearchSubmit={handleSearchSubmit} searchQuery={searchQuery} setSearchQuery={setSearchQuery} onOpenSidebar={onOpenSidebar} theme={theme} onToggleTheme={onToggleTheme} isSniffing={isSniffing} onOpenSearchExplainer={onOpenSearchExplainer} onOpenIntegrityBriefing={onOpenIntegrityBriefing} onRefresh={onRefresh} selection={selection} handleCategoryClick={handleCategoryClick} ambientEnabled={ambientEnabled} onToggleAmbient={onToggleAmbient} />
             
             <div className="px-4 md:px-12 pt-[calc(9.5rem+var(--safe-top))] md:pt-[calc(11rem+var(--safe-top))] max-w-[1800px] mx-auto transition-all relative">
                  <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-void-border mb-10">
@@ -189,7 +191,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                         </h1>
                         <div className="flex items-center gap-3 mt-4">
                             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                            <p className="text-[9px] font-black text-muted uppercase tracking-[0.4em] font-mono italic">
+                            <p className="text-[9px] font-black text-muted uppercase tracking-[0.4em] italic">
                                 {loading ? 'Acquiring_Data...' : `${unreadCount} Active_Packets_Detected`}
                             </p>
                         </div>
@@ -216,13 +218,13 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                     {loading && filteredArticles.length === 0 ? (
                         <div className="text-center py-32 flex flex-col items-center gap-8">
                             <div className="w-12 h-12 border-2 border-pulse-500 border-t-transparent rounded-full animate-spin" />
-                            <span className="text-pulse-500 font-black font-mono text-[9px] uppercase tracking-[0.6em] animate-pulse italic">Interrogating_Network...</span>
+                            <span className="text-pulse-500 font-black text-[9px] uppercase tracking-[0.6em] animate-pulse italic">Interrogating_Network...</span>
                         </div>
                     ) : filteredArticles.length === 0 ? (
                         <div className="text-center py-24 void-card border-dashed">
                             <ExclamationTriangleIcon className="w-12 h-12 text-muted mx-auto mb-6" />
                             <h3 className="text-2xl font-black text-muted uppercase italic mb-3 tracking-tighter">No Response</h3>
-                            <p className="text-[9px] text-muted uppercase tracking-[0.3em] mb-8 font-mono italic leading-loose">Channel silent for requested node:<br/>"{selection.query || 'active_sector'}"</p>
+                            <p className="text-[9px] text-muted uppercase tracking-[0.3em] mb-8 italic leading-loose">Channel silent for requested node:<br/>"{selection.query || 'active_sector'}"</p>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 md:gap-8">
@@ -236,7 +238,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                         <div className="mt-20 text-center">
                             <button 
                                 onClick={() => setVisibleCount(c => c + LOAD_MORE_BATCH)} 
-                                className="bg-terminal text-void-bg void-button font-black uppercase italic py-5 px-14 transition-all hover:scale-105 text-[11px] tracking-[0.2em] active:scale-95 border border-void-border shadow-2xl"
+                                className="bg-terminal text-inverse void-button font-black uppercase italic py-5 px-14 transition-all hover:scale-105 text-[11px] tracking-[0.2em] active:scale-95 border border-void-border shadow-2xl rounded-void"
                             >
                                 Load Additional Clusters
                             </button>
@@ -246,7 +248,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
             </div>
 
             {pendingCategory && (
-                <div className="fixed inset-0 bg-black/95 backdrop-blur-3xl z-[100] flex items-center justify-center p-6 font-mono animate-fade-in">
+                <div className="fixed inset-0 bg-black/95 backdrop-blur-3xl z-[100] flex items-center justify-center p-6 animate-fade-in">
                     <div className="void-card w-full max-w-md relative overflow-hidden flex flex-col">
                         <header className="h-10 bg-zinc-800 flex items-center justify-between px-4 border-b border-black">
                             <div className="flex items-center gap-2">
@@ -269,12 +271,17 @@ const MainContent: React.FC<MainContentProps> = (props) => {
     );
 };
 
-const Header: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuery, onOpenSidebar, theme, onToggleTheme, isSniffing, onOpenSearchExplainer, onOpenIntegrityBriefing, onRefresh, selection, handleCategoryClick }) => {
+const Header: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuery, onOpenSidebar, theme, onToggleTheme, isSniffing, onOpenSearchExplainer, onOpenIntegrityBriefing, onRefresh, selection, handleCategoryClick, ambientEnabled, onToggleAmbient }) => {
     return (
         <header className="fixed top-0 left-0 right-0 z-40 px-4 md:px-12 pt-[var(--safe-top)] pb-2 transition-all">
             <div className="max-w-[1800px] mx-auto void-card mt-4 overflow-hidden relative">
-                <div className="flex items-center justify-between px-4 md:px-8 py-3.5 gap-4">
-                    <button onClick={onOpenSidebar} className="p-3 bg-void-bg/50 rounded-2xl text-pulse-500 border border-void-border active:scale-90 transition-transform"><MenuIcon className="w-6 h-6" /></button>
+                <div className="flex items-center justify-between px-4 md:px-8 py-3.5 gap-2 md:gap-4">
+                    <div className="flex items-center gap-2">
+                        <button onClick={onOpenSidebar} className="p-3 bg-void-bg/50 rounded-2xl text-pulse-500 border border-void-border active:scale-90 transition-transform"><MenuIcon className="w-5 h-5 md:w-6 md:h-6" /></button>
+                        <button onClick={onToggleAmbient} className={`p-3 bg-void-bg/50 rounded-2xl border border-void-border active:scale-90 transition-transform ${ambientEnabled ? 'text-emerald-500' : 'text-muted'}`}>
+                            <MusicIcon className={`w-5 h-5 md:w-6 md:h-6 ${ambientEnabled ? 'animate-pulse' : ''}`} />
+                        </button>
+                    </div>
                     <div className="flex-grow flex flex-col items-center max-w-2xl relative">
                         <form onSubmit={onSearchSubmit} className="relative w-full group">
                             <SearchIcon className="absolute top-1/2 left-5 -translate-y-1/2 w-4 h-4 text-muted" />
@@ -284,13 +291,13 @@ const Header: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuery, on
                                 value={searchQuery} 
                                 onFocus={onOpenSearchExplainer}
                                 onChange={e => setSearchQuery(e.target.value)} 
-                                className="w-full bg-void-bg/60 border border-void-border rounded-full py-3.5 pl-14 pr-20 text-[10px] md:text-xs font-mono uppercase tracking-[0.2em] outline-none text-terminal placeholder-muted focus:border-pulse-500/50 transition-all" 
+                                className="w-full bg-void-bg/60 border border-void-border rounded-full py-3.5 pl-14 pr-20 text-[10px] md:text-xs uppercase tracking-[0.2em] outline-none text-terminal placeholder-muted focus:border-pulse-500/50 transition-all" 
                             />
                             <button type="button" onClick={onRefresh} className="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-muted hover:text-terminal transition-all active:rotate-180 duration-500"><ArrowPathIcon className="w-5 h-5" /></button>
                         </form>
                     </div>
                     <button onClick={onToggleTheme} className="p-3 bg-void-bg/50 rounded-2xl text-muted border border-void-border active:scale-90 transition-transform hover:text-pulse-500">
-                        <ThemeIcon className="w-6 h-6" />
+                        <ThemeIcon className="w-5 h-5 md:w-6 md:h-6" />
                     </button>
                 </div>
                 <nav className="flex items-center h-12 md:h-14 border-t border-void-border px-6 md:px-12 gap-3 overflow-x-auto scrollbar-hide">
@@ -312,7 +319,7 @@ const UnreadFilterToggle: React.FC<any> = ({ checked, onChange }) => (
     <label className="flex items-center cursor-pointer group bg-void-bg/50 px-5 py-2 border border-void-border rounded-full hover:border-terminal/20 transition-all">
         <input type="checkbox" className="sr-only" checked={checked} onChange={(e) => onChange(e.target.checked)} />
         <div className={`w-3 h-3 border rounded-sm flex-shrink-0 mr-3 transition-all ${checked ? 'bg-pulse-500 border-pulse-400' : 'bg-transparent border-muted'}`} />
-        <span className="text-[8px] font-black uppercase tracking-[0.2em] text-muted group-hover:text-terminal font-mono italic leading-none">Unread_Only</span>
+        <span className="text-[8px] font-black uppercase tracking-[0.2em] text-muted group-hover:text-terminal italic leading-none">Unread_Only</span>
     </label>
 );
 

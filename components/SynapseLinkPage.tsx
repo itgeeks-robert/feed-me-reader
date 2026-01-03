@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { XIcon, VoidIcon, SparklesIcon, ArrowPathIcon, ListIcon, BookOpenIcon, ExclamationTriangleIcon } from './icons';
 import { saveHighScore, getHighScores, HighScoreEntry } from '../services/highScoresService';
@@ -490,7 +489,7 @@ const SynapseLinkPage: React.FC<{ onBackToHub: () => void; onComplete?: () => vo
 const TacticalManual: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     return (
         <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 md:p-10 font-mono" onClick={onClose}>
-            <div className="max-w-xl w-full bg-void-900 border-4 border-pulse-500 rounded-[2.5rem] md:rounded-[3rem] shadow-2xl overflow-hidden relative flex flex-col max-h-[85vh] pt-[var(--safe-top)] pb-[var(--safe-bottom)]" onClick={e => e.stopPropagation()}>
+            <div className="max-w-xl w-full bg-void-900 border-4 border-emerald-500 rounded-[2.5rem] md:rounded-[3rem] shadow-2xl overflow-hidden relative flex flex-col max-h-[85vh] pt-[var(--safe-top)] pb-[var(--safe-bottom)]" onClick={e => e.stopPropagation()}>
                 
                 <header className="h-12 bg-emerald-600 flex items-center justify-between px-1 relative z-20 border-b-2 border-black shrink-0">
                     <div className="flex items-center gap-2 h-full">
@@ -521,16 +520,16 @@ const TacticalManual: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                         <div className="grid grid-cols-1 gap-6">
                             <ManualPoint title="0x01_Synaptic_Divergence" desc="Many words belong to multiple potential clusters. Look for the most exclusive link first to prevent signal bleed." color="text-emerald-500" />
                             <ManualPoint title="0x02_Complexity_Scaling" desc="Connections range from surface-level (Synonyms) to high-level meta-logical patterns. Probing deeper yields better results." color="text-emerald-500" />
-                            <ManualPoint title="0x03_Feedback_Loop" desc="The 'X LINKED' signal indicates you have three correct nodes in your current selection. Adjust one bit to resolve the cluster." color="text-emerald-500" />
-                            <ManualPoint title="0x04_The_Pantry_Strategy" desc="Eliminate confirmed groups to simplify the remaining network. The last group often requires the highest cognitive sync." color="text-emerald-500" />
+                            <ManualPoint title="0x03_The_Mistake_Threshold" desc="The core can withstand only 3 synaptic mismatches. On the 4th, the link is severed and session data is wiped." color="text-emerald-500" />
+                            <ManualPoint title="0x04_Confirm_Sequence" desc="Identify all 4 words in a cluster before attempting a link. Partial guesses do not exist in THE VOID." color="text-emerald-500" />
                         </div>
 
                         <div className="p-5 bg-emerald-500/10 border-2 border-emerald-500/30 rounded-2xl flex items-start gap-4">
                             <ExclamationTriangleIcon className="w-6 h-6 text-emerald-500 shrink-0 mt-0.5 animate-pulse" />
                             <div>
-                                <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-1 italic">Pro Tip: Pattern Evasion</p>
+                                <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-1 italic">Pro Tip: Sector Lockdown</p>
                                 <p className="text-[8px] text-zinc-500 uppercase font-black leading-tight italic">
-                                    Operator, do not rush. Faulty submissions drain the link integrity buffer. Verify the association before committing.
+                                    Operator, if you find yourself with 15 words and no clear links, trust your heuristics. Sometimes the noise is too high for a clean intercept.
                                 </p>
                             </div>
                         </div>
@@ -547,16 +546,16 @@ const TacticalManual: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     );
 };
 
+// Added ManualPoint component to resolve "Cannot find name 'ManualPoint'" errors
 const ManualPoint: React.FC<{ title: string; desc: string; color: string }> = ({ title, desc, color }) => (
     <div className="space-y-2 group">
         <h4 className={`text-[9px] font-black ${color} uppercase tracking-[0.3em] italic flex items-center gap-2`}>
             <span className={`w-1.5 h-1.5 rounded-full ${color.replace('text-', 'bg-')} group-hover:scale-150 transition-transform`}></span>
             {title}
         </h4>
-        <p className="text-[10px] md:text-xs text-zinc-300 font-bold uppercase tracking-wide leading-relaxed pl-3 border-l border-zinc-800">
-            {desc}
-        </p>
+        <p className="text-[10px] md:text-xs text-zinc-300 font-bold uppercase tracking-wide leading-relaxed pl-3 border-l border-zinc-800">{desc}</p>
     </div>
 );
 
+// Added default export to resolve "Module has no default export" error in App.tsx
 export default SynapseLinkPage;

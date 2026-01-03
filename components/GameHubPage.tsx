@@ -267,7 +267,7 @@ const GameHubPage: React.FC<any> = (props) => {
                         <button onClick={onToggleTheme} className="p-3 bg-void-surface rounded-2xl text-muted border border-void-border active:scale-90 transition-transform hover:text-pulse-500 shadow-xl">
                             <ThemeIcon className="w-6 h-6" />
                         </button>
-                        <button onClick={props.onReturnToFeeds} className="px-8 py-3 bg-terminal text-void-bg text-xs font-black uppercase italic tracking-widest hover:bg-pulse-500 hover:text-white transition-all shadow-xl rounded-void border border-void-border">Eject_Rec</button>
+                        <button onClick={props.onReturnToFeeds} className="px-8 py-3 bg-terminal text-inverse text-xs font-black uppercase italic tracking-widest hover:bg-pulse-500 hover:text-white transition-all shadow-xl rounded-void border border-void-border">Exit</button>
                     </div>
                 </header>
 

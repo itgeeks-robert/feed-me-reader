@@ -1,10 +1,13 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useRef } from 'react';
 import { VoidIcon, ControllerIcon, ListIcon, TrashIcon, XIcon, ExclamationTriangleIcon } from './icons';
+import { soundService } from '../services/soundService';
 
 interface SplashScreenProps {
     onEnterFeeds: () => void;
     onEnterArcade: () => void;
     isDecoding: boolean;
+    onReset?: () => void;
 }
 
 const BOOT_MESSAGES = [
@@ -13,21 +16,21 @@ const BOOT_MESSAGES = [
     "MOUNTING ARCADE_FILESYSTEM...",
     "DECRYPTING FREQUENCY_BUFFER...",
     "ESTABLISHING SECURE_UPLINK...",
-    "OPTIMIZING NOIR_RENDERER...",
-    "SYNCING DATA_CACHES..."
+    "OPTIMIZING GLASS_RENDERER...",
+    "SYNCING CRYSTALLINE_CACHES..."
 ];
 
-const TechnicalBlueprint: React.FC = () => (
-    <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none opacity-20">
+const TechnicalBlueprint: React.FC<{ progress: number }> = ({ progress }) => (
+    <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none transition-opacity duration-1000" style={{ opacity: Math.max(0, 0.4 - (progress / 200)) }}>
         <svg width="100%" height="100%" className="absolute inset-0">
             <defs>
                 <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(225,29,72,0.2)" strokeWidth="1" />
+                    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(225,29,72,0.15)" strokeWidth="1" />
                 </pattern>
             </defs>
             <rect width="100%" height="100%" fill="url(#grid)" />
-            <g stroke="rgba(225,29,72,0.3)" fill="none" strokeWidth="1">
-                <circle cx="10%" cy="10%" r="50" />
+            <g stroke="rgba(225,29,72,0.2)" fill="none" strokeWidth="1">
+                <circle cx="50%" cy="50%" r="150" strokeDasharray="5,5" />
                 <path d="M 50% 0 L 50% 100%" strokeDasharray="10,10" />
                 <path d="M 0 50% L 100% 50%" strokeDasharray="10,10" />
             </g>
@@ -35,15 +38,50 @@ const TechnicalBlueprint: React.FC = () => (
     </div>
 );
 
-const SplashScreen: React.FC<SplashScreenProps> = ({ onEnterFeeds, onEnterArcade, isDecoding }) => {
+const VoidParticles: React.FC = () => (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden z-10">
+        <style>{`
+            @keyframes float {
+                0% { transform: translateY(100vh) translateX(0); opacity: 0; }
+                50% { opacity: 0.5; }
+                100% { transform: translateY(-100px) translateX(20px); opacity: 0; }
+            }
+            .particle {
+                position: absolute;
+                background: white;
+                border-radius: 50%;
+                filter: blur(1px);
+                animation: float linear infinite;
+            }
+        `}</style>
+        {[...Array(30)].map((_, i) => (
+            <div 
+                key={i} 
+                className="particle"
+                style={{
+                    width: `${Math.random() * 4 + 1}px`,
+                    height: `${Math.random() * 4 + 1}px`,
+                    left: `${Math.random() * 100}%`,
+                    animationDuration: `${Math.random() * 5 + 5}s`,
+                    animationDelay: `${Math.random() * 5}s`,
+                    opacity: Math.random() * 0.4
+                }}
+            />
+        ))}
+    </div>
+);
+
+const SplashScreen: React.FC<SplashScreenProps> = ({ onEnterFeeds, onEnterArcade, isDecoding, onReset }) => {
     const [loadingProgress, setLoadingProgress] = useState(0);
     const [currentMessage, setCurrentMessage] = useState(BOOT_MESSAGES[0]);
     const [isBootComplete, setIsBootComplete] = useState(false);
     const [showWipeConfirm, setShowWipeConfirm] = useState(false);
+    const [breached, setBreached] = useState(false);
+    const lastPingRef = useRef(0);
 
     useEffect(() => {
-        const totalDuration = 4000;
-        const intervalTime = 50;
+        const totalDuration = 4500;
+        const intervalTime = 40;
         const increment = (intervalTime / totalDuration) * 100;
 
         const timer = setInterval(() => {
@@ -52,9 +90,18 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onEnterFeeds, onEnterArcade
                 if (prev >= 100) {
                     clearInterval(timer);
                     setIsBootComplete(true);
+                    soundService.playBootComplete();
+                    setTimeout(() => setBreached(true), 200);
                     return 100;
                 }
                 const next = prev + increment;
+
+                const currentThresh = Math.floor(next / 20);
+                if (currentThresh > lastPingRef.current) {
+                    soundService.playBootPing(next);
+                    lastPingRef.current = currentThresh;
+                }
+
                 const msgIndex = Math.floor((next / 100) * BOOT_MESSAGES.length);
                 setCurrentMessage(isDecoding && next > 70 ? "DECODING LIVE SIGNALS..." : BOOT_MESSAGES[msgIndex] || BOOT_MESSAGES[BOOT_MESSAGES.length - 1]);
                 return next;
@@ -65,37 +112,82 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onEnterFeeds, onEnterArcade
     }, [isDecoding]);
 
     const handleSystemWipe = () => {
-        localStorage.clear();
-        const req = indexedDB.deleteDatabase('SeeMoreCache');
-        req.onsuccess = () => window.location.reload();
-        req.onerror = () => window.location.reload();
-        req.onblocked = () => window.location.reload();
+        if (onReset) {
+            onReset();
+            setShowWipeConfirm(false);
+        } else {
+            localStorage.clear();
+            const req = indexedDB.deleteDatabase('SeeMoreCache');
+            req.onsuccess = () => window.location.reload();
+            req.onerror = () => window.location.reload();
+            req.onblocked = () => window.location.reload();
+        }
     };
 
     return (
-        <div className="fixed inset-0 z-[100] bg-void-950 flex flex-col items-center justify-center overflow-x-hidden overflow-y-auto font-mono scrollbar-hide pt-[calc(2rem+var(--safe-top))] pb-[calc(2rem+var(--safe-bottom))] px-6">
-            <TechnicalBlueprint />
-            <div className="absolute inset-0 z-10 pointer-events-none cctv-overlay opacity-30" />
+        <div className={`fixed inset-0 z-[100] transition-all duration-[2000ms] flex flex-col items-center justify-center overflow-x-hidden overflow-y-auto font-mono scrollbar-hide pt-[calc(2rem+var(--safe-top))] pb-[calc(2rem+var(--safe-bottom))] px-6
+            ${breached ? 'bg-white shadow-[inset_0_0_200px_rgba(0,0,0,0.05)]' : 'bg-void-950'}`}>
             
-            <div className="relative z-20 w-full max-w-lg flex flex-col items-center text-center py-6">
-                <div className="mb-6 landscape:mb-4 group">
-                    <div className="p-4 bg-pulse-500 rounded-[2rem] landscape:rounded-2xl shadow-[0_0_80px_rgba(225,29,72,0.5)] border-4 border-white/20 animate-pulse transition-all">
-                        <VoidIcon className="w-12 h-12 landscape:w-10 landscape:h-10 text-white" />
+            <style>{`
+                @keyframes dimension-shift {
+                    0% { clip-path: circle(0% at 50% 50%); }
+                    100% { clip-path: circle(150% at 50% 50%); }
+                }
+                .dimension-breach {
+                    animation: dimension-shift 2.5s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+                }
+                .glass-reveal {
+                    background: rgba(255, 255, 255, 0.3);
+                    backdrop-filter: blur(60px);
+                    -webkit-backdrop-filter: blur(60px);
+                    border: 1px solid rgba(255,255,255,0.8);
+                    box-shadow: 0 40px 100px rgba(0,0,0,0.1);
+                    width: 100%;
+                }
+                .neon-stroke-text {
+                    color: transparent;
+                    -webkit-text-stroke: 2px currentColor;
+                }
+            `}</style>
+
+            {!breached && <TechnicalBlueprint progress={loadingProgress} />}
+            {breached && <VoidParticles />}
+            
+            <div className={`absolute inset-0 z-10 pointer-events-none transition-opacity duration-1000 ${breached ? 'opacity-0' : 'opacity-30 cctv-overlay'}`} />
+            
+            <div className={`relative z-20 w-full max-w-lg flex flex-col items-center text-center py-6 transition-all duration-1000 ${breached ? 'translate-y-0 scale-100' : 'translate-y-4 scale-95'}`}>
+                
+                <div className="mb-8 landscape:mb-4 group relative">
+                    {/* REFINED GLOW AREA - Tighter and less intense */}
+                    <div className={`absolute inset-[-20px] blur-[40px] md:blur-[60px] transition-all duration-1000 rounded-full
+                        ${breached ? 'bg-blue-500 opacity-40' : 'bg-red-700 opacity-60'}`} />
+                    <div className={`absolute inset-[-5px] blur-[15px] transition-all duration-1000 rounded-full
+                        ${breached ? 'bg-blue-400/30' : 'bg-red-500/40'}`} />
+                    
+                    <div className={`relative p-8 md:p-10 rounded-full transition-all duration-1000 border-4
+                        ${breached 
+                            ? 'bg-white border-blue-500 shadow-[0_0_80px_rgba(37,99,235,0.5)]' 
+                            : 'bg-pulse-500 border-white/20 shadow-[0_0_60px_rgba(225,29,72,0.4)]'}`}>
+                        <VoidIcon className={`w-16 h-16 md:w-24 md:h-24 transition-colors duration-1000 ${breached ? 'text-blue-600' : 'text-white'}`} />
                     </div>
                 </div>
 
-                <div className="mb-8 landscape:mb-4">
-                    <h1 className="text-4xl md:text-7xl font-black text-white italic uppercase tracking-tighter mb-2 glitch-text">THE VOID</h1>
+                <div className="mb-8 landscape:mb-4 flex flex-col items-center">
+                    <h1 className={`text-5xl md:text-8xl font-black italic uppercase tracking-tighter mb-4 transition-colors duration-1000
+                        ${breached ? 'text-slate-900' : 'text-white'}`}>
+                        THE VOID
+                    </h1>
+
                     <div className="flex items-center justify-center gap-3">
-                        <div className="h-px w-10 bg-pulse-500"></div>
-                        <p className="text-pulse-500 font-bold uppercase tracking-[0.6em] text-[8px] landscape:text-[7px]">RECRUIT_OS v1.8.4</p>
-                        <div className="h-px w-10 bg-pulse-500"></div>
+                        <div className={`h-px w-12 transition-colors duration-1000 ${breached ? 'bg-blue-500' : 'bg-pulse-500'}`}></div>
+                        <p className={`font-bold uppercase tracking-[0.6em] text-[8px] md:text-[10px] transition-colors duration-1000 ${breached ? 'text-blue-600' : 'text-pulse-500'}`}>CRYSTAL_OS v1.8.5</p>
+                        <div className={`h-px w-12 transition-colors duration-1000 ${breached ? 'bg-blue-500' : 'bg-pulse-500'}`}></div>
                     </div>
                 </div>
 
                 {!isBootComplete ? (
-                    <div className="w-full space-y-4 landscape:space-y-2 max-w-[280px] mx-auto">
-                        <div className="w-full h-1.5 bg-void-900 border border-white/10 rounded-none overflow-hidden p-0.5">
+                    <div className="w-full space-y-4 landscape:space-y-2 max-w-[280px] mx-auto animate-fade-in">
+                        <div className="w-full h-1.5 bg-void-900 border border-white/10 rounded-full overflow-hidden p-0.5 shadow-inner">
                             <div 
                                 className={`h-full bg-pulse-500 shadow-[0_0_15px_#e11d48] transition-all duration-300 ${isDecoding && loadingProgress > 90 ? 'animate-pulse' : ''}`}
                                 style={{ width: `${loadingProgress}%` }}
@@ -107,71 +199,69 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onEnterFeeds, onEnterArcade
                         </div>
                     </div>
                 ) : (
-                    <div className="w-full flex flex-col gap-4 landscape:gap-3 animate-fade-in max-w-sm">
-                        <button 
-                            onClick={onEnterFeeds}
-                            className="group relative py-4 bg-white text-black font-black uppercase italic text-base rounded-xl shadow-[6px_6px_0px_#e11d48] hover:translate-x-[-1px] hover:translate-y-[-1px] transition-all active:scale-95 active:bg-pulse-500 active:text-white flex items-center justify-center gap-3"
-                        >
-                            <ListIcon className="w-5 h-5" />
-                            <span>SIGNAL ACQUISITION</span>
-                        </button>
+                    <div className="w-full flex flex-col gap-5 landscape:gap-3 animate-fade-in max-w-md items-center">
+                        <div className="glass-reveal p-1 rounded-[2.25rem] shadow-2xl overflow-hidden">
+                            <button 
+                                onClick={onEnterFeeds}
+                                className="group relative w-full py-5 bg-slate-900 text-inverse font-black uppercase italic text-base rounded-[1.75rem] shadow-xl hover:translate-y-[-2px] transition-all active:scale-95 active:bg-blue-600 flex items-center justify-center gap-4 border border-white/10"
+                            >
+                                <ListIcon className="w-6 h-6" />
+                                <span>RECON_INTELLIGENCE</span>
+                            </button>
+                        </div>
+                        
                         <button 
                             onClick={onEnterArcade}
-                            className="group py-4 bg-void-900 border-2 border-pulse-500 text-pulse-500 font-black uppercase italic text-base rounded-xl shadow-[6px_6px_0px_rgba(0,0,0,0.5)] hover:bg-pulse-500 hover:text-white transition-all active:scale-95 flex items-center justify-center gap-3"
+                            className="group w-full py-5 bg-white border-2 border-slate-200 text-slate-700 font-black uppercase italic text-base rounded-[1.75rem] hover:bg-slate-50 hover:text-slate-900 transition-all active:scale-95 flex items-center justify-center gap-4 shadow-sm"
                         >
-                            <ControllerIcon className="w-5 h-5" />
-                            <span>ENTER ARCADE CORE</span>
+                            <ControllerIcon className="w-6 h-6" />
+                            <span>ARCADE_QUICK_ACCESS</span>
                         </button>
                         
                         <button 
                             onClick={() => setShowWipeConfirm(true)}
-                            className="mt-2 flex items-center justify-center gap-2 text-zinc-600 hover:text-pulse-500 transition-colors py-1 uppercase text-[8px] font-black italic tracking-widest active:scale-95"
+                            className="mt-4 flex items-center justify-center gap-2 text-slate-300 hover:text-red-500 transition-colors py-1 uppercase text-[8px] font-black italic tracking-widest active:scale-95"
                         >
                             <TrashIcon className="w-3 h-3" />
-                            <span>PERFORM SYSTEM WIPE</span>
+                            <span>PURGE_STATION_CACHE</span>
                         </button>
                     </div>
                 )}
             </div>
 
-            {/* Pinned Metadata above Android Home Bar */}
-            <div className="fixed bottom-[calc(1.5rem+var(--safe-bottom))] left-6 right-6 flex justify-between items-end pointer-events-none z-20 opacity-40 landscape:opacity-20 transition-opacity">
-                <div className="text-[7px] font-black text-zinc-700 uppercase tracking-widest leading-loose italic">
-                    SYSTEM_STATUS: {isDecoding ? 'DECODING' : 'NOMINAL'}<br/>
-                    SECURITY: LEVEL_7_ENCRYPTED
+            <div className={`fixed bottom-[calc(1.5rem+var(--safe-bottom))] left-6 right-6 flex justify-between items-end pointer-events-none z-20 transition-all duration-1000 ${breached ? 'opacity-20 text-slate-900' : 'opacity-40 text-white'}`}>
+                <div className="text-[7px] font-black uppercase tracking-widest leading-loose italic">
+                    DIMENSION: {breached ? 'THE_REVEAL' : 'THE_VEIL'}<br/>
+                    STATUS: {isDecoding ? 'DECODING' : 'CALIBRATED'}
+                </div>
+                <div className="text-[7px] font-black uppercase tracking-widest italic text-right">
+                    SECTOR: LOCAL_NODE<br/>
+                    ENCRYPTION: 0xCRYSTAL
                 </div>
             </div>
 
             {showWipeConfirm && (
-                <div className="fixed inset-0 z-[110] bg-black/95 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in">
-                    <div className="bg-zinc-900 border-4 border-pulse-600 shadow-[0_0_120px_rgba(225,29,72,0.3)] w-full max-w-sm relative overflow-hidden flex flex-col rounded-3xl">
-                        <header className="h-10 bg-pulse-600 flex items-center justify-between px-1 border-b-2 border-black">
-                            <div className="flex items-center gap-2 h-full">
-                                <div className="w-8 h-7 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center">
-                                   <div className="w-4 h-1 bg-black shadow-[0_4px_0_black]" />
-                                </div>
-                                <h2 className="text-white text-[9px] font-black uppercase tracking-[0.2em] italic px-2 truncate">CRITICAL_PROTOCOL.EXE</h2>
+                <div className="fixed inset-0 z-[110] bg-black/95 backdrop-blur-md flex items-center justify-center p-6 animate-fade-in">
+                    <div className="bg-white border-2 border-white shadow-[0_30px_100px_rgba(0,0,0,0.2)] w-full max-w-sm relative overflow-hidden flex flex-col rounded-[2rem]">
+                        <header className="h-12 bg-slate-100 flex items-center justify-between px-4 border-b border-slate-200">
+                            <div className="flex items-center gap-3">
+                                <ExclamationTriangleIcon className="w-4 h-4 text-red-500" />
+                                <h2 className="text-slate-900 text-[10px] font-black uppercase tracking-[0.2em] italic">SYSTEM_PURGE.DAT</h2>
                             </div>
-                            <button onClick={() => setShowWipeConfirm(false)} className="w-8 h-7 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center active:bg-zinc-400">
-                                <XIcon className="w-4 h-4 text-black" />
+                            <button onClick={() => { soundService.playClick(); setShowWipeConfirm(false); }} className="text-slate-400 hover:text-slate-900">
+                                <XIcon className="w-5 h-5" />
                             </button>
                         </header>
                         
-                        <div className="p-8 landscape:p-4 bg-void-950 text-center space-y-6">
-                            <div className="mx-auto w-12 h-12 bg-pulse-500/10 rounded-full flex items-center justify-center border-2 border-pulse-500 animate-pulse">
-                                <ExclamationTriangleIcon className="w-6 h-6 text-pulse-500" />
-                            </div>
-                            <div className="space-y-2">
-                                <h3 className="text-lg font-black text-white italic uppercase tracking-tighter">Complete Data Purge</h3>
-                                <p className="text-[9px] text-zinc-500 leading-relaxed uppercase tracking-widest italic px-4">
-                                    Committing to this action will <span className="text-pulse-500 font-black">permanently erase</span> all user signals, bookmarks, and arcade records.
-                                </p>
-                            </div>
+                        <div className="p-8 text-center space-y-6">
+                            <p className="text-xs text-slate-500 leading-relaxed uppercase font-bold tracking-tight px-4 italic">
+                                Operator, committing to a <span className="text-red-500">System Wipe</span> will permanently erase all crystalline cache data, discovered signals, and mission records.
+                            </p>
                         </div>
 
-                        <footer className="p-4 bg-zinc-300 border-t-2 border-black flex gap-3">
-                            <button onClick={() => setShowWipeConfirm(false)} className="flex-1 py-3 bg-zinc-100 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-400 text-[9px] font-black uppercase italic text-zinc-600 active:bg-zinc-200">ABORT</button>
-                            <button onClick={handleSystemWipe} className="flex-1 py-3 bg-pulse-600 border-t-2 border-l-2 border-white/50 border-b-2 border-r-2 border-pulse-950 text-[9px] font-black uppercase italic text-white hover:bg-pulse-500 active:bg-pulse-700">WIPE_SYSTEM</button>
+                        <footer className="p-5 flex gap-3 bg-slate-50 border-t border-slate-100">
+                            <button onClick={() => { soundService.playClick(); setShowWipeConfirm(false); }} className="flex-1 py-4 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase italic text-slate-400">Abort</button>
+                            <button onClick={handleSystemWipe} className="flex-1 py-4 bg-red-500 text-white rounded-xl text-[10px] font-black uppercase italic shadow-lg active:scale-95">Confirm Purge</button>
                         </footer>
                     </div>
                 </div>

@@ -1,7 +1,7 @@
 
 import React from 'react';
 import type { Selection } from '../src/App';
-import { ListIcon, SettingsIcon, PlayPauseIcon, VoidIcon } from './icons';
+import { ListIcon, SettingsIcon, PlayPauseIcon, AtariJoystickIcon } from './icons';
 
 interface BottomNavBarProps {
     selection: Selection;
@@ -11,7 +11,7 @@ interface BottomNavBarProps {
 
 const BottomNavBar: React.FC<BottomNavBarProps> = ({ selection, onSelect, onOpenSettings }) => {
     const navItems = [
-        { type: 'game_hub', label: 'Arcade', icon: <VoidIcon className="w-6 h-6" /> },
+        { type: 'game_hub', label: 'Arcade', icon: <AtariJoystickIcon className="w-6 h-6" /> },
         { type: 'all', label: 'Intel', icon: <ListIcon className="w-6 h-6" /> },
         { type: 'utility_hub', label: 'Media', icon: <PlayPauseIcon className="w-6 h-6" /> },
         { type: 'settings', label: 'Terminal', icon: <SettingsIcon className="w-6 h-6" /> },

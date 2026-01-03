@@ -120,14 +120,25 @@ export const SeymourIcon: React.FC<{ className?: string }> = ({ className }) => 
 );
 
 export const VoidIcon: React.FC<{ className?: string }> = ({ className }) => (
-    <svg className={className} viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
-        <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M40 10 L10 70 L70 70 Z" strokeWidth="4" />
-            <circle cx="40" cy="45" r="12" />
-            <path d="M30 45 h20 M40 35 v20" />
-            <path d="M20 60 Q 40 50 60 60" strokeDasharray="4 2" />
-            <circle cx="40" cy="45" r="25" strokeOpacity="0.2" />
-        </g>
+    <svg className={className} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="50" cy="50" r="44" stroke="currentColor" strokeWidth="4" fill="none" />
+        <path d="M28 48 A 22 22 0 0 1 72 48" stroke="currentColor" strokeWidth="5" fill="none" strokeLinecap="round" />
+        <path d="M36 58 A 14 14 0 0 1 64 58" stroke="currentColor" strokeWidth="5" fill="none" strokeLinecap="round" />
+        <circle cx="50" cy="68" r="5" fill="currentColor" />
+        <rect x="46" y="80" width="8" height="8" fill="currentColor" />
+    </svg>
+);
+
+export const AtariJoystickIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+        {/* Base of the joystick */}
+        <rect x="3" y="16" width="18" height="6" rx="1" />
+        {/* The red button typical of Atari controllers */}
+        <circle cx="18" cy="19" r="1.5" fill="#ef4444" />
+        {/* The stick */}
+        <rect x="10.5" y="6" width="3" height="10" rx="1" />
+        {/* Round top of the stick */}
+        <circle cx="12" cy="5" r="3" />
     </svg>
 );
 

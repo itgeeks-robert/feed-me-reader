@@ -369,7 +369,7 @@ const FeedOnboarding: React.FC<FeedOnboardingProps> = ({ onComplete }) => {
                     <button 
                         onClick={() => handleConfirm()}
                         disabled={selectedIds.size === 0}
-                        className="w-full py-5 bg-terminal text-void-bg font-black uppercase italic text-xl rounded-2xl shadow-[8px_8px_0px_#e11d48] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all active:scale-95 disabled:opacity-50 disabled:grayscale disabled:pointer-events-none flex items-center justify-center gap-4"
+                        className="w-full py-5 bg-terminal text-inverse font-black uppercase italic text-xl rounded-2xl shadow-[8px_8px_0px_#e11d48] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all active:scale-95 disabled:opacity-50 disabled:grayscale disabled:pointer-events-none flex items-center justify-center gap-4"
                     >
                         <RssIcon className="w-7 h-7" />
                         <span>Establish Uplink ({selectedIds.size})</span>

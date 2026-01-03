@@ -41,7 +41,7 @@ const CCTVMonitor: React.FC<{ src: string | null; label: string; headline: strin
                     wrapperClassName="w-full h-full"
                     fallback={
                         <div className="w-full h-full static-noise flex flex-col items-center justify-center p-4">
-                            <div className="border-4 border-pulse-500 p-8 flex flex-col items-center gap-4 shadow-[0_0_40px_rgba(225,29,72,0.3)] animate-pulse">
+                            <div className="border-4 border-pulse-500 p-8 flex flex-col items-center gap-4 shadow-[0_0_40px_rgba(225,29,72,0.3)] animate-pulse rounded-void">
                                 <span className="text-4xl font-black text-pulse-500 tracking-[0.2em] uppercase italic text-center leading-none">
                                     {isSearching ? "Acquiring\nUplink" : "Signal\nLost"}
                                 </span>
@@ -60,18 +60,18 @@ const CCTVMonitor: React.FC<{ src: string | null; label: string; headline: strin
             <div className="absolute top-4 left-4 md:top-8 md:left-8 flex flex-col gap-2 pointer-events-none z-20">
                 <div className="flex items-center gap-2">
                     <div className="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse shadow-[0_0_12px_#ef4444]" />
-                    <span className="text-[10px] md:text-xs font-mono font-black text-white uppercase tracking-[0.3em] drop-shadow-lg">
+                    <span className="text-[10px] md:text-xs font-black text-white uppercase tracking-[0.3em] drop-shadow-lg">
                         {reconstructedSrc && !src ? "PROBE_RECON" : "LIVE_STREAM"}
                     </span>
                 </div>
                 <div className="flex items-center gap-3">
-                    <span className="bg-black/60 px-2 py-0.5 border border-white/20 text-[9px] md:text-[11px] font-mono text-emerald-400 uppercase tracking-tighter italic">CH: {label.replace(/\s/g, '_')}</span>
+                    <span className="bg-black/60 px-2 py-0.5 border border-white/20 text-[9px] md:text-[11px] text-emerald-400 uppercase tracking-tighter italic rounded-sm">CH: {label.replace(/\s/g, '_')}</span>
                 </div>
             </div>
             
             <div className="absolute bottom-4 right-4 md:bottom-8 md:right-8 pointer-events-none z-20 flex flex-col items-end gap-1">
-                <span className="text-[10px] md:text-xs font-mono text-white/40 uppercase tracking-[0.4em] italic">0x00A_PRIME_SYNC</span>
-                <span className="text-[10px] md:text-xs font-mono text-white/30 uppercase tracking-widest">{new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+                <span className="text-[10px] md:text-xs text-white/40 uppercase tracking-[0.4em] italic">0x00A_PRIME_SYNC</span>
+                <span className="text-[10px] md:text-xs uppercase tracking-widest text-white/30">{new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
             </div>
         </div>
     );
@@ -79,9 +79,9 @@ const CCTVMonitor: React.FC<{ src: string | null; label: string; headline: strin
 
 const FeaturedStory: React.FC<{article: Article; onReadHere: () => void; onReadExternal: () => void; isRead: boolean;}> = ({ article, onReadHere, onReadExternal, isRead }) => {
     return (
-        <div className={`group grid grid-cols-1 lg:grid-cols-[1.4fr,1fr] bg-void-surface border-4 border-void-border shadow-[12px_12px_0px_#000] overflow-hidden min-h-[400px] md:min-h-[550px] transition-all duration-500 hover:translate-x-[-2px] hover:translate-y-[-2px] relative ${isRead ? 'opacity-30 grayscale blur-[1px]' : ''}`}>
+        <div className={`group grid grid-cols-1 lg:grid-cols-[1.4fr,1fr] bg-void-surface border-[1px] border-void-border shadow-void overflow-hidden min-h-[400px] md:min-h-[550px] transition-all duration-500 hover:translate-x-[-2px] hover:translate-y-[-2px] relative rounded-void ${isRead ? 'opacity-30 grayscale blur-[1px]' : ''}`}>
             
-            <div className="h-64 sm:h-96 lg:h-auto border-b-4 border-void-border lg:border-b-0 lg:border-r-4">
+            <div className="h-64 sm:h-96 lg:h-auto border-b-[1px] border-void-border lg:border-b-0 lg:border-r-[1px]">
                 <CCTVMonitor src={article.imageUrl} label={article.source} headline={article.title} url={article.link} />
             </div>
 
@@ -91,21 +91,21 @@ const FeaturedStory: React.FC<{article: Article; onReadHere: () => void; onReadE
                 
                 <div className="flex items-center gap-3 mb-6 md:mb-8">
                     <RadioIcon className="w-5 h-5 text-pulse-500" />
-                    <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.5em] text-pulse-500 font-mono italic leading-none">PRIME_INTERCEPT</p>
+                    <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.5em] text-pulse-500 italic leading-none">PRIME_INTERCEPT</p>
                 </div>
                 
-                <h1 className="text-2xl md:text-5xl font-black italic uppercase tracking-tighter mb-8 md:mb-10 leading-[0.95] line-clamp-4 text-terminal group-hover:text-pulse-400 transition-colors">
+                <h1 className="text-2xl md:text-5xl font-black italic uppercase tracking-tighter mb-8 md:mb-10 leading-[0.95] line-clamp-4 text-terminal group-hover:text-pulse-400 transition-colors drop-shadow-sm">
                     {article.title}
                 </h1>
                 
-                <p className="text-sm md:text-lg text-void-text-muted font-mono line-clamp-4 md:line-clamp-6 mb-12 md:mb-16 leading-relaxed uppercase tracking-tight italic opacity-80 border-l-2 border-void-border pl-6">
+                <p className="text-sm md:text-lg text-void-text-muted line-clamp-4 md:line-clamp-6 mb-12 md:mb-16 leading-relaxed uppercase tracking-tight italic border-l-2 border-void-border pl-6">
                     {article.snippet}
                 </p>
                 
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-6 md:gap-10 mt-auto">
                     <button 
                         onClick={onReadHere}
-                        className="flex-1 inline-flex items-center justify-center gap-4 bg-terminal text-void-bg hover:bg-pulse-500 hover:text-white transition-all font-black uppercase italic py-5 px-10 text-xs md:text-base tracking-widest shadow-[6px_6px_0px_var(--void-accent)] active:translate-x-1 active:translate-y-1 active:shadow-none border border-void-border"
+                        className="flex-1 inline-flex items-center justify-center gap-4 bg-terminal text-inverse hover:bg-pulse-500 hover:text-white transition-all font-black uppercase italic py-5 px-10 text-xs md:text-base tracking-widest shadow-lg active:translate-x-1 active:translate-y-1 active:shadow-none border border-void-border rounded-void"
                     >
                         <BookOpenIcon className="w-6 h-6" />
                         <span>Establish_Link</span>
@@ -113,7 +113,7 @@ const FeaturedStory: React.FC<{article: Article; onReadHere: () => void; onReadE
                     
                     <button 
                         onClick={(e) => { e.preventDefault(); onReadExternal(); }}
-                        className="flex items-center justify-center gap-3 text-[10px] md:text-xs font-black uppercase tracking-[0.3em] text-void-text-muted hover:text-terminal transition-colors font-mono italic border-2 border-void-border px-6 py-4 rounded-lg hover:border-terminal/40"
+                        className="flex items-center justify-center gap-3 text-[10px] md:text-xs font-black uppercase tracking-[0.3em] text-void-text-muted hover:text-terminal transition-colors italic border-2 border-void-border px-6 py-4 rounded-void hover:border-terminal/40"
                     >
                         <GlobeAltIcon className="w-4 h-4" />
                         Raw_Stream

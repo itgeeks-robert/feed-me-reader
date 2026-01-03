@@ -253,7 +253,7 @@ const SolitairePage: React.FC<SolitairePageProps> = (props) => {
       
       if (type === 'tableau' && canPlaceOnTableau(cardToMove, gameState.tableau[pileIndex])) {
         moveCards(selectedInfo, { type: 'tableau', pileIndex });
-      } else if (type === 'foundation' && (sourcePile.length - fromCardIndex === 1) && canPlaceOnFoundation(cardToMove, gameState.foundations[pileIndex])) {
+      } else if (type === 'foundation' && (sourcePile.length - fromCardIndex === 1) && canPlaceOnFoundation(cardToMove, cardToMove && gameState.foundations[pileIndex])) {
         moveCards(selectedInfo, { type: 'foundation', pileIndex });
       } else {
         soundService.playClick();
@@ -599,7 +599,7 @@ const TacticalManual: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
                 <footer className="p-4 bg-zinc-300 border-t-2 border-black shrink-0">
                     <button onClick={onClose} className="w-full py-4 bg-emerald-600 border-t-2 border-l-2 border-white/50 border-b-2 border-r-2 border-neon-950 text-[10px] font-black uppercase italic text-white hover:bg-emerald-500 active:bg-emerald-700 transition-all shadow-lg">
-                        CONFIRM_PROTOCOLS
+                        ACKNOWLEDGE_PROTOCOLS
                     </button>
                 </footer>
             </div>

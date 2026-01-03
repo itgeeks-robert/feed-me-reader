@@ -5,6 +5,7 @@ import { XIcon, SunIcon, MoonIcon, CloudArrowUpIcon, CloudArrowDownIcon, TrashIc
 import AddSource, { SourceType } from './AddSource';
 import { exportToOpml, parseOpml } from '../services/opmlService';
 import ContextualIntel from './ContextualIntel';
+import { soundService } from '../services/soundService';
 
 interface SettingsModalProps {
     isOpen: boolean;
@@ -22,13 +23,14 @@ interface SettingsModalProps {
     onExportSettings: () => void;
     onAddSource: (url: string, type: SourceType) => Promise<void>;
     onEnterUtils: () => void;
+    onResetFeeds?: () => void;
 }
 
 type Tab = 'CORE' | 'NODES' | 'DISPLAY' | 'MEMORY';
 
 const THEME_PREVIEWS: { id: Theme; name: string; desc: string; colors: string }[] = [
     { id: 'noir', name: 'NOIR', desc: 'Default technical neon.', colors: 'bg-black border-pulse-500' },
-    { id: 'liquid-glass', name: 'GLASS', desc: 'Modern frost & blurs.', colors: 'bg-slate-900 border-sky-400' },
+    { id: 'liquid-glass', name: 'GLASS', desc: 'Frosted crystal light.', colors: 'bg-white border-blue-600 shadow-sm' },
     { id: 'bento-grid', name: 'BENTO', desc: 'Clean iOS light mode.', colors: 'bg-slate-100 border-blue-600' },
     { id: 'brutalist', name: 'BRUTAL', desc: 'Stark B&W Newspaper.', colors: 'bg-white border-black' },
     { id: 'claymorphism', name: 'CLAY', desc: 'Squishy 3D tactile.', colors: 'bg-indigo-200 border-pink-500' },
@@ -43,10 +45,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     isOpen, onClose, settings, onUpdateSettings, onSelect, 
     onAddFolder, onRenameFolder, onDeleteFolder, onRemoveFeed,
     onImportOpml, onExportOpml, onImportSettings, onExportSettings,
-    onAddSource, onEnterUtils
+    onAddSource, onEnterUtils, onResetFeeds
 }) => {
     const [activeTab, setActiveTab] = useState<Tab>('CORE');
     const [localSettings, setLocalSettings] = useState({ ...settings });
+    const [showWipeConfirm, setShowWipeConfirm] = useState(false);
     const opmlInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => { if (isOpen) setLocalSettings({ ...settings }); }, [isOpen, settings]);
@@ -56,6 +59,20 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     const handleSave = () => {
         onUpdateSettings(localSettings);
         onClose();
+    };
+
+    const handleSystemWipe = () => {
+        if (onResetFeeds) {
+            onResetFeeds();
+            setShowWipeConfirm(false);
+        } else {
+            soundService.playWrong();
+            localStorage.clear();
+            const req = indexedDB.deleteDatabase('SeeMoreCache');
+            req.onsuccess = () => window.location.reload();
+            req.onerror = () => window.location.reload();
+            req.onblocked = () => window.location.reload();
+        }
     };
     
     const TabButton: React.FC<{ name: Tab, label: string }> = ({ name, label }) => (
@@ -71,18 +88,18 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     );
 
     return (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-2 md:p-4 font-mono" onClick={onClose} role="dialog" aria-modal="true">
-            <ContextualIntel 
-                tipId="settings_intel" 
-                title="System Calibration" 
-                content="Environmental presets modify the 'physics' of the OS—changing border-radius, shadows, and backdrop blurs to match your current operational mood." 
-            />
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-2 md:p-4" onClick={onClose} role="dialog" aria-modal="true">
             <div className="void-card w-full max-w-xl max-h-[85vh] flex flex-col relative overflow-hidden" onClick={e => e.stopPropagation()}>
+                <ContextualIntel 
+                    tipId="settings_intel" 
+                    title="System Calibration" 
+                    content="Environmental presets modify the 'physics' of the OS—changing border-radius, shadows, and backdrop blurs to match your current operational mood." 
+                />
                 
                 <header className="h-12 border-b border-void-border flex items-center justify-between px-6 shrink-0">
                     <div className="flex items-center gap-3">
                         <CpuChipIcon className="w-5 h-5 text-pulse-500" />
-                        <h2 className="text-terminal text-[10px] font-black uppercase tracking-[0.2em] italic">SYSTEM_DIAGNOSTICS v1.8.4</h2>
+                        <h2 className="text-terminal text-[10px] font-black uppercase tracking-[0.2em] italic">SYSTEM_DIAGNOSTICS v1.8.5</h2>
                     </div>
                     <button onClick={onClose} className="p-2 text-muted hover:text-terminal transition-colors">
                         <XIcon className="w-6 h-6" />
@@ -186,13 +203,55 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                 <button onClick={onExportOpml} className="flex items-center justify-center gap-3 py-4 bg-void-bg border border-void-border rounded-void text-[9px] font-black uppercase italic hover:bg-void-surface transition-all"><CloudArrowDownIcon className="w-4 h-4" /> Export_Data</button>
                             </div>
                         </div>
+
+                        <div className="pt-6 mt-8 border-t border-red-500/20">
+                            <h3 className="text-[10px] font-black text-red-500 uppercase tracking-widest mb-4 italic">Security Actions</h3>
+                            <button 
+                                onClick={() => { soundService.playClick(); setShowWipeConfirm(true); }}
+                                className="w-full py-4 bg-red-500/10 border border-red-500/40 text-red-500 rounded-void text-[9px] font-black uppercase italic hover:bg-red-500 hover:text-white transition-all flex items-center justify-center gap-3"
+                            >
+                                <TrashIcon className="w-4 h-4" />
+                                <span>Purge System Data</span>
+                            </button>
+                            <p className="text-[7px] text-zinc-600 uppercase mt-2 text-center tracking-widest">Caution: Irreversible cache termination.</p>
+                        </div>
                     </div>)}
                 </div>
 
                 <footer className="p-6 border-t border-void-border bg-void-bg flex gap-3 shrink-0 z-20">
                     <button onClick={onClose} className="flex-1 py-4 bg-void-surface text-terminal text-[10px] font-black uppercase italic rounded-void active:scale-95 transition-all">ABORT</button>
-                    <button onClick={handleSave} className="flex-1 py-4 bg-terminal text-void-bg text-[10px] font-black uppercase italic rounded-void active:scale-95 transition-all shadow-xl">COMMIT_CHANGES</button>
+                    <button onClick={handleSave} className="flex-1 py-4 bg-terminal text-inverse text-[10px] font-black uppercase italic rounded-void active:scale-95 transition-all shadow-xl">COMMIT_CHANGES</button>
                 </footer>
+
+                {showWipeConfirm && (
+                    <div className="absolute inset-0 z-[100] bg-black/95 backdrop-blur-md flex items-center justify-center p-6 animate-fade-in">
+                        <div className="void-card w-full max-w-sm relative overflow-hidden flex flex-col border-2 border-red-600 shadow-[0_0_50px_rgba(220,38,38,0.3)]">
+                            <header className="h-10 bg-red-600 flex items-center justify-between px-4">
+                                <div className="flex items-center gap-2">
+                                    <ExclamationTriangleIcon className="w-4 h-4 text-white" />
+                                    <h2 className="text-white text-[9px] font-black uppercase tracking-[0.2em] italic">SYSTEM_PURGE.EXE</h2>
+                                </div>
+                                <button onClick={() => setShowWipeConfirm(false)} className="text-white hover:opacity-70">
+                                    <XIcon className="w-5 h-5" />
+                                </button>
+                            </header>
+                            
+                            <div className="p-8 text-center space-y-6">
+                                <p className="text-xs text-terminal leading-relaxed uppercase font-bold tracking-tight px-4 italic">
+                                    Confirmed: <span className="text-red-500">System Wipe</span> will permanently erase all local caches, sector keys, and node bookmarks.
+                                </p>
+                                <div className="py-2 px-4 bg-red-500/10 border border-red-500/20 rounded-lg">
+                                    <span className="text-[7px] text-red-400 font-black uppercase tracking-[0.3em] animate-pulse">Awaiting authorization...</span>
+                                </div>
+                            </div>
+
+                            <footer className="p-5 flex gap-3 bg-zinc-900 border-t border-white/5">
+                                <button onClick={() => setShowWipeConfirm(false)} className="flex-1 py-3 bg-zinc-800 rounded-xl text-[9px] font-black uppercase italic text-zinc-400">Abort</button>
+                                <button onClick={handleSystemWipe} className="flex-1 py-3 bg-red-600 text-white rounded-xl text-[9px] font-black uppercase italic shadow-lg active:scale-95">Purge Data</button>
+                            </footer>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
