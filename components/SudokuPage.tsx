@@ -126,7 +126,7 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
 
     const startNewGame = useCallback(async (newDifficulty: Difficulty, isDaily: boolean = false) => {
         setGameState('LOADING');
-        setSelectedCell(null);
+        setSelectedCell({ row: 4, col: 4 });
         setDifficulty(newDifficulty);
         setIsDailyChallenge(isDaily);
         try {
@@ -195,16 +195,39 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
         }
     };
 
+    // Keyboard/Remote D-Pad Logic
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (gameState !== 'PLAYING' || !selectedCell) return;
+            const { row, col } = selectedCell;
+
+            if (e.key === 'ArrowUp') setSelectedCell({ row: Math.max(0, row - 1), col });
+            else if (e.key === 'ArrowDown') setSelectedCell({ row: Math.min(8, row + 1), col });
+            else if (e.key === 'ArrowLeft') setSelectedCell({ row, col: Math.max(0, col - 1) });
+            else if (e.key === 'ArrowRight') setSelectedCell({ row, col: Math.min(8, col + 1) });
+            else if (e.key >= '1' && e.key <= '9') handleNumberInput(parseInt(e.key, 10));
+            else if (e.key === 'Backspace' || e.key === 'Delete') {
+                if (!grid![row][col].isPrefilled) {
+                    const ng = grid!.map(r => r.map(c => ({...c})));
+                    ng[row][col].value = null;
+                    ng[row][col].notes = [];
+                    ng[row][col].isError = false;
+                    setGrid(ng);
+                }
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [gameState, selectedCell, grid, handleNumberInput]);
+
     const usedInConstraints = useMemo(() => {
         if (!selectedCell || !grid) return new Set<number>();
         const { row: r, col: c } = selectedCell;
         const used = new Set<number>();
-        // Check row and col
         for (let i = 0; i < 9; i++) {
             if (grid[r][i].value && !grid[r][i].isError) used.add(grid[r][i].value!);
             if (grid[i][c].value && !grid[i][c].isError) used.add(grid[i][c].value!);
         }
-        // Check sector
         const startR = Math.floor(r / 3) * 3, startC = Math.floor(c / 3) * 3;
         for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) {
             const val = grid[startR + i][startC + j].value;
@@ -275,7 +298,7 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
 
             <div className="max-w-md w-full h-full flex flex-col p-4 gap-4 z-10">
                 <header className="flex justify-between items-center bg-app-card/80 p-4 rounded-3xl border border-white/5 backdrop-blur-xl shrink-0">
-                    <button onClick={() => { soundService.playWrong(); setView('IDLE'); }} className="p-2 bg-zinc-800 rounded-xl text-zinc-400 hover:text-white transition-colors"><XIcon className="w-6 h-6" /></button>
+                    <button onClick={() => { soundService.playWrong(); setView('IDLE'); }} className="p-2 bg-zinc-800 rounded-xl text-zinc-400 hover:text-white transition-colors focus:ring-2 focus:ring-app-accent"><XIcon className="w-6 h-6" /></button>
                     <div className="flex gap-4 items-center">
                         <div className="flex items-center gap-1">
                             {[...Array(3)].map((_, i) => <HeartIcon key={i} filled={i < 3 - mistakes} animated={i === 2 - mistakes} />)}
@@ -283,7 +306,7 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
                         <div className="w-px h-8 bg-zinc-800 mx-1" />
                         <div className="text-right"><span className="text-[8px] font-black uppercase text-zinc-500 block mb-0.5 italic">Uptime</span><span className="text-sm font-black font-mono text-app-text leading-none">{formatTime(time)}</span></div>
                     </div>
-                    <button onClick={() => { soundService.playClick(); setShowHelp(true); }} className="p-2 bg-zinc-800 rounded-xl text-zinc-400 hover:text-app-accent border border-white/5 transition-colors"><BookOpenIcon className="w-6 h-6" /></button>
+                    <button onClick={() => { soundService.playClick(); setShowHelp(true); }} className="p-2 bg-zinc-800 rounded-xl text-zinc-400 hover:text-app-accent border border-white/5 transition-colors focus:ring-2 focus:ring-app-accent"><BookOpenIcon className="w-6 h-6" /></button>
                 </header>
 
                 <div className="flex-grow flex items-center justify-center min-h-0">
@@ -292,12 +315,9 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
                             const isSelected = selectedCell?.row === r && selectedCell?.col === c;
                             const isSameValue = cell.value !== null && selectedCell && grid[selectedCell.row][selectedCell.col].value === cell.value;
                             const isSameSector = selectedCell && (Math.floor(r/3) === Math.floor(selectedCell.row/3)) && (Math.floor(c/3) === Math.floor(selectedCell.col/3));
-                            
-                            // Visual fix: thick borders for 3x3 boundaries, thin for internal cells
                             const borderR = (c + 1) % 3 === 0 && c < 8 ? 'border-r-[3px] border-app-accent' : c < 8 ? 'border-r border-zinc-800' : '';
                             const borderB = (r + 1) % 3 === 0 && r < 8 ? 'border-b-[3px] border-app-accent' : r < 8 ? 'border-b border-zinc-800' : '';
                             const borderCls = `${borderR} ${borderB}`;
-                            
                             let cellBg = isSelected ? "bg-app-accent text-app-bg scale-105 z-20 shadow-xl" : isSameValue ? "bg-app-accent/20" : isSameSector ? "bg-zinc-800/40" : "bg-app-card/40";
                             return (
                                 <div key={`${r}-${c}`} onClick={() => handleCellClick(r, c)} className={`aspect-square flex items-center justify-center text-xl font-black cursor-pointer transition-all duration-150 ${cellBg} ${borderCls}`}>
@@ -317,14 +337,14 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
                         const isBlocked = selectedCell && usedInConstraints.has(num);
                         return (
                             <button key={num} onClick={() => handleNumberInput(num)} disabled={!!isBlocked}
-                                className={`aspect-square border-2 rounded-xl text-xl font-black italic transition-all active:scale-90 shadow-lg ${isBlocked ? 'bg-black border-zinc-900 text-zinc-800 opacity-20 grayscale' : 'bg-zinc-800 border-white/10 text-app-text hover:bg-app-accent hover:text-app-bg'}`}>
+                                className={`aspect-square border-2 rounded-xl text-xl font-black italic transition-all active:scale-90 shadow-lg ${isBlocked ? 'bg-black border-zinc-900 text-zinc-800 opacity-20 grayscale' : 'bg-zinc-800 border-white/10 text-app-text hover:bg-app-accent hover:text-app-bg focus:ring-2 focus:ring-white'}`}>
                                 {num}
                             </button>
                         );
                     })}
-                    <button onClick={() => { soundService.playClick(); setIsNotesMode(!isNotesMode); }} className={`aspect-square rounded-xl flex items-center justify-center transition-all border-2 ${isNotesMode ? 'bg-app-accent border-white text-app-bg' : 'bg-zinc-800 border-white/5 text-zinc-500'}`}><PencilIcon className="w-6 h-6" /></button>
-                    <button onClick={() => { if (!selectedCell || !grid || !solution) return; soundService.playAction(); handleNumberInput(solution[selectedCell.row][selectedCell.col]); }} className="aspect-square bg-zinc-800 border border-white/5 rounded-xl flex items-center justify-center text-amber-500 active:scale-90"><LightBulbIcon className="w-6 h-6" /></button>
-                    <button onClick={() => { if (!selectedCell || !grid) return; const {row, col} = selectedCell; if (grid[row][col].isPrefilled) return; soundService.playWrong(); const ng = grid.map(r=>r.map(c=>({...c, notes:[...c.notes]}))); ng[row][col].value = null; ng[row][col].notes = []; ng[row][col].isError = false; setGrid(ng); }} className="aspect-square bg-zinc-800 border border-white/5 rounded-xl flex items-center justify-center text-zinc-500 active:scale-90"><EraserIcon className="w-6 h-6" /></button>
+                    <button onClick={() => { soundService.playClick(); setIsNotesMode(!isNotesMode); }} className={`aspect-square rounded-xl flex items-center justify-center transition-all border-2 focus:ring-2 focus:ring-white ${isNotesMode ? 'bg-app-accent border-white text-app-bg' : 'bg-zinc-800 border-white/5 text-zinc-500'}`}><PencilIcon className="w-6 h-6" /></button>
+                    <button onClick={() => { if (!selectedCell || !grid || !solution) return; soundService.playAction(); handleNumberInput(solution[selectedCell.row][selectedCell.col]); }} className="aspect-square bg-zinc-800 border border-white/5 rounded-xl flex items-center justify-center text-amber-500 active:scale-90 focus:ring-2 focus:ring-white"><LightBulbIcon className="w-6 h-6" /></button>
+                    <button onClick={() => { if (!selectedCell || !grid) return; const {row, col} = selectedCell; if (grid[row][col].isPrefilled) return; soundService.playWrong(); const ng = grid.map(r=>r.map(c=>({...c, notes:[...c.notes]}))); ng[row][col].value = null; ng[row][col].notes = []; ng[row][col].isError = false; setGrid(ng); }} className="aspect-square bg-zinc-800 border border-white/5 rounded-xl flex items-center justify-center text-zinc-500 active:scale-90 focus:ring-2 focus:ring-white"><EraserIcon className="w-6 h-6" /></button>
                 </div>
             </div>
 
@@ -357,16 +377,16 @@ const TacticalManual: React.FC<{ onClose: () => void }> = ({ onClose }) => (
                 <section className="space-y-8 relative z-10">
                     <div>
                         <h3 className="text-lg font-black text-app-text italic uppercase tracking-tighter mb-4 flex items-center gap-3"><SparklesIcon className="w-5 h-5 text-app-accent" /> Matrix Stabilization</h3>
-                        <p className="text-[10px] md:text-xs text-zinc-400 uppercase font-black leading-relaxed tracking-wider mb-4 border-l-2 border-app-accent/30 pl-4">The core logic matrix (Pattern Zero) has fragmented. Each sector and rail must contain a unique set of 1-9 frequencies to prevent a kernel panic.</p>
+                        <p className="text-[10px] md:text-xs text-zinc-400 uppercase font-black leading-relaxed tracking-wider mb-4 border-l-2 border-app-accent/30 pl-4">The core logic matrix (Pattern Zero) has fragmented. Each sector and rail must contain a unique set of 1-9 frequencies.</p>
                     </div>
                     <div className="grid grid-cols-1 gap-6">
                         <ManualPoint title="0x01_Numerical_Integrity" desc="No digit may repeat within a single horizontal rail, vertical rail, or 3x3 mainframe sector." color="text-app-accent" />
-                        <ManualPoint title="0x02_Neural_Probing" desc="Use the Pencil tool to map potential bit assignments without committing mainframe energy. Essential for Expert sectors." color="text-app-accent" />
-                        <ManualPoint title="0x03_Stability_Faults" desc="The core can withstand only 3 logic faults. On the 4th, the matrix undergoes a total collapse (Kernel Panic)." color="text-app-accent" />
+                        <ManualPoint title="0x02_Remote_Link" desc="Use D-Pad / Arrows to navigate nodes. Enter / OK to cycle digits. Backspace to clear entries." color="text-app-accent" />
+                        <ManualPoint title="0x03_Stability_Faults" desc="The core can withstand only 3 logic faults. On the 4th, the matrix undergoes total collapse." color="text-app-accent" />
                     </div>
                     <div className="p-5 bg-app-accent/10 border-2 border-app-accent/30 rounded-2xl flex items-start gap-4">
                         <ExclamationTriangleIcon className="w-6 h-6 text-app-accent shrink-0 mt-0.5 animate-pulse" />
-                        <div><p className="text-[9px] font-black text-app-accent uppercase tracking-widest mb-1 italic">Pro Tip: Sector Isolation</p><p className="text-[8px] text-zinc-500 uppercase font-black leading-tight italic">Focus on sectors with the highest density of locked nodes. Solving a cluster often reveals the frequency drift in adjacent rails.</p></div>
+                        <div><p className="text-[9px] font-black text-app-accent uppercase tracking-widest mb-1 italic">Pro Tip: Sector Isolation</p><p className="text-[8px] text-zinc-500 uppercase font-black leading-tight italic">Focus on sectors with the highest density of locked nodes first.</p></div>
                     </div>
                 </section>
             </div>

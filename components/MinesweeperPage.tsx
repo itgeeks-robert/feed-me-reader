@@ -67,6 +67,7 @@ const MinesweeperPage: React.FC<MinesweeperPageProps> = ({ onBackToHub, onReturn
   const [showScores, setShowScores] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [bootLog, setBootLog] = useState<string[]>([]);
+  const [focusedCell, setFocusedCell] = useState<{ r: number, c: number }>({ r: 0, c: 0 });
   const timerRef = useRef<number | null>(null);
 
   const currentSettings = useMemo(() => settings[difficulty], [difficulty]);
@@ -90,6 +91,7 @@ const MinesweeperPage: React.FC<MinesweeperPageProps> = ({ onBackToHub, onReturn
     setGrid([]); 
     setTime(0);
     setInitials("");
+    setFocusedCell({ r: 0, c: 0 });
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = null;
     setFlagsLeft(settings[difficulty].mines);
@@ -202,6 +204,7 @@ const MinesweeperPage: React.FC<MinesweeperPageProps> = ({ onBackToHub, onReturn
 
   const handleCellClick = (r: number, c: number) => {
     if (gameState !== 'PLAYING') return;
+    setFocusedCell({ r, c });
     const idx = getIdx(r, c, currentSettings.cols);
     const isFirstReveal = !grid.some(c => c.isMine);
 
@@ -247,6 +250,24 @@ const MinesweeperPage: React.FC<MinesweeperPageProps> = ({ onBackToHub, onReturn
     });
   };
 
+  // TV / D-Pad Support
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (gameState !== 'PLAYING') return;
+      const { r, c } = focusedCell;
+      const { rows, cols } = currentSettings;
+
+      if (e.key === 'ArrowUp') setFocusedCell({ r: Math.max(0, r - 1), c });
+      else if (e.key === 'ArrowDown') setFocusedCell({ r: Math.min(rows - 1, r + 1), c });
+      else if (e.key === 'ArrowLeft') setFocusedCell({ r, c: Math.max(0, c - 1) });
+      else if (e.key === 'ArrowRight') setFocusedCell({ r, c: Math.min(cols - 1, c + 1) });
+      else if (e.key === 'Enter') handleCellClick(r, c);
+      else if (e.key === 'f' || e.key === ' ') toggleFlag(getIdx(r, c, cols));
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [gameState, focusedCell, currentSettings, handleCellClick]);
+
   const handleSaveScore = () => {
     soundService.playClick();
     const cat = `minesweeper_${difficulty.toLowerCase()}` as ScoreCategory;
@@ -275,26 +296,8 @@ const MinesweeperPage: React.FC<MinesweeperPageProps> = ({ onBackToHub, onReturn
             .digit-1 { color: #3b82f6; } .digit-2 { color: #10b981; } .digit-3 { color: #ef4444; }
             .digit-4 { color: #818cf8; } .digit-5 { color: #f59e0b; } .digit-6 { color: #06b6d4; }
             .digit-7 { color: #ec4899; } .digit-8 { color: #ffffff; }
-            
-            @keyframes circuit-glitch {
-                0% { opacity: 1; transform: scale(1); filter: hue-rotate(0deg); }
-                10% { opacity: 0.8; transform: scale(1.02) translate(1px, -1px); filter: hue-rotate(90deg); }
-                20% { opacity: 1; transform: scale(1); }
-                100% { opacity: 1; transform: scale(1); }
-            }
-            .mine-detonated { animation: circuit-glitch 0.2s infinite; background: #e11d48 !important; box-shadow: 0 0 20px #ef4444; z-index: 20; }
-            
-            @keyframes current-flow {
-                0% { border-color: var(--app-accent); box-shadow: 0 0 0px var(--app-accent); }
-                50% { border-color: var(--app-accent); box-shadow: 0 0 15px var(--app-accent); }
-                100% { border-color: var(--app-accent); box-shadow: 0 0 0px var(--app-accent); }
-            }
-            .animate-reveal { animation: current-flow 0.5s ease-out; }
-            
-            .node-standby::after {
-                content: ""; position: absolute; top: 4px; right: 4px; width: 3px; height: 3px;
-                border-radius: 50%; background: var(--app-accent); box-shadow: 0 0 5px var(--app-accent); opacity: 0.6;
-            }
+            .mine-detonated { background: #e11d48 !important; box-shadow: 0 0 20px #ef4444; z-index: 20; }
+            .node-focused { outline: 3px solid white; outline-offset: -3px; z-index: 30; transform: scale(1.1); box-shadow: 0 0 15px white; }
         `}</style>
 
         {gameState === 'IDLE' ? (
@@ -315,7 +318,7 @@ const MinesweeperPage: React.FC<MinesweeperPageProps> = ({ onBackToHub, onReturn
                         </div>
                     </div>
                     <div className="space-y-3">
-                        <button onClick={handleInitReboot} className="w-full py-5 bg-app-text text-app-bg font-black uppercase italic rounded-2xl hover:scale-[1.02] transition-all shadow-xl active:scale-95 text-lg">MOUNT PURGE_TOOL</button>
+                        <button onClick={handleInitReboot} className="w-full py-5 bg-app-text text-app-bg font-black uppercase italic rounded-2xl hover:scale-[1.02] transition-all shadow-xl active:scale-95 text-lg focus:ring-4 focus:ring-app-accent">MOUNT PURGE_TOOL</button>
                         <button onClick={() => { soundService.playClick(); setShowHelp(true); }} className="w-full py-3 bg-zinc-800 text-zinc-400 font-black uppercase italic rounded-xl border border-white/5 hover:text-white transition-all text-[10px] tracking-widest flex items-center justify-center gap-2"><BookOpenIcon className="w-4 h-4" /> Operational Lore</button>
                         <button onClick={onBackToHub} className="text-zinc-500 font-bold uppercase tracking-widest text-xs hover:text-white transition-colors pt-2 block w-full italic tracking-[0.2em]">Abort Session</button>
                     </div>
@@ -355,27 +358,27 @@ const MinesweeperPage: React.FC<MinesweeperPageProps> = ({ onBackToHub, onReturn
                 <div className="flex flex-col lg:flex-row gap-8">
                     <div className="bg-app-card p-5 rounded-[2.5rem] border-4 border-app-accent shadow-2xl relative overflow-hidden grid-crt flex-grow">
                         <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${currentSettings.cols}, 1fr)` }}>
-                          {grid.map((cell, idx) => (
-                                <div 
-                                    key={cell.id}
-                                    onClick={() => handleCellClick(cell.r, cell.c)} 
-                                    onContextMenu={(e) => { e.preventDefault(); toggleFlag(idx); }}
-                                    className={`aspect-square flex items-center justify-center text-xs md:text-xl font-black rounded-lg transition-all cursor-pointer relative select-none
-                                        ${cell.isRevealed 
-                                            ? (cell.isMine ? 'mine-detonated' : 'bg-black/60 ring-1 ring-white/5 animate-reveal border border-white/10') 
-                                            : 'bg-zinc-800 hover:bg-zinc-700 shadow-[inset_0_4px_4px_rgba(255,255,255,0.05),0_4px_8px_rgba(0,0,0,0.5)] border border-zinc-900 hover:scale-[1.03] active:scale-95 node-standby'
-                                        } 
-                                        ${cell.isFlagged && !cell.isRevealed ? 'bg-app-accent/20' : ''}`}
-                                >
-                                    {cell.isRevealed ? (
-                                        cell.isMine ? <div className="text-white drop-shadow-[0_0_100px_white] scale-150">☢️</div> : (cell.adjacentMines > 0 && <span className={`digit-${cell.adjacentMines} drop-shadow-[0_0_10px_rgba(0,0,0,0.8)] font-black italic`}>{cell.adjacentMines}</span>)
-                                    ) : (cell.isFlagged && <div className="text-pulse-500 drop-shadow-[0_0_12px_#e11d48] animate-pulse scale-110">⚑</div>)}
-                                    <div className="absolute -top-1 -left-1 w-1 h-1 bg-zinc-600 rounded-full opacity-30" />
-                                    <div className="absolute -top-1 -right-1 w-1 h-1 bg-zinc-600 rounded-full opacity-30" />
-                                    <div className="absolute -bottom-1 -left-1 w-1 h-1 bg-zinc-600 rounded-full opacity-30" />
-                                    <div className="absolute -bottom-1 -right-1 w-1 h-1 bg-zinc-600 rounded-full opacity-30" />
-                                </div>
-                          ))}
+                          {grid.map((cell, idx) => {
+                                const isFocused = focusedCell.r === cell.r && focusedCell.c === cell.c;
+                                return (
+                                    <div 
+                                        key={cell.id}
+                                        onClick={() => handleCellClick(cell.r, cell.c)} 
+                                        onContextMenu={(e) => { e.preventDefault(); toggleFlag(idx); }}
+                                        className={`aspect-square flex items-center justify-center text-xs md:text-xl font-black rounded-lg transition-all cursor-pointer relative select-none
+                                            ${cell.isRevealed 
+                                                ? (cell.isMine ? 'mine-detonated' : 'bg-black/60 ring-1 ring-white/5 border border-white/10') 
+                                                : 'bg-zinc-800 hover:bg-zinc-700 shadow-[inset_0_4px_4px_rgba(255,255,255,0.05),0_4px_8px_rgba(0,0,0,0.5)] border border-zinc-900 hover:scale-[1.03] active:scale-95'
+                                            } 
+                                            ${cell.isFlagged && !cell.isRevealed ? 'bg-app-accent/20' : ''}
+                                            ${isFocused ? 'node-focused' : ''}`}
+                                    >
+                                        {cell.isRevealed ? (
+                                            cell.isMine ? <div className="text-white drop-shadow-[0_0_100px_white] scale-150">☢️</div> : (cell.adjacentMines > 0 && <span className={`digit-${cell.adjacentMines} drop-shadow-[0_0_10px_rgba(0,0,0,0.8)] font-black italic`}>{cell.adjacentMines}</span>)
+                                        ) : (cell.isFlagged && <div className="text-pulse-500 drop-shadow-[0_0_12px_#e11d48] animate-pulse scale-110">⚑</div>)}
+                                    </div>
+                                );
+                          })}
                         </div>
                     </div>
 
@@ -392,16 +395,12 @@ const MinesweeperPage: React.FC<MinesweeperPageProps> = ({ onBackToHub, onReturn
 
                         <button 
                             onClick={() => { soundService.playAction(); setIsFlagMode(!isFlagMode); }} 
-                            className={`w-full py-6 rounded-[2rem] font-black uppercase text-xs italic tracking-widest border-2 transition-all shadow-xl group ${isFlagMode ? 'bg-pulse-600 border-pulse-400 text-white shadow-[0_0_30px_rgba(225,29,72,0.4)]' : 'bg-app-card border-white/10 text-zinc-500 hover:text-white'}`}
+                            className={`w-full py-6 rounded-[2rem] font-black uppercase text-xs italic tracking-widest border-2 transition-all shadow-xl group ${isFlagMode ? 'bg-pulse-600 border-pulse-400 text-white shadow-[0_0_30px_rgba(225,29,72,0.4)]' : 'bg-app-card border-white/10 text-zinc-500 hover:text-white focus:ring-4 focus:ring-pulse-500'}`}
                         >
                             <span className="flex items-center justify-center gap-3"><FlagIcon className={`w-5 h-5 ${isFlagMode ? 'animate-bounce' : ''}`} /> {isFlagMode ? 'PLACING BEACONS' : 'ANALYSIS MODE'}</span>
                         </button>
                         
-                        <p className="text-[9px] text-zinc-600 uppercase font-black text-center tracking-[0.2em] font-mono italic px-4">
-                            {isFlagMode ? 'Deploy beacon to shorted node' : 'Probe logic gate for potential signal'}
-                        </p>
-                        
-                        <button onClick={() => { soundService.playClick(); reset(); }} className="mt-auto w-full py-4 bg-zinc-900 border border-white/5 rounded-2xl text-[9px] font-black uppercase tracking-widest text-zinc-500 hover:text-white transition-all flex items-center justify-center gap-2 shadow-lg active:scale-95"><ArrowPathIcon className="w-4 h-4" /> Sys_Reboot</button>
+                        <button onClick={() => { soundService.playClick(); reset(); }} className="mt-auto w-full py-4 bg-zinc-900 border border-white/5 rounded-2xl text-[9px] font-black uppercase tracking-widest text-zinc-500 hover:text-white transition-all flex items-center justify-center gap-2 shadow-lg active:scale-95 focus:ring-4 focus:ring-white"><ArrowPathIcon className="w-4 h-4" /> Sys_Reboot</button>
                     </div>
                 </div>
             </div>
@@ -414,7 +413,6 @@ const MinesweeperPage: React.FC<MinesweeperPageProps> = ({ onBackToHub, onReturn
                 <div className="max-w-sm w-full bg-app-card p-10 rounded-[3.5rem] border-4 border-app-accent shadow-[0_0_100px_rgba(34,197,94,0.3)]">
                     <div className="mb-6 mx-auto w-24 h-24 bg-app-accent/10 rounded-full flex items-center justify-center border border-app-accent/30"><VoidIcon className="w-14 h-14 text-app-accent animate-pulse" /></div>
                     <h2 className="text-5xl font-black italic uppercase tracking-tighter mb-4 text-app-accent leading-none">SECTOR CLEAN</h2>
-                    <p className="text-zinc-500 font-bold uppercase tracking-widest text-[9px] mb-8 italic px-4 leading-relaxed">Hardware anomalies purged.<br/>Mainframe voltage normalized.</p>
                     <div className="mb-10">
                         <p className="text-zinc-500 font-bold uppercase tracking-widest text-[10px] mb-4 italic">Operator Token</p>
                         <input autoFocus maxLength={3} value={initials} onChange={e => setInitials(e.target.value.toUpperCase())} className="bg-black/50 border-2 border-app-accent text-white rounded-xl px-4 py-4 text-center text-3xl font-black w-36 outline-none uppercase italic shadow-2xl" placeholder="???" />
@@ -427,11 +425,9 @@ const MinesweeperPage: React.FC<MinesweeperPageProps> = ({ onBackToHub, onReturn
         {gameState === 'LOST' && (
             <div className="fixed inset-0 bg-black/98 backdrop-blur-md z-[100] flex items-center justify-center p-6 text-center animate-fade-in">
                 <div className="max-w-sm w-full bg-app-card p-12 rounded-[3.5rem] border-4 border-pulse-500 shadow-[0_0_120px_rgba(225,29,72,0.23)] relative overflow-hidden">
-                    <div className="absolute inset-0 pointer-events-none opacity-10 static-noise" />
                     <div className="mb-6 mx-auto w-24 h-24 bg-pulse-500/10 rounded-full flex items-center justify-center border border-pulse-500/30"><div className="text-5xl animate-ping">☢️</div></div>
                     <h2 className="text-5xl font-black italic uppercase tracking-tighter mb-6 text-pulse-500 leading-none">TRACE BURNOUT</h2>
-                    <p className="text-zinc-500 font-bold uppercase tracking-widest text-[10px] mb-12 leading-relaxed italic px-2">Anomalies triggered terminal short.<br/>Mainframe logic sequence fragmented.</p>
-                    <button onClick={() => { soundService.playClick(); reset(); }} className="w-full py-6 bg-pulse-600 text-white font-black text-xl italic uppercase rounded-full hover:scale-105 transition-all shadow-xl active:scale-95">FORCED_REBOOT</button>
+                    <button onClick={() => { soundService.playClick(); reset(); }} className="w-full py-6 bg-pulse-600 text-white font-black text-xl italic uppercase rounded-full hover:scale-105 transition-all shadow-xl active:scale-95 focus:ring-4 focus:ring-white">FORCED_REBOOT</button>
                 </div>
             </div>
         )}
@@ -451,16 +447,12 @@ const TacticalManual: React.FC<{ onClose: () => void }> = ({ onClose }) => (
                 <section className="space-y-8 relative z-10">
                     <div>
                         <h3 className="text-lg font-black text-app-text italic uppercase tracking-tighter mb-4 flex items-center gap-3"><SparklesIcon className="w-5 h-5 text-app-accent" /> Maintenance Protocol</h3>
-                        <p className="text-[10px] md:text-xs text-zinc-400 uppercase font-black leading-relaxed tracking-wider mb-4 border-l-2 border-app-accent/30 pl-4">The VOID core is infested with silicon anomalies. As an Operator, you must isolate hardware shorts (mines) before they cascade.</p>
+                        <p className="text-[10px] md:text-xs text-zinc-400 uppercase font-black leading-relaxed tracking-wider mb-4 border-l-2 border-app-accent/30 pl-4">The VOID core is infested with silicon anomalies. Isolate hardware shorts (mines) before they cascade.</p>
                     </div>
                     <div className="grid grid-cols-1 gap-6">
-                        <ManualPoint title="0x01_Proximity_Telemetry" desc="Digits indicate the number of active anomalies in the surrounding 8-node logic gates. Use them to triangulate shorts." color="text-app-accent" />
-                        <ManualPoint title="0x02_Beacon_Uplink" desc="Deploy Beacons (flags) to lock hazardous nodes. This prevents accidental circuit discharge and signals the antiviral purge." color="text-app-accent" />
-                        <ManualPoint title="0x03_The_Zero_Trap" desc="Anomalies often cluster. Revealing a safe node with 0 proximity data indicates a massive logic clearance—use this momentum." color="text-app-accent" />
-                    </div>
-                    <div className="p-5 bg-app-accent/10 border-2 border-app-accent/30 rounded-2xl flex items-start gap-4">
-                        <ExclamationTriangleIcon className="w-6 h-6 text-app-accent shrink-0 mt-0.5 animate-pulse" />
-                        <div><p className="text-[9px] font-black text-app-accent uppercase tracking-widest mb-1 italic">Pro Tip: Hardware Fatigue</p><p className="text-[8px] text-zinc-500 uppercase font-black leading-tight italic">Do not guess. A single logic fault triggers a trace burnout. Trust the numerical heuristics or deploy a Logic Probe from the Black Market.</p></div>
+                        <ManualPoint title="0x01_Proximity_Telemetry" desc="Digits indicate the number of active anomalies surrounding the node. Use them to triangulate shorts." color="text-app-accent" />
+                        <ManualPoint title="0x02_Remote_Link" desc="Use D-Pad / Arrows to move. Enter / OK to reveal. Space / Flag to deploy beacons." color="text-app-accent" />
+                        <ManualPoint title="0x03_The_Zero_Trap" desc="Revealing a safe node with 0 proximity data triggers a massive logic clearance—use this momentum." color="text-app-accent" />
                     </div>
                 </section>
             </div>

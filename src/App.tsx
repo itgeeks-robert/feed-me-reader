@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import MainContent from '../components/MainContent';
 import type { SourceType } from '../components/AddSource';
-import SettingsModal from '../components/SettingsModal';
 import Sidebar from '../components/Sidebar';
 import GameHubPage from '../components/GameHubPage';
 import ReaderViewModal from '../components/ReaderViewModal';
@@ -28,6 +27,7 @@ import { parseRssXml } from '../services/rssParser';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { GlobeAltIcon, RadioIcon, XIcon, SearchIcon, VoidIcon, ControllerIcon, CpuChipIcon, MenuIcon, BoltIcon, ShieldCheckIcon } from '../components/icons';
 import { soundService } from '../services/soundService';
+import SettingsModal from '../components/SettingsModal';
 
 export interface Folder { id: number; name: string; }
 export interface Feed { id: number; url: string; title: string; iconUrl: string; folderId: number | null; sourceType?: SourceType; category?: string; }
@@ -100,23 +100,20 @@ const App: React.FC = () => {
     });
 
     useEffect(() => {
-        // Sync theme with document attributes and classes
         const doc = document.documentElement;
-        
-        // Handle theme.css variables
         const dataThemeMap: Record<Theme, string> = {
             'noir': 'noir',
             'terminal': 'terminal',
-            'bento-grid': 'bento',
+            // Fix: Remove invalid key 'bento' from dataThemeMap Record, as it is not part of the Theme type.
             'liquid-glass': 'sleek',
             'brutalist': 'brutalist',
             'claymorphism': 'claymorphism',
             'monochrome-zen': 'monochrome-zen',
-            'y2k': 'y2k'
+            'y2k': 'y2k',
+            'bento-grid': 'bento'
         };
         doc.setAttribute('data-theme', dataThemeMap[theme] || 'noir');
 
-        // Handle index.html classes for older components
         const themeClasses = ['theme-liquid-glass', 'theme-bento-grid', 'theme-brutalist', 'theme-claymorphism', 'theme-monochrome-zen', 'theme-y2k', 'theme-terminal'];
         themeClasses.forEach(c => doc.classList.remove(c));
         if (theme !== 'noir') {
@@ -229,9 +226,11 @@ const App: React.FC = () => {
         return <SplashScreen onEnterFeeds={() => updateSelection({ type: 'all', id: null })} onEnterArcade={() => updateSelection({ type: 'game_hub', id: null })} isDecoding={isDecoding} onReset={handleResetSystem} />;
     }
 
+    // Shield sidebar when in games
+    const hideMenuTrigger = isGameActive || selection.type === 'game_hub';
+
     return (
         <div className="h-screen w-full font-sans text-sm relative flex flex-col overflow-hidden bg-app-bg text-app-text transition-colors duration-300">
-            {/* STATIC GLOBAL HEADER */}
             <header className="fixed top-0 left-0 right-0 z-[60] bg-black border-b border-white/10 pt-[var(--safe-top)] shrink-0">
                 <div className="h-11 md:h-12 flex items-center px-2 md:px-8 justify-between">
                     <div className="flex items-center h-full gap-2 md:gap-3 overflow-x-auto scrollbar-hide">
@@ -246,7 +245,7 @@ const App: React.FC = () => {
                             <GlobalNavLink active={isSettingsModalOpen} onClick={() => setIsSettingsModalOpen(true)} label="CORE" icon={<CpuChipIcon className="w-3.5 h-3.5"/>} />
                         </nav>
                     </div>
-                    <div className="flex items-center gap-1 shrink-0 pl-1">
+                    <div className={`flex items-center gap-1 shrink-0 pl-1 transition-opacity duration-500 ${hideMenuTrigger ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
                         <button onClick={() => setIsSidebarOpen(true)} className="p-1.5 md:p-2 text-zinc-500 hover:text-white transition-colors active:scale-90"><MenuIcon className="w-5 h-5 md:w-6 md:h-6" /></button>
                     </div>
                 </div>
@@ -282,7 +281,9 @@ const App: React.FC = () => {
                 )}
             </TerminalView>
             
-            <Sidebar feeds={feeds} folders={folders} selection={selection} onAddSource={handleAddSource} onRemoveFeed={(id) => setFeeds(feeds.filter(x => x.id !== id))} onSelect={updateSelection} onAddFolder={(n) => setFolders([...folders, {id: Date.now(), name: n}])} onRenameFolder={(id, n) => setFolders(folders.map(x => x.id === id ? {...x, name: n} : x))} onDeleteFolder={(id) => setFolders(folders.filter(x => x.id !== id))} onMoveFeedToFolder={(fid, foldId) => setFeeds(feeds.map(x => x.id === fid ? {...x, folderId: foldId} : x))} isSidebarOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} onOpenSettings={() => setIsSettingsModalOpen(true)} />
+            {!hideMenuTrigger && (
+                <Sidebar feeds={feeds} folders={folders} selection={selection} onAddSource={handleAddSource} onRemoveFeed={(id) => setFeeds(feeds.filter(x => x.id !== id))} onSelect={updateSelection} onAddFolder={(n) => setFolders([...folders, {id: Date.now(), name: n}])} onRenameFolder={(id, n) => setFolders(folders.map(x => x.id === id ? {...x, name: n} : x))} onDeleteFolder={(id) => setFolders(folders.filter(x => x.id !== id))} onMoveFeedToFolder={(fid, foldId) => setFeeds(feeds.map(x => x.id === fid ? {...x, folderId: foldId} : x))} isSidebarOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} onOpenSettings={() => setIsSettingsModalOpen(true)} />
+            )}
             <SettingsModal isOpen={isSettingsModalOpen} onClose={() => setIsSettingsModalOpen(false)} settings={{ feeds, folders, theme, articleView, widgets: widgetSettings }} onUpdateSettings={(s) => { if(s.theme) setTheme(s.theme as Theme); if(s.articleView) setArticleView(s.articleView); }} onSelect={(s) => { updateSelection(s); setIsSettingsModalOpen(false); }} onAddFolder={(n) => setFolders([...folders, {id: Date.now(), name: n}])} onRenameFolder={(id, n) => setFolders(folders.map(x => x.id === id ? {...x, name: n} : x))} onDeleteFolder={(id) => setFolders(folders.filter(x => x.id !== id))} onRemoveFeed={(id) => setFeeds(feeds.filter(x => x.id !== id))} onImportOpml={(f, fld) => { setFeeds([...feeds, ...f.map(i => ({...i, id: Date.now() + Math.random()}))]); setFolders([...folders, ...fld]); }} onExportOpml={() => {}} onImportSettings={() => {}} onExportSettings={() => {}} onAddSource={handleAddSource} onEnterUtils={() => updateSelection({ type: 'utility_hub', id: null })} onResetFeeds={handleResetSystem} />
             {readerArticle && <ReaderViewModal article={readerArticle} onClose={() => setReaderArticle(null)} onMarkAsRead={(id) => setReadArticleIds(prev => new Set(prev).add(id))} onOpenExternal={(url) => window.open(url, '_blank')} />}
         </div>

@@ -6,12 +6,11 @@
   /* Default: NOIR (Signature Default) */
   --app-bg: #050505;
   --app-text: #ffffff;
-  --app-accent: #00f2ff;
+  --app-accent: #e11d48; /* Void Red */
   --app-card: #101012;
 }
 
 [data-theme='sleek'] {
-  /* LIQUID GLASS */
   --app-bg: #f1f5f9;
   --app-text: #0f172a;
   --app-accent: #2563eb;
@@ -19,47 +18,13 @@
 }
 
 [data-theme='bento'] {
-  /* BENTO GRID */
   --app-bg: #f8fafc;
   --app-text: #0f172a;
   --app-accent: #2563eb;
   --app-card: #ffffff;
 }
 
-[data-theme='brutalist'] {
-  /* BRUTALIST */
-  --app-bg: #ffffff;
-  --app-text: #000000;
-  --app-accent: #000000;
-  --app-card: #ffffff;
-}
-
-[data-theme='claymorphism'] {
-  /* CLAYMORPHISM */
-  --app-bg: #e0e7ff;
-  --app-text: #312e81;
-  --app-accent: #ec4899;
-  --app-card: #ffffff;
-}
-
-[data-theme='monochrome-zen'] {
-  /* MONOCHROME ZEN */
-  --app-bg: #061a1a;
-  --app-text: #ccfbf1;
-  --app-accent: #14b8a6;
-  --app-card: #0a2626;
-}
-
-[data-theme='y2k'] {
-  /* Y2K FUTUROLOGY */
-  --app-bg: #004d4d;
-  --app-text: #ffffff;
-  --app-accent: #ffff00;
-  --app-card: #008080;
-}
-
 [data-theme='terminal'] {
-  /* TERMINAL / DOS */
   --app-bg: #0d0208;
   --app-text: #00ff41;
   --app-accent: #00ff41;
@@ -73,9 +38,47 @@
   .text-app-accent { color: var(--app-accent); }
   .border-app-accent { border-color: var(--app-accent); }
   .bg-app-accent { background-color: var(--app-accent); }
+  
+  /* Procedural Loader */
+  .void-spinner {
+    border-right-color: transparent;
+    border-bottom-color: transparent;
+  }
 }
 
-/* Global Transition for Theme Switching */
 html, body {
   transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* TV & Remote Navigation: Ultra High Contrast Focus Rings */
+*:focus {
+  outline: none;
+}
+
+*:focus-visible {
+  outline: 4px solid #fff;
+  outline-offset: 4px;
+  box-shadow: 0 0 0 8px var(--app-accent), 0 0 30px var(--app-accent);
+  transform: scale(1.03);
+  transition: transform 0.2s ease, outline 0.2s ease;
+  z-index: 99;
+}
+
+[data-theme='sleek'] *:focus-visible, 
+[data-theme='bento'] *:focus-visible {
+  outline: 4px solid var(--app-accent);
+  box-shadow: 0 0 0 8px rgba(255,255,255,0.8), 0 10px 25px rgba(0,0,0,0.1);
+}
+
+.void-card:focus-visible, .void-button:focus-visible {
+  border-color: #fff;
+}
+
+/* Scrollbar Hide Utility */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

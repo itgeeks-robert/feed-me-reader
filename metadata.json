@@ -1,6 +1,6 @@
 {
   "name": "The Void",
-  "description": "A technical noir signal reader and dark arcade for offline surveillance and decryption.",
+  "description": "A technical noir signal reader and dark arcade for offline surveillance and decryption. Now optimized for Android TV Leanback navigation.",
   "requestFramePermissions": [
     "geolocation",
     "camera",

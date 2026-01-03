@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import type { Article } from '../../src/App';
 import type { SourceType } from '../AddSource';
@@ -46,7 +45,11 @@ const MagazineArticleListItem: React.FC<MagazineArticleListItemProps> = ({ artic
                         alt=""
                         className="w-full h-full object-cover transition-all duration-700 group-hover:scale-105 opacity-100"
                         wrapperClassName="w-full h-full"
-                        fallback={<div className="w-full h-full static-noise flex items-center justify-center"></div>}
+                        fallback={
+                            <div className="w-full h-full static-noise flex items-center justify-center">
+                                {isSearching && <div className="void-spinner w-6 h-6 border-2 border-pulse-500/20 border-t-pulse-500 rounded-full animate-spin" />}
+                            </div>
+                        }
                     />
                     <div className="absolute inset-0 cctv-overlay pointer-events-none opacity-20" />
                 </div>
@@ -70,7 +73,6 @@ const MagazineArticleListItem: React.FC<MagazineArticleListItemProps> = ({ artic
                 </div>
             </div>
             
-            {/* Raw Data Link: Placed outside frame at bottom right */}
             <button 
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); onReadExternal(); }}
                 className="absolute bottom-0 right-1 text-[7px] font-black uppercase tracking-[0.2em] text-zinc-700 hover:text-white transition-colors italic z-20"

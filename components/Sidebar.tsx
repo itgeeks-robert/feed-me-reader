@@ -1,4 +1,3 @@
-
 import React from 'react';
 import type { Feed, Folder, Selection } from '../src/App';
 import type { SourceType } from './AddSource';
@@ -52,7 +51,7 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
     };
 
     return (
-        <aside className={`fixed inset-y-0 left-0 z-50 w-72 bg-zinc-950 border-r border-zinc-900 flex flex-col h-full transform transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} shadow-2xl md:shadow-none pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]`}>
+        <aside className={`fixed inset-y-0 left-0 z-[70] w-72 bg-zinc-950 border-r border-zinc-900 flex flex-col h-full transform transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} shadow-2xl pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]`}>
             <div className="p-6 flex-shrink-0">
                 <div className="flex items-center justify-between space-x-2 mb-10">
                     <div className="flex items-center space-x-4">
@@ -64,7 +63,7 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                             <span className="text-[8px] font-bold text-zinc-500 uppercase tracking-[0.4em]">S I G N A L</span>
                         </div>
                     </div>
-                    <button onClick={onClose} className="p-2 -mr-2 rounded-2xl text-zinc-500 hover:bg-zinc-900 md:hidden">
+                    <button onClick={onClose} className="p-2 -mr-2 rounded-2xl text-zinc-500 hover:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-pulse-500">
                         <XIcon className="w-7 h-7" />
                     </button>
                 </div>
@@ -119,7 +118,7 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
             </div>
             
             <div className="p-6 mt-auto flex-shrink-0 bg-zinc-950 border-t border-zinc-900">
-                <button onClick={onOpenSettings} className="w-full flex items-center gap-4 py-4 px-5 text-xs font-black uppercase tracking-widest rounded-2xl text-zinc-500 bg-zinc-900 hover:bg-zinc-800 hover:text-white transition-all">
+                <button onClick={onOpenSettings} className="w-full flex items-center gap-4 py-4 px-5 text-xs font-black uppercase tracking-widest rounded-2xl text-zinc-500 bg-zinc-900 hover:bg-zinc-800 hover:text-white transition-all focus:ring-2 focus:ring-pulse-500">
                     <SettingsIcon className="w-5 h-5" />
                     <span>Diagnostics</span>
                 </button>

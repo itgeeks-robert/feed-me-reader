@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import type { Article } from '../../src/App';
-import { BookOpenIcon, GlobeAltIcon, RadioIcon, BoltIcon } from '../icons';
+import { BookOpenIcon, GlobeAltIcon, RadioIcon, BoltIcon, ArrowPathIcon } from '../icons';
 import ImageWithProxy from '../ImageWithProxy';
 import { reconstructSignalImage } from '../../services/imageSearchService';
 
@@ -31,7 +30,14 @@ const CCTVMonitor: React.FC<{ src: string | null; label: string; headline: strin
                     wrapperClassName="w-full h-full"
                     fallback={
                         <div className="w-full h-full static-noise flex flex-col items-center justify-center p-4">
-                            <span className="text-xl font-black text-pulse-500 tracking-widest uppercase italic animate-pulse">NO_SIGNAL</span>
+                            {isSearching ? (
+                                <div className="flex flex-col items-center gap-3">
+                                    <div className="void-spinner w-8 h-8 border-4 border-pulse-500/20 border-t-pulse-500 rounded-full animate-spin" />
+                                    <span className="text-[10px] font-black text-pulse-500 tracking-widest uppercase italic animate-pulse">RECONSTRUCTING_SIGNAL...</span>
+                                </div>
+                            ) : (
+                                <span className="text-xl font-black text-pulse-500 tracking-widest uppercase italic animate-pulse">NO_SIGNAL</span>
+                            )}
                         </div>
                     }
                 />
@@ -45,10 +51,6 @@ const CCTVMonitor: React.FC<{ src: string | null; label: string; headline: strin
                     <div className="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse shadow-[0_0_8px_red]" />
                     <span className="text-[9px] font-black text-white uppercase tracking-widest italic">LIVE_INTERCEPT</span>
                 </div>
-            </div>
-            
-            <div className="absolute bottom-4 right-4 pointer-events-none z-20">
-                <span className="text-[8px] text-white/30 uppercase tracking-[0.5em] font-mono">{new Date().toLocaleTimeString()}</span>
             </div>
         </div>
     );
@@ -88,7 +90,6 @@ const FeaturedStory: React.FC<{article: Article; onReadHere: () => void; onReadE
                 </div>
             </div>
             
-            {/* Raw Data Link: Placed outside frame at bottom right */}
             <button 
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); onReadExternal(); }}
                 className="absolute -bottom-6 right-2 text-[8px] font-black uppercase tracking-[0.3em] text-zinc-600 hover:text-white transition-colors italic z-20"

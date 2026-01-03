@@ -51,19 +51,21 @@ const ReaderViewModal: React.FC<ReaderViewModalProps> = ({ article, onClose, onM
         
         setTimeout(() => {
             const text = contentRef.current?.innerText || "";
-            const sentences = text.match(/[^.!?]+[.!?]+/g) || [];
+            // Explicitly cast the match result to an array of strings to avoid 'unknown' inference
+            const sentences = (text.match(/[^.!?]+[.!?]+/g) || []) as string[];
             const tacticalWords = ['SYSTEM', 'NETWORK', 'DATA', 'SECURITY', 'GLOBAL', 'PROTOCOL', 'NODE', 'ACCESS', 'SIGNAL', 'ENCRYPT'];
             
             const scored = sentences.map(s => {
                 let score = s.length > 40 && s.length < 150 ? 10 : 0;
                 tacticalWords.forEach(w => {
+                    // s is now correctly typed as string
                     if (s.toUpperCase().includes(w)) score += 5;
                 });
                 return { s, score };
             }).sort((a, b) => b.score - a.score);
 
             const results = Array.from(new Set(scored.slice(0, 3).map(i => i.s.trim())))
-                .map(s => s.toUpperCase());
+                .map((s: string) => s.toUpperCase());
 
             setIntelBriefing(results.length > 0 ? results : ["NO_CRITICAL_PATTERN_DETECTED"]);
             setIsProcessing(false);
