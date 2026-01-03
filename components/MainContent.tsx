@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import type { Feed, Folder, Selection, WidgetSettings, Article, ArticleView, Theme } from '../src/App';
 import type { SourceType } from './AddSource';
-import { MenuIcon, SearchIcon, SunIcon, MoonIcon, GlobeAltIcon, CpuChipIcon, BeakerIcon, ChartBarIcon, FlagIcon, FireIcon, ControllerIcon, XIcon, ExclamationTriangleIcon, ArrowPathIcon, RadioIcon, VoidIcon, ShieldCheckIcon, ContrastIcon, WandIcon, PaletteIcon, SkinsIcon, StyleIcon, MusicIcon } from './icons';
+import { MenuIcon, SearchIcon, SunIcon, MoonIcon, GlobeAltIcon, CpuChipIcon, BeakerIcon, ChartBarIcon, FlagIcon, FireIcon, ControllerIcon, XIcon, ExclamationTriangleIcon, ArrowPathIcon, RadioIcon, VoidIcon, ShieldCheckIcon, ContrastIcon, WandIcon, PaletteIcon, SkinsIcon, StyleIcon, MusicIcon, BoltIcon, ListIcon } from './icons';
 import { resilientFetch } from '../services/fetch';
 import { parseRssXml } from '../services/rssParser';
 import FeaturedStory from './articles/FeaturedStory';
@@ -10,8 +10,6 @@ import MagazineArticleListItem from './articles/MagazineArticleListItem';
 import { getCacheCount } from '../services/cacheService';
 import FeedOnboarding, { PRESETS, Category } from './FeedOnboarding';
 import { useLocalStorage } from '../hooks/useLocalStorage';
-import { discoverFeedSignals } from '../services/feedDiscoveryService';
-import Tooltip from './Tooltip';
 import ContextualIntel from './ContextualIntel';
 
 interface MainContentProps {
@@ -41,8 +39,8 @@ interface MainContentProps {
     onToggleTheme: () => void;
     onOpenSettings: () => void;
     onOpenAddSource: () => void;
-    onAddSource: (url: string, type: SourceType) => Promise<void>;
     onOpenSidebar: () => void;
+    onAddSource: (url: string, type: SourceType) => Promise<void>;
     animationClass: string;
     pageTitle: string;
     initialArticles?: Article[];
@@ -53,52 +51,32 @@ interface MainContentProps {
     onToggleAmbient: () => void;
 }
 
-const ThemeIcon: React.FC<{ className?: string }> = ({ className }) => {
-    return <PaletteIcon className={className} />;
-};
-
 const ARTICLES_PER_PAGE = 25;
 const LOAD_MORE_BATCH = 15;
 
 const CATEGORY_MAP = [
-    { id: 'NEWS' },
-    { id: 'TECH' },
-    { id: 'SCIENCE' },
-    { id: 'FINANCE' },
-    { id: 'SPORTS' },
-    { id: 'CULTURE' },
-    { id: 'GAMING' }
+    { id: 'NEWS', icon: <GlobeAltIcon className="w-4 h-4" /> },
+    { id: 'TECH', icon: <CpuChipIcon className="w-4 h-4" /> },
+    { id: 'SCIENCE', icon: <BeakerIcon className="w-4 h-4" /> },
+    { id: 'FINANCE', icon: <ChartBarIcon className="w-4 h-4" /> },
+    { id: 'SPORTS', icon: <FlagIcon className="w-4 h-4" /> },
+    { id: 'CULTURE', icon: <FireIcon className="w-4 h-4" /> },
+    { id: 'GAMING', icon: <ControllerIcon className="w-4 h-4" /> }
 ];
 
 const MainContent: React.FC<MainContentProps> = (props) => {
-    const { selection, onSelectCategory, readArticleIds, bookmarkedArticleIds, onMarkAsRead, onPurgeBuffer, onSearch, onOpenReader, onOpenExternal, refreshKey, onOpenSidebar, theme, onToggleTheme, animationClass, pageTitle, allFeeds, onSetFeeds, onSetFolders, initialArticles, onAddSource, onRefresh, onSetSniffErrorModal, onOpenSearchExplainer, onOpenIntegrityBriefing, ambientEnabled, onToggleAmbient } = props;
+    const { selection, onSelectCategory, readArticleIds, bookmarkedArticleIds, onMarkAsRead, onSearch, onOpenReader, onOpenExternal, refreshKey, onRefresh, onOpenSidebar, theme, onToggleTheme, animationClass, pageTitle, allFeeds, onSetFeeds, onSetFolders, initialArticles, onOpenSettings } = props;
     
     const [articles, setArticles] = useState<Article[]>(initialArticles || []);
     const [loading, setLoading] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [visibleCount, setVisibleCount] = useState(ARTICLES_PER_PAGE);
     const [showOnlyUnread, setShowOnlyUnread] = useState(false);
-    const [pendingCategory, setPendingCategory] = useState<string | null>(null);
-    const [isSniffing, setIsSniffing] = useState(false);
-    const [rememberGlobalWarning, setRememberGlobalWarning] = useLocalStorage<boolean>('void_remember_global_warning', false);
-    
-    useEffect(() => { getCacheCount(); }, [refreshKey]);
 
-    useEffect(() => {
-        const interval = setInterval(() => {
-            if (document.visibilityState === 'visible') onRefresh();
-        }, 60000);
-        return () => clearInterval(interval);
-    }, [onRefresh]);
+    useEffect(() => { getCacheCount(); }, [refreshKey]);
 
     const activeFeeds = useMemo(() => {
         if (!selection.category) return allFeeds;
-        if (selection.category === 'GLOBAL_SYNC') {
-            const presetsAsFeeds = PRESETS.map(p => ({
-                id: Math.random(), url: p.url, title: p.title, iconUrl: '', folderId: null, category: p.category
-            }));
-            return [...allFeeds, ...presetsAsFeeds];
-        }
         const presets = PRESETS.filter(p => p.category === selection.category);
         return presets.map(p => ({
             id: Math.random(), url: p.url, title: p.title, iconUrl: '', folderId: null, category: p.category
@@ -106,7 +84,6 @@ const MainContent: React.FC<MainContentProps> = (props) => {
     }, [selection.category, allFeeds]);
 
     useEffect(() => {
-        if (initialArticles && initialArticles.length > 0 && !selection.category && articles.length === initialArticles.length && refreshKey === 0) return;
         const fetchRssFeeds = async (targetFeeds: Feed[]) => {
             if (targetFeeds.length === 0) { setArticles([]); return; };
             setLoading(true);
@@ -127,7 +104,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
             } finally { setLoading(false); }
         };
         fetchRssFeeds(activeFeeds);
-    }, [activeFeeds, refreshKey, initialArticles]);
+    }, [activeFeeds, refreshKey]);
 
     const filteredArticles = useMemo(() => {
         let result = articles;
@@ -136,7 +113,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
              const filter = selection.query.toLowerCase();
              result = result.filter(a => a.title.toLowerCase().includes(filter) || a.snippet.toLowerCase().includes(filter) || a.source.toLowerCase().includes(filter));
         }
-        if (selection.category && selection.category !== 'GLOBAL_SYNC') {
+        if (selection.category) {
             const catLower = selection.category.toLowerCase();
             result = result.filter(a => a.feedCategory === selection.category || a.source.toLowerCase().includes(catLower));
         }
@@ -144,26 +121,15 @@ const MainContent: React.FC<MainContentProps> = (props) => {
         return result;
     }, [articles, selection, bookmarkedArticleIds, showOnlyUnread, readArticleIds]);
 
-    const unreadCount = useMemo(() => filteredArticles.filter(a => !readArticleIds.has(a.id)).length, [filteredArticles, readArticleIds]);
-
     const handleCategoryClick = (catId: string | null) => {
-        if (!catId) { onSelectCategory(null); return; }
-        if (rememberGlobalWarning) onSelectCategory(catId);
-        else setPendingCategory(catId);
-    };
-
-    const handleSearchSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        const query = searchQuery.trim();
-        if (!query) return;
-        onSearch(query);
+        onSelectCategory(catId);
     };
 
     if (allFeeds.length === 0 && selection.type === 'all' && onSetFeeds && onSetFolders) {
         return (
             <main className={`flex-grow overflow-y-auto scrollbar-hide ${animationClass} bg-void-bg pb-40 pt-2`}>
-                <Header onSearchSubmit={handleSearchSubmit} searchQuery={searchQuery} setSearchQuery={setSearchQuery} onOpenSidebar={onOpenSidebar} theme={theme} onToggleTheme={onToggleTheme} isSniffing={isSniffing} onOpenSearchExplainer={onOpenSearchExplainer} onOpenIntegrityBriefing={onOpenIntegrityBriefing} onRefresh={onRefresh} selection={selection} handleCategoryClick={handleCategoryClick} ambientEnabled={ambientEnabled} onToggleAmbient={onToggleAmbient} />
-                <div className="pt-[calc(9rem+var(--safe-top))] md:pt-[calc(11rem+var(--safe-top))]">
+                <Header onSearchSubmit={(e) => { e.preventDefault(); onSearch(searchQuery); }} searchQuery={searchQuery} setSearchQuery={setSearchQuery} onOpenSidebar={onOpenSidebar} onOpenSettings={onOpenSettings} onToggleTheme={onToggleTheme} onRefresh={onRefresh} selection={selection} handleCategoryClick={handleCategoryClick} />
+                <div className="pt-[calc(14rem+var(--safe-top))]">
                     <FeedOnboarding onComplete={(f, fld) => { onSetFolders(fld); onSetFeeds(f); }} />
                 </div>
             </main>
@@ -171,155 +137,178 @@ const MainContent: React.FC<MainContentProps> = (props) => {
     }
 
     const latestArticle = filteredArticles.length > 0 ? filteredArticles[0] : null;
-    const articlesToDisplay = filteredArticles.slice(1);
-    const visibleArticlesToDisplay = articlesToDisplay.slice(0, visibleCount - 1);
+    const trendingArticles = filteredArticles.slice(1, 4);
+    const rollingNews = filteredArticles.slice(4, visibleCount);
 
     return (
-        <main className={`flex-grow overflow-y-auto scrollbar-hide ${animationClass} bg-void-bg pb-[calc(10rem+var(--safe-bottom))] md:pb-32 scroll-smooth pt-2`}>
-            <ContextualIntel 
-                tipId="main_intel" 
-                title="Intel Acquisition" 
-                content="Welcome to the core loop. Use the category tabs to filter by sector. The 'Signal Output' below shows live decrypted packets from your nodes." 
+        <main className={`flex-grow overflow-y-auto scrollbar-hide ${animationClass} bg-void-bg pb-40 scroll-smooth`}>
+            <Header 
+                onSearchSubmit={(e) => { e.preventDefault(); onSearch(searchQuery); }} 
+                searchQuery={searchQuery} 
+                setSearchQuery={setSearchQuery} 
+                onOpenSidebar={onOpenSidebar} 
+                onOpenSettings={onOpenSettings}
+                onToggleTheme={onToggleTheme}
+                onRefresh={onRefresh}
+                selection={selection} 
+                handleCategoryClick={handleCategoryClick} 
             />
-            <Header onSearchSubmit={handleSearchSubmit} searchQuery={searchQuery} setSearchQuery={setSearchQuery} onOpenSidebar={onOpenSidebar} theme={theme} onToggleTheme={onToggleTheme} isSniffing={isSniffing} onOpenSearchExplainer={onOpenSearchExplainer} onOpenIntegrityBriefing={onOpenIntegrityBriefing} onRefresh={onRefresh} selection={selection} handleCategoryClick={handleCategoryClick} ambientEnabled={ambientEnabled} onToggleAmbient={onToggleAmbient} />
             
-            <div className="px-4 md:px-12 pt-[calc(9.5rem+var(--safe-top))] md:pt-[calc(11rem+var(--safe-top))] max-w-[1800px] mx-auto transition-all relative">
-                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-void-border mb-10">
-                    <div>
-                        <h1 className="text-3xl md:text-5xl font-black text-terminal italic uppercase tracking-tighter leading-none">
-                            {selection.category === 'GLOBAL_SYNC' ? 'Global Uplink' : pageTitle}
-                        </h1>
-                        <div className="flex items-center gap-3 mt-4">
-                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                            <p className="text-[9px] font-black text-muted uppercase tracking-[0.4em] italic">
-                                {loading ? 'Acquiring_Data...' : `${unreadCount} Active_Packets_Detected`}
-                            </p>
-                        </div>
-                    </div>
-                    {unreadCount > 5 && (
-                        <button onClick={() => onPurgeBuffer(filteredArticles.map(a => a.id))} className="px-5 py-2 void-card bg-void-bg text-pulse-500 font-black uppercase italic text-[8px] tracking-[0.2em] transition-all active:scale-95">Purge_Log</button>
-                    )}
-                </div>
+            <div className="pt-[calc(14rem+var(--safe-top))] md:pt-[calc(15.5rem+var(--safe-top))] max-w-[1400px] mx-auto transition-all relative">
                 
-                {latestArticle && !selection.category && (
-                    <div className="mb-12">
-                        <FeaturedStory article={latestArticle} onReadHere={() => onOpenReader(latestArticle)} onReadExternal={() => onOpenExternal(latestArticle.link, latestArticle.id)} isRead={readArticleIds.has(latestArticle.id)} />
+                {latestArticle && (
+                    <div className="px-4 md:px-6 mb-8">
+                        <FeaturedStory 
+                            article={latestArticle} 
+                            onReadHere={() => onOpenReader(latestArticle)} 
+                            onReadExternal={() => onOpenExternal(latestArticle.link, latestArticle.id)} 
+                            isRead={readArticleIds.has(latestArticle.id)} 
+                        />
                     </div>
                 )}
-                
-                <div className="mt-12">
-                    <div className="flex items-center justify-between mb-10">
-                        <div className="flex items-center gap-6 border-l-[3px] border-emerald-500 pl-6">
-                            <h2 className="font-black text-xl md:text-3xl text-terminal italic uppercase tracking-tighter">Signal Output</h2>
+
+                <div className="px-4 md:px-6 mb-12 grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+                    {trendingArticles.map(article => (
+                        <MagazineArticleListItem 
+                            key={article.id} 
+                            article={article} 
+                            onMarkAsRead={() => onMarkAsRead(article.id)} 
+                            onReadHere={() => onOpenReader(article)} 
+                            onReadExternal={() => onOpenExternal(article.link, article.id)} 
+                            isRead={readArticleIds.has(article.id)} 
+                        />
+                    ))}
+                </div>
+
+                <div className="px-4 md:px-6 border-t border-void-border pt-10">
+                    <div className="flex items-center justify-between mb-8">
+                        <div className="flex items-center gap-3">
+                            <div className="w-1.5 h-6 bg-pulse-500" />
+                            <h2 className="font-black text-xl md:text-3xl text-terminal italic uppercase tracking-tighter">Rolling_Signals</h2>
                         </div>
                         <UnreadFilterToggle checked={showOnlyUnread} onChange={setShowOnlyUnread} />
                     </div>
 
-                    {loading && filteredArticles.length === 0 ? (
-                        <div className="text-center py-32 flex flex-col items-center gap-8">
-                            <div className="w-12 h-12 border-2 border-pulse-500 border-t-transparent rounded-full animate-spin" />
-                            <span className="text-pulse-500 font-black text-[9px] uppercase tracking-[0.6em] animate-pulse italic">Interrogating_Network...</span>
-                        </div>
-                    ) : filteredArticles.length === 0 ? (
-                        <div className="text-center py-24 void-card border-dashed">
-                            <ExclamationTriangleIcon className="w-12 h-12 text-muted mx-auto mb-6" />
-                            <h3 className="text-2xl font-black text-muted uppercase italic mb-3 tracking-tighter">No Response</h3>
-                            <p className="text-[9px] text-muted uppercase tracking-[0.3em] mb-8 italic leading-loose">Channel silent for requested node:<br/>"{selection.query || 'active_sector'}"</p>
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 md:gap-8">
-                            {visibleArticlesToDisplay.map(article => (
-                                <MagazineArticleListItem key={article.id} article={article} onMarkAsRead={() => onMarkAsRead(article.id)} onReadHere={() => onOpenReader(article)} onReadExternal={() => onOpenExternal(article.link, article.id)} isRead={readArticleIds.has(article.id)} />
-                            ))}
-                        </div>
-                    )}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                        {rollingNews.map(article => (
+                            <MagazineArticleListItem 
+                                key={article.id} 
+                                article={article} 
+                                onMarkAsRead={() => onMarkAsRead(article.id)} 
+                                onReadHere={() => onOpenReader(article)} 
+                                onReadExternal={() => onOpenExternal(article.link, article.id)} 
+                                isRead={readArticleIds.has(article.id)} 
+                            />
+                        ))}
+                    </div>
 
-                    {articlesToDisplay.length > visibleArticlesToDisplay.length && (
-                        <div className="mt-20 text-center">
+                    {filteredArticles.length > visibleCount && (
+                        <div className="mt-16 text-center">
                             <button 
                                 onClick={() => setVisibleCount(c => c + LOAD_MORE_BATCH)} 
-                                className="bg-terminal text-inverse void-button font-black uppercase italic py-5 px-14 transition-all hover:scale-105 text-[11px] tracking-[0.2em] active:scale-95 border border-void-border shadow-2xl rounded-void"
+                                className="bg-terminal text-inverse void-button font-black uppercase italic py-4 px-10 text-[10px] tracking-[0.2em] active:scale-95 border border-void-border shadow-xl rounded-void"
                             >
-                                Load Additional Clusters
+                                Load_Additional_Clusters
                             </button>
                         </div>
                     )}
                 </div>
             </div>
-
-            {pendingCategory && (
-                <div className="fixed inset-0 bg-black/95 backdrop-blur-3xl z-[100] flex items-center justify-center p-6 animate-fade-in">
-                    <div className="void-card w-full max-w-md relative overflow-hidden flex flex-col">
-                        <header className="h-10 bg-zinc-800 flex items-center justify-between px-4 border-b border-black">
-                            <div className="flex items-center gap-2">
-                                <RadioIcon className="w-4 h-4 text-white" />
-                                <h2 className="text-white text-[9px] font-black uppercase tracking-[0.2em] italic">UPLINK_STATION.EXE</h2>
-                            </div>
-                        </header>
-                        <div className="p-10 text-center space-y-8">
-                            <h3 className="text-lg font-black text-terminal italic uppercase tracking-tighter">Authorize Mass Sync?</h3>
-                            <p className="text-[10px] text-muted leading-relaxed uppercase tracking-widest italic px-4">Establishing a link with <span className="text-pulse-500 font-black">ALL {pendingCategory} NODES</span>.</p>
-                        </div>
-                        <footer className="p-4 bg-zinc-300 flex gap-3">
-                            <button onClick={() => setPendingCategory(null)} className="flex-1 py-3 bg-zinc-100 rounded-xl text-[9px] font-black uppercase italic text-zinc-600">Cancel</button>
-                            <button onClick={() => { onSelectCategory(pendingCategory); setPendingCategory(null); }} className="flex-1 py-3 bg-zinc-950 rounded-xl text-[9px] font-black uppercase italic text-white">Authorize</button>
-                        </footer>
-                    </div>
-                </div>
-            )}
         </main>
     );
 };
 
-const Header: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuery, onOpenSidebar, theme, onToggleTheme, isSniffing, onOpenSearchExplainer, onOpenIntegrityBriefing, onRefresh, selection, handleCategoryClick, ambientEnabled, onToggleAmbient }) => {
+const Header: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuery, onOpenSidebar, onOpenSettings, onToggleTheme, onRefresh, selection, handleCategoryClick }) => {
     return (
-        <header className="fixed top-0 left-0 right-0 z-40 px-4 md:px-12 pt-[var(--safe-top)] pb-2 transition-all">
-            <div className="max-w-[1800px] mx-auto void-card mt-4 overflow-hidden relative">
-                <div className="flex items-center justify-between px-4 md:px-8 py-3.5 gap-2 md:gap-4">
-                    <div className="flex items-center gap-2">
-                        <button onClick={onOpenSidebar} className="p-3 bg-void-bg/50 rounded-2xl text-pulse-500 border border-void-border active:scale-90 transition-transform"><MenuIcon className="w-5 h-5 md:w-6 md:h-6" /></button>
-                        <button onClick={onToggleAmbient} className={`p-3 bg-void-bg/50 rounded-2xl border border-void-border active:scale-90 transition-transform ${ambientEnabled ? 'text-emerald-500' : 'text-muted'}`}>
-                            <MusicIcon className={`w-5 h-5 md:w-6 md:h-6 ${ambientEnabled ? 'animate-pulse' : ''}`} />
-                        </button>
+        <header className="fixed top-0 left-0 right-0 z-40 bg-void-bg/95 backdrop-blur-xl border-b border-void-border transition-all">
+            {/* Top Bar - High Density Squeezed Navigation */}
+            <div className="h-11 md:h-12 bg-black flex items-center px-4 md:px-8 justify-between border-b border-white/5">
+                <div className="flex items-center h-full gap-2 md:gap-4 overflow-x-auto scrollbar-hide">
+                    <div className="flex items-center gap-2 shrink-0 pr-3 border-r border-white/10">
+                        <VoidIcon className="w-5 h-5 text-pulse-500" />
+                        <span className="text-[10px] font-black italic text-white tracking-tighter hidden sm:inline">THE VOID</span>
                     </div>
-                    <div className="flex-grow flex flex-col items-center max-w-2xl relative">
-                        <form onSubmit={onSearchSubmit} className="relative w-full group">
-                            <SearchIcon className="absolute top-1/2 left-5 -translate-y-1/2 w-4 h-4 text-muted" />
-                            <input 
-                                type="search" 
-                                placeholder="Probe Network..." 
-                                value={searchQuery} 
-                                onFocus={onOpenSearchExplainer}
-                                onChange={e => setSearchQuery(e.target.value)} 
-                                className="w-full bg-void-bg/60 border border-void-border rounded-full py-3.5 pl-14 pr-20 text-[10px] md:text-xs uppercase tracking-[0.2em] outline-none text-terminal placeholder-muted focus:border-pulse-500/50 transition-all" 
-                            />
-                            <button type="button" onClick={onRefresh} className="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-muted hover:text-terminal transition-all active:rotate-180 duration-500"><ArrowPathIcon className="w-5 h-5" /></button>
-                        </form>
-                    </div>
-                    <button onClick={onToggleTheme} className="p-3 bg-void-bg/50 rounded-2xl text-muted border border-void-border active:scale-90 transition-transform hover:text-pulse-500">
-                        <ThemeIcon className="w-5 h-5 md:w-6 md:h-6" />
-                    </button>
+                    <nav className="flex h-full items-center gap-2 md:gap-4">
+                        <HeaderNavLink active={!selection.category && selection.type === 'all'} onClick={() => handleCategoryClick(null)} label="ARCADE" icon={<RadioIcon className="w-3.5 h-3.5"/>} />
+                        <HeaderNavLink active={selection.category === 'NEWS'} onClick={() => handleCategoryClick('NEWS')} label="INTEL" icon={<GlobeAltIcon className="w-3.5 h-3.5"/>} />
+                        <HeaderNavLink active={selection.category === 'GAMING'} onClick={() => handleCategoryClick('GAMING')} label="PLAY" icon={<ControllerIcon className="w-3.5 h-3.5"/>} />
+                        <HeaderNavLink active={false} onClick={onOpenSettings} label="TERMINAL" icon={<CpuChipIcon className="w-3.5 h-3.5"/>} />
+                    </nav>
                 </div>
-                <nav className="flex items-center h-12 md:h-14 border-t border-void-border px-6 md:px-12 gap-3 overflow-x-auto scrollbar-hide">
-                    <button onClick={() => handleCategoryClick(null)} className={`shrink-0 flex items-center px-5 py-2 rounded-full text-[8px] font-black uppercase italic transition-all ${!selection.category ? 'bg-pulse-500 text-white shadow-lg' : 'text-muted hover:text-terminal'}`}>
-                        <span>Core_Signal</span>
-                    </button>
+                <div className="flex items-center gap-4 shrink-0 pl-4">
+                    <button onClick={onOpenSidebar} className="text-zinc-500 hover:text-white transition-colors"><MenuIcon className="w-6 h-6" /></button>
+                </div>
+            </div>
+
+            {/* Sub-Header - Filter Chips and Condensed Actions Cluster */}
+            <div className="px-4 md:px-8 py-3 flex flex-col md:flex-row items-center gap-4">
+                <div className="flex items-center h-10 gap-2 overflow-x-auto scrollbar-hide flex-grow w-full md:w-auto">
                     {CATEGORY_MAP.map(cat => (
-                        <button key={cat.id} onClick={() => handleCategoryClick(cat.id)} className={`shrink-0 flex items-center px-5 py-2 rounded-full text-[8px] font-black uppercase italic transition-all ${selection.category === cat.id ? 'bg-pulse-500 text-white shadow-lg' : 'text-muted hover:text-terminal'}`}>
-                            <span>{cat.id}</span>
+                        <button 
+                            key={cat.id} 
+                            onClick={() => handleCategoryClick(cat.id)} 
+                            className={`shrink-0 px-4 py-1.5 rounded-full text-[9px] font-black uppercase italic transition-all border
+                                ${selection.category === cat.id 
+                                    ? 'bg-pulse-500 border-pulse-400 text-white' 
+                                    : 'bg-void-surface border-void-border text-zinc-500 hover:text-white'}`}
+                        >
+                            {cat.id}
                         </button>
                     ))}
-                </nav>
+                </div>
+                
+                {/* Condensed Action Cluster */}
+                <div className="flex items-center gap-2 w-full md:w-auto shrink-0 justify-end">
+                    <form onSubmit={onSearchSubmit} className="relative w-full md:w-32 lg:w-44 transition-all focus-within:md:w-48 lg:focus-within:w-60">
+                        <SearchIcon className="absolute top-1/2 left-3.5 -translate-y-1/2 w-3 h-3 text-zinc-500" />
+                        <input 
+                            type="search" 
+                            placeholder="Find..." 
+                            value={searchQuery} 
+                            onChange={e => setSearchQuery(e.target.value)} 
+                            className="w-full bg-void-surface/50 border border-void-border rounded-full py-1.5 pl-9 pr-4 text-[9px] uppercase tracking-widest outline-none text-terminal placeholder-zinc-700 focus:border-pulse-500/50 transition-all" 
+                        />
+                    </form>
+
+                    <div className="flex items-center gap-1.5 bg-void-surface/30 p-1 rounded-full border border-void-border">
+                        <button 
+                            onClick={onRefresh}
+                            className="p-2 bg-void-surface border border-void-border rounded-full text-zinc-500 hover:text-terminal hover:border-terminal/30 transition-all active:rotate-180 duration-500"
+                            title="Refresh Signals"
+                        >
+                            <ArrowPathIcon className="w-3.5 h-3.5" />
+                        </button>
+
+                        <button 
+                            onClick={onToggleTheme}
+                            className="p-2 bg-void-surface border border-void-border rounded-full text-zinc-500 hover:text-pulse-500 hover:border-pulse-500/30 transition-all"
+                            title="Phase Shift"
+                        >
+                            <PaletteIcon className="w-3.5 h-3.5" />
+                        </button>
+                    </div>
+                </div>
             </div>
         </header>
     );
 };
 
+const HeaderNavLink: React.FC<{ active: boolean; onClick: () => void; label: string; icon: React.ReactNode }> = ({ active, onClick, label, icon }) => (
+    <button 
+        onClick={onClick}
+        className={`flex items-center gap-1.5 h-full px-2 border-b-2 transition-all relative group
+            ${active ? 'border-pulse-500 text-white' : 'border-transparent text-zinc-500 hover:text-zinc-300'}`}
+    >
+        <span className="scale-90">{icon}</span>
+        <span className="text-[8.5px] font-black tracking-widest uppercase">{label}</span>
+    </button>
+);
+
 const UnreadFilterToggle: React.FC<any> = ({ checked, onChange }) => (
-    <label className="flex items-center cursor-pointer group bg-void-bg/50 px-5 py-2 border border-void-border rounded-full hover:border-terminal/20 transition-all">
+    <label className="flex items-center cursor-pointer group bg-void-surface/50 px-4 py-2 border border-void-border rounded-full hover:border-terminal/20 transition-all">
         <input type="checkbox" className="sr-only" checked={checked} onChange={(e) => onChange(e.target.checked)} />
-        <div className={`w-3 h-3 border rounded-sm flex-shrink-0 mr-3 transition-all ${checked ? 'bg-pulse-500 border-pulse-400' : 'bg-transparent border-muted'}`} />
-        <span className="text-[8px] font-black uppercase tracking-[0.2em] text-muted group-hover:text-terminal italic leading-none">Unread_Only</span>
+        <div className={`w-3 h-3 border rounded-sm flex-shrink-0 mr-3 transition-all ${checked ? 'bg-pulse-500 border-pulse-400' : 'bg-transparent border-zinc-700'}`} />
+        <span className="text-[9px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-terminal italic">Unread_Only</span>
     </label>
 );
 

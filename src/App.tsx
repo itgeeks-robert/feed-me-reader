@@ -453,28 +453,29 @@ const App: React.FC = () => {
             
             {readerArticle && <ReaderViewModal article={readerArticle} onClose={closeReader} onMarkAsRead={handleMarkAsRead} onOpenExternal={openExternal} />}
 
+            {/* External Frequency Drift Warning Pop-up - Switched to White/Black Theme */}
             {outboundLink && (
                 <div className="fixed inset-0 bg-black/95 backdrop-blur-md z-[100] flex items-center justify-center p-6 font-mono animate-fade-in">
-                    <div className="void-card w-full max-w-sm relative overflow-hidden flex flex-col p-8 text-center space-y-6">
-                        <div className="mx-auto w-16 h-16 bg-pulse-500/10 rounded-full flex items-center justify-center border-2 border-pulse-500 animate-pulse">
-                            <GlobeAltIcon className="w-8 h-8 text-pulse-500" />
+                    <div className="bg-white border-4 border-black w-full max-w-sm relative overflow-hidden flex flex-col p-8 text-center space-y-6 shadow-2xl">
+                        <div className="mx-auto w-16 h-16 bg-black rounded-full flex items-center justify-center animate-pulse">
+                            <GlobeAltIcon className="w-8 h-8 text-white" />
                         </div>
                         <div className="space-y-2">
-                            <h3 className="text-lg font-black text-terminal italic uppercase tracking-tighter leading-none">External Frequency Drift</h3>
-                            <p className="text-[9px] text-muted leading-relaxed uppercase tracking-widest italic px-4">
-                                Operator, you are jumping to an <span className="text-pulse-500 font-black">external node</span>. System encryption cannot follow.
+                            <h3 className="text-xl font-black text-black italic uppercase tracking-tighter leading-none">External Frequency Drift</h3>
+                            <p className="text-[10px] text-black leading-relaxed uppercase tracking-widest italic px-4 font-bold">
+                                Operator, you are jumping to an <span className="bg-black text-white px-1">external node</span>. System encryption cannot follow this transmission.
                             </p>
                         </div>
                         
                         <label className="flex items-center justify-center gap-3 cursor-pointer group pt-2">
                             <input type="checkbox" className="sr-only" checked={skipExternalWarning} onChange={(e) => setSkipExternalWarning(e.target.checked)} />
-                            <div className={`w-4 h-4 border-2 flex-shrink-0 transition-colors ${skipExternalWarning ? 'bg-pulse-500 border-pulse-400' : 'bg-transparent border-zinc-700'}`} />
-                            <span className="text-[9px] font-black uppercase tracking-widest text-muted group-hover:text-terminal transition-colors italic leading-none">Do not warn again</span>
+                            <div className={`w-4 h-4 border-2 border-black flex-shrink-0 transition-colors ${skipExternalWarning ? 'bg-black' : 'bg-transparent'}`} />
+                            <span className="text-[9px] font-black uppercase tracking-widest text-black group-hover:underline transition-colors italic leading-none">Do not warn again</span>
                         </label>
 
                         <footer className="pt-4 flex gap-3">
-                            <button onClick={() => setOutboundLink(null)} className="flex-1 py-3 bg-void-surface text-terminal text-[10px] font-black uppercase italic rounded-xl active:scale-95 transition-all">ABORT</button>
-                            <button onClick={confirmExternalLink} className="flex-1 py-3 bg-pulse-600 text-white text-[10px] font-black uppercase italic rounded-xl shadow-lg">LINK_ESTABLISH</button>
+                            <button onClick={() => setOutboundLink(null)} className="flex-1 py-4 border-2 border-black text-black text-[10px] font-black uppercase italic active:bg-zinc-100 transition-all">ABORT</button>
+                            <button onClick={confirmExternalLink} className="flex-1 py-4 bg-black text-white text-[10px] font-black uppercase italic shadow-lg active:scale-95">LINK_ESTABLISH</button>
                         </footer>
                     </div>
                 </div>

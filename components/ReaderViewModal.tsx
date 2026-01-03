@@ -90,15 +90,17 @@ const ReaderViewModal: React.FC<ReaderViewModalProps> = ({ article, onClose, onM
     const displayCategory = parsedContent?.category || article.feedCategory || 'GENERAL';
 
     return (
-        <div className="fixed inset-0 bg-black/95 backdrop-blur-sm z-50 flex items-center justify-center pt-[calc(1rem+var(--safe-top))] pb-[calc(1rem+var(--safe-bottom))] px-2 md:px-6" onClick={onClose} role="dialog" aria-modal="true">
-            <div className="bg-void-950 w-full max-w-5xl h-full flex flex-col shadow-[0_0_100px_rgba(0,0,0,0.8)] border-4 border-zinc-800 relative animate-fade-in" onClick={e => e.stopPropagation()}>
-                <header className="h-11 bg-pulse-600 flex items-center justify-between px-1 relative z-20 border-b-2 border-black">
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center pt-[calc(1rem+var(--safe-top))] pb-[calc(1rem+var(--safe-bottom))] px-2 md:px-6" onClick={onClose} role="dialog" aria-modal="true">
+            <div className="bg-white w-full max-w-5xl h-full flex flex-col shadow-[0_40px_100px_rgba(0,0,0,0.5)] border-4 border-black relative animate-fade-in overflow-hidden" onClick={e => e.stopPropagation()}>
+                
+                {/* Header: Adjusted to high-contrast paper style */}
+                <header className="h-12 bg-black flex items-center justify-between px-1 relative z-20">
                     <div className="flex items-center gap-2 h-full overflow-hidden">
-                        <button onClick={onClose} className="w-10 h-8 bg-zinc-300 border-2 border-white flex items-center justify-center active:bg-zinc-400 shrink-0">
-                            <div className="w-5 h-1 bg-black shadow-[0_5px_0_black]" />
+                        <button onClick={onClose} className="w-10 h-8 bg-white border-2 border-black flex items-center justify-center active:bg-zinc-200 shrink-0">
+                            <div className="w-5 h-0.5 bg-black shadow-[0_4px_0_black]" />
                         </button>
                         <div className="flex items-center gap-3 truncate">
-                            <span className="text-[10px] font-black uppercase italic px-2 py-1 rounded-sm shrink-0 bg-black/40 text-white">
+                            <span className="text-[10px] font-black uppercase italic px-2 py-1 rounded-sm shrink-0 bg-white/20 text-white">
                                 {isLoading ? 'DECODING...' : displayCategory}
                             </span>
                             <h2 className="text-white text-xs md:text-sm font-black uppercase tracking-widest truncate italic">
@@ -106,76 +108,77 @@ const ReaderViewModal: React.FC<ReaderViewModalProps> = ({ article, onClose, onM
                             </h2>
                         </div>
                     </div>
-                    <button onClick={onClose} className="w-10 h-8 bg-zinc-300 border-2 border-white flex items-center justify-center hover:bg-white transition-colors shrink-0">
+                    <button onClick={onClose} className="w-10 h-8 bg-white border-2 border-black flex items-center justify-center hover:bg-zinc-100 transition-colors shrink-0">
                         <XIcon className="w-5 h-5 text-black" />
                     </button>
                 </header>
                 
-                <div className="flex-grow overflow-y-auto bg-void-950 p-6 md:p-14 relative scrollbar-hide">
-                    <div className="absolute inset-0 pointer-events-none opacity-5 cctv-overlay z-10" />
+                {/* Main Body: Switched to white background and black text */}
+                <div className="flex-grow overflow-y-auto bg-white p-6 md:p-14 relative scrollbar-hide text-black">
+                    <div className="absolute inset-0 pointer-events-none opacity-[0.03] cctv-overlay z-10" />
                     
                     <div className="relative z-20">
                         {isLoading ? (
                             <div className="flex flex-col items-center justify-center h-64 gap-8">
-                                <div className="p-6 border-4 border-pulse-500 animate-pulse">
-                                    <span className="text-sm font-black uppercase tracking-[0.6em] text-pulse-500 italic font-mono">Decoding Signal...</span>
+                                <div className="p-6 border-4 border-black animate-pulse">
+                                    <span className="text-sm font-black uppercase tracking-[0.6em] text-black italic font-mono">Decoding Signal...</span>
                                 </div>
                             </div>
                         ) : error ? (
-                            <div className="text-center py-24 border-4 border-red-500/20 bg-black/40">
-                                <p className="font-black uppercase tracking-widest text-red-500 text-2xl italic mb-6">Signal Corruption</p>
-                                <button onClick={handleExternalJump} className="px-12 py-5 bg-zinc-300 text-black border-2 border-white font-black uppercase tracking-[0.2em] italic">Access Raw Stream</button>
+                            <div className="text-center py-24 border-4 border-red-600 bg-red-50">
+                                <p className="font-black uppercase tracking-widest text-red-600 text-2xl italic mb-6">Signal Corruption</p>
+                                <button onClick={handleExternalJump} className="px-12 py-5 bg-black text-white font-black uppercase tracking-[0.2em] italic">Access Raw Stream</button>
                             </div>
                         ) : parsedContent && (
-                            <div className="max-w-none prose prose-invert font-mono text-terminal prose-h1:text-4xl prose-p:text-lg prose-p:leading-relaxed">
+                            <div className="max-w-none prose prose-slate font-mono text-black prose-h1:text-black prose-p:text-black prose-p:leading-relaxed prose-strong:text-black">
                                 
-                                {/* Local Heuristic Briefing Section */}
-                                <div className="mb-12 void-card bg-void-surface border-pulse-500/40 p-8 shadow-2xl relative overflow-hidden group">
-                                    <div className="absolute top-0 right-0 p-2 opacity-20 group-hover:opacity-100 transition-opacity">
-                                        <CpuChipIcon className="w-10 h-10 text-pulse-500" />
+                                {/* Adjusted Local Heuristic Briefing for Light Theme */}
+                                <div className="mb-12 bg-zinc-100 border-2 border-black p-8 shadow-sm relative overflow-hidden group">
+                                    <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-100 transition-opacity">
+                                        <CpuChipIcon className="w-10 h-10 text-black" />
                                     </div>
                                     <div className="flex items-center gap-3 mb-4">
-                                        <SparklesIcon className="w-5 h-5 text-pulse-500 animate-pulse" />
-                                        <h3 className="text-xs font-black text-pulse-500 uppercase tracking-widest">Local_Heuristic_Analysis</h3>
+                                        <SparklesIcon className="w-5 h-5 text-black animate-pulse" />
+                                        <h3 className="text-xs font-black text-black uppercase tracking-widest">Heuristic_Scan_Report</h3>
                                     </div>
                                     {intelBriefing ? (
                                         <div className="animate-fade-in space-y-4">
                                             {intelBriefing.map((point, idx) => (
-                                                <div key={idx} className="text-xs md:text-sm leading-loose uppercase font-bold italic text-white/90 border-l-2 border-pulse-500 pl-6">
+                                                <div key={idx} className="text-xs md:text-sm leading-loose uppercase font-bold italic text-black border-l-4 border-black pl-6">
                                                     {point}
                                                 </div>
                                             ))}
                                             <div className="pt-2">
-                                                <span className="text-[8px] font-black text-zinc-600 uppercase tracking-widest">Offline_Kernel_Processed_v1.2</span>
+                                                <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">Packet_Validated_Internal_Node</span>
                                             </div>
                                         </div>
                                     ) : (
                                         <button 
                                             onClick={handleLocalIntelAnalysis}
                                             disabled={isProcessing}
-                                            className="w-full py-4 border-2 border-dashed border-pulse-500/30 text-pulse-500 hover:bg-pulse-500/10 transition-all font-black uppercase italic text-xs tracking-[0.3em]"
+                                            className="w-full py-4 border-2 border-dashed border-black/30 text-black hover:bg-black hover:text-white transition-all font-black uppercase italic text-xs tracking-[0.3em]"
                                         >
-                                            {isProcessing ? 'Analyzing_Signal_Patterns...' : 'Initialize_Heuristic_Scan'}
+                                            {isProcessing ? 'Interrogating_Buffer...' : 'Initialize_Heuristic_Scan'}
                                         </button>
                                     )}
                                 </div>
 
-                                <div ref={contentRef} className="animate-fade-in" />
+                                <div ref={contentRef} className="animate-fade-in text-black" />
                                 
-                                <div className="mt-24 pb-24 flex flex-col items-center border-t-2 border-zinc-800/20 pt-16 mb-12">
-                                    <p className="text-xs font-black text-zinc-500 uppercase tracking-[0.5em] mb-8 italic">Transmission Terminated</p>
+                                <div className="mt-24 pb-24 flex flex-col items-center border-t-2 border-zinc-200 pt-16 mb-12">
+                                    <p className="text-xs font-black text-zinc-400 uppercase tracking-[0.5em] mb-8 italic">End of Intercept</p>
                                     <div className="flex flex-col sm:flex-row gap-6 w-full max-w-2xl">
-                                        <button onClick={onClose} className="flex-1 py-6 bg-zinc-800 border-2 border-white/5 text-zinc-400 font-black uppercase italic tracking-[0.2em] hover:text-white transition-all text-xs md:text-sm">Close_Buffer</button>
-                                        <button onClick={handleExternalJump} className="flex-1 py-6 bg-zinc-300 border-2 border-white text-black font-black uppercase italic tracking-[0.2em] hover:bg-pulse-600 hover:text-white transition-all text-xs md:text-sm">Raw_Source</button>
+                                        <button onClick={onClose} className="flex-1 py-6 bg-white border-2 border-black text-black font-black uppercase italic tracking-[0.2em] hover:bg-zinc-100 transition-all text-xs md:text-sm">Close_Buffer</button>
+                                        <button onClick={handleExternalJump} className="flex-1 py-6 bg-black border-2 border-black text-white font-black uppercase italic tracking-[0.2em] hover:bg-zinc-800 transition-all text-xs md:text-sm">Raw_Source</button>
                                     </div>
                                 </div>
                             </div>
                         )}
                     </div>
                 </div>
-                <footer className="h-10 bg-zinc-300 border-t-2 border-black flex items-center px-6 justify-between shrink-0 z-20">
-                    <span className="text-[10px] font-black text-black/80 uppercase tracking-widest font-mono">Sector: {article.source}</span>
-                    <span className="text-[10px] font-black text-black/80 uppercase tracking-widest font-mono">{new Date().toLocaleTimeString()}</span>
+                <footer className="h-10 bg-zinc-100 border-t-2 border-black flex items-center px-6 justify-between shrink-0 z-20">
+                    <span className="text-[10px] font-black text-black/60 uppercase tracking-widest font-mono">Sector_Sync: {article.source}</span>
+                    <span className="text-[10px] font-black text-black/60 uppercase tracking-widest font-mono">Timestamp: {new Date().toLocaleTimeString()}</span>
                 </footer>
             </div>
         </div>
