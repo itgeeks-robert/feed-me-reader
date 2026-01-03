@@ -1,8 +1,8 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import type { Article } from '../src/App';
 import { XIcon, GlobeAltIcon, SparklesIcon, CpuChipIcon } from './icons';
 import { fetchAndCacheArticleContent } from '../services/readerService';
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { soundService } from '../services/soundService';
 
 interface ReaderViewModalProps {
@@ -16,8 +16,8 @@ const ReaderViewModal: React.FC<ReaderViewModalProps> = ({ article, onClose, onM
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [parsedContent, setParsedContent] = useState<{ title: string; content: string; category: string } | null>(null);
-    const [aiBriefing, setAiBriefing] = useState<string | null>(null);
-    const [isAiLoading, setIsAiLoading] = useState(false);
+    const [intelBriefing, setIntelBriefing] = useState<string[] | null>(null);
+    const [isProcessing, setIsProcessing] = useState(false);
     const contentRef = useRef<HTMLDivElement>(null);
 
     // Fetch and Cache Article Content
@@ -47,35 +47,39 @@ const ReaderViewModal: React.FC<ReaderViewModalProps> = ({ article, onClose, onM
         }
     }, [parsedContent]);
 
-    // AI Intelligence Briefing Logic
-    const handleAIBriefing = async () => {
-        if (!parsedContent || isAiLoading) return;
-        setIsAiLoading(true);
+    /**
+     * LOCAL HEURISTIC SIGNAL ANALYSIS
+     * Extracts tactical points from text without external API calls.
+     */
+    const handleLocalIntelAnalysis = () => {
+        if (!parsedContent || isProcessing) return;
+        setIsProcessing(true);
         soundService.playAction();
         
-        try {
-            // NOTE: Use VITE_ prefix for client-side env variables in Vite
-            const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY || "");
-            const model = genAI.getGenerativeModel({ 
-                model: "gemini-1.5-flash",
-                systemInstruction: "You are a tactical signal analyst for THE VOID. Your output must be concise, technical, and formatted as a field report.",
-            });
+        // Simulate a local "processing" delay for feel
+        setTimeout(() => {
+            const text = contentRef.current?.innerText || "";
+            // Split into sentences (simple heuristic)
+            const sentences = text.match(/[^.!?]+[.!?]+/g) || [];
+            
+            // Score sentences by "tactical keywords"
+            const tacticalWords = ['SYSTEM', 'NETWORK', 'DATA', 'SECURITY', 'GLOBAL', 'PROTOCOL', 'NODE', 'ACCESS', 'SIGNAL', 'ENCRYPT'];
+            const scored = sentences.map(s => {
+                let score = s.length > 40 && s.length < 150 ? 10 : 0;
+                tacticalWords.forEach(w => {
+                    if (s.toUpperCase().includes(w)) score += 5;
+                });
+                return { s, score };
+            }).sort((a, b) => b.score - a.score);
 
-            const prompt = `Extract a tactical intelligence briefing from this news content. Return exactly 3 bullet points. Use cold, professional, noir spy terminology. Content: ${parsedContent.content.substring(0, 4000)}`;
-            
-            const result = await model.generateContent(prompt);
-            const response = await result.response;
-            const text = response.text();
-            
-            setAiBriefing(text || "NO_DATA_EXTRACTED");
+            // Take top 3 unique sentences
+            const results = Array.from(new Set(scored.slice(0, 3).map(i => i.s.trim())))
+                .map(s => s.toUpperCase());
+
+            setIntelBriefing(results.length > 0 ? results : ["NO_CRITICAL_PATTERN_DETECTED"]);
+            setIsProcessing(false);
             soundService.playCorrect();
-        } catch (err) {
-            console.error("AI_LINK_ERROR:", err);
-            setAiBriefing("CRITICAL_FAILURE: Neural link severed. Verify API_KEY in Vercel settings.");
-            soundService.playWrong();
-        } finally {
-            setIsAiLoading(false);
-        }
+        }, 800);
     };
 
     const handleExternalJump = (e: React.MouseEvent) => {
@@ -125,26 +129,33 @@ const ReaderViewModal: React.FC<ReaderViewModalProps> = ({ article, onClose, onM
                         ) : parsedContent && (
                             <div className="max-w-none prose prose-invert font-mono text-terminal prose-h1:text-4xl prose-p:text-lg prose-p:leading-relaxed">
                                 
-                                {/* AI Briefing Section */}
+                                {/* Local Heuristic Briefing Section */}
                                 <div className="mb-12 void-card bg-void-surface border-pulse-500/40 p-8 shadow-2xl relative overflow-hidden group">
                                     <div className="absolute top-0 right-0 p-2 opacity-20 group-hover:opacity-100 transition-opacity">
                                         <CpuChipIcon className="w-10 h-10 text-pulse-500" />
                                     </div>
                                     <div className="flex items-center gap-3 mb-4">
                                         <SparklesIcon className="w-5 h-5 text-pulse-500 animate-pulse" />
-                                        <h3 className="text-xs font-black text-pulse-500 uppercase tracking-widest">Neural_Intel_Briefing</h3>
+                                        <h3 className="text-xs font-black text-pulse-500 uppercase tracking-widest">Local_Heuristic_Analysis</h3>
                                     </div>
-                                    {aiBriefing ? (
-                                        <div className="animate-fade-in text-sm leading-loose uppercase font-bold italic text-white/90 whitespace-pre-line border-l-2 border-pulse-500 pl-6">
-                                            {aiBriefing}
+                                    {intelBriefing ? (
+                                        <div className="animate-fade-in space-y-4">
+                                            {intelBriefing.map((point, idx) => (
+                                                <div key={idx} className="text-xs md:text-sm leading-loose uppercase font-bold italic text-white/90 border-l-2 border-pulse-500 pl-6">
+                                                    {point}
+                                                </div>
+                                            ))}
+                                            <div className="pt-2">
+                                                <span className="text-[8px] font-black text-zinc-600 uppercase tracking-widest">Offline_Kernel_Processed_v1.2</span>
+                                            </div>
                                         </div>
                                     ) : (
                                         <button 
-                                            onClick={handleAIBriefing}
-                                            disabled={isAiLoading}
+                                            onClick={handleLocalIntelAnalysis}
+                                            disabled={isProcessing}
                                             className="w-full py-4 border-2 border-dashed border-pulse-500/30 text-pulse-500 hover:bg-pulse-500/10 transition-all font-black uppercase italic text-xs tracking-[0.3em]"
                                         >
-                                            {isAiLoading ? 'Interrogating_Network...' : 'Authorize_Neural_Recon'}
+                                            {isProcessing ? 'Analyzing_Signal_Patterns...' : 'Initialize_Heuristic_Scan'}
                                         </button>
                                     )}
                                 </div>
