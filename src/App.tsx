@@ -310,6 +310,7 @@ const App: React.FC = () => {
                     <UtilityHubPage 
                         onSelect={(id) => updateSelection({ type: id as any, id: null })} 
                         onBackToHub={() => updateSelection({ type: 'all', id: null })} 
+                        theme={theme}
                         onToggleTheme={handleToggleTheme}
                     />
                 ) : selection.type === 'signal_streamer' ? (
@@ -328,6 +329,7 @@ const App: React.FC = () => {
                         onReturnToFeeds={() => updateSelection({ type: 'all', id: null })}
                         favoriteGameIds={favoriteGameIds}
                         onToggleFavorite={toggleFavoriteGame}
+                        theme={theme}
                         onToggleTheme={handleToggleTheme}
                     />
                 ) : isGameActive ? (
@@ -395,7 +397,6 @@ const App: React.FC = () => {
                         onOpenAddSource={() => setIsAddSourceModalOpen(true)}
                         onAddSource={async (url, type) => { setFeeds([...feeds, { id: Date.now(), url, title: 'New Signal', iconUrl: '', folderId: null, sourceType: type }]); }}
                         onOpenSidebar={() => setIsSettingsModalOpen(true)}
-                        uptime={uptime}
                         initialArticles={prefetchedArticles}
                         onSetSniffErrorModal={setShowSniffErrorModal}
                         onOpenSearchExplainer={() => { setShowSearchExplainer(true); window.history.pushState({isExplainer: true}, ''); }}

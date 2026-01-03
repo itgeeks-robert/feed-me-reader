@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import type { Feed, Folder } from '../src/App';
 import { 
@@ -213,18 +214,18 @@ const FeedOnboarding: React.FC<FeedOnboardingProps> = ({ onComplete }) => {
                 <div className="p-4 bg-pulse-500 w-14 h-14 mx-auto mb-6 flex items-center justify-center shadow-[0_0_30px_rgba(225,29,72,0.4)] border-2 border-white/20">
                     <RadioIcon className="w-8 h-8 text-white animate-pulse" />
                 </div>
-                <h2 className="text-3xl md:text-5xl font-black text-white italic uppercase tracking-tighter mb-4 glitch-text">Initial Calibration</h2>
+                <h2 className="text-3xl md:text-5xl font-black text-terminal italic uppercase tracking-tighter mb-4 glitch-text">Initial Calibration</h2>
                 
                 <div className="flex flex-wrap items-center justify-center gap-3 mt-4">
                     <div className="bg-void-900 border border-zinc-800 px-3 py-1.5 rounded-xl flex items-center gap-3">
-                        <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest italic">Region:</span>
+                        <span className="text-[8px] font-black text-muted uppercase tracking-widest italic">Region:</span>
                         {isDetecting ? (
                             <ArrowPathIcon className="w-3 h-3 text-pulse-500 animate-spin" />
                         ) : (
                             <select 
                                 value={region} 
                                 onChange={(e) => setRegion(e.target.value as Region)}
-                                className="bg-transparent text-white text-[10px] font-black uppercase outline-none cursor-pointer hover:text-pulse-500"
+                                className="bg-transparent text-terminal text-[10px] font-black uppercase outline-none cursor-pointer hover:text-pulse-500"
                             >
                                 <option value="GLOBAL">Global Node</option>
                                 <option value="UK">UK Node</option>
@@ -236,7 +237,7 @@ const FeedOnboarding: React.FC<FeedOnboardingProps> = ({ onComplete }) => {
                     
                     <button 
                         onClick={handleQuickStart}
-                        className="group flex items-center gap-2 px-4 py-1.5 bg-pulse-600 hover:bg-white text-white hover:text-black border border-pulse-400 rounded-xl transition-all active:scale-95 shadow-lg"
+                        className="group flex items-center gap-2 px-4 py-1.5 bg-pulse-600 hover:bg-terminal hover:text-void-bg border border-pulse-400 rounded-xl transition-all active:scale-95 shadow-lg text-white"
                     >
                         <SparklesIcon className="w-4 h-4 animate-pulse" />
                         <span className="text-[9px] font-black uppercase italic tracking-widest">Tactical Auto-Sync</span>
@@ -248,7 +249,7 @@ const FeedOnboarding: React.FC<FeedOnboardingProps> = ({ onComplete }) => {
                 <ExclamationTriangleIcon className="w-5 h-5 text-amber-500 shrink-0 mt-0.5 animate-pulse" />
                 <div>
                     <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-1 italic">Protocol Advisory: External Encryption</p>
-                    <p className="text-[9px] text-zinc-500 uppercase font-black leading-relaxed tracking-wide">Certain signal streams (e.g., NYT, Bloomberg, FT) utilize high-level external encryption (paywalls). Access to full transmissions may require independent operator credentials.</p>
+                    <p className="text-[9px] text-muted uppercase font-black leading-relaxed tracking-wide">Certain signal streams (e.g., NYT, Bloomberg, FT) utilize high-level external encryption (paywalls). Access to full transmissions may require independent operator credentials.</p>
                 </div>
             </div>
 
@@ -264,7 +265,7 @@ const FeedOnboarding: React.FC<FeedOnboardingProps> = ({ onComplete }) => {
                                 className={`flex items-center justify-between px-4 py-3 rounded-xl border-2 transition-all shrink-0 md:shrink
                                     ${activeCategory === cat.id 
                                         ? 'bg-pulse-600 border-pulse-400 text-white shadow-lg' 
-                                        : 'bg-void-900 border-zinc-800 text-zinc-500 hover:border-zinc-600'}`}
+                                        : 'bg-void-900 border-void-border text-muted hover:border-terminal/40'}`}
                             >
                                 <div className="flex items-center gap-2">
                                     {cat.icon}
@@ -281,7 +282,7 @@ const FeedOnboarding: React.FC<FeedOnboardingProps> = ({ onComplete }) => {
                 <div className="flex-grow flex flex-col gap-4">
                     {activeCategory === 'CUSTOM' && (
                         <div className="bg-void-900 p-6 border-2 border-emerald-500/30 rounded-2xl mb-4 animate-fade-in shadow-xl">
-                            <h3 className="text-xs font-black text-white italic uppercase tracking-widest mb-4 flex items-center gap-2">
+                            <h3 className="text-xs font-black text-terminal italic uppercase tracking-widest mb-4 flex items-center gap-2">
                                 <SearchIcon className="w-4 h-4 text-emerald-500" />
                                 Custom Node Probing
                             </h3>
@@ -292,7 +293,7 @@ const FeedOnboarding: React.FC<FeedOnboardingProps> = ({ onComplete }) => {
                                         value={customUrl} 
                                         onChange={(e) => setCustomUrl(e.target.value)}
                                         placeholder="Enter website URL (e.g. hackaday.com)..."
-                                        className="w-full bg-void-950 border-2 border-zinc-800 rounded-xl py-3 px-4 text-xs text-white focus:outline-none focus:border-emerald-500 transition-all font-mono"
+                                        className="w-full bg-void-950 border-2 border-void-border rounded-xl py-3 px-4 text-xs text-terminal focus:outline-none focus:border-emerald-500 transition-all font-mono"
                                     />
                                     {isProbing && (
                                         <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -312,21 +313,21 @@ const FeedOnboarding: React.FC<FeedOnboardingProps> = ({ onComplete }) => {
                             {probeError && (
                                 <p className="mt-3 text-[9px] font-black text-pulse-500 uppercase italic tracking-widest animate-shake leading-relaxed">{probeError}</p>
                             )}
-                            <p className="mt-4 text-[8px] text-zinc-600 uppercase tracking-widest italic">Note: Interception success depends on the node's broadcast metadata.</p>
+                            <p className="mt-4 text-[8px] text-muted uppercase tracking-widest italic">Note: Interception success depends on the node's broadcast metadata.</p>
                         </div>
                     )}
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {filteredPresets.length === 0 ? (
-                            <div className="col-span-full py-16 text-center border-2 border-dashed border-zinc-900 rounded-[2rem]">
+                            <div className="col-span-full py-16 text-center border-2 border-dashed border-void-border rounded-[2rem]">
                                 {activeCategory === 'CUSTOM' ? (
                                     <div className="space-y-2">
-                                        <p className="text-[10px] text-zinc-700 font-black uppercase tracking-[0.4em] italic leading-relaxed">No signals discovered yet.</p>
-                                        <p className="text-[9px] text-zinc-800 uppercase italic">Probe a node above to start surveillance.</p>
+                                        <p className="text-[10px] text-muted font-black uppercase tracking-[0.4em] italic leading-relaxed">No signals discovered yet.</p>
+                                        <p className="text-[9px] text-muted uppercase italic">Probe a node above to start surveillance.</p>
                                     </div>
                                 ) : (
                                     <>
-                                        <p className="text-[10px] text-zinc-700 font-black uppercase tracking-[0.4em] italic">No sector packets found</p>
+                                        <p className="text-[10px] text-muted font-black uppercase tracking-[0.4em] italic">No sector packets found</p>
                                         <button onClick={() => setRegion('GLOBAL')} className="mt-4 text-pulse-500 text-[10px] font-black uppercase underline">Access Global Nodes</button>
                                     </>
                                 )}
@@ -339,20 +340,20 @@ const FeedOnboarding: React.FC<FeedOnboardingProps> = ({ onComplete }) => {
                                         key={preset.id}
                                         onClick={() => togglePreset(preset.id)}
                                         className={`group relative bg-void-900 border-2 transition-all duration-300 cursor-pointer p-5 flex flex-col h-44 shadow-[6px_6px_0px_black] hover:translate-x-[-2px] hover:translate-y-[-2px]
-                                            ${isSelected ? 'border-pulse-500 shadow-[0_0_20px_rgba(225,29,72,0.2)]' : 'border-zinc-800 opacity-60 grayscale hover:opacity-100 hover:grayscale-0'}`}
+                                            ${isSelected ? 'border-pulse-500 shadow-[0_0_20px_rgba(225,29,72,0.2)]' : 'border-void-border opacity-60 grayscale hover:opacity-100 hover:grayscale-0'}`}
                                     >
                                         <div className="flex justify-between items-start mb-2">
-                                            <span className="text-[7px] font-black text-zinc-500 uppercase tracking-widest italic">
+                                            <span className="text-[7px] font-black text-muted uppercase tracking-widest italic">
                                                 {preset.isCustom ? 'DISCOVERED NODE' : `${preset.region} NODE`}
                                             </span>
-                                            <div className={`w-2 h-2 rounded-full border ${isSelected ? 'bg-pulse-500 border-pulse-400 animate-pulse' : 'bg-zinc-800 border-zinc-700'}`} />
+                                            <div className={`w-2 h-2 rounded-full border ${isSelected ? 'bg-pulse-500 border-pulse-400 animate-pulse' : 'bg-void-border'}`} />
                                         </div>
                                         
-                                        <h3 className="text-base font-black text-white italic uppercase tracking-tighter mb-1 leading-tight">{preset.title}</h3>
-                                        <p className="text-[9px] text-zinc-500 uppercase leading-tight font-bold line-clamp-3 mb-2">{preset.description}</p>
+                                        <h3 className="text-base font-black text-terminal italic uppercase tracking-tighter mb-1 leading-tight">{preset.title}</h3>
+                                        <p className="text-[9px] text-muted uppercase leading-tight font-bold line-clamp-3 mb-2">{preset.description}</p>
                                         
                                         <div className="mt-auto flex justify-between items-end">
-                                            <span className="text-[6px] font-black text-zinc-700 uppercase">PKG_{preset.id.substring(0, 8)}</span>
+                                            <span className="text-[6px] text-muted/40 uppercase">PKG_{preset.id.substring(0, 8)}</span>
                                             {isSelected && <span className="text-[7px] font-black text-pulse-500 uppercase animate-pulse">Synced</span>}
                                         </div>
                                     </div>
@@ -368,12 +369,12 @@ const FeedOnboarding: React.FC<FeedOnboardingProps> = ({ onComplete }) => {
                     <button 
                         onClick={() => handleConfirm()}
                         disabled={selectedIds.size === 0}
-                        className="w-full py-5 bg-white text-black font-black uppercase italic text-xl rounded-2xl shadow-[8px_8px_0px_#e11d48] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all active:scale-95 disabled:opacity-50 disabled:grayscale disabled:pointer-events-none flex items-center justify-center gap-4"
+                        className="w-full py-5 bg-terminal text-void-bg font-black uppercase italic text-xl rounded-2xl shadow-[8px_8px_0px_#e11d48] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all active:scale-95 disabled:opacity-50 disabled:grayscale disabled:pointer-events-none flex items-center justify-center gap-4"
                     >
                         <RssIcon className="w-7 h-7" />
                         <span>Establish Uplink ({selectedIds.size})</span>
                     </button>
-                    <p className="text-center text-[8px] text-zinc-600 uppercase tracking-widest mt-4 font-black italic drop-shadow-md">Calibration will initialize core frequency cache.</p>
+                    <p className="text-center text-[8px] text-muted uppercase tracking-widest mt-4 font-black italic drop-shadow-md">Calibration will initialize core frequency cache.</p>
                 </div>
             </div>
         </div>

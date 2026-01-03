@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 export const BoltIcon: React.FC<{ className?: string }> = ({ className }) => (
@@ -9,6 +10,47 @@ export const BoltIcon: React.FC<{ className?: string }> = ({ className }) => (
 export const StarIcon: React.FC<{ className?: string; filled?: boolean }> = ({ className, filled }) => (
     <svg className={className} viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
         <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
+    </svg>
+);
+
+export const ContrastIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
+        <path d="M12 18a6 6 0 100-12 6 6 0 000 12z" fill="currentColor" fillOpacity="0.4" />
+        <path d="M12 2v20" />
+    </svg>
+);
+
+export const WandIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 5.2l-1.4 1.4M7.6 15.4l-1.4 1.4M20.2 15.4l-1.4-1.4M9.8 5.2L8.4 6.6" />
+        <path d="M3 21l3-3" />
+        <path d="M9.5 14.5L21 3" />
+    </svg>
+);
+
+export const PaletteIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="13.5" cy="6.5" r=".5" fill="currentColor" />
+        <circle cx="17.5" cy="10.5" r=".5" fill="currentColor" />
+        <circle cx="8.5" cy="7.5" r=".5" fill="currentColor" />
+        <circle cx="6.5" cy="12.5" r=".5" fill="currentColor" />
+        <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.281-.477-.672-.477-1.106 0-.926.758-1.648 1.688-1.648h1.547c2.312 0 4.226-1.914 4.226-4.226 0-4.508-4.148-8.207-8.207-8.207z" />
+    </svg>
+);
+
+export const SkinsIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M7 8H3V4h4v4zM14 8h-4V4h4v4zM21 8h-4V4h4v4zM7 15H3v-4h4v4zM14 15h-4v-4h4v4zM21 15h-4v-4h4v4zM7 22H3v-4h4v4zM14 22h-4v-4h4v4zM21 22h-4v-4h4v4z" />
+    </svg>
+);
+
+export const StyleIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2" />
+        <path d="M12 11h4M12 15h4M8 11h.01M8 15h.01" />
+        <path d="M9 2l2 2-2 2" />
+        <path d="M15 2l-2 2 2 2" />
     </svg>
 );
 
@@ -189,7 +231,7 @@ export const SearchIcon: React.FC<{ className?: string }> = ({ className }) => (
 
 export const ArrowPathIcon: React.FC<{ className?: string }> = ({ className }) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0011.664 0l3.18-3.185m-3.18-3.182l-3.182-3.182a8.25 8.25 0 00-11.664 0l-3.18 3.185" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0011.664 0l3.180-3.185m-3.18-3.182l-3.182-3.182a8.25 8.25 0 00-11.664 0l-3.18 3.185" />
     </svg>
 );
 

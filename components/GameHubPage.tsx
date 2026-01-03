@@ -1,8 +1,9 @@
 
 import React, { useMemo } from 'react';
-import { WalkieTalkieIcon, ControllerIcon, RadioIcon, EntityIcon, KeypadIcon, SparklesIcon, XIcon, ListIcon, CpuChipIcon, BoltIcon, StarIcon } from './icons';
+import { WalkieTalkieIcon, ControllerIcon, RadioIcon, EntityIcon, KeypadIcon, SparklesIcon, XIcon, ListIcon, CpuChipIcon, BoltIcon, StarIcon, ContrastIcon, WandIcon, PaletteIcon, SkinsIcon, StyleIcon } from './icons';
 import { getHighScores, ScoreCategory } from '../services/highScoresService';
 import ContextualIntel from './ContextualIntel';
+import { Theme } from '../src/App';
 
 interface GameInfo {
     id: string;
@@ -19,6 +20,10 @@ interface GameInfo {
     accentColor: string;
     glowColor: string;
 }
+
+const ThemeIcon: React.FC<{ className?: string }> = ({ className }) => {
+    return <PaletteIcon className={className} />;
+};
 
 const CabinetGraphicPattern: React.FC<{ type: string; color: string }> = ({ type, color }) => {
     switch (type) {
@@ -158,7 +163,7 @@ const CabinetPoster: React.FC<{
 };
 
 const GameHubPage: React.FC<any> = (props) => {
-    const { onSelect, favoriteGameIds, onToggleFavorite, onToggleTheme } = props;
+    const { onSelect, favoriteGameIds, onToggleFavorite, theme, onToggleTheme } = props;
 
     const games: GameInfo[] = [
         { 
@@ -259,7 +264,9 @@ const GameHubPage: React.FC<any> = (props) => {
                     </div>
                     
                     <div className="flex items-center gap-3 md:gap-4">
-                        <button onClick={onToggleTheme} className="p-3 bg-void-surface rounded-2xl text-muted border border-void-border active:scale-90 transition-transform hover:text-pulse-500 shadow-xl"><SparklesIcon className="w-6 h-6" /></button>
+                        <button onClick={onToggleTheme} className="p-3 bg-void-surface rounded-2xl text-muted border border-void-border active:scale-90 transition-transform hover:text-pulse-500 shadow-xl">
+                            <ThemeIcon className="w-6 h-6" />
+                        </button>
                         <button onClick={props.onReturnToFeeds} className="px-8 py-3 bg-terminal text-void-bg text-xs font-black uppercase italic tracking-widest hover:bg-pulse-500 hover:text-white transition-all shadow-xl rounded-void border border-void-border">Eject_Rec</button>
                     </div>
                 </header>

@@ -1,7 +1,8 @@
 
 import React from 'react';
-import { ShieldCheckIcon, MusicIcon, CodeBracketIcon, ClockIcon, XIcon, RadioIcon, SparklesIcon, CpuChipIcon, BookmarkIcon } from './icons';
+import { ShieldCheckIcon, MusicIcon, CodeBracketIcon, ClockIcon, XIcon, RadioIcon, SparklesIcon, CpuChipIcon, BookmarkIcon, ContrastIcon, WandIcon, PaletteIcon, SkinsIcon, StyleIcon } from './icons';
 import ContextualIntel from './ContextualIntel';
+import { Theme } from '../src/App';
 
 interface UtilityInfo {
     id: string;
@@ -13,7 +14,11 @@ interface UtilityInfo {
     nodeId: string;
 }
 
-const UtilityHubPage: React.FC<{ onSelect: (id: string) => void; onBackToHub: () => void; onToggleTheme: () => void }> = ({ onSelect, onBackToHub, onToggleTheme }) => {
+const ThemeIcon: React.FC<{ className?: string }> = ({ className }) => {
+    return <PaletteIcon className={className} />;
+};
+
+const UtilityHubPage: React.FC<{ onSelect: (id: string) => void; onBackToHub: () => void; theme: Theme; onToggleTheme: () => void }> = ({ onSelect, onBackToHub, theme, onToggleTheme }) => {
     const utils: UtilityInfo[] = [
         {
             id: 'signal_streamer',
@@ -77,7 +82,9 @@ const UtilityHubPage: React.FC<{ onSelect: (id: string) => void; onBackToHub: ()
                         </div>
                     </div>
                     <div className="flex items-center gap-4">
-                        <button onClick={onToggleTheme} className="p-4 bg-void-surface rounded-2xl text-muted border border-void-border active:scale-90 transition-transform hover:text-pulse-500 shadow-2xl"><SparklesIcon className="w-7 h-7" /></button>
+                        <button onClick={onToggleTheme} className="p-4 bg-void-surface rounded-2xl text-muted border border-void-border active:scale-90 transition-transform hover:text-pulse-500 shadow-2xl">
+                            <ThemeIcon className="w-7 h-7" />
+                        </button>
                         <button onClick={onBackToHub} className="group p-4 bg-void-surface border-2 border-void-border rounded-void text-muted hover:text-terminal hover:border-pulse-500 transition-all active:scale-90 shadow-2xl flex items-center gap-3">
                             <span className="text-[10px] font-black uppercase tracking-widest hidden sm:block">Close_Console</span>
                             <XIcon className="w-7 h-7" />

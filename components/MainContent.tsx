@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import type { Feed, Folder, Selection, WidgetSettings, Article, ArticleView, Theme } from '../src/App';
 import type { SourceType } from './AddSource';
-import { MenuIcon, SearchIcon, SunIcon, MoonIcon, GlobeAltIcon, CpuChipIcon, BeakerIcon, ChartBarIcon, FlagIcon, FireIcon, ControllerIcon, XIcon, ExclamationTriangleIcon, ArrowPathIcon, RadioIcon, VoidIcon, ShieldCheckIcon, SparklesIcon } from './icons';
+import { MenuIcon, SearchIcon, SunIcon, MoonIcon, GlobeAltIcon, CpuChipIcon, BeakerIcon, ChartBarIcon, FlagIcon, FireIcon, ControllerIcon, XIcon, ExclamationTriangleIcon, ArrowPathIcon, RadioIcon, VoidIcon, ShieldCheckIcon, ContrastIcon, WandIcon, PaletteIcon, SkinsIcon, StyleIcon } from './icons';
 import { resilientFetch } from '../services/fetch';
 import { parseRssXml } from '../services/rssParser';
 import FeaturedStory from './articles/FeaturedStory';
@@ -45,12 +45,15 @@ interface MainContentProps {
     onOpenSidebar: () => void;
     animationClass: string;
     pageTitle: string;
-    uptime: number;
     initialArticles?: Article[];
     onSetSniffErrorModal: (show: boolean) => void;
     onOpenSearchExplainer?: () => void;
     onOpenIntegrityBriefing?: () => void;
 }
+
+const ThemeIcon: React.FC<{ className?: string }> = ({ className }) => {
+    return <PaletteIcon className={className} />;
+};
 
 const ARTICLES_PER_PAGE = 25;
 const LOAD_MORE_BATCH = 15;
@@ -65,17 +68,8 @@ const CATEGORY_MAP = [
     { id: 'GAMING' }
 ];
 
-const EnergyScope: React.FC<{ value: number, onClick?: () => void }> = ({ value, onClick }) => (
-    <div className="w-full flex items-center gap-3 cursor-help group px-2" onClick={onClick}>
-        <div className="flex-grow h-1 bg-terminal/10 rounded-full overflow-hidden relative">
-            <div className="h-full bg-pulse-500 shadow-[0_0_8px_var(--void-accent)] transition-all duration-1000" style={{ width: `${value}%` }} />
-        </div>
-        <span className="text-[8px] font-mono font-black text-pulse-500 tracking-tighter uppercase">{value}%</span>
-    </div>
-);
-
 const MainContent: React.FC<MainContentProps> = (props) => {
-    const { selection, onSelectCategory, readArticleIds, bookmarkedArticleIds, onMarkAsRead, onPurgeBuffer, onSearch, onOpenReader, onOpenExternal, refreshKey, onOpenSidebar, theme, onToggleTheme, animationClass, pageTitle, uptime, allFeeds, onSetFeeds, onSetFolders, initialArticles, onAddSource, onRefresh, onSetSniffErrorModal, onOpenSearchExplainer, onOpenIntegrityBriefing } = props;
+    const { selection, onSelectCategory, readArticleIds, bookmarkedArticleIds, onMarkAsRead, onPurgeBuffer, onSearch, onOpenReader, onOpenExternal, refreshKey, onOpenSidebar, theme, onToggleTheme, animationClass, pageTitle, allFeeds, onSetFeeds, onSetFolders, initialArticles, onAddSource, onRefresh, onSetSniffErrorModal, onOpenSearchExplainer, onOpenIntegrityBriefing } = props;
     
     const [articles, setArticles] = useState<Article[]>(initialArticles || []);
     const [loading, setLoading] = useState(false);
@@ -166,8 +160,8 @@ const MainContent: React.FC<MainContentProps> = (props) => {
     if (allFeeds.length === 0 && selection.type === 'all' && onSetFeeds && onSetFolders) {
         return (
             <main className={`flex-grow overflow-y-auto scrollbar-hide ${animationClass} bg-void-bg pb-40 pt-2`}>
-                <Header onSearchSubmit={handleSearchSubmit} searchQuery={searchQuery} setSearchQuery={setSearchQuery} onOpenSidebar={onOpenSidebar} onToggleTheme={onToggleTheme} uptime={uptime} isSniffing={isSniffing} onOpenSearchExplainer={onOpenSearchExplainer} onOpenIntegrityBriefing={onOpenIntegrityBriefing} onRefresh={onRefresh} selection={selection} handleCategoryClick={handleCategoryClick} />
-                <div className="pt-[calc(11rem+var(--safe-top))] md:pt-[calc(13rem+var(--safe-top))]">
+                <Header onSearchSubmit={handleSearchSubmit} searchQuery={searchQuery} setSearchQuery={setSearchQuery} onOpenSidebar={onOpenSidebar} theme={theme} onToggleTheme={onToggleTheme} isSniffing={isSniffing} onOpenSearchExplainer={onOpenSearchExplainer} onOpenIntegrityBriefing={onOpenIntegrityBriefing} onRefresh={onRefresh} selection={selection} handleCategoryClick={handleCategoryClick} />
+                <div className="pt-[calc(9rem+var(--safe-top))] md:pt-[calc(11rem+var(--safe-top))]">
                     <FeedOnboarding onComplete={(f, fld) => { onSetFolders(fld); onSetFeeds(f); }} />
                 </div>
             </main>
@@ -185,9 +179,9 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                 title="Intel Acquisition" 
                 content="Welcome to the core loop. Use the category tabs to filter by sector. The 'Signal Output' below shows live decrypted packets from your nodes." 
             />
-            <Header onSearchSubmit={handleSearchSubmit} searchQuery={searchQuery} setSearchQuery={setSearchQuery} onOpenSidebar={onOpenSidebar} onToggleTheme={onToggleTheme} uptime={uptime} isSniffing={isSniffing} onOpenSearchExplainer={onOpenSearchExplainer} onOpenIntegrityBriefing={onOpenIntegrityBriefing} onRefresh={onRefresh} selection={selection} handleCategoryClick={handleCategoryClick} />
+            <Header onSearchSubmit={handleSearchSubmit} searchQuery={searchQuery} setSearchQuery={setSearchQuery} onOpenSidebar={onOpenSidebar} theme={theme} onToggleTheme={onToggleTheme} isSniffing={isSniffing} onOpenSearchExplainer={onOpenSearchExplainer} onOpenIntegrityBriefing={onOpenIntegrityBriefing} onRefresh={onRefresh} selection={selection} handleCategoryClick={handleCategoryClick} />
             
-            <div className="px-4 md:px-12 pt-[calc(11.5rem+var(--safe-top))] md:pt-[calc(13rem+var(--safe-top))] max-w-[1800px] mx-auto transition-all relative">
+            <div className="px-4 md:px-12 pt-[calc(9.5rem+var(--safe-top))] md:pt-[calc(11rem+var(--safe-top))] max-w-[1800px] mx-auto transition-all relative">
                  <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-void-border mb-10">
                     <div>
                         <h1 className="text-3xl md:text-5xl font-black text-terminal italic uppercase tracking-tighter leading-none">
@@ -275,7 +269,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
     );
 };
 
-const Header: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuery, onOpenSidebar, onToggleTheme, uptime, isSniffing, onOpenSearchExplainer, onOpenIntegrityBriefing, onRefresh, selection, handleCategoryClick }) => {
+const Header: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuery, onOpenSidebar, theme, onToggleTheme, isSniffing, onOpenSearchExplainer, onOpenIntegrityBriefing, onRefresh, selection, handleCategoryClick }) => {
     return (
         <header className="fixed top-0 left-0 right-0 z-40 px-4 md:px-12 pt-[var(--safe-top)] pb-2 transition-all">
             <div className="max-w-[1800px] mx-auto void-card mt-4 overflow-hidden relative">
@@ -294,11 +288,10 @@ const Header: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuery, on
                             />
                             <button type="button" onClick={onRefresh} className="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-muted hover:text-terminal transition-all active:rotate-180 duration-500"><ArrowPathIcon className="w-5 h-5" /></button>
                         </form>
-                        <div className="w-full mt-2">
-                             <EnergyScope value={uptime} onClick={() => onOpenIntegrityBriefing?.()} />
-                        </div>
                     </div>
-                    <button onClick={onToggleTheme} className="p-3 bg-void-bg/50 rounded-2xl text-muted border border-void-border active:scale-90 transition-transform hover:text-pulse-500"><SparklesIcon className="w-6 h-6" /></button>
+                    <button onClick={onToggleTheme} className="p-3 bg-void-bg/50 rounded-2xl text-muted border border-void-border active:scale-90 transition-transform hover:text-pulse-500">
+                        <ThemeIcon className="w-6 h-6" />
+                    </button>
                 </div>
                 <nav className="flex items-center h-12 md:h-14 border-t border-void-border px-6 md:px-12 gap-3 overflow-x-auto scrollbar-hide">
                     <button onClick={() => handleCategoryClick(null)} className={`shrink-0 flex items-center px-5 py-2 rounded-full text-[8px] font-black uppercase italic transition-all ${!selection.category ? 'bg-pulse-500 text-white shadow-lg' : 'text-muted hover:text-terminal'}`}>
