@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { generateSudoku } from '../services/sudoku';
 import { PencilIcon, LightBulbIcon, EraserIcon, VoidIcon, XIcon, ArrowPathIcon, CpuChipIcon, SparklesIcon, BookOpenIcon, ExclamationTriangleIcon } from './icons';
@@ -25,7 +24,7 @@ const MISTAKE_LIMIT = 3;
 
 const HeartIcon: React.FC<{ filled: boolean; animated?: boolean }> = ({ filled, animated }) => (
     <svg 
-        className={`w-6 h-6 transition-all duration-500 ${filled ? 'text-neon-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.6)]' : 'text-zinc-800'} ${animated && !filled ? 'animate-bounce' : ''}`} 
+        className={`w-6 h-6 transition-all duration-500 ${filled ? 'text-app-accent drop-shadow-[0_0_8px_var(--app-accent)]' : 'text-zinc-800'} ${animated && !filled ? 'animate-bounce' : ''}`} 
         viewBox="0 0 24 24" 
         fill={filled ? "currentColor" : "none"} 
         stroke="currentColor" 
@@ -37,12 +36,12 @@ const HeartIcon: React.FC<{ filled: boolean; animated?: boolean }> = ({ filled, 
 
 const LogicGraphic: React.FC = () => (
     <div className="relative w-48 h-48 mx-auto flex items-center justify-center">
-        <div className="absolute inset-0 bg-neon-400/10 rounded-full animate-ping" />
-        <div className="absolute inset-4 bg-neon-400/20 rounded-full animate-pulse" />
-        <div className="relative z-10 p-8 bg-zinc-900 rounded-[2rem] border-4 border-neon-400 shadow-[0_0_30px_rgba(34,211,238,0.4)]">
-            <CpuChipIcon className="w-16 h-16 text-neon-400" />
+        <div className="absolute inset-0 bg-app-accent/10 rounded-full animate-ping" />
+        <div className="absolute inset-4 bg-app-accent/20 rounded-full animate-pulse" />
+        <div className="relative z-10 p-8 bg-app-card rounded-[2rem] border-4 border-app-accent shadow-[0_0_30px_rgba(34,211,238,0.4)]">
+            <CpuChipIcon className="w-16 h-16 text-app-accent" />
         </div>
-        <div className="absolute -top-4 -left-4 text-[8px] font-mono text-neon-400 uppercase tracking-widest animate-pulse font-black italic">CORE_STABILITY_SCAN</div>
+        <div className="absolute -top-4 -left-4 text-[8px] font-mono text-app-accent uppercase tracking-widest animate-pulse font-black italic">CORE_STABILITY_SCAN</div>
     </div>
 );
 
@@ -216,15 +215,15 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
 
     if (view === 'IDLE') {
         return (
-            <div className="w-full h-full bg-zinc-950 flex flex-col items-center justify-center p-6 overflow-y-auto scrollbar-hide">
-                <div className="w-full max-w-sm text-center bg-zinc-900 p-8 md:p-10 rounded-[3rem] border-4 border-neon-400 shadow-[0_0_50px_rgba(34,211,238,0.1)] mb-6">
+            <div className="w-full h-full bg-app-bg flex flex-col items-center justify-center p-6 overflow-y-auto scrollbar-hide">
+                <div className="w-full max-w-sm text-center bg-app-card p-8 md:p-10 rounded-[3rem] border-4 border-app-accent shadow-[0_0_50px_rgba(34,211,238,0.1)] mb-6">
                     <header className="mb-8">
-                        <span className="text-[10px] font-black uppercase text-neon-400 tracking-[0.3em] italic block mb-1">Matrix Calibration</span>
-                        <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter leading-none">PATTERN ZERO</h2>
+                        <span className="text-[10px] font-black uppercase text-app-accent tracking-[0.3em] italic block mb-1">Matrix Calibration</span>
+                        <h2 className="text-3xl font-black text-app-text italic uppercase tracking-tighter leading-none">PATTERN ZERO</h2>
                     </header>
                     <div className="flex gap-1.5 mb-8">
                         {(['Easy', 'Medium', 'Hard'] as Difficulty[]).map(d => (
-                            <button key={d} onClick={() => { soundService.playClick(); setDifficulty(d); }} className={`flex-1 py-2 rounded-xl font-black uppercase italic text-[9px] transition-all border ${difficulty === d ? 'bg-neon-500 border-neon-400 text-white shadow-lg' : 'bg-zinc-800 border-white/5 text-zinc-500'}`}>{d}</button>
+                            <button key={d} onClick={() => { soundService.playClick(); setDifficulty(d); }} className={`flex-1 py-2 rounded-xl font-black uppercase italic text-[9px] transition-all border ${difficulty === d ? 'bg-app-accent border-app-accent text-app-bg shadow-lg' : 'bg-zinc-800 border-white/5 text-zinc-500'}`}>{d}</button>
                         ))}
                     </div>
                     <div className="h-[240px] flex items-center justify-center mb-8 overflow-hidden relative">
@@ -233,7 +232,7 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
                         </div>
                     </div>
                     <div className="space-y-3">
-                        <button onClick={handleInitReboot} className="w-full py-5 bg-white text-black font-black uppercase italic rounded-2xl hover:scale-[1.02] transition-all shadow-xl active:scale-95 text-lg">RE-CALIBRATE CORE</button>
+                        <button onClick={handleInitReboot} className="w-full py-5 bg-app-text text-app-bg font-black uppercase italic rounded-2xl hover:scale-[1.02] transition-all shadow-xl active:scale-95 text-lg">RE-CALIBRATE CORE</button>
                         <button onClick={() => { soundService.playClick(); setShowHelp(true); }} className="w-full py-3 bg-zinc-800 text-zinc-400 font-black uppercase italic rounded-xl border border-white/5 hover:text-white transition-all text-[10px] tracking-widest flex items-center justify-center gap-2"><BookOpenIcon className="w-4 h-4" /> Tactical Manual</button>
                         <button onClick={onBackToHub} className="text-zinc-500 font-bold uppercase tracking-widest text-xs hover:text-white transition-colors pt-2 block w-full italic tracking-[0.2em]">Abort Link</button>
                     </div>
@@ -247,16 +246,16 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
             <div className="w-full h-full flex flex-col items-center justify-center bg-black/90 p-8 text-left font-mono relative z-20">
                 <div className="max-w-md w-full">
                     <div className="mb-8 flex items-center gap-4">
-                        <CpuChipIcon className="w-10 h-10 text-neon-400 animate-pulse" />
+                        <CpuChipIcon className="w-10 h-10 text-app-accent animate-pulse" />
                         <span className="text-xl font-black text-white italic">GRID_RECALIBRATION...</span>
                     </div>
-                    <div className="space-y-2 border-l-2 border-neon-400/30 pl-4 py-2 bg-zinc-950/50">
+                    <div className="space-y-2 border-l-2 border-app-accent/30 pl-4 py-2 bg-zinc-950/50">
                         {bootLog.map((log, i) => (
-                            <p key={i} className="text-[10px] md:text-xs text-neon-400 font-black uppercase tracking-widest animate-fade-in">{log}</p>
+                            <p key={i} className="text-[10px] md:text-xs text-app-accent font-black uppercase tracking-widest animate-fade-in">{log}</p>
                         ))}
                     </div>
                     <div className="mt-12 h-1 w-full bg-zinc-900 rounded-full overflow-hidden p-0.5 border border-white/5">
-                        <div className="h-full bg-neon-400 animate-pulse" style={{ width: `${(bootLog.length / 6) * 100}%` }} />
+                        <div className="h-full bg-app-accent animate-pulse" style={{ width: `${(bootLog.length / 6) * 100}%` }} />
                     </div>
                 </div>
             </div>
@@ -264,7 +263,7 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
     }
 
     return (
-        <main className="w-full h-full bg-zinc-950 text-white flex flex-col items-center justify-center font-sans overflow-y-auto scrollbar-hide pt-[calc(4rem+var(--safe-top))] relative pb-20">
+        <main className="w-full h-full bg-app-bg text-app-text flex flex-col items-center justify-center font-sans overflow-y-auto scrollbar-hide pt-[calc(4rem+var(--safe-top))] relative pb-20">
             <style>{`
                 .grid-crt::before {
                     content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0;
@@ -275,36 +274,36 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
             `}</style>
 
             <div className="max-w-md w-full h-full flex flex-col p-4 gap-4 z-10">
-                <header className="flex justify-between items-center bg-zinc-900/80 p-4 rounded-3xl border border-white/5 backdrop-blur-xl shrink-0">
+                <header className="flex justify-between items-center bg-app-card/80 p-4 rounded-3xl border border-white/5 backdrop-blur-xl shrink-0">
                     <button onClick={() => { soundService.playWrong(); setView('IDLE'); }} className="p-2 bg-zinc-800 rounded-xl text-zinc-400 hover:text-white transition-colors"><XIcon className="w-6 h-6" /></button>
                     <div className="flex gap-4 items-center">
                         <div className="flex items-center gap-1">
                             {[...Array(3)].map((_, i) => <HeartIcon key={i} filled={i < 3 - mistakes} animated={i === 2 - mistakes} />)}
                         </div>
                         <div className="w-px h-8 bg-zinc-800 mx-1" />
-                        <div className="text-right"><span className="text-[8px] font-black uppercase text-zinc-500 block mb-0.5 italic">Uptime</span><span className="text-sm font-black font-mono text-white leading-none">{formatTime(time)}</span></div>
+                        <div className="text-right"><span className="text-[8px] font-black uppercase text-zinc-500 block mb-0.5 italic">Uptime</span><span className="text-sm font-black font-mono text-app-text leading-none">{formatTime(time)}</span></div>
                     </div>
-                    <button onClick={() => { soundService.playClick(); setShowHelp(true); }} className="p-2 bg-zinc-800 rounded-xl text-zinc-400 hover:text-neon-400 border border-white/5 transition-colors"><BookOpenIcon className="w-6 h-6" /></button>
+                    <button onClick={() => { soundService.playClick(); setShowHelp(true); }} className="p-2 bg-zinc-800 rounded-xl text-zinc-400 hover:text-app-accent border border-white/5 transition-colors"><BookOpenIcon className="w-6 h-6" /></button>
                 </header>
 
                 <div className="flex-grow flex items-center justify-center min-h-0">
-                    <div className="aspect-square w-full max-w-[360px] grid grid-cols-9 bg-zinc-950 border-[4px] border-neon-400 shadow-[0_0_50px_rgba(34,211,238,0.3)] relative overflow-hidden ring-1 ring-white/5 rounded-lg grid-crt">
+                    <div className="aspect-square w-full max-w-[360px] grid grid-cols-9 bg-black border-[4px] border-app-accent shadow-[0_0_50px_rgba(34,211,238,0.3)] relative overflow-hidden ring-1 ring-white/5 rounded-lg grid-crt">
                         {grid?.map((row, r) => row.map((cell, c) => {
                             const isSelected = selectedCell?.row === r && selectedCell?.col === c;
                             const isSameValue = cell.value !== null && selectedCell && grid[selectedCell.row][selectedCell.col].value === cell.value;
                             const isSameSector = selectedCell && (Math.floor(r/3) === Math.floor(selectedCell.row/3)) && (Math.floor(c/3) === Math.floor(selectedCell.col/3));
                             
                             // Visual fix: thick borders for 3x3 boundaries, thin for internal cells
-                            const borderR = (c + 1) % 3 === 0 && c < 8 ? 'border-r-[3px] border-neon-400' : c < 8 ? 'border-r border-zinc-800' : '';
-                            const borderB = (r + 1) % 3 === 0 && r < 8 ? 'border-b-[3px] border-neon-400' : r < 8 ? 'border-b border-zinc-800' : '';
+                            const borderR = (c + 1) % 3 === 0 && c < 8 ? 'border-r-[3px] border-app-accent' : c < 8 ? 'border-r border-zinc-800' : '';
+                            const borderB = (r + 1) % 3 === 0 && r < 8 ? 'border-b-[3px] border-app-accent' : r < 8 ? 'border-b border-zinc-800' : '';
                             const borderCls = `${borderR} ${borderB}`;
                             
-                            let cellBg = isSelected ? "bg-neon-500 text-black scale-105 z-20 shadow-xl" : isSameValue ? "bg-neon-400/20" : isSameSector ? "bg-zinc-800/40" : "bg-zinc-900/40";
+                            let cellBg = isSelected ? "bg-app-accent text-app-bg scale-105 z-20 shadow-xl" : isSameValue ? "bg-app-accent/20" : isSameSector ? "bg-zinc-800/40" : "bg-app-card/40";
                             return (
                                 <div key={`${r}-${c}`} onClick={() => handleCellClick(r, c)} className={`aspect-square flex items-center justify-center text-xl font-black cursor-pointer transition-all duration-150 ${cellBg} ${borderCls}`}>
-                                    {cell.value ? <span className={cell.isError ? 'text-pulse-500 animate-pulse' : cell.isPrefilled ? 'text-white/40' : 'text-neon-400'}>{cell.value}</span> : (
+                                    {cell.value ? <span className={cell.isError ? 'text-pulse-500 animate-pulse' : cell.isPrefilled ? 'text-app-text/40' : 'text-app-accent'}>{cell.value}</span> : (
                                         <div className="grid grid-cols-3 gap-[1px] p-0.5 w-full h-full opacity-20">
-                                            {[1,2,3,4,5,6,7,8,9].map(n => <div key={n} className="flex items-center justify-center text-[6px] font-black text-neon-400">{cell.notes.includes(n) ? n : ''}</div>)}
+                                            {[1,2,3,4,5,6,7,8,9].map(n => <div key={n} className="flex items-center justify-center text-[6px] font-black text-app-accent">{cell.notes.includes(n) ? n : ''}</div>)}
                                         </div>
                                     )}
                                 </div>
@@ -318,12 +317,12 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
                         const isBlocked = selectedCell && usedInConstraints.has(num);
                         return (
                             <button key={num} onClick={() => handleNumberInput(num)} disabled={!!isBlocked}
-                                className={`aspect-square border-2 rounded-xl text-xl font-black italic transition-all active:scale-90 shadow-lg ${isBlocked ? 'bg-zinc-950 border-zinc-900 text-zinc-800 opacity-20 grayscale' : 'bg-zinc-800 border-white/10 text-white hover:bg-neon-400 hover:text-black'}`}>
+                                className={`aspect-square border-2 rounded-xl text-xl font-black italic transition-all active:scale-90 shadow-lg ${isBlocked ? 'bg-black border-zinc-900 text-zinc-800 opacity-20 grayscale' : 'bg-zinc-800 border-white/10 text-app-text hover:bg-app-accent hover:text-app-bg'}`}>
                                 {num}
                             </button>
                         );
                     })}
-                    <button onClick={() => { soundService.playClick(); setIsNotesMode(!isNotesMode); }} className={`aspect-square rounded-xl flex items-center justify-center transition-all border-2 ${isNotesMode ? 'bg-neon-400 border-white text-black' : 'bg-zinc-800 border-white/5 text-zinc-500'}`}><PencilIcon className="w-6 h-6" /></button>
+                    <button onClick={() => { soundService.playClick(); setIsNotesMode(!isNotesMode); }} className={`aspect-square rounded-xl flex items-center justify-center transition-all border-2 ${isNotesMode ? 'bg-app-accent border-white text-app-bg' : 'bg-zinc-800 border-white/5 text-zinc-500'}`}><PencilIcon className="w-6 h-6" /></button>
                     <button onClick={() => { if (!selectedCell || !grid || !solution) return; soundService.playAction(); handleNumberInput(solution[selectedCell.row][selectedCell.col]); }} className="aspect-square bg-zinc-800 border border-white/5 rounded-xl flex items-center justify-center text-amber-500 active:scale-90"><LightBulbIcon className="w-6 h-6" /></button>
                     <button onClick={() => { if (!selectedCell || !grid) return; const {row, col} = selectedCell; if (grid[row][col].isPrefilled) return; soundService.playWrong(); const ng = grid.map(r=>r.map(c=>({...c, notes:[...c.notes]}))); ng[row][col].value = null; ng[row][col].notes = []; ng[row][col].isError = false; setGrid(ng); }} className="aspect-square bg-zinc-800 border border-white/5 rounded-xl flex items-center justify-center text-zinc-500 active:scale-90"><EraserIcon className="w-6 h-6" /></button>
                 </div>
@@ -333,12 +332,12 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
 
             {(gameState === 'WON' || gameState === 'LOST') && (
                 <div className="fixed inset-0 bg-black/98 backdrop-blur-xl z-50 flex items-center justify-center p-6 text-center animate-fade-in">
-                    <div className={`max-w-sm w-full bg-zinc-900 p-10 rounded-[3rem] border-4 ${gameState === 'WON' ? 'border-neon-400 shadow-[0_0_100px_rgba(34,211,238,0.2)]' : 'border-pulse-500 shadow-[0_0_100px_rgba(225,29,72,0.2)]'}`}>
-                        <h2 className={`text-4xl font-black italic uppercase tracking-tighter mb-4 ${gameState === 'WON' ? 'text-neon-400' : 'text-pulse-500'}`}>{gameState === 'WON' ? 'MATRIX STABLE' : 'KERNEL PANIC'}</h2>
+                    <div className={`max-w-sm w-full bg-app-card p-10 rounded-[3rem] border-4 ${gameState === 'WON' ? 'border-app-accent shadow-[0_0_100px_rgba(34,211,238,0.2)]' : 'border-pulse-500 shadow-[0_0_100px_rgba(225,29,72,0.2)]'}`}>
+                        <h2 className={`text-4xl font-black italic uppercase tracking-tighter mb-4 ${gameState === 'WON' ? 'text-app-accent' : 'text-pulse-500'}`}>{gameState === 'WON' ? 'MATRIX STABLE' : 'KERNEL PANIC'}</h2>
                         {gameState === 'WON' ? (
-                            <div className="mb-8"><p className="text-[9px] text-zinc-500 uppercase font-black mb-4">Register Stability Token</p><input autoFocus maxLength={3} value={initials} onChange={e => setInitials(e.target.value.toUpperCase())} className="bg-black/50 border-2 border-neon-400 text-white rounded-xl px-4 py-3 text-center text-2xl font-black w-32 outline-none uppercase italic" placeholder="???" /></div>
+                            <div className="mb-8"><p className="text-[9px] text-zinc-500 uppercase font-black mb-4">Register Stability Token</p><input autoFocus maxLength={3} value={initials} onChange={e => setInitials(e.target.value.toUpperCase())} className="bg-black/50 border-2 border-app-accent text-white rounded-xl px-4 py-3 text-center text-2xl font-black w-32 outline-none uppercase italic" placeholder="???" /></div>
                         ) : <p className="text-zinc-500 text-[10px] font-black uppercase mb-10 leading-relaxed italic">Numerical matrix fragmented.<br/>Grid calibration failed.</p>}
-                        <button onClick={gameState === 'WON' ? handleSaveScore : () => { soundService.playClick(); setView('IDLE'); }} className="w-full py-5 bg-neon-400 text-black font-black text-lg italic uppercase rounded-full shadow-xl active:scale-95 transition-transform">Transmit Sequence</button>
+                        <button onClick={gameState === 'WON' ? handleSaveScore : () => { soundService.playClick(); setView('IDLE'); }} className="w-full py-5 bg-app-accent text-app-bg font-black text-lg italic uppercase rounded-full shadow-xl active:scale-95 transition-transform">Transmit Sequence</button>
                     </div>
                 </div>
             )}
@@ -348,30 +347,30 @@ const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, o
 
 const TacticalManual: React.FC<{ onClose: () => void }> = ({ onClose }) => (
     <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 md:p-10 font-mono" onClick={onClose}>
-        <div className="max-w-xl w-full bg-zinc-900 border-4 border-neon-400 rounded-[2.5rem] shadow-2xl overflow-hidden relative flex flex-col max-h-[85vh]" onClick={e => e.stopPropagation()}>
-            <header className="h-12 bg-neon-600 flex items-center justify-between px-1 relative z-20 border-b-2 border-black shrink-0">
-                <div className="flex items-center gap-2 h-full"><div className="w-10 h-8 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center"><BookOpenIcon className="w-5 h-5 text-black" /></div><h2 className="text-white text-[10px] font-black uppercase tracking-[0.2em] italic px-2">SYMMETRY_VERIFICATION.PDF</h2></div>
+        <div className="max-w-xl w-full bg-app-card border-4 border-app-accent rounded-[2.5rem] shadow-2xl overflow-hidden relative flex flex-col max-h-[85vh]" onClick={e => e.stopPropagation()}>
+            <header className="h-12 bg-app-accent flex items-center justify-between px-1 relative z-20 border-b-2 border-black shrink-0">
+                <div className="flex items-center gap-2 h-full"><div className="w-10 h-8 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center"><BookOpenIcon className="w-5 h-5 text-black" /></div><h2 className="text-app-bg text-[10px] font-black uppercase tracking-[0.2em] italic px-2">SYMMETRY_VERIFICATION.PDF</h2></div>
                 <button onClick={onClose} className="w-10 h-8 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center active:bg-zinc-400 transition-colors"><XIcon className="w-5 h-5 text-black" /></button>
             </header>
-            <div className="p-6 md:p-10 overflow-y-auto flex-grow bg-void-950/40 relative">
+            <div className="p-6 md:p-10 overflow-y-auto flex-grow bg-app-bg/40 relative">
                 <div className="absolute inset-0 pointer-events-none opacity-5 cctv-overlay" />
                 <section className="space-y-8 relative z-10">
                     <div>
-                        <h3 className="text-lg font-black text-white italic uppercase tracking-tighter mb-4 flex items-center gap-3"><SparklesIcon className="w-5 h-5 text-neon-400" /> Matrix Stabilization</h3>
-                        <p className="text-[10px] md:text-xs text-zinc-400 uppercase font-black leading-relaxed tracking-wider mb-4 border-l-2 border-neon-400/30 pl-4">The core logic matrix (Pattern Zero) has fragmented. Each sector and rail must contain a unique set of 1-9 frequencies to prevent a kernel panic.</p>
+                        <h3 className="text-lg font-black text-app-text italic uppercase tracking-tighter mb-4 flex items-center gap-3"><SparklesIcon className="w-5 h-5 text-app-accent" /> Matrix Stabilization</h3>
+                        <p className="text-[10px] md:text-xs text-zinc-400 uppercase font-black leading-relaxed tracking-wider mb-4 border-l-2 border-app-accent/30 pl-4">The core logic matrix (Pattern Zero) has fragmented. Each sector and rail must contain a unique set of 1-9 frequencies to prevent a kernel panic.</p>
                     </div>
                     <div className="grid grid-cols-1 gap-6">
-                        <ManualPoint title="0x01_Numerical_Integrity" desc="No digit may repeat within a single horizontal rail, vertical rail, or 3x3 mainframe sector." color="text-neon-400" />
-                        <ManualPoint title="0x02_Neural_Probing" desc="Use the Pencil tool to map potential bit assignments without committing mainframe energy. Essential for Expert sectors." color="text-neon-400" />
-                        <ManualPoint title="0x03_Stability_Faults" desc="The core can withstand only 3 logic faults. On the 4th, the matrix undergoes a total collapse (Kernel Panic)." color="text-neon-400" />
+                        <ManualPoint title="0x01_Numerical_Integrity" desc="No digit may repeat within a single horizontal rail, vertical rail, or 3x3 mainframe sector." color="text-app-accent" />
+                        <ManualPoint title="0x02_Neural_Probing" desc="Use the Pencil tool to map potential bit assignments without committing mainframe energy. Essential for Expert sectors." color="text-app-accent" />
+                        <ManualPoint title="0x03_Stability_Faults" desc="The core can withstand only 3 logic faults. On the 4th, the matrix undergoes a total collapse (Kernel Panic)." color="text-app-accent" />
                     </div>
-                    <div className="p-5 bg-neon-400/10 border-2 border-neon-400/30 rounded-2xl flex items-start gap-4">
-                        <ExclamationTriangleIcon className="w-6 h-6 text-neon-400 shrink-0 mt-0.5 animate-pulse" />
-                        <div><p className="text-[9px] font-black text-neon-400 uppercase tracking-widest mb-1 italic">Pro Tip: Sector Isolation</p><p className="text-[8px] text-zinc-500 uppercase font-black leading-tight italic">Focus on sectors with the highest density of locked nodes. Solving a cluster often reveals the frequency drift in adjacent rails.</p></div>
+                    <div className="p-5 bg-app-accent/10 border-2 border-app-accent/30 rounded-2xl flex items-start gap-4">
+                        <ExclamationTriangleIcon className="w-6 h-6 text-app-accent shrink-0 mt-0.5 animate-pulse" />
+                        <div><p className="text-[9px] font-black text-app-accent uppercase tracking-widest mb-1 italic">Pro Tip: Sector Isolation</p><p className="text-[8px] text-zinc-500 uppercase font-black leading-tight italic">Focus on sectors with the highest density of locked nodes. Solving a cluster often reveals the frequency drift in adjacent rails.</p></div>
                     </div>
                 </section>
             </div>
-            <footer className="p-4 bg-zinc-300 border-t-2 border-black shrink-0"><button onClick={onClose} className="w-full py-4 bg-neon-600 text-white text-[10px] font-black uppercase italic shadow-lg active:bg-neon-700">ACKNOWLEDGE_STABILITY</button></footer>
+            <footer className="p-4 bg-zinc-300 border-t-2 border-black shrink-0"><button onClick={onClose} className="w-full py-4 bg-app-accent text-app-bg text-[10px] font-black uppercase italic shadow-lg active:opacity-90">ACKNOWLEDGE_STABILITY</button></footer>
         </div>
     </div>
 );

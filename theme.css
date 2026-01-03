@@ -1,0 +1,43 @@
+/* src/theme.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Default: Neon Noir */
+  --app-bg: #030303;
+  --app-text: #ffffff;
+  --app-accent: #00f2ff; /* Cyber Blue */
+  --app-card: #0a0a0a;
+}
+
+[data-theme='sleek'] {
+  --app-bg: #ffffff;
+  --app-text: #18181b;
+  --app-accent: #000000;
+  --app-card: #f4f4f5;
+}
+
+[data-theme='terminal'] {
+  --app-bg: #0d0208;
+  --app-text: #00ff41;
+  --app-accent: #003b00;
+  --app-card: #001100;
+}
+
+[data-theme='bento'] {
+  --app-bg: #f0f2f5;
+  --app-text: #1c1e21;
+  --app-accent: #4267b2;
+  --app-card: #ffffff;
+}
+
+/* Custom Utilities for your Components */
+@layer utilities {
+  .bg-app-bg { background-color: var(--app-bg); }
+  .bg-app-card { background-color: var(--app-card); }
+  .text-app-text { color: var(--app-text); }
+  .text-app-accent { color: var(--app-accent); }
+  .border-app-accent { border-color: var(--app-accent); }
+  .bg-app-accent { background-color: var(--app-accent); }
+}

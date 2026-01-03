@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { ArrowPathIcon, FlagIcon, XIcon, VoidIcon, EntityIcon, BookOpenIcon, SparklesIcon, ExclamationTriangleIcon, CpuChipIcon } from './icons';
 import { saveHighScore, getHighScores, ScoreCategory } from '../services/highScoresService';
@@ -36,9 +35,9 @@ const CircuitBackground: React.FC = () => (
         <svg width="100%" height="100%" className="absolute inset-0">
             <defs>
                 <pattern id="circuit-grid" width="100" height="100" patternUnits="userSpaceOnUse">
-                    <path d="M 10 10 L 90 10 M 10 10 L 10 90" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-signal-500/20" />
-                    <circle cx="10" cy="10" r="2" fill="currentColor" className="text-signal-500/40" />
-                    <path d="M 10 10 L 30 30 L 70 30 L 90 50" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-signal-500/10" />
+                    <path d="M 10 10 L 90 10 M 10 10 L 10 90" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-app-accent/20" />
+                    <circle cx="10" cy="10" r="2" fill="currentColor" className="text-app-accent/40" />
+                    <path d="M 10 10 L 30 30 L 70 30 L 90 50" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-app-accent/10" />
                 </pattern>
             </defs>
             <rect width="100%" height="100%" fill="url(#circuit-grid)" />
@@ -48,12 +47,12 @@ const CircuitBackground: React.FC = () => (
 
 const AnomalyGraphic: React.FC = () => (
     <div className="relative w-48 h-48 mx-auto flex items-center justify-center">
-        <div className="absolute inset-0 bg-signal-500/10 rounded-full animate-ping" />
-        <div className="absolute inset-4 bg-signal-500/20 rounded-full animate-pulse" />
-        <div className="relative z-10 p-8 bg-zinc-900 rounded-[2rem] border-4 border-signal-500 shadow-[0_0_30px_rgba(34,197,94,0.4)]">
-            <EntityIcon className="w-16 h-16 text-signal-500" />
+        <div className="absolute inset-0 bg-app-accent/10 rounded-full animate-ping" />
+        <div className="absolute inset-4 bg-app-accent/20 rounded-full animate-pulse" />
+        <div className="relative z-10 p-8 bg-app-card rounded-[2rem] border-4 border-app-accent shadow-[0_0_30px_rgba(34,197,94,0.4)]">
+            <EntityIcon className="w-16 h-16 text-app-accent" />
         </div>
-        <div className="absolute -top-4 -left-4 text-[8px] font-mono text-signal-500 uppercase tracking-widest animate-pulse font-black italic">ANOMALY_PROBE_v4.2</div>
+        <div className="absolute -top-4 -left-4 text-[8px] font-mono text-app-accent uppercase tracking-widest animate-pulse font-black italic">ANOMALY_PROBE_v4.2</div>
     </div>
 );
 
@@ -263,7 +262,7 @@ const MinesweeperPage: React.FC<MinesweeperPageProps> = ({ onBackToHub, onReturn
   }, [grid, gameState, currentSettings]);
 
   return (
-    <div className="w-full h-full bg-void-950 flex flex-col items-center p-4 pt-[calc(4rem+var(--safe-top))] overflow-y-auto scrollbar-hide relative">
+    <div className="w-full h-full bg-app-bg flex flex-col items-center p-4 pt-[calc(4rem+var(--safe-top))] overflow-y-auto scrollbar-hide relative">
         <CircuitBackground />
         
         <style>{`
@@ -286,28 +285,28 @@ const MinesweeperPage: React.FC<MinesweeperPageProps> = ({ onBackToHub, onReturn
             .mine-detonated { animation: circuit-glitch 0.2s infinite; background: #e11d48 !important; box-shadow: 0 0 20px #ef4444; z-index: 20; }
             
             @keyframes current-flow {
-                0% { border-color: #22c55e; box-shadow: 0 0 0px #22c55e; }
-                50% { border-color: #4ade80; box-shadow: 0 0 15px #22c55e; }
-                100% { border-color: #22c55e; box-shadow: 0 0 0px #22c55e; }
+                0% { border-color: var(--app-accent); box-shadow: 0 0 0px var(--app-accent); }
+                50% { border-color: var(--app-accent); box-shadow: 0 0 15px var(--app-accent); }
+                100% { border-color: var(--app-accent); box-shadow: 0 0 0px var(--app-accent); }
             }
             .animate-reveal { animation: current-flow 0.5s ease-out; }
             
             .node-standby::after {
                 content: ""; position: absolute; top: 4px; right: 4px; width: 3px; height: 3px;
-                border-radius: 50%; background: #22c55e; box-shadow: 0 0 5px #22c55e; opacity: 0.6;
+                border-radius: 50%; background: var(--app-accent); box-shadow: 0 0 5px var(--app-accent); opacity: 0.6;
             }
         `}</style>
 
         {gameState === 'IDLE' ? (
             <div className="w-full h-full flex flex-col items-center justify-center animate-fade-in relative z-10">
-                <div className="w-full max-sm text-center bg-zinc-900 p-8 md:p-10 rounded-[3rem] border-4 border-signal-500 shadow-[0_0_50px_rgba(34,197,94,0.1)] mb-6">
+                <div className="w-full max-sm text-center bg-app-card p-8 md:p-10 rounded-[3rem] border-4 border-app-accent shadow-[0_0_50px_rgba(34,197,94,0.1)] mb-6">
                     <header className="mb-8">
-                        <span className="text-[10px] font-black uppercase text-signal-500 tracking-[0.3em] italic block mb-1">Sector Diagnostic</span>
-                        <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter leading-none">ANOMALY DETECTOR</h2>
+                        <span className="text-[10px] font-black uppercase text-app-accent tracking-[0.3em] italic block mb-1">Sector Diagnostic</span>
+                        <h2 className="text-3xl font-black text-app-text italic uppercase tracking-tighter leading-none">ANOMALY DETECTOR</h2>
                     </header>
                     <div className="flex gap-1.5 mb-8">
                         {(['Easy', 'Medium', 'Hard'] as Difficulty[]).map(d => (
-                            <button key={d} onClick={() => { soundService.playClick(); setDifficulty(d); }} className={`flex-1 py-2 rounded-xl font-black uppercase italic text-[9px] transition-all border ${difficulty === d ? 'bg-signal-600 border-signal-400 text-white shadow-lg' : 'bg-zinc-800 border-white/5 text-zinc-500'}`}>{d}</button>
+                            <button key={d} onClick={() => { soundService.playClick(); setDifficulty(d); }} className={`flex-1 py-2 rounded-xl font-black uppercase italic text-[9px] transition-all border ${difficulty === d ? 'bg-app-accent border-app-accent text-app-bg shadow-lg' : 'bg-zinc-800 border-white/5 text-zinc-500'}`}>{d}</button>
                         ))}
                     </div>
                     <div className="h-[240px] flex items-center justify-center mb-8 overflow-hidden relative">
@@ -316,7 +315,7 @@ const MinesweeperPage: React.FC<MinesweeperPageProps> = ({ onBackToHub, onReturn
                         </div>
                     </div>
                     <div className="space-y-3">
-                        <button onClick={handleInitReboot} className="w-full py-5 bg-white text-black font-black uppercase italic rounded-2xl hover:scale-[1.02] transition-all shadow-xl active:scale-95 text-lg">MOUNT PURGE_TOOL</button>
+                        <button onClick={handleInitReboot} className="w-full py-5 bg-app-text text-app-bg font-black uppercase italic rounded-2xl hover:scale-[1.02] transition-all shadow-xl active:scale-95 text-lg">MOUNT PURGE_TOOL</button>
                         <button onClick={() => { soundService.playClick(); setShowHelp(true); }} className="w-full py-3 bg-zinc-800 text-zinc-400 font-black uppercase italic rounded-xl border border-white/5 hover:text-white transition-all text-[10px] tracking-widest flex items-center justify-center gap-2"><BookOpenIcon className="w-4 h-4" /> Operational Lore</button>
                         <button onClick={onBackToHub} className="text-zinc-500 font-bold uppercase tracking-widest text-xs hover:text-white transition-colors pt-2 block w-full italic tracking-[0.2em]">Abort Session</button>
                     </div>
@@ -326,35 +325,35 @@ const MinesweeperPage: React.FC<MinesweeperPageProps> = ({ onBackToHub, onReturn
             <div className="w-full h-full flex flex-col items-center justify-center bg-black/90 p-8 text-left font-mono relative z-20">
                 <div className="max-w-md w-full">
                     <div className="mb-8 flex items-center gap-4">
-                        <CpuChipIcon className="w-10 h-10 text-signal-500 animate-pulse" />
+                        <CpuChipIcon className="w-10 h-10 text-app-accent animate-pulse" />
                         <span className="text-xl font-black text-white italic">REBOOT_CORE...</span>
                     </div>
-                    <div className="space-y-2 border-l-2 border-signal-500/30 pl-4 py-2 bg-zinc-950/50">
+                    <div className="space-y-2 border-l-2 border-app-accent/30 pl-4 py-2 bg-zinc-950/50">
                         {bootLog.map((log, i) => (
-                            <p key={i} className="text-[10px] md:text-xs text-signal-500 font-black uppercase tracking-widest animate-fade-in">{log}</p>
+                            <p key={i} className="text-[10px] md:text-xs text-app-accent font-black uppercase tracking-widest animate-fade-in">{log}</p>
                         ))}
                     </div>
                     <div className="mt-12 h-1 w-full bg-zinc-900 rounded-full overflow-hidden p-0.5 border border-white/5">
-                        <div className="h-full bg-signal-500 animate-pulse" style={{ width: `${(bootLog.length / 6) * 100}%` }} />
+                        <div className="h-full bg-app-accent animate-pulse" style={{ width: `${(bootLog.length / 6) * 100}%` }} />
                     </div>
                 </div>
             </div>
         ) : (
             <div className="max-w-4xl w-full flex flex-col gap-6 animate-fade-in pb-20 relative z-10">
-                <header className="flex flex-col md:flex-row justify-between items-center bg-void-900/80 p-6 rounded-[2rem] border-2 border-white/5 backdrop-blur-xl gap-4">
+                <header className="flex flex-col md:flex-row justify-between items-center bg-app-card/80 p-6 rounded-[2rem] border-2 border-white/5 backdrop-blur-xl gap-4">
                     <div className="flex items-center gap-4">
                         <button onClick={onBackToHub} className="p-3 bg-zinc-900 rounded-2xl text-zinc-400 hover:text-white transition-all active:scale-95 shadow-lg border border-white/5"><XIcon className="w-6 h-6" /></button>
-                        <div><span className="text-[9px] font-black uppercase text-signal-500 tracking-[0.4em] block mb-1 italic">Mainframe Maintenance</span><h2 className="text-xl md:text-2xl font-black italic uppercase text-white tracking-tighter leading-none">ANOMALY PURGE</h2></div>
+                        <div><span className="text-[9px] font-black uppercase text-app-accent tracking-[0.4em] block mb-1 italic">Mainframe Maintenance</span><h2 className="text-xl md:text-2xl font-black italic uppercase text-app-text tracking-tighter leading-none">ANOMALY PURGE</h2></div>
                     </div>
                     <div className="flex items-center gap-6">
-                       <div className="bg-black/60 px-5 py-2.5 rounded-2xl border border-signal-500/20 shadow-inner flex flex-col items-center min-w-[80px]"><span className="text-[8px] font-black text-signal-500 uppercase block mb-0.5 tracking-widest">Uptime</span><span className="text-xl font-black italic font-mono text-white leading-none">{String(time).padStart(3, '0')}</span></div>
+                       <div className="bg-black/60 px-5 py-2.5 rounded-2xl border border-app-accent/20 shadow-inner flex flex-col items-center min-w-[80px]"><span className="text-[8px] font-black text-app-accent uppercase block mb-0.5 tracking-widest">Uptime</span><span className="text-xl font-black italic font-mono text-white leading-none">{String(time).padStart(3, '0')}</span></div>
                        <div className="bg-black/60 px-5 py-2.5 rounded-2xl border border-pulse-500/20 shadow-inner flex flex-col items-center min-w-[80px]"><span className="text-[8px] font-black text-pulse-500 uppercase block mb-0.5 tracking-widest">Shorts</span><span className="text-xl font-black italic font-mono text-white leading-none">{String(Math.max(0, flagsLeft)).padStart(2, '0')}</span></div>
-                       <button onClick={() => { soundService.playClick(); setShowHelp(true); }} className="p-3 bg-zinc-800 rounded-2xl text-zinc-400 hover:text-signal-400 transition-all border border-white/5"><BookOpenIcon className="w-6 h-6" /></button>
+                       <button onClick={() => { soundService.playClick(); setShowHelp(true); }} className="p-3 bg-zinc-800 rounded-2xl text-zinc-400 hover:text-app-accent transition-all border border-white/5"><BookOpenIcon className="w-6 h-6" /></button>
                     </div>
                 </header>
 
                 <div className="flex flex-col lg:flex-row gap-8">
-                    <div className="bg-void-900/60 p-5 rounded-[2.5rem] border-4 border-zinc-900 shadow-2xl relative overflow-hidden grid-crt flex-grow">
+                    <div className="bg-app-card/60 p-5 rounded-[2.5rem] border-4 border-zinc-900 shadow-2xl relative overflow-hidden grid-crt flex-grow">
                         <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${currentSettings.cols}, 1fr)` }}>
                           {grid.map((cell, idx) => (
                                 <div 
@@ -366,10 +365,10 @@ const MinesweeperPage: React.FC<MinesweeperPageProps> = ({ onBackToHub, onReturn
                                             ? (cell.isMine ? 'mine-detonated' : 'bg-black/60 ring-1 ring-white/5 animate-reveal border border-white/10') 
                                             : 'bg-zinc-800 hover:bg-zinc-700 shadow-[inset_0_4px_4px_rgba(255,255,255,0.05),0_4px_8px_rgba(0,0,0,0.5)] border border-zinc-900 hover:scale-[1.03] active:scale-95 node-standby'
                                         } 
-                                        ${cell.isFlagged && !cell.isRevealed ? 'bg-signal-500/20' : ''}`}
+                                        ${cell.isFlagged && !cell.isRevealed ? 'bg-app-accent/20' : ''}`}
                                 >
                                     {cell.isRevealed ? (
-                                        cell.isMine ? <div className="text-white drop-shadow-[0_0_10px_white] scale-150">☢️</div> : (cell.adjacentMines > 0 && <span className={`digit-${cell.adjacentMines} drop-shadow-[0_0_10px_rgba(0,0,0,0.8)] font-black italic`}>{cell.adjacentMines}</span>)
+                                        cell.isMine ? <div className="text-white drop-shadow-[0_0_100px_white] scale-150">☢️</div> : (cell.adjacentMines > 0 && <span className={`digit-${cell.adjacentMines} drop-shadow-[0_0_10px_rgba(0,0,0,0.8)] font-black italic`}>{cell.adjacentMines}</span>)
                                     ) : (cell.isFlagged && <div className="text-pulse-500 drop-shadow-[0_0_12px_#e11d48] animate-pulse scale-110">⚑</div>)}
                                     <div className="absolute -top-1 -left-1 w-1 h-1 bg-zinc-600 rounded-full opacity-30" />
                                     <div className="absolute -top-1 -right-1 w-1 h-1 bg-zinc-600 rounded-full opacity-30" />
@@ -384,16 +383,16 @@ const MinesweeperPage: React.FC<MinesweeperPageProps> = ({ onBackToHub, onReturn
                         <div className="bg-black/60 p-6 rounded-[2rem] border border-white/5 space-y-4 shadow-xl">
                             <div className="flex justify-between items-center">
                                 <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest italic">Node Sync</span>
-                                <span className="text-[10px] font-black text-signal-500 font-mono">{integrityProgress}%</span>
+                                <span className="text-[10px] font-black text-app-accent font-mono">{integrityProgress}%</span>
                             </div>
                             <div className="w-full h-2.5 bg-black border border-white/5 rounded-full overflow-hidden p-0.5">
-                                <div className="h-full bg-signal-500 transition-all duration-700 shadow-[0_0_10px_#22c55e]" style={{ width: `${integrityProgress}%` }} />
+                                <div className="h-full bg-app-accent transition-all duration-700 shadow-[0_0_10px_var(--app-accent)]" style={{ width: `${integrityProgress}%` }} />
                             </div>
                         </div>
 
                         <button 
                             onClick={() => { soundService.playAction(); setIsFlagMode(!isFlagMode); }} 
-                            className={`w-full py-6 rounded-[2rem] font-black uppercase text-xs italic tracking-widest border-2 transition-all shadow-xl group ${isFlagMode ? 'bg-pulse-600 border-pulse-400 text-white shadow-[0_0_30px_rgba(225,29,72,0.4)]' : 'bg-void-900 border-white/10 text-zinc-500 hover:text-white'}`}
+                            className={`w-full py-6 rounded-[2rem] font-black uppercase text-xs italic tracking-widest border-2 transition-all shadow-xl group ${isFlagMode ? 'bg-pulse-600 border-pulse-400 text-white shadow-[0_0_30px_rgba(225,29,72,0.4)]' : 'bg-app-card border-white/10 text-zinc-500 hover:text-white'}`}
                         >
                             <span className="flex items-center justify-center gap-3"><FlagIcon className={`w-5 h-5 ${isFlagMode ? 'animate-bounce' : ''}`} /> {isFlagMode ? 'PLACING BEACONS' : 'ANALYSIS MODE'}</span>
                         </button>
@@ -412,22 +411,22 @@ const MinesweeperPage: React.FC<MinesweeperPageProps> = ({ onBackToHub, onReturn
 
         {gameState === 'WON' && (
             <div className="fixed inset-0 bg-black/95 backdrop-blur-md z-[100] flex items-center justify-center p-6 text-center animate-fade-in">
-                <div className="max-w-sm w-full bg-void-900 p-10 rounded-[3.5rem] border-4 border-signal-500 shadow-[0_0_100px_rgba(34,197,94,0.3)]">
-                    <div className="mb-6 mx-auto w-24 h-24 bg-signal-500/10 rounded-full flex items-center justify-center border border-signal-500/30"><VoidIcon className="w-14 h-14 text-signal-500 animate-pulse" /></div>
-                    <h2 className="text-5xl font-black italic uppercase tracking-tighter mb-4 text-signal-500 leading-none">SECTOR CLEAN</h2>
+                <div className="max-w-sm w-full bg-app-card p-10 rounded-[3.5rem] border-4 border-app-accent shadow-[0_0_100px_rgba(34,197,94,0.3)]">
+                    <div className="mb-6 mx-auto w-24 h-24 bg-app-accent/10 rounded-full flex items-center justify-center border border-app-accent/30"><VoidIcon className="w-14 h-14 text-app-accent animate-pulse" /></div>
+                    <h2 className="text-5xl font-black italic uppercase tracking-tighter mb-4 text-app-accent leading-none">SECTOR CLEAN</h2>
                     <p className="text-zinc-500 font-bold uppercase tracking-widest text-[9px] mb-8 italic px-4 leading-relaxed">Hardware anomalies purged.<br/>Mainframe voltage normalized.</p>
                     <div className="mb-10">
                         <p className="text-zinc-500 font-bold uppercase tracking-widest text-[10px] mb-4 italic">Operator Token</p>
-                        <input autoFocus maxLength={3} value={initials} onChange={e => setInitials(e.target.value.toUpperCase())} className="bg-black/50 border-2 border-signal-500 text-white rounded-xl px-4 py-4 text-center text-3xl font-black w-36 outline-none uppercase italic shadow-2xl" placeholder="???" />
+                        <input autoFocus maxLength={3} value={initials} onChange={e => setInitials(e.target.value.toUpperCase())} className="bg-black/50 border-2 border-app-accent text-white rounded-xl px-4 py-4 text-center text-3xl font-black w-36 outline-none uppercase italic shadow-2xl" placeholder="???" />
                     </div>
-                    <button onClick={handleSaveScore} className="w-full py-6 bg-signal-600 text-black font-black text-xl italic uppercase rounded-full hover:scale-105 transition-all shadow-xl">LOG_MAINTENANCE</button>
+                    <button onClick={handleSaveScore} className="w-full py-6 bg-app-accent text-app-bg font-black text-xl italic uppercase rounded-full hover:scale-105 transition-all shadow-xl">LOG_MAINTENANCE</button>
                 </div>
             </div>
         )}
 
         {gameState === 'LOST' && (
             <div className="fixed inset-0 bg-black/98 backdrop-blur-md z-[100] flex items-center justify-center p-6 text-center animate-fade-in">
-                <div className="max-w-sm w-full bg-void-900 p-12 rounded-[3.5rem] border-4 border-pulse-500 shadow-[0_0_120px_rgba(225,29,72,0.23)] relative overflow-hidden">
+                <div className="max-w-sm w-full bg-app-card p-12 rounded-[3.5rem] border-4 border-pulse-500 shadow-[0_0_120px_rgba(225,29,72,0.23)] relative overflow-hidden">
                     <div className="absolute inset-0 pointer-events-none opacity-10 static-noise" />
                     <div className="mb-6 mx-auto w-24 h-24 bg-pulse-500/10 rounded-full flex items-center justify-center border border-pulse-500/30"><div className="text-5xl animate-ping">☢️</div></div>
                     <h2 className="text-5xl font-black italic uppercase tracking-tighter mb-6 text-pulse-500 leading-none">TRACE BURNOUT</h2>
@@ -442,30 +441,30 @@ const MinesweeperPage: React.FC<MinesweeperPageProps> = ({ onBackToHub, onReturn
 
 const TacticalManual: React.FC<{ onClose: () => void }> = ({ onClose }) => (
     <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 md:p-10 font-mono" onClick={onClose}>
-        <div className="max-w-xl w-full bg-zinc-900 border-4 border-signal-500 rounded-[2.5rem] shadow-2xl overflow-hidden relative flex flex-col max-h-[85vh]" onClick={e => e.stopPropagation()}>
-            <header className="h-12 bg-signal-600 flex items-center justify-between px-1 relative z-20 border-b-2 border-black shrink-0">
-                <div className="flex items-center gap-2 h-full"><div className="w-10 h-8 bg-zinc-300 border-2 border-white flex items-center justify-center"><BookOpenIcon className="w-5 h-5 text-black" /></div><h2 className="text-white text-[10px] font-black uppercase tracking-[0.2em] italic px-2">MAINTENANCE_LOG_0xVOID.PDF</h2></div>
+        <div className="max-w-xl w-full bg-app-card border-4 border-app-accent rounded-[2.5rem] shadow-2xl overflow-hidden relative flex flex-col max-h-[85vh]" onClick={e => e.stopPropagation()}>
+            <header className="h-12 bg-app-accent flex items-center justify-between px-1 relative z-20 border-b-2 border-black shrink-0">
+                <div className="flex items-center gap-2 h-full"><div className="w-10 h-8 bg-zinc-300 border-2 border-white flex items-center justify-center"><BookOpenIcon className="w-5 h-5 text-black" /></div><h2 className="text-app-bg text-[10px] font-black uppercase tracking-[0.2em] italic px-2">MAINTENANCE_LOG_0xVOID.PDF</h2></div>
                 <button onClick={onClose} className="w-10 h-8 bg-zinc-300 border-2 border-white flex items-center justify-center active:bg-zinc-400 transition-colors"><XIcon className="w-5 h-5 text-black" /></button>
             </header>
-            <div className="p-6 md:p-10 overflow-y-auto flex-grow bg-void-950/40 relative">
+            <div className="p-6 md:p-10 overflow-y-auto flex-grow bg-app-bg/40 relative">
                 <div className="absolute inset-0 pointer-events-none opacity-5 cctv-overlay" />
                 <section className="space-y-8 relative z-10">
                     <div>
-                        <h3 className="text-lg font-black text-white italic uppercase tracking-tighter mb-4 flex items-center gap-3"><SparklesIcon className="w-5 h-5 text-signal-500" /> Maintenance Protocol</h3>
-                        <p className="text-[10px] md:text-xs text-zinc-400 uppercase font-black leading-relaxed tracking-wider mb-4 border-l-2 border-signal-500/30 pl-4">The VOID core is infested with silicon anomalies. As an Operator, you must isolate hardware shorts (mines) before they cascade.</p>
+                        <h3 className="text-lg font-black text-app-text italic uppercase tracking-tighter mb-4 flex items-center gap-3"><SparklesIcon className="w-5 h-5 text-app-accent" /> Maintenance Protocol</h3>
+                        <p className="text-[10px] md:text-xs text-zinc-400 uppercase font-black leading-relaxed tracking-wider mb-4 border-l-2 border-app-accent/30 pl-4">The VOID core is infested with silicon anomalies. As an Operator, you must isolate hardware shorts (mines) before they cascade.</p>
                     </div>
                     <div className="grid grid-cols-1 gap-6">
-                        <ManualPoint title="0x01_Proximity_Telemetry" desc="Digits indicate the number of active anomalies in the surrounding 8-node logic gates. Use them to triangulate shorts." color="text-signal-500" />
-                        <ManualPoint title="0x02_Beacon_Uplink" desc="Deploy Beacons (flags) to lock hazardous nodes. This prevents accidental circuit discharge and signals the antiviral purge." color="text-signal-500" />
-                        <ManualPoint title="0x03_The_Zero_Trap" desc="Anomalies often cluster. Revealing a safe node with 0 proximity data indicates a massive logic clearance—use this momentum." color="text-signal-500" />
+                        <ManualPoint title="0x01_Proximity_Telemetry" desc="Digits indicate the number of active anomalies in the surrounding 8-node logic gates. Use them to triangulate shorts." color="text-app-accent" />
+                        <ManualPoint title="0x02_Beacon_Uplink" desc="Deploy Beacons (flags) to lock hazardous nodes. This prevents accidental circuit discharge and signals the antiviral purge." color="text-app-accent" />
+                        <ManualPoint title="0x03_The_Zero_Trap" desc="Anomalies often cluster. Revealing a safe node with 0 proximity data indicates a massive logic clearance—use this momentum." color="text-app-accent" />
                     </div>
-                    <div className="p-5 bg-signal-500/10 border-2 border-signal-500/30 rounded-2xl flex items-start gap-4">
-                        <ExclamationTriangleIcon className="w-6 h-6 text-signal-500 shrink-0 mt-0.5 animate-pulse" />
-                        <div><p className="text-[9px] font-black text-signal-500 uppercase tracking-widest mb-1 italic">Pro Tip: Hardware Fatigue</p><p className="text-[8px] text-zinc-500 uppercase font-black leading-tight italic">Do not guess. A single logic fault triggers a trace burnout. Trust the numerical heuristics or deploy a Logic Probe from the Black Market.</p></div>
+                    <div className="p-5 bg-app-accent/10 border-2 border-app-accent/30 rounded-2xl flex items-start gap-4">
+                        <ExclamationTriangleIcon className="w-6 h-6 text-app-accent shrink-0 mt-0.5 animate-pulse" />
+                        <div><p className="text-[9px] font-black text-app-accent uppercase tracking-widest mb-1 italic">Pro Tip: Hardware Fatigue</p><p className="text-[8px] text-zinc-500 uppercase font-black leading-tight italic">Do not guess. A single logic fault triggers a trace burnout. Trust the numerical heuristics or deploy a Logic Probe from the Black Market.</p></div>
                     </div>
                 </section>
             </div>
-            <footer className="p-4 bg-zinc-300 border-t-2 border-black shrink-0"><button onClick={onClose} className="w-full py-4 bg-signal-600 text-white text-[10px] font-black uppercase italic shadow-lg active:bg-signal-700">ACKNOWLEDGE_PROTOCOLS</button></footer>
+            <footer className="p-4 bg-zinc-300 border-t-2 border-black shrink-0"><button onClick={onClose} className="w-full py-4 bg-app-accent text-app-bg text-[10px] font-black uppercase italic shadow-lg active:opacity-90">ACKNOWLEDGE_PROTOCOLS</button></footer>
         </div>
     </div>
 );

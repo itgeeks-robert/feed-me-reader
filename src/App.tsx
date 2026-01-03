@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import MainContent from '../components/MainContent';
 import type { SourceType } from '../components/AddSource';
@@ -100,7 +99,32 @@ const App: React.FC = () => {
         loading: true
     });
 
-    useEffect(() => { soundService.setAmbient(ambientEnabled, theme); }, [ambientEnabled, theme]);
+    useEffect(() => {
+        // Sync theme with document attributes and classes
+        const doc = document.documentElement;
+        
+        // Handle theme.css variables
+        const dataThemeMap: Record<Theme, string> = {
+            'noir': 'noir',
+            'terminal': 'terminal',
+            'bento-grid': 'bento',
+            'liquid-glass': 'sleek',
+            'brutalist': 'brutalist',
+            'claymorphism': 'claymorphism',
+            'monochrome-zen': 'monochrome-zen',
+            'y2k': 'y2k'
+        };
+        doc.setAttribute('data-theme', dataThemeMap[theme] || 'noir');
+
+        // Handle index.html classes for older components
+        const themeClasses = ['theme-liquid-glass', 'theme-bento-grid', 'theme-brutalist', 'theme-claymorphism', 'theme-monochrome-zen', 'theme-y2k', 'theme-terminal'];
+        themeClasses.forEach(c => doc.classList.remove(c));
+        if (theme !== 'noir') {
+            doc.classList.add(`theme-${theme}`);
+        }
+
+        soundService.setAmbient(ambientEnabled, theme);
+    }, [ambientEnabled, theme]);
 
     const isGameActive = useMemo(() => {
         const gameTypes = ['sudoku', 'solitaire', 'minesweeper', 'tetris', 'pool', 'cipher_core', 'void_runner', 'synapse_link', 'grid_reset', 'hangman', 'neon_signal'];
@@ -206,7 +230,7 @@ const App: React.FC = () => {
     }
 
     return (
-        <div className="h-screen w-full font-sans text-sm relative flex flex-col overflow-hidden bg-void-bg text-terminal transition-colors duration-300">
+        <div className="h-screen w-full font-sans text-sm relative flex flex-col overflow-hidden bg-app-bg text-app-text transition-colors duration-300">
             {/* STATIC GLOBAL HEADER */}
             <header className="fixed top-0 left-0 right-0 z-[60] bg-black border-b border-white/10 pt-[var(--safe-top)] shrink-0">
                 <div className="h-11 md:h-12 flex items-center px-2 md:px-8 justify-between">
