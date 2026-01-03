@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { XIcon, RadioIcon, BoltIcon, SparklesIcon, VoidIcon, ShieldCheckIcon, GlobeAltIcon, ControllerIcon, FireIcon, CpuChipIcon, ArrowPathIcon, ExclamationTriangleIcon, BookOpenIcon } from './icons';
 import { VOID_DATA, CategoryNode } from '../voidDataArchive';
 import { saveHighScore, getHighScores } from '../services/highScoresService';
+import { soundService } from '../services/soundService';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { NEON_IMAGES } from '../neonSignalAssets';
 
@@ -203,21 +204,19 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
         
         if (categoryIdToUse === 'ALL') {
             pool = VOID_DATA
-                .filter(c => c.id !== 'actions_sounds') // Filter out non-text category
+                .filter(c => c.id !== 'actions_sounds') 
                 .flatMap(c => c.words.map(w => ({ word: w, catName: c.name })));
         } else {
             const cat = VOID_DATA.find(c => c.id === categoryIdToUse);
             if (cat) pool = cat.words.map(w => ({ word: w, catName: cat.name }));
         }
 
-        // Filter out used words if possible
         let candidates = pool.filter(p => !usedWords.has(p.word));
         if (candidates.length === 0) {
             setUsedWords(new Set());
             candidates = pool;
         }
 
-        // Shuffle and pick
         const choice = candidates[Math.floor(Math.random() * candidates.length)];
         
         setUsedWords(prev => { const next = new Set(prev); next.add(choice.word); return next; });
@@ -240,16 +239,24 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
         setGuessedLetters(newGuessed);
 
         if (!target.word.includes(letter)) {
+            soundService.playWrong();
             const nextMistakes = mistakes + 1;
             setMistakes(nextMistakes);
             setIsShocking(true);
             setTimeout(() => setIsShocking(false), 200);
-            if (nextMistakes >= MAX_MISTAKES) setGameState('LOST');
+            if (nextMistakes >= MAX_MISTAKES) {
+                soundService.playLoss();
+                setGameState('LOST');
+            }
         } else {
+            soundService.playCorrect();
             const isWon = target.word.split('').every(char => 
                 char === ' ' || !/[A-Z]/.test(char) || newGuessed.has(char)
             );
-            if (isWon) setGameState('WON');
+            if (isWon) {
+                soundService.playWin();
+                setGameState('WON');
+            }
         }
     }, [gameState, target, guessedLetters, mistakes, setGuessedLetters, setMistakes, setGameState]);
 
@@ -257,7 +264,12 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
         if (gameState === 'PLAYING') {
             timerRef.current = window.setInterval(() => {
                 setTimeLeft(t => { 
-                    if (t <= 1) { setGameState('LOST'); return 0; } 
+                    if (t <= 1) { 
+                        soundService.playLoss();
+                        setGameState('LOST'); 
+                        return 0; 
+                    } 
+                    if (t <= 5) soundService.playPop();
                     return t - 1; 
                 });
             }, 1000);
@@ -276,6 +288,7 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
     }, [handleGuess]);
 
     const handleSaveScore = () => {
+        soundService.playClick();
         saveHighScore('hangman', { 
             name: initials.toUpperCase() || "???", 
             score: level, 
@@ -298,7 +311,7 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
         return (
             <div className="w-full h-full bg-zinc-950 p-6 font-mono overflow-y-auto scrollbar-hide flex flex-col animate-fade-in pb-32">
                 <header className="flex justify-between items-center mb-6 md:mb-12 shrink-0 mt-[var(--safe-top)]">
-                    <button onClick={onBackToHub} className="p-3 md:p-4 bg-zinc-900 rounded-2xl border border-white/10 active:scale-90 transition-all shadow-lg">
+                    <button onClick={() => { soundService.playClick(); onBackToHub(); }} className="p-3 md:p-4 bg-zinc-900 rounded-2xl border border-white/10 active:scale-90 transition-all shadow-lg">
                         <XIcon className="w-5 h-5 md:w-6 md:h-6 text-white"/>
                     </button>
                     <div className="text-right">
@@ -311,7 +324,7 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
                     {filteredCategories.map((cat) => (
                         <button 
                             key={cat.id} 
-                            onClick={() => { setCategoryId(cat.id); setLevel(1); startRound(1, cat.id); }}
+                            onClick={() => { soundService.playClick(); setCategoryId(cat.id); setLevel(1); startRound(1, cat.id); }}
                             className="relative w-full h-36 md:h-56 rounded-2xl md:rounded-[3rem] bg-black border-2 border-zinc-800 overflow-hidden hover:border-cyan-500 transition-all active:scale-95 group shadow-lg"
                         >
                             <div className="absolute inset-0">
@@ -335,7 +348,7 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
                     ))}
                     
                     <button 
-                        onClick={() => { setCategoryId('ALL'); setLevel(1); startRound(1, 'ALL'); }} 
+                        onClick={() => { soundService.playClick(); setCategoryId('ALL'); setLevel(1); startRound(1, 'ALL'); }} 
                         className="relative w-full h-36 md:h-56 rounded-2xl md:rounded-[3rem] bg-black border-2 border-pulse-500 overflow-hidden active:scale-95 shadow-lg group"
                     >
                         <div className="absolute inset-0">
@@ -355,18 +368,18 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
                 </div>
                 
                 <div className="mt-8 md:mt-16 flex flex-col items-center gap-6 shrink-0">
-                    <button onClick={() => setShowHelp(true)} className="flex items-center gap-3 px-8 py-3 bg-zinc-900 border border-white/5 rounded-2xl text-[9px] md:text-[10px] font-black text-zinc-500 uppercase italic tracking-[0.4em] hover:text-white transition-all shadow-xl">
+                    <button onClick={() => { soundService.playClick(); setShowHelp(true); }} className="flex items-center gap-3 px-8 py-3 bg-zinc-900 border border-white/5 rounded-2xl text-[9px] md:text-[10px] font-black text-zinc-500 uppercase italic tracking-[0.4em] hover:text-white transition-all shadow-xl">
                         <BookOpenIcon className="w-4 h-4" />
                         <span>Tactical_Manual</span>
                     </button>
                 </div>
-                {showHelp && <TacticalManual onClose={() => setShowHelp(false)} />}
+                {showHelp && <TacticalManual onClose={() => { soundService.playClick(); setShowHelp(false); }} />}
             </div>
         );
     }
 
     return (
-        <main className={`w-full h-full flex flex-col overflow-hidden font-mono text-white transition-all duration-75 relative ${isShocking ? 'bg-red-900/40' : ''}`}>
+        <main className={`w-full h-full bg-zinc-950 flex flex-col overflow-hidden font-mono text-white transition-all duration-75 relative ${isShocking ? 'bg-red-900/40' : ''}`}>
             <MainframeBackground level={level} isUrgent={timeLeft <= 30} urgencyType={timeLeft <= 10 ? 'RED' : timeLeft <= 30 ? 'AMBER' : 'NONE'} />
             <UrgencyOverlay timeLeft={timeLeft} />
             <div className="absolute inset-0 border-[4px] md:border-[16px] border-zinc-900 pointer-events-none z-50"><div className="absolute inset-0 border-2 border-white/5" /></div>
@@ -402,7 +415,7 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
                             <span className="text-[9px] font-black uppercase tracking-[0.4em] italic transition-colors duration-500 truncate max-w-[80%]" style={{ color: themeColor }}>
                                 {target?.category} // ARCHIVE_NODE
                             </span>
-                            <button onClick={() => setShowHelp(true)} className="text-zinc-500 hover:text-white transition-colors shrink-0"><BookOpenIcon className="w-4 h-4" /></button>
+                            <button onClick={() => { soundService.playClick(); setShowHelp(true); }} className="text-zinc-500 hover:text-white transition-colors shrink-0"><BookOpenIcon className="w-4 h-4" /></button>
                         </div>
                         <LinkIntegrityCounter mistakes={mistakes} level={level} />
                     </div>
@@ -432,23 +445,23 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
                             </div>
                         ))}
                         <div className="flex justify-center mt-2 border-t border-white/5 pt-4 landscape:pt-2">
-                            <button onClick={() => setShowSeverConfirm(true)} className="flex items-center gap-2 px-8 py-3 landscape:py-1.5 bg-red-950/20 border-2 border-pulse-600/50 text-pulse-500 font-black uppercase italic text-[10px] tracking-widest rounded-xl hover:bg-pulse-600 hover:text-white transition-all active:scale-95 shadow-lg"><XIcon className="w-4 h-4" /><span>Sever_Link</span></button>
+                            <button onClick={() => { soundService.playWrong(); setShowSeverConfirm(true); }} className="flex items-center gap-2 px-8 py-3 landscape:py-1.5 bg-red-950/20 border-2 border-pulse-600/50 text-pulse-500 font-black uppercase italic text-[10px] tracking-widest rounded-xl hover:bg-pulse-600 hover:text-white transition-all active:scale-95 shadow-lg"><XIcon className="w-4 h-4" /><span>Sever_Link</span></button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {showHelp && <TacticalManual onClose={() => setShowHelp(false)} />}
+            {showHelp && <TacticalManual onClose={() => { soundService.playClick(); setShowHelp(false); }} />}
 
             {showSeverConfirm && (
                 <div className="fixed inset-0 z-[110] bg-black/95 backdrop-blur-md flex items-center justify-center p-6 animate-fade-in">
                     <div className="bg-zinc-900 border-4 border-pulse-600 shadow-[0_0_80px_rgba(225,29,72,0.3)] w-full max-w-sm relative overflow-hidden flex flex-col rounded-[2.5rem]">
                         <header className="h-10 bg-pulse-600 flex items-center justify-between px-1 border-b-2 border-black">
                             <div className="flex items-center gap-2 h-full"><div className="w-8 h-7 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center"><div className="w-4 h-1 bg-black shadow-[0_4px_0_black]" /></div><h2 className="text-white text-[9px] font-black uppercase tracking-[0.2em] italic px-2 truncate">PROTOCOL_ABORT.EXE</h2></div>
-                            <button onClick={() => setShowSeverConfirm(false)} className="w-8 h-7 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center active:bg-zinc-400"><XIcon className="w-4 h-4 text-black" /></button>
+                            <button onClick={() => { soundService.playClick(); setShowSeverConfirm(false); }} className="w-8 h-7 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center active:bg-zinc-400"><XIcon className="w-4 h-4 text-black" /></button>
                         </header>
                         <div className="p-8 bg-void-950 text-center space-y-6"><div className="mx-auto w-12 h-12 bg-pulse-500/10 rounded-full flex items-center justify-center border-2 border-pulse-500 animate-pulse"><ExclamationTriangleIcon className="w-6 h-6 text-pulse-500" /></div><div className="space-y-4"><h3 className="text-lg font-black text-white italic uppercase tracking-tighter">TERMINATE SESSION?</h3><p className="text-[9px] text-zinc-500 leading-relaxed uppercase tracking-widest italic px-4">Operator, you are about to <span className="text-pulse-500 font-black">abort the intercept</span>. Current session data will be lost.</p></div></div>
-                        <footer className="p-4 bg-zinc-300 border-t-2 border-black flex gap-3"><button onClick={() => setShowSeverConfirm(false)} className="flex-1 py-3 bg-zinc-100 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-400 text-[10px] font-black uppercase italic text-zinc-600 active:bg-zinc-200">RESUME</button><button onClick={onBackToHub} className="flex-1 py-3 bg-pulse-600 border-t-2 border-l-2 border-white/50 border-b-2 border-r-2 border-pulse-950 text-[10px] font-black uppercase italic text-white hover:bg-pulse-500 active:bg-pulse-700">CONFIRM</button></footer>
+                        <footer className="p-4 bg-zinc-300 border-t-2 border-black flex gap-3"><button onClick={() => { soundService.playClick(); setShowSeverConfirm(false); }} className="flex-1 py-3 bg-zinc-100 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-400 text-[10px] font-black uppercase italic text-zinc-600 active:bg-zinc-200">RESUME</button><button onClick={() => { soundService.playWrong(); onBackToHub(); }} className="flex-1 py-3 bg-pulse-600 border-t-2 border-l-2 border-white/50 border-b-2 border-r-2 border-pulse-950 text-[10px] font-black uppercase italic text-white hover:bg-pulse-500 active:bg-pulse-700">CONFIRM</button></footer>
                     </div>
                 </div>
             )}
@@ -464,7 +477,7 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
                             <p className="text-[10px] text-zinc-600 font-mono mt-4 italic border-t border-white/5 pt-2 uppercase">ZONE: {target?.category}</p>
                         </div>
                         {gameState === 'WON' ? (
-                            <button onClick={() => { setLevel(l => l + 1); startRound(level); }} className="w-full py-5 bg-emerald-600 text-white font-black uppercase italic rounded-full text-lg shadow-xl active:scale-95 transition-all">Advance_Node</button>
+                            <button onClick={() => { soundService.playClick(); setLevel(l => l + 1); startRound(level); }} className="w-full py-5 bg-emerald-600 text-white font-black uppercase italic rounded-full text-lg shadow-xl active:scale-95 transition-all">Advance_Node</button>
                         ) : (
                             <div className="space-y-4">
                                 <input autoFocus maxLength={3} value={initials} onChange={e => setInitials(e.target.value.toUpperCase())} className="bg-black/50 border-2 border-red-500 text-white rounded-xl px-4 py-4 text-center text-3xl font-black w-32 outline-none uppercase italic" placeholder="???" />

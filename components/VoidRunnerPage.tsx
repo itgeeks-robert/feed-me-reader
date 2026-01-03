@@ -1,7 +1,9 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { XIcon, SparklesIcon, VoidIcon, BookOpenIcon, ExclamationTriangleIcon } from './icons';
 import { GameboyControls, GameboyButton } from './GameboyControls';
 import { saveHighScore, getHighScores, HighScoreEntry } from '../services/highScoresService';
+import { soundService } from '../services/soundService';
 import HighScoreTable from './HighScoreTable';
 
 type Direction = 'UP' | 'DOWN' | 'LEFT' | 'RIGHT' | 'NONE';
@@ -180,10 +182,10 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
         gameData.current.player = { x: 9 * TILE_SIZE, y: 15 * TILE_SIZE, dir: 'NONE', nextDir: 'NONE', isMoving: false };
         
         gameData.current.ghosts = [
-            { id: 1, x: 9 * TILE_SIZE, y: 7 * TILE_SIZE, dir: 'LEFT', color: '#ef4444', state: 'CHASE', exitDelay: 0, scatterTarget: { x: 18, y: 0 } }, // BLINKY
-            { id: 2, x: 9 * TILE_SIZE, y: 9 * TILE_SIZE, dir: 'UP', color: '#ec4899', state: 'HOUSE', exitDelay: 60, scatterTarget: { x: 0, y: 0 } },  // PINKY
-            { id: 3, x: 8 * TILE_SIZE, y: 9 * TILE_SIZE, dir: 'UP', color: '#06b6d4', state: 'HOUSE', exitDelay: 180, scatterTarget: { x: 18, y: 20 } }, // INKY
-            { id: 4, x: 10 * TILE_SIZE, y: 9 * TILE_SIZE, dir: 'UP', color: '#fbbf24', state: 'HOUSE', exitDelay: 300, scatterTarget: { x: 0, y: 20 } }  // CLYDE
+            { id: 1, x: 9 * TILE_SIZE, y: 7 * TILE_SIZE, dir: 'LEFT', color: '#ef4444', state: 'CHASE', exitDelay: 0, scatterTarget: { x: 18, y: 0 } }, 
+            { id: 2, x: 9 * TILE_SIZE, y: 9 * TILE_SIZE, dir: 'UP', color: '#ec4899', state: 'HOUSE', exitDelay: 60, scatterTarget: { x: 0, y: 0 } },  
+            { id: 3, x: 8 * TILE_SIZE, y: 9 * TILE_SIZE, dir: 'UP', color: '#06b6d4', state: 'HOUSE', exitDelay: 180, scatterTarget: { x: 18, y: 20 } }, 
+            { id: 4, x: 10 * TILE_SIZE, y: 9 * TILE_SIZE, dir: 'UP', color: '#fbbf24', state: 'HOUSE', exitDelay: 300, scatterTarget: { x: 0, y: 20 } }  
         ];
         
         let count = 0; MAZE_LAYOUT.forEach(row => row.forEach(cell => { if (cell === 0 || cell === 3) count++; }));
@@ -239,7 +241,6 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
             }
         }
 
-        // Screen Wrap
         if (player.x < -TILE_SIZE/2) player.x = (maze[0].length - 0.5) * TILE_SIZE;
         else if (player.x > (maze[0].length - 0.5) * TILE_SIZE) player.x = -TILE_SIZE/2;
 
@@ -248,13 +249,15 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
             const isPower = maze[curTy][curTx] === 3; maze[curTy][curTx] = 2;
             setScore(s => s + (isPower ? 50 : 10)); gameData.current.packetsRemaining--; gameData.current.packetsCollected++;
             onCollectPacket?.();
+            soundService.playPop();
+
             if (isPower) { 
+                soundService.playAction();
                 setIsFrightened(true); 
                 gameData.current.frightenedTimer = 480 - (sector * 30); 
                 ghosts.forEach(g => { 
                     if(g.state !== 'HOUSE' && g.state !== 'EXITING') {
                         g.state = 'FRIGHTENED'; 
-                        // Reverse direction instantly on frightening
                         const opp: Record<Direction, Direction> = { UP: 'DOWN', DOWN: 'UP', LEFT: 'RIGHT', RIGHT: 'LEFT', NONE: 'NONE' };
                         g.dir = opp[g.dir];
                     }
@@ -263,11 +266,16 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
             if (gameData.current.packetsCollected === 70 || gameData.current.packetsCollected === 150) gameData.current.bonus = { x: 9 * TILE_SIZE, y: 11 * TILE_SIZE, type: Math.random() > 0.5 ? 'BURGER' : 'SHAKE', timer: 400 };
         }
         
-        if (bonus && Math.abs(player.x - bonus.x) < 12 && Math.abs(player.y - bonus.y) < 12) { setScore(s => s + 500); gameData.current.bonus = null; }
+        if (bonus && Math.abs(player.x - bonus.x) < 12 && Math.abs(player.y - bonus.y) < 12) { 
+            soundService.playCorrect();
+            setScore(s => s + 500); 
+            gameData.current.bonus = null; 
+        }
         if (bonus) { bonus.timer--; if (bonus.timer <= 0) gameData.current.bonus = null; }
         
         if (gameData.current.packetsRemaining <= 0) { 
             if (sector < MAX_PLAYABLE_SECTORS) { 
+                soundService.playCorrect();
                 setGameState('SECTOR_CLEAR'); 
                 setTimeout(() => initSector(sector + 1), 2000); 
             } else initSector(8); 
@@ -297,7 +305,6 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
             const speed = (isFrightened && ghost.state === 'FRIGHTENED') ? (currentSpeed * 0.5) : (currentSpeed * speedMultiplier);
             const aligned = Math.abs(ghost.x % TILE_SIZE) < speed && Math.abs(ghost.y % TILE_SIZE) < speed;
             
-            // Fix: Cast ghost.state to string to prevent incorrect type narrowing from removing 'HOUSE' or 'EXITING'
             if ((ghost.state as string) === 'HOUSE') { 
                 ghost.exitDelay--; 
                 if (ghost.y <= 9 * TILE_SIZE - 4) ghost.dir = 'DOWN'; 
@@ -329,16 +336,16 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
                             const ptx = Math.round(player.x / TILE_SIZE), pty = Math.round(player.y / TILE_SIZE);
                             
                             switch(ghost.id) {
-                                case 1: // BLINKY: Direct target
+                                case 1: 
                                     targetX = ptx; targetY = pty; break;
-                                case 2: // PINKY: 4 tiles ahead
+                                case 2: 
                                     targetX = ptx; targetY = pty;
-                                    if (player.dir === 'UP') { targetX -= 4; targetY -= 4; } // Classic bug recreations
+                                    if (player.dir === 'UP') { targetX -= 4; targetY -= 4; } 
                                     else if (player.dir === 'DOWN') targetY += 4;
                                     else if (player.dir === 'LEFT') targetX -= 4;
                                     else if (player.dir === 'RIGHT') targetX += 4;
                                     break;
-                                case 3: // INKY: Pivot logic
+                                case 3: 
                                     const blinky = ghosts.find(g => g.id === 1)!;
                                     const btx = Math.round(blinky.x / TILE_SIZE), bty = Math.round(blinky.y / TILE_SIZE);
                                     let offsetX = ptx, offsetY = pty;
@@ -349,7 +356,7 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
                                     targetX = offsetX + (offsetX - btx);
                                     targetY = offsetY + (offsetY - bty);
                                     break;
-                                case 4: // CLYDE: Distance-based
+                                case 4: 
                                     const distToPlayer = Math.sqrt((tx - ptx)**2 + (ty - pty)**2);
                                     if (distToPlayer > 8) { targetX = ptx; targetY = pty; }
                                     else { targetX = ghost.scatterTarget.x; targetY = ghost.scatterTarget.y; }
@@ -357,7 +364,6 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
                             }
                         }
 
-                        // Pick direction that minimizes Euclidean distance to target
                         valid.sort((a, b) => { 
                             let ax = Math.round(ghost.x / TILE_SIZE), ay = Math.round(ghost.y / TILE_SIZE); 
                             let bx = Math.round(ghost.x / TILE_SIZE), by = Math.round(ghost.y / TILE_SIZE); 
@@ -374,22 +380,21 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
                 else if (ghost.dir === 'LEFT') ghost.x -= speed; 
                 else if (ghost.dir === 'RIGHT') ghost.x += speed;
                 
-                // Ghost Wrap
                 if (ghost.x < -TILE_SIZE/2) ghost.x = 18.5 * TILE_SIZE; 
                 else if (ghost.x > 18.5 * TILE_SIZE) ghost.x = -TILE_SIZE/2;
             }
 
             const dist = Math.sqrt((player.x - ghost.x)**2 + (player.y - ghost.y)**2);
-            // Fix: Cast ghost.state to string to prevent incorrect type narrowing from removing 'HOUSE' or 'EXITING'
             if (dist < TILE_SIZE * 0.7 && (ghost.state as string) !== 'HOUSE' && (ghost.state as string) !== 'EXITING') { 
                 if (isFrightened && ghost.state === 'FRIGHTENED') { 
+                    soundService.playCorrect();
                     setScore(s => s + 200); 
                     ghost.state = 'HOUSE'; 
                     ghost.x = 9 * TILE_SIZE; 
                     ghost.y = 9 * TILE_SIZE; 
                     ghost.exitDelay = 120;
-                // Fix: Cast ghost.state to string to prevent incorrect type narrowing from removing 'HOUSE' or 'EXITING'
-                } else if ((ghost.state as string) !== 'HOUSE' && (ghost.state as string) !== 'EXITING') { 
+                } else { 
+                    soundService.playWrong();
                     setGameState('DYING'); 
                     gameData.current.deathTimer = 60; 
                 } 
@@ -422,7 +427,6 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
         } else { 
             ctx.fillStyle = SECTOR_INTEL[sector-1].color; ctx.shadowBlur = 15; ctx.shadowColor = SECTOR_INTEL[sector-1].color; 
             ctx.beginPath(); ctx.arc(player.x + 10, player.y + 10, 8, 0, Math.PI*2); ctx.fill(); 
-            // Fix: Added 'ctx.' prefix to shadowBlur
             ctx.shadowBlur = 0; 
         }
 
@@ -442,7 +446,10 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
                 if (gameState === 'PLAYING') update(); 
                 else if (gameState === 'DYING') { 
                     gameData.current.deathTimer--; 
-                    if (gameData.current.deathTimer <= 0) setGameState('LOST'); 
+                    if (gameData.current.deathTimer <= 0) {
+                        soundService.playLoss();
+                        setGameState('LOST'); 
+                    }
                 } 
                 draw(ctx); 
             }
@@ -454,12 +461,17 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
 
     const handleInputPress = useCallback((btn: GameboyButton) => {
         const { player } = gameData.current;
-        if (btn === 'quit') { onBackToHub(); return; }
-        if (btn === 'up') { player.nextDir = 'UP'; player.isMoving = true; }
-        if (btn === 'down') { player.nextDir = 'DOWN'; player.isMoving = true; }
-        if (btn === 'left') { player.nextDir = 'LEFT'; player.isMoving = true; }
-        if (btn === 'right') { player.nextDir = 'RIGHT'; player.isMoving = true; }
-        if (btn === 'start') { if (gameState === 'INTRO') initSector(1); else if (gameState === 'STORY_BEAT') setGameState('PLAYING'); else if (gameState === 'WON' || gameState === 'LOST') { setGameState('INTRO'); setScore(0); setSector(1); } }
+        if (btn === 'quit') { soundService.playWrong(); onBackToHub(); return; }
+        if (btn === 'up') { soundService.playClick(); player.nextDir = 'UP'; player.isMoving = true; }
+        if (btn === 'down') { soundService.playClick(); player.nextDir = 'DOWN'; player.isMoving = true; }
+        if (btn === 'left') { soundService.playClick(); player.nextDir = 'LEFT'; player.isMoving = true; }
+        if (btn === 'right') { soundService.playClick(); player.nextDir = 'RIGHT'; player.isMoving = true; }
+        if (btn === 'start') { 
+            soundService.playClick();
+            if (gameState === 'INTRO') initSector(1); 
+            else if (gameState === 'STORY_BEAT') setGameState('PLAYING'); 
+            else if (gameState === 'WON' || gameState === 'LOST') { setGameState('INTRO'); setScore(0); setSector(1); } 
+        }
     }, [gameState, initSector, onBackToHub]);
 
     const handleInputRelease = useCallback((btn: GameboyButton) => { 
@@ -490,14 +502,14 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
             <div className="max-w-xl w-full flex flex-col gap-4">
                 <header className="flex justify-between items-center bg-zinc-900/50 p-4 rounded-3xl border border-white/5 shadow-lg">
                     <div className="flex items-center gap-4">
-                        <button onClick={onBackToHub} className="p-2 bg-zinc-800 rounded-xl text-zinc-400 hover:text-white active:scale-95 border border-white/5 shadow-md"><XIcon className="w-6 h-6" /></button>
+                        <button onClick={() => { soundService.playWrong(); onBackToHub(); }} className="p-2 bg-zinc-800 rounded-xl text-zinc-400 hover:text-white active:scale-95 border border-white/5 shadow-md"><XIcon className="w-6 h-6" /></button>
                         <div>
                              <span className="text-[10px] font-black text-pulse-500 uppercase tracking-[0.4em] italic block">Sector {sector}</span>
                              <h2 className="text-xl font-black text-white italic uppercase tracking-tighter leading-none">VOID RUNNER</h2>
                         </div>
                     </div>
                     <div className="flex items-center gap-4">
-                        <button onClick={() => setShowHelp(true)} className="p-2 bg-zinc-800 rounded-xl text-zinc-400 hover:text-white border border-white/5"><BookOpenIcon className="w-6 h-6" /></button>
+                        <button onClick={() => { soundService.playClick(); setShowHelp(true); }} className="p-2 bg-zinc-800 rounded-xl text-zinc-400 hover:text-white border border-white/5"><BookOpenIcon className="w-6 h-6" /></button>
                         <div className="text-right">
                             <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest block mb-1">Data Intercept</span>
                             <span className="text-xl font-black italic text-signal-500 font-mono">{score}</span>
@@ -521,11 +533,11 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
                             </div>
 
                             <div className="grid grid-cols-4 gap-2 mb-8 px-4">
-                                {[1,2,3,4,5,6,7].map(s => <button key={s} onClick={() => initSector(s)} className="py-3 bg-zinc-900 border border-white/10 text-zinc-500 rounded-xl font-black italic text-xs hover:border-pulse-500 hover:text-white transition-all">S_{s}</button>)}
+                                {[1,2,3,4,5,6,7].map(s => <button key={s} onClick={() => { soundService.playClick(); initSector(s); }} className="py-3 bg-zinc-900 border border-white/10 text-zinc-500 rounded-xl font-black italic text-xs hover:border-pulse-500 hover:text-white transition-all">S_{s}</button>)}
                             </div>
                             <div className="flex flex-col gap-3 px-8">
-                                <button onClick={() => initSector(1)} className="w-full py-4 bg-pulse-600 text-white font-black uppercase italic rounded-2xl shadow-xl hover:scale-105 transition-all border-2 border-pulse-400 active:scale-95">Establish Link</button>
-                                <button onClick={() => setShowHelp(true)} className="w-full py-3 bg-zinc-800 text-zinc-400 font-black uppercase italic rounded-2xl border border-white/5 hover:text-white transition-all text-xs tracking-widest flex items-center justify-center gap-2">
+                                <button onClick={() => { soundService.playClick(); initSector(1); }} className="w-full py-4 bg-pulse-600 text-white font-black uppercase italic rounded-2xl shadow-xl hover:scale-105 transition-all border-2 border-pulse-400 active:scale-95">Establish Link</button>
+                                <button onClick={() => { soundService.playClick(); setShowHelp(true); }} className="w-full py-3 bg-zinc-800 text-zinc-400 font-black uppercase italic rounded-2xl border border-white/5 hover:text-white transition-all text-xs tracking-widest flex items-center justify-center gap-2">
                                     <BookOpenIcon className="w-4 h-4" /> Tactical Manual
                                 </button>
                             </div>
@@ -545,7 +557,7 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
                             </div>
                             <span className="text-[10px] font-black text-pulse-500 uppercase tracking-widest block mb-2 font-mono italic">Incoming Intel: {SECTOR_INTEL[sector-1].title}</span>
                             <p className="text-[11px] text-zinc-300 leading-relaxed font-mono uppercase italic mb-10 tracking-wider max-w-xs">{SECTOR_INTEL[sector-1].Intel}</p>
-                            <button onClick={() => setGameState('PLAYING')} className="px-10 py-4 bg-white text-black rounded-full font-black uppercase italic tracking-widest shadow-xl hover:bg-signal-500 transition-colors active:scale-95">Begin Sector Sync</button>
+                            <button onClick={() => { soundService.playClick(); setGameState('PLAYING'); }} className="px-10 py-4 bg-white text-black rounded-full font-black uppercase italic tracking-widest shadow-xl hover:bg-signal-500 transition-colors active:scale-95">Begin Sector Sync</button>
                         </div>
                     )}
 
@@ -561,7 +573,7 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
                                 {gameState === 'WON' && <div className="mb-10 flex flex-col items-center"><div className="lowpoly-sun mb-6" /><h2 className="text-4xl font-black italic uppercase tracking-tighter mb-4 text-signal-500">SYNC SUCCESS</h2><p className="text-zinc-500 font-bold uppercase tracking-widest text-[9px] mb-8 italic leading-relaxed">{SECTOR_INTEL[7].Intel}</p></div>}
                                 {gameState === 'LOST' && <><h2 className="text-4xl font-black italic uppercase tracking-tighter mb-4 text-pulse-500">LINK SEVERED</h2><p className="text-zinc-500 font-bold uppercase tracking-widest text-[9px] mb-8 italic leading-relaxed">Sentinels have isolated your node.</p></>}
                                 <div className="mb-10"><p className="text-zinc-500 font-black uppercase tracking-[0.3em] text-[9px] mb-4">Post Signal Initials</p><input autoFocus maxLength={3} value={initials} onChange={e => setInitials(e.target.value.toUpperCase())} className="bg-black/50 border-2 border-pulse-500 text-white rounded-xl px-4 py-3 text-center text-3xl font-black w-36 outline-none uppercase italic" placeholder="???" /></div>
-                                <button onClick={() => { saveHighScore('void_runner', { name: initials.toUpperCase() || "???", score, displayValue: `${score} DATA`, date: new Date().toISOString() }); setGameState('INTRO'); setScore(0); setSector(1); }} className="w-full py-5 bg-pulse-600 text-white font-black text-xl italic uppercase rounded-full hover:scale-105 transition-transform shadow-xl active:scale-95">Transmit Record</button>
+                                <button onClick={() => { soundService.playClick(); saveHighScore('void_runner', { name: initials.toUpperCase() || "???", score, displayValue: `${score} DATA`, date: new Date().toISOString() }); setGameState('INTRO'); setScore(0); setSector(1); }} className="w-full py-5 bg-pulse-600 text-white font-black text-xl italic uppercase rounded-full hover:scale-105 transition-transform shadow-xl active:scale-95">Transmit Record</button>
                             </div>
                         </div>
                     )}
@@ -571,7 +583,7 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
                     <GameboyControls onButtonPress={handleInputPress} onButtonRelease={handleInputRelease} />
                 </div>
             </div>
-            {showHelp && <TacticalManual onClose={() => setShowHelp(false)} />}
+            {showHelp && <TacticalManual onClose={() => { soundService.playClick(); setShowHelp(false); }} />}
         </main>
     );
 };

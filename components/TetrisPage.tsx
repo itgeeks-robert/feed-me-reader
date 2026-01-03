@@ -1,13 +1,29 @@
+
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { startGame, PieceType } from '../services/tetrisGame';
 import { saveHighScore, getHighScores } from '../services/highScoresService';
+import { soundService } from '../services/soundService';
 import HighScoreTable from './HighScoreTable';
-import { XIcon, ArrowPathIcon, ControllerIcon, VoidIcon, BookOpenIcon, SparklesIcon, ExclamationTriangleIcon } from './icons';
+import { XIcon, ArrowPathIcon, ControllerIcon, VoidIcon, BookOpenIcon, SparklesIcon, ExclamationTriangleIcon, CpuChipIcon } from './icons';
 
 interface TetrisPageProps {
   onBackToHub: () => void;
   onReturnToFeeds: () => void;
 }
+
+const CircuitBackground: React.FC = () => (
+    <div className="absolute inset-0 pointer-events-none opacity-10 overflow-hidden">
+        <svg width="100%" height="100%" className="absolute inset-0">
+            <defs>
+                <pattern id="circuit-grid-tetris" width="80" height="80" patternUnits="userSpaceOnUse">
+                    <path d="M 10 10 L 70 10 M 10 10 L 10 70" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-pulse-500/30" />
+                    <circle cx="10" cy="10" r="1.5" fill="currentColor" className="text-pulse-500/50" />
+                </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#circuit-grid-tetris)" />
+        </svg>
+    </div>
+);
 
 const TetrisGraphic: React.FC = () => (
     <div className="relative w-48 h-48 mx-auto flex items-center justify-center">
@@ -26,8 +42,8 @@ const TetrisPage: React.FC<TetrisPageProps> = ({ onBackToHub, onReturnToFeeds })
     const holdRef = useRef<HTMLCanvasElement>(null);
     const gameInstance = useRef<ReturnType<typeof startGame> | null>(null);
 
-    const [view, setView] = useState<'IDLE' | 'COUNTDOWN' | 'PLAYING'>('IDLE');
-    const [countdown, setCountdown] = useState(3);
+    const [view, setView] = useState<'IDLE' | 'BOOTING' | 'PLAYING'>('IDLE');
+    const [bootLog, setBootLog] = useState<string[]>([]);
     const [stats, setStats] = useState({ score: 0, rows: 0, level: 0 });
     const [isGameOver, setIsGameOver] = useState(false);
     const [initials, setInitials] = useState("");
@@ -61,35 +77,45 @@ const TetrisPage: React.FC<TetrisPageProps> = ({ onBackToHub, onReturnToFeeds })
         if (previewRef.current && nextQueue.length > 0) drawPieces(previewRef.current, nextQueue);
     }, [nextQueue, drawPieces]);
 
+    const handleInitReboot = async () => {
+        soundService.playAction();
+        setView('BOOTING');
+        setBootLog([]);
+        const logs = [
+            "> initializing stack_trace.bin",
+            "> allocating buffer_memory[10][20]",
+            "> mounting geometry_shaper v1.4",
+            "> checking_thermal_limits... NOMINAL",
+            "> clearing old_cache_residue...",
+            "> SYSTEM_READY: AWAITING_STREAM"
+        ];
+        for(let i=0; i<logs.length; i++) {
+            setBootLog(prev => [...prev, logs[i]]);
+            soundService.playPop();
+            await new Promise(r => setTimeout(r, 350));
+        }
+        handleRestart();
+    };
+
     const handleRestart = useCallback(() => {
         gameInstance.current?.stop();
         setIsGameOver(false);
         setInitials("");
-        setView('COUNTDOWN');
-        setCountdown(3);
+        setView('PLAYING');
+        setTimeout(() => {
+            if (canvasRef.current && previewRef.current && holdRef.current) {
+                gameInstance.current = startGame({
+                    canvas: canvasRef.current, previewCanvas: previewRef.current, holdCanvas: holdRef.current,
+                    onScoreUpdate: (score) => setStats(s => ({ ...s, score })),
+                    onRowsUpdate: (rows) => setStats(s => ({ ...s, rows })),
+                    onLevelUpdate: (level) => setStats(s => ({ ...s, level: Math.floor(level) })),
+                    onGameOver: () => setIsGameOver(true),
+                    onHoldUpdate: (piece) => setHoldPiece(piece),
+                    onNextUpdate: (queue) => setNextQueue(queue),
+                });
+            }
+        }, 50);
     }, []);
-
-    useEffect(() => {
-        if (view === 'COUNTDOWN' && countdown > 0) {
-            const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
-            return () => clearTimeout(timer);
-        } else if (view === 'COUNTDOWN' && countdown === 0) {
-            setView('PLAYING');
-            setTimeout(() => {
-                if (canvasRef.current && previewRef.current && holdRef.current) {
-                    gameInstance.current = startGame({
-                        canvas: canvasRef.current, previewCanvas: previewRef.current, holdCanvas: holdRef.current,
-                        onScoreUpdate: (score) => setStats(s => ({ ...s, score })),
-                        onRowsUpdate: (rows) => setStats(s => ({ ...s, rows })),
-                        onLevelUpdate: (level) => setStats(s => ({ ...s, level: Math.floor(level) })),
-                        onGameOver: () => setIsGameOver(true),
-                        onHoldUpdate: (piece) => setHoldPiece(piece),
-                        onNextUpdate: (queue) => setNextQueue(queue),
-                    });
-                }
-            }, 50);
-        }
-    }, [view, countdown]);
 
     const handleSaveScore = () => {
         saveHighScore('tetris', {
@@ -122,7 +148,8 @@ const TetrisPage: React.FC<TetrisPageProps> = ({ onBackToHub, onReturnToFeeds })
 
     if (view === 'IDLE') {
         return (
-            <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-950 p-6 overflow-y-auto scrollbar-hide font-mono">
+            <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-950 p-6 overflow-y-auto scrollbar-hide font-mono relative">
+                <CircuitBackground />
                 <style>{`
                     @keyframes glitch-in {
                         0% { opacity: 0; transform: scale(0.9) skew(0deg); }
@@ -132,7 +159,7 @@ const TetrisPage: React.FC<TetrisPageProps> = ({ onBackToHub, onReturnToFeeds })
                     .animate-glitch-in { animation: glitch-in 0.4s ease-out forwards; }
                 `}</style>
                 
-                <div className="w-full max-w-sm text-center bg-zinc-900 p-10 rounded-[3rem] border-4 border-pulse-500 shadow-[0_0_50px_rgba(225,29,72,0.1)] mb-6">
+                <div className="w-full max-w-sm text-center bg-zinc-900 p-10 rounded-[3rem] border-4 border-pulse-500 shadow-[0_0_50px_rgba(225,29,72,0.1)] mb-6 z-10">
                     <header className="mb-8">
                         <span className="text-[10px] font-black uppercase text-pulse-500 tracking-[0.3em] italic block mb-1">Packet Compilation</span>
                         <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter leading-none">STACK TRACE</h2>
@@ -149,7 +176,7 @@ const TetrisPage: React.FC<TetrisPageProps> = ({ onBackToHub, onReturnToFeeds })
                     </div>
 
                     <div className="space-y-4">
-                        <button onClick={handleRestart} className="w-full py-5 bg-white text-black font-black uppercase italic rounded-2xl hover:scale-[1.02] transition-all shadow-xl active:scale-95 text-lg">Compile Nodes</button>
+                        <button onClick={handleInitReboot} className="w-full py-5 bg-white text-black font-black uppercase italic rounded-2xl hover:scale-[1.02] transition-all shadow-xl active:scale-95 text-lg">REBOOT COMPILE_CORE</button>
                         <button onClick={() => setShowHelp(true)} className="w-full py-3 bg-zinc-800 text-zinc-400 font-black uppercase italic rounded-xl border border-white/5 hover:text-white transition-all active:scale-95 text-[10px] tracking-widest flex items-center justify-center gap-2">
                             <BookOpenIcon className="w-4 h-4" /> Tactical Manual
                         </button>
@@ -161,15 +188,22 @@ const TetrisPage: React.FC<TetrisPageProps> = ({ onBackToHub, onReturnToFeeds })
         );
     }
 
-    if (view === 'COUNTDOWN') {
+    if (view === 'BOOTING') {
         return (
-            <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-950 font-mono">
-                <div className="p-8 bg-pulse-500/10 border-4 border-pulse-500 rounded-[3rem] mb-12 shadow-[0_0_80px_rgba(225,29,72,0.3)] animate-pulse">
-                    <VoidIcon className="w-20 h-20 text-white" />
-                </div>
-                <h2 className="text-3xl font-black text-white italic uppercase tracking-[0.4em] mb-4">BUFFERING_NODES</h2>
-                <div className="text-[clamp(8rem,30vw,15rem)] font-black text-white italic animate-ping">
-                    {countdown}
+            <div className="w-full h-full flex flex-col items-center justify-center bg-black/90 p-8 text-left font-mono relative z-20">
+                <div className="max-w-md w-full">
+                    <div className="mb-8 flex items-center gap-4">
+                        <CpuChipIcon className="w-10 h-10 text-pulse-500 animate-pulse" />
+                        <span className="text-xl font-black text-white italic">REBOOT_CORE...</span>
+                    </div>
+                    <div className="space-y-2 border-l-2 border-pulse-500/30 pl-4 py-2 bg-zinc-950/50">
+                        {bootLog.map((log, i) => (
+                            <p key={i} className="text-[10px] md:text-xs text-pulse-500 font-black uppercase tracking-widest animate-fade-in">{log}</p>
+                        ))}
+                    </div>
+                    <div className="mt-12 h-1 w-full bg-zinc-900 rounded-full overflow-hidden p-0.5 border border-white/5">
+                        <div className="h-full bg-pulse-500 animate-pulse" style={{ width: `${(bootLog.length / 6) * 100}%` }} />
+                    </div>
                 </div>
             </div>
         );
@@ -177,6 +211,7 @@ const TetrisPage: React.FC<TetrisPageProps> = ({ onBackToHub, onReturnToFeeds })
 
     return (
         <main className="w-full h-full flex flex-col bg-zinc-950 text-white font-mono overflow-hidden relative">
+            <CircuitBackground />
             <header className="flex justify-between items-center px-4 py-4 z-10 flex-shrink-0 bg-zinc-900 border-b-2 border-zinc-800 mt-[var(--safe-top)]">
                 <div>
                     <h1 className="text-xl md:text-2xl font-black italic uppercase tracking-tighter text-pulse-500 leading-none">STACK TRACE</h1>
@@ -194,7 +229,7 @@ const TetrisPage: React.FC<TetrisPageProps> = ({ onBackToHub, onReturnToFeeds })
                 </div>
             </header>
 
-            <div className="flex-grow flex items-center justify-center p-4 min-h-0">
+            <div className="flex-grow flex items-center justify-center p-4 min-h-0 relative z-10">
                 <div className="grid grid-cols-[80px,1fr,80px] gap-4 h-full max-h-[75vh] w-full max-w-xl">
                     {/* HOLD COLUMN */}
                     <div className="flex flex-col gap-4 justify-start pt-8">
@@ -232,7 +267,7 @@ const TetrisPage: React.FC<TetrisPageProps> = ({ onBackToHub, onReturnToFeeds })
                 </div>
             </div>
             
-            <div className="bg-zinc-900 border-t-4 border-black p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] flex-shrink-0 relative overflow-hidden">
+            <div className="bg-zinc-900 border-t-4 border-black p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] flex-shrink-0 relative overflow-hidden z-20">
                 <div className="absolute inset-0 opacity-5 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
                 <div className="max-w-md mx-auto grid grid-cols-4 gap-4 relative z-10">
                     <div className="col-span-2 flex gap-4">
@@ -328,7 +363,7 @@ const TacticalManual: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
                 <footer className="p-4 bg-zinc-300 border-t-2 border-black shrink-0">
                     <button onClick={onClose} className="w-full py-4 bg-pulse-600 border-t-2 border-l-2 border-white/50 border-b-2 border-r-2 border-pulse-950 text-[10px] font-black uppercase italic text-white hover:bg-pulse-500 active:bg-pulse-700 transition-all shadow-lg">
-                        CONFIRM_PROTOCOLS
+                        ACKNOWLEDGE_PROTOCOLS
                     </button>
                 </footer>
             </div>

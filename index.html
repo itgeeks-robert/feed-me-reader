@@ -16,26 +16,23 @@
                 extend: {
                     colors: {
                         void: {
-                            900: 'var(--void-900)',
-                            950: 'var(--void-950)',
+                            bg: 'var(--void-bg)',
+                            surface: 'var(--void-surface)',
+                            900: 'var(--void-surface)',
+                            950: 'var(--void-bg)',
+                            border: 'var(--void-border)'
                         },
                         pulse: {
-                            500: '#e11d48',
-                            600: '#be123c',
+                            500: 'var(--void-accent)',
+                            600: 'var(--void-accent-deep)',
                         },
-                        signal: {
-                            400: '#4ade80',
-                            500: '#22c55e',
-                            600: '#16a34a',
-                        },
-                        neon: {
-                            400: '#22d3ee',
-                            500: '#06b6d4',
-                        },
-                        terminal: 'var(--text-primary)'
+                        terminal: 'var(--void-text-main)',
+                        muted: 'var(--void-text-muted)'
+                    },
+                    borderRadius: {
+                        'void': 'var(--void-radius)'
                     },
                     fontFamily: {
-                        'horror': ['Courier New', 'monospace'],
                         'mono': ['Space Mono', 'Courier New', 'monospace']
                     }
                 }
@@ -46,38 +43,118 @@
         @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
 
         :root {
-            --void-950: #050505;
-            --void-900: #0a0a0a;
-            --text-primary: #ffffff;
-            --text-secondary: #a1a1aa;
+            /* THEME 1: NOIR (Signature Default) */
+            --void-bg: #050505;
+            --void-surface: #101012;
+            --void-text-main: #ffffff;
+            --void-text-muted: #71717a;
+            --void-accent: #e11d48;
+            --void-accent-deep: #9f1239;
+            --void-border: rgba(255, 255, 255, 0.08);
+            --void-radius: 1.25rem;
+            --void-blur: 0px;
+            --void-shadow: 0 10px 30px rgba(0,0,0,0.5);
             
             --safe-top: env(safe-area-inset-top, 0px);
             --safe-bottom: env(safe-area-inset-bottom, 0px);
-            --safe-left: env(safe-area-inset-left, 0px);
-            --safe-right: env(safe-area-inset-right, 0px);
-            
-            --color-bg: var(--void-950);
-            --color-surface: var(--void-900);
-            --color-primary: #e11d48;
-            --color-secondary: #22c55e;
-            --color-accent: #06b6d4;
-            --glow-primary: 0 0 10px rgba(225, 29, 72, 0.4);
-            --glow-secondary: 0 0 10px rgba(34, 197, 94, 0.4);
         }
 
-        .light {
-            --void-950: #f8fafc;
-            --void-900: #ffffff;
-            --text-primary: #020617;
-            --text-secondary: #475569;
+        /* THEME 2: LIQUID GLASS */
+        .theme-liquid-glass {
+            --void-bg: #080a0f;
+            --void-surface: rgba(255, 255, 255, 0.03);
+            --void-text-main: #ffffff;
+            --void-text-muted: #94a3b8;
+            --void-accent: #38bdf8;
+            --void-accent-deep: #0ea5e9;
+            --void-border: rgba(255, 255, 255, 0.15);
+            --void-radius: 2.5rem;
+            --void-blur: 40px;
+            --void-shadow: 0 20px 50px rgba(0,0,0,0.3);
         }
 
-        /* Boldness fix for Light Mode to prevent thin fonts */
-        .light body {
-            font-weight: 500;
+        /* THEME 3: BENTO GRID (Sleek Light) */
+        .theme-bento-grid {
+            --void-bg: #f8fafc;
+            --void-surface: #ffffff;
+            --void-text-main: #0f172a;
+            --void-text-muted: #64748b;
+            --void-accent: #2563eb;
+            --void-accent-deep: #1d4ed8;
+            --void-border: #e2e8f0;
+            --void-radius: 1.75rem;
+            --void-blur: 0px;
+            --void-shadow: 0 4px 12px rgba(0,0,0,0.05);
         }
-        .light .font-mono {
-            font-weight: 600;
+
+        /* THEME 4: BRUTALIST PAPER */
+        .theme-brutalist {
+            --void-bg: #ffffff;
+            --void-surface: #ffffff;
+            --void-text-main: #000000;
+            --void-text-muted: #444444;
+            --void-accent: #000000;
+            --void-accent-deep: #222222;
+            --void-border: #000000;
+            --void-radius: 0px;
+            --void-blur: 0px;
+            --void-shadow: 8px 8px 0px #000000;
+        }
+
+        /* THEME 5: CLAYMORPHISM */
+        .theme-claymorphism {
+            --void-bg: #e0e7ff;
+            --void-surface: #ffffff;
+            --void-text-main: #4338ca;
+            --void-text-muted: #818cf8;
+            --void-accent: #ec4899;
+            --void-accent-deep: #db2777;
+            --void-border: transparent;
+            --void-radius: 3rem;
+            --void-blur: 0px;
+            --void-shadow: 10px 10px 20px #c7d2fe, -10px -10px 20px #ffffff, inset 4px 4px 8px rgba(0,0,0,0.05);
+        }
+
+        /* THEME 6: MONOCHROME ZEN */
+        .theme-monochrome-zen {
+            --void-bg: #061a1a;
+            --void-surface: #0a2626;
+            --void-text-main: #ccfbf1;
+            --void-text-muted: #2dd4bf;
+            --void-accent: #14b8a6;
+            --void-accent-deep: #0f766e;
+            --void-border: rgba(20, 184, 166, 0.1);
+            --void-radius: 0.75rem;
+            --void-blur: 0px;
+            --void-shadow: none;
+        }
+
+        /* THEME 7: Y2K FUTUROLOGY */
+        .theme-y2k {
+            --void-bg: #004d4d;
+            --void-surface: linear-gradient(135deg, #00cccc, #008080);
+            --void-text-main: #ffffff;
+            --void-text-muted: #e0f2f1;
+            --void-accent: #ffff00;
+            --void-accent-deep: #ffcc00;
+            --void-border: rgba(255, 255, 255, 0.5);
+            --void-radius: 500px;
+            --void-blur: 5px;
+            --void-shadow: 0 10px 20px rgba(0,0,0,0.2), inset 0 2px 4px rgba(255,255,255,0.8);
+        }
+
+        /* THEME 8: TERMINAL / DOS */
+        .theme-terminal {
+            --void-bg: #000000;
+            --void-surface: #000000;
+            --void-text-main: #33ff33;
+            --void-text-muted: #006600;
+            --void-accent: #33ff33;
+            --void-accent-deep: #22cc22;
+            --void-border: #33ff33;
+            --void-radius: 2px;
+            --void-blur: 0px;
+            --void-shadow: none;
         }
 
         * {
@@ -85,9 +162,7 @@
             -ms-overflow-style: none !important;
             box-sizing: border-box;
         }
-        *::-webkit-scrollbar {
-            display: none !important;
-        }
+        *::-webkit-scrollbar { display: none !important; }
 
         html, body {
             height: 100dvh;
@@ -95,119 +170,52 @@
             margin: 0;
             padding: 0;
             overflow: hidden;
-            background-color: var(--void-950);
+            background-color: var(--void-bg);
+            color: var(--void-text-main);
+            transition: background-color 0.4s ease, color 0.4s ease;
         }
 
-        body {
-            color: var(--text-primary);
-            transition: background-color 0.3s ease, color 0.3s ease;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+        .void-card {
+            background: var(--void-surface);
+            backdrop-filter: blur(var(--void-blur));
+            -webkit-backdrop-filter: blur(var(--void-blur));
+            border: 1px solid var(--void-border);
+            border-radius: var(--void-radius);
+            box-shadow: var(--void-shadow);
+            transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
         }
 
-        .safe-area-container {
-            padding-top: var(--safe-top);
-            padding-bottom: var(--safe-bottom);
-            padding-left: var(--safe-left);
-            padding-right: var(--safe-right);
+        .void-button {
+            border-radius: var(--void-radius);
+            box-shadow: var(--void-shadow);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        body::before {
+        .void-button:active { transform: scale(0.96); }
+
+        .theme-terminal body::after {
             content: " ";
             display: block;
             position: fixed;
             top: 0; left: 0; bottom: 0; right: 0;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.05) 50%), 
-                        linear-gradient(90deg, rgba(255, 0, 0, 0.02), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.02));
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
+                        repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(51, 255, 51, 0.05) 2px, rgba(51, 255, 51, 0.05) 4px);
             z-index: 9999;
             pointer-events: none;
-            background-size: 100% 2px, 3px 100%;
-        }
-
-        #aurora-background {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            z-index: -1;
-            background-color: var(--void-950); 
-        }
-
-        @keyframes noise {
-            0% { transform: translate(0,0) }
-            10% { transform: translate(-5%,-5%) }
-            20% { transform: translate(-10%,5%) }
-            30% { transform: translate(5%,-10%) }
-            40% { transform: translate(-5%,15%) }
-            50% { transform: translate(-10%,5%) }
-            60% { transform: translate(15%,0) }
-            70% { transform: translate(0,10%) }
-            80% { transform: translate(-15%,0) }
-            90% { transform: translate(10%,5%) }
-            100% { transform: translate(5%,0) }
-        }
-
-        @keyframes scanline-roll {
-            0% { transform: translateY(-100%); }
-            100% { transform: translateY(100%); }
-        }
-
-        .static-noise {
-            position: relative;
-            background-color: var(--void-950);
-            overflow: hidden;
-        }
-
-        .static-noise::after {
-            content: "";
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIj48ZmlsdGVyIGlkPSJuIj48ZmVUdXJidWxlbmNlIHR5cGU9ImZyYWN0YWxOb2lzZSIgYmFzZUZyZXF1ZW5jeT0iMC44NSIgbnVtT2N0YXZlcz0iNCIgc3RpdGNoVGlsZXM9InN0aXRjaCIvPjwvZmlsdGVyPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbHRlcj0idXJsKCNuKSIvPjwvc3ZnPg==');
-            opacity: 0.1;
-            animation: noise 0.15s steps(2) infinite, noise-flicker 0.1s infinite;
-            pointer-events: none;
-        }
-
-        .static-noise::before {
-            content: "";
-            position: absolute;
-            top: 0; left: 0; right: 0; height: 100px;
-            background: linear-gradient(to bottom, transparent, rgba(34, 197, 94, 0.05), transparent);
-            animation: scanline-roll 4s linear infinite;
-            z-index: 1;
-            pointer-events: none;
-        }
-
-        .cctv-overlay {
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), 
-                        linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
-            background-size: 100% 3px, 3px 100%;
+            background-size: 100% 4px;
         }
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in { animation: fadeIn 0.6s ease-out forwards; }
-
-        h1, h2, h3 { text-transform: uppercase; letter-spacing: -0.02em; font-weight: 900; }
-        .glitch-text:hover {
-            text-shadow: 2px 0 var(--color-accent), -2px 0 var(--color-primary);
-        }
+        .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
     </style>
 <script type="importmap">
 {
   "imports": {
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "vite": "https://esm.sh/vite@^7.3.0",
-    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^18.2.0/",
+    "vite": "https://esm.sh/vite@^5.0.8",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^4.2.1",
+    "react/": "https://esm.sh/react@^18.2.0/",
+    "react": "https://esm.sh/react@^18.2.0",
     "@google/genai": "https://esm.sh/@google/genai@^1.34.0"
   }
 }
@@ -215,7 +223,6 @@
 <link rel="stylesheet" href="/index.css">
 </head>
 <body class="antialiased selection:bg-pulse-500 selection:text-white">
-    <div id="aurora-background"></div>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
 </body>

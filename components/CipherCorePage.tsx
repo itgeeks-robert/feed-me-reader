@@ -1,16 +1,16 @@
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { XIcon, VoidIcon, SparklesIcon, ArrowPathIcon, WalkieTalkieIcon, BookOpenIcon, ExclamationTriangleIcon } from './icons';
 import { saveHighScore, getHighScores, HighScoreEntry } from '../services/highScoresService';
+import { soundService } from '../services/soundService';
 import { resilientFetch } from '../services/fetch';
 import HighScoreTable from './HighScoreTable';
 import Tooltip from './Tooltip';
 
 /**
- * CIPHER CORE v5.3 - REFINED NAVIGATION
+ * CIPHER CORE v5.4 - NAVIGATION RESOLVED
  * A high-fidelity signal decryption simulation.
- * Receives pre-loaded archive map from App core to minimize latency.
- * Features a visual "Pattern to Success" for social transmission.
- * Navigation logic updated to prevent internal lobby loops.
+ * Updated with direct onBackToHub exits to ensure operator mobility.
  */
 
 const MAX_ATTEMPTS = 6;
@@ -104,6 +104,7 @@ const CipherCorePage: React.FC<CipherCoreProps> = ({ onBackToHub, onWin, preload
 
         if (key === 'ENTER') {
             if (currentGuess.length !== 5) {
+                soundService.playWrong();
                 setShakeRow(guesses.length);
                 setTimeout(() => setShakeRow(null), 500);
                 return;
@@ -112,18 +113,24 @@ const CipherCorePage: React.FC<CipherCoreProps> = ({ onBackToHub, onWin, preload
             const nextGuesses = [...guesses, currentGuess];
             let nextState: any = 'playing';
             if (currentGuess === solution) {
+                soundService.playWin();
                 nextState = 'won';
                 if (onWin) onWin();
             } else if (nextGuesses.length >= MAX_ATTEMPTS) {
+                soundService.playLoss();
                 nextState = 'lost';
+            } else {
+                soundService.playCorrect();
             }
             setGuesses(nextGuesses);
             setCurrentGuess("");
             setGameState(nextState);
             saveSession(nextGuesses, nextState);
         } else if (key === 'BACKSPACE' || key === 'DEL') {
+            soundService.playClick();
             setCurrentGuess(prev => prev.slice(0, -1));
         } else if (/^[A-Z]$/.test(key) && currentGuess.length < 5) {
+            soundService.playPop();
             setCurrentGuess(prev => prev + key);
         }
     }, [currentGuess, guesses, gameState, activeSector, archiveMap, saveSession, onWin]);
@@ -147,6 +154,7 @@ const CipherCorePage: React.FC<CipherCoreProps> = ({ onBackToHub, onWin, preload
     }, [gameState]);
 
     const handleTransmitLog = () => {
+        soundService.playAction();
         const sol = archiveMap[activeSector].word;
         const emojiGrid = guesses.map(g => 
             Array.from({length: 5}, (_, i) => {
@@ -164,6 +172,7 @@ const CipherCorePage: React.FC<CipherCoreProps> = ({ onBackToHub, onWin, preload
 
     const handleSaveScore = () => {
         if (isPosted) return;
+        soundService.playClick();
         const sol = archiveMap[activeSector].word;
         const grid = guesses.map(g => Array.from({length: 5}, (_, i) => getStatus(g, i, sol)));
         saveHighScore('spore_crypt', {
@@ -179,7 +188,13 @@ const CipherCorePage: React.FC<CipherCoreProps> = ({ onBackToHub, onWin, preload
 
     if (gameState === 'syncing') {
         return (
-            <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-950 p-6 font-mono text-center">
+            <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-950 p-6 font-mono text-center relative">
+                <div className="absolute top-8 left-8">
+                    <button onClick={() => { soundService.playWrong(); onBackToHub(); }} className="p-3 bg-zinc-900 border border-white/10 rounded-xl text-zinc-500 hover:text-white transition-all active:scale-95 flex items-center gap-2">
+                        <XIcon className="w-4 h-4" />
+                        <span className="text-[9px] font-black uppercase tracking-widest">Abort</span>
+                    </button>
+                </div>
                 <div className="w-20 h-20 border-4 border-pulse-500 border-t-transparent rounded-full animate-spin mb-8 shadow-[0_0_40px_#e11d48]" />
                 <p className="text-pulse-500 font-black uppercase italic tracking-widest animate-pulse text-lg">Finalizing Signal Intercept...</p>
                 <p className="text-zinc-700 text-[10px] uppercase mt-4 tracking-[0.4em]">SYNC_MODE: CORE_PREFETCH</p>
@@ -190,7 +205,7 @@ const CipherCorePage: React.FC<CipherCoreProps> = ({ onBackToHub, onWin, preload
     if (gameState === 'idle') {
         return (
             <div className="w-full h-full bg-zinc-950 flex flex-col items-center justify-center p-6 font-mono overflow-y-auto scrollbar-hide">
-                <div className="w-full max-sm text-center bg-zinc-900 p-8 md:p-12 rounded-[3.5rem] border-4 border-pulse-500 shadow-2xl">
+                <div className="w-full max-sm text-center bg-zinc-900 p-8 md:p-12 rounded-[3rem] border-4 border-pulse-500 shadow-2xl">
                     <header className="mb-10">
                         <div className={`inline-block px-3 py-1 rounded-sm border ${isGlobalSync ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-500' : 'bg-red-500/10 border-red-500/30 text-red-500'} text-[8px] font-black uppercase tracking-widest italic mb-4`}>
                             {isGlobalSync ? "UPLINK_STABLE: GLOBAL" : "UPLINK_FAIL: ARCHIVE_MODE"}
@@ -209,7 +224,7 @@ const CipherCorePage: React.FC<CipherCoreProps> = ({ onBackToHub, onWin, preload
                     </div>
 
                     <div className="space-y-4">
-                        <button onClick={() => { setActiveSector(0); setGameState('playing'); }} className="w-full py-6 bg-white text-black font-black uppercase italic rounded-2xl shadow-xl hover:bg-pulse-500 hover:text-white transition-all text-xl">Establish Link</button>
+                        <button onClick={() => { soundService.playClick(); setActiveSector(0); setGameState('playing'); }} className="w-full py-6 bg-white text-black font-black uppercase italic rounded-2xl shadow-xl hover:bg-pulse-500 hover:text-white transition-all text-xl">Establish Link</button>
                         
                         <div className="pt-6 border-t border-white/5">
                             <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-4 block italic">T-Minus Sectors (Archive)</span>
@@ -217,17 +232,17 @@ const CipherCorePage: React.FC<CipherCoreProps> = ({ onBackToHub, onWin, preload
                                 {[1, 2, 3, 4, 5, 6].map(i => (
                                     <button 
                                         key={i} 
-                                        onClick={() => { setActiveSector(i); setGameState('playing'); }} 
+                                        onClick={() => { soundService.playClick(); setActiveSector(i); setGameState('playing'); }} 
                                         className="py-2.5 bg-zinc-800 border border-white/5 rounded-lg text-[10px] font-black text-zinc-500 hover:text-white hover:border-pulse-500 transition-all"
                                     >
                                         T-{i}
                                     </button>
                                 ))}
-                                <button onClick={() => setShowHelp(true)} className="py-2.5 bg-zinc-900 border border-zinc-700 rounded-lg text-zinc-400 flex items-center justify-center hover:text-white transition-all"><BookOpenIcon className="w-4 h-4"/></button>
+                                <button onClick={() => { soundService.playClick(); setShowHelp(true); }} className="py-2.5 bg-zinc-900 border border-zinc-700 rounded-lg text-zinc-400 flex items-center justify-center hover:text-white transition-all"><BookOpenIcon className="w-4 h-4"/></button>
                             </div>
                         </div>
 
-                        <button onClick={onBackToHub} className="text-zinc-600 font-bold uppercase tracking-[0.4em] text-[9px] pt-4 block w-full italic hover:text-terminal transition-colors">Abort Intercept</button>
+                        <button onClick={() => { soundService.playWrong(); onBackToHub(); }} className="text-zinc-600 font-bold uppercase tracking-[0.4em] text-[9px] pt-4 block w-full italic hover:text-terminal transition-colors">Abort Intercept</button>
                     </div>
                 </div>
                 {showHelp && <TacticalManual onClose={() => setShowHelp(false)} />}
@@ -250,12 +265,12 @@ const CipherCorePage: React.FC<CipherCoreProps> = ({ onBackToHub, onWin, preload
             `}</style>
 
             <header className="w-full max-w-lg flex justify-between items-center mb-8 bg-zinc-900/50 p-4 rounded-3xl border border-white/5 shrink-0 mt-[var(--safe-top)]">
-                <button onClick={onBackToHub} className="p-2 bg-zinc-800 rounded-xl text-zinc-400 hover:text-white transition-all"><XIcon className="w-6 h-6"/></button>
+                <button onClick={() => { soundService.playWrong(); onBackToHub(); }} className="p-2 bg-zinc-800 rounded-xl text-zinc-400 hover:text-white transition-all active:scale-95"><XIcon className="w-6 h-6"/></button>
                 <div className="text-center">
                     <span className="text-[10px] font-black uppercase text-pulse-500 tracking-[0.3em] italic">Sector: {archiveMap[activeSector]?.label || 'TODAY'}</span>
                     <h1 className="text-2xl font-black italic uppercase text-white tracking-tighter leading-none">CIPHER CORE</h1>
                 </div>
-                <button onClick={() => setShowHelp(true)} className="p-2 bg-zinc-800 rounded-xl text-zinc-400 hover:text-pulse-500 transition-all"><BookOpenIcon className="w-6 h-6"/></button>
+                <button onClick={() => { soundService.playClick(); setShowHelp(true); }} className="p-2 bg-zinc-800 rounded-xl text-zinc-400 hover:text-pulse-500 transition-all"><BookOpenIcon className="w-6 h-6"/></button>
             </header>
 
             <div className="flex flex-col items-center w-full max-w-lg pb-32">
@@ -292,38 +307,21 @@ const CipherCorePage: React.FC<CipherCoreProps> = ({ onBackToHub, onWin, preload
                         ))}
                     </div>
                 ) : (
-                    <div className="w-full max-w-sm bg-zinc-900 p-8 rounded-[3rem] border-4 border-pulse-500 text-center animate-fade-in shadow-2xl relative overflow-hidden">
+                    <div className="w-full max-sm bg-zinc-900 p-8 rounded-[3rem] border-4 border-pulse-500 text-center animate-fade-in shadow-2xl relative overflow-hidden">
                         <div className="absolute inset-0 pointer-events-none opacity-5 cctv-overlay" />
                         <div className="relative z-10">
-                            <h2 className={`text-4xl font-black italic uppercase mb-4 ${gameState === 'won' ? 'text-emerald-500' : 'text-red-500'}`}>{gameState === 'won' ? 'DECODED' : 'SIG_LOSS'}</h2>
+                            <h2 className={`text-4xl font-black italic uppercase mb-6 ${gameState === 'won' ? 'text-emerald-500' : 'text-red-500'}`}>{gameState === 'won' ? 'DECODED' : 'SIG_LOSS'}</h2>
                             
-                            <div className="mb-6 p-4 bg-black/60 border border-white/5 rounded-2xl">
-                                <p className="text-[8px] text-zinc-500 font-black uppercase mb-3 text-center italic tracking-widest">// PATTERN_TO_SUCCESS</p>
-                                <div className="flex flex-col gap-1 items-center mb-4">
-                                    {guesses.map((g, r) => (
-                                        <div key={r} className="flex gap-1 animate-fade-in" style={{ animationDelay: `${r * 100}ms` }}>
-                                            {Array.from({length: 5}, (_, i) => {
-                                                const s = getStatus(g, i, activeWord);
-                                                return <div key={i} className={`w-3 h-3 rounded-sm ${s === 2 ? 'bg-emerald-500' : s === 1 ? 'bg-pulse-500' : 'bg-zinc-800'}`} />;
-                                            })}
-                                        </div>
-                                    ))}
-                                </div>
-                                <Tooltip text="Clone the frequency pattern to clipboard for social transmission.">
+                            {(gameState === 'lost' || gameState === 'won') && (
+                                <div className="mb-8 p-6 bg-black/60 border border-white/5 rounded-2xl text-left">
+                                    <p className="text-[10px] text-zinc-500 font-black uppercase mb-1">Final Result String</p>
+                                    <p className="text-3xl font-black text-white italic tracking-widest uppercase mb-4">{activeWord}</p>
                                     <button 
                                         onClick={handleTransmitLog}
-                                        className="w-full py-3 bg-white text-black font-black uppercase italic text-[10px] tracking-widest rounded-lg transition-all hover:bg-emerald-500 hover:text-white flex items-center justify-center gap-2"
+                                        className="w-full py-3 bg-white text-black font-black uppercase italic text-[10px] tracking-widest rounded-lg transition-all hover:bg-emerald-500 hover:text-white"
                                     >
-                                        <SparklesIcon className="w-3.5 h-3.5" />
                                         {showCopySuccess ? "PACKET_CLONED" : "TRANSMIT_GRID_LOG"}
                                     </button>
-                                </Tooltip>
-                            </div>
-
-                            {(gameState === 'lost' || gameState === 'won') && (
-                                <div className="mb-6 p-4 bg-black/60 border border-white/5 rounded-2xl text-left">
-                                    <p className="text-[10px] text-zinc-500 font-black uppercase mb-1">Target Freq</p>
-                                    <p className="text-2xl font-black text-white italic tracking-widest uppercase">{activeWord}</p>
                                 </div>
                             )}
                             
@@ -334,12 +332,12 @@ const CipherCorePage: React.FC<CipherCoreProps> = ({ onBackToHub, onWin, preload
                                     <button onClick={handleSaveScore} className="w-full py-5 bg-emerald-600 text-white font-black text-lg italic uppercase rounded-full shadow-xl hover:bg-emerald-500 transition-colors">Post Records</button>
                                 </div>
                             )}
-                            <button onClick={onBackToHub} className="w-full py-4 bg-zinc-800 text-zinc-400 font-black uppercase text-[10px] tracking-widest rounded-full hover:text-white border border-white/5 transition-colors">Return_to_Hub</button>
+                            <button onClick={() => { soundService.playClick(); onBackToHub(); }} className="w-full py-4 bg-zinc-800 text-zinc-400 font-black uppercase text-[10px] tracking-widest rounded-full hover:text-white border border-white/5 transition-colors active:scale-95">Return_to_Core</button>
                         </div>
                     </div>
                 )}
             </div>
-            {showHelp && <TacticalManual onClose={() => setShowHelp(false)} />}
+            {showHelp && <TacticalManual onClose={() => { soundService.playClick(); setShowHelp(false); }} />}
         </main>
     );
 };
@@ -367,7 +365,7 @@ const TacticalManual: React.FC<{ onClose: () => void }> = ({ onClose }) => (
                         <ManualPoint title="0x03_The_Log_Transmission" desc="Successfully decoded sequences can be transmitted as a color-grid log (emoji) to your social network buffers." />
                     </div>
                     <div className="p-5 bg-pulse-500/10 border-2 border-pulse-500/30 rounded-2xl flex items-start gap-4 animate-pulse">
-                        <ExclamationTriangleIcon className="w-6 h-6 text-pulse-500 shrink-0 mt-0.5 animate-pulse" />
+                        <ExclamationTriangleIcon className="w-6 h-6 text-pulse-500 shrink-0 mt-0.5" />
                         <div>
                             <p className="text-[9px] font-black text-pulse-500 uppercase italic mb-1">Warning: System Isolation</p>
                             <p className="text-[8px] text-zinc-500 uppercase font-bold leading-tight italic">Exceeding 6 logic faults will trigger a buffer lock. Verify your input before committing the frequency string.</p>

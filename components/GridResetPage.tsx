@@ -1,6 +1,8 @@
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { XIcon, VoidIcon, CpuChipIcon, ArrowPathIcon, SparklesIcon, BookOpenIcon } from './icons';
 import { saveHighScore, getHighScores, HighScoreEntry } from '../services/highScoresService';
+import { soundService } from '../services/soundService';
 import HighScoreTable from './HighScoreTable';
 import Tooltip from './Tooltip';
 
@@ -40,6 +42,7 @@ const GridResetPage: React.FC<{ onBackToHub: () => void; onComplete?: () => void
     }, [gameState]);
 
     const generateSolvableLevel = useCallback(() => {
+        soundService.playClick();
         let newGrid = Array.from({ length: SIZE }, () => Array(SIZE).fill(false));
         const path = new Set<string>();
         
@@ -80,6 +83,7 @@ const GridResetPage: React.FC<{ onBackToHub: () => void; onComplete?: () => void
     const handleNodeClick = (r: number, c: number) => {
         if (gameState !== 'playing') return;
         
+        soundService.playAction();
         const next = toggleInternal(grid, r, c);
         setGrid(next);
         setMoves(m => m + 1);
@@ -93,6 +97,7 @@ const GridResetPage: React.FC<{ onBackToHub: () => void; onComplete?: () => void
 
         const isDark = next.every(row => row.every(cell => !cell));
         if (isDark) {
+            soundService.playWin();
             setGameState('won');
             onComplete?.();
         }
@@ -100,6 +105,7 @@ const GridResetPage: React.FC<{ onBackToHub: () => void; onComplete?: () => void
 
     const requestHint = () => {
         if (gameState !== 'playing' || scramblePath.size === 0) return;
+        soundService.playPop();
         const remaining = Array.from(scramblePath);
         const randomTarget = remaining[Math.floor(Math.random() * remaining.length)];
         const [r, c] = (randomTarget as string).split(',').map(Number);
@@ -108,6 +114,7 @@ const GridResetPage: React.FC<{ onBackToHub: () => void; onComplete?: () => void
     };
 
     const handleSaveScore = () => {
+        soundService.playClick();
         saveHighScore('grid_reset', {
             name: initials.toUpperCase() || "???",
             score: moves,
@@ -160,7 +167,7 @@ const GridResetPage: React.FC<{ onBackToHub: () => void; onComplete?: () => void
 
                     <div className="mt-10 space-y-4">
                         <button onClick={generateSolvableLevel} className="w-full py-5 bg-white text-black font-black uppercase italic rounded-2xl hover:scale-[1.02] transition-all shadow-xl active:scale-95 text-lg">Sync Sector</button>
-                        <button onClick={onBackToHub} className="text-zinc-500 font-bold uppercase tracking-widest text-xs hover:text-white transition-colors pt-4 block w-full italic tracking-[0.2em]">Return to Hub</button>
+                        <button onClick={() => { soundService.playWrong(); onBackToHub(); }} className="text-zinc-500 font-bold uppercase tracking-widest text-xs hover:text-white transition-colors pt-4 block w-full italic tracking-[0.2em]">Return to Hub</button>
                     </div>
                 </div>
             </div>
@@ -199,13 +206,13 @@ const GridResetPage: React.FC<{ onBackToHub: () => void; onComplete?: () => void
             <div className="max-w-md w-full space-y-6">
                 <header className="flex justify-between items-center bg-zinc-900/50 p-6 rounded-3xl border border-white/5 backdrop-blur-xl">
                     <div className="flex items-center gap-4">
-                        <button onClick={onBackToHub} className="p-3 bg-zinc-800 rounded-2xl text-zinc-400 hover:text-white transition-all border border-white/5 active:scale-95"><XIcon className="w-6 h-6" /></button>
+                        <button onClick={() => { soundService.playWrong(); onBackToHub(); }} className="p-3 bg-zinc-800 rounded-2xl text-zinc-400 hover:text-white transition-all border border-white/5 active:scale-95"><XIcon className="w-6 h-6" /></button>
                         <div>
                              <span className="text-[9px] font-black text-pulse-500 uppercase tracking-[0.4em] block mb-1">Status: MALFUNCTION</span>
                              <h2 className="text-xl font-black italic uppercase text-white tracking-tighter leading-none">GRID RESET</h2>
                         </div>
                     </div>
-                    <button onClick={() => setShowHelp(true)} className="p-3 bg-zinc-800 rounded-2xl text-neon-400 border border-neon-400/20 hover:bg-neon-400 hover:text-black transition-all">
+                    <button onClick={() => { soundService.playClick(); setShowHelp(true); }} className="p-3 bg-zinc-800 rounded-2xl text-neon-400 border border-neon-400/20 hover:bg-neon-400 hover:text-black transition-all">
                         <BookOpenIcon className="w-6 h-6" />
                     </button>
                 </header>
@@ -286,11 +293,11 @@ const GridResetPage: React.FC<{ onBackToHub: () => void; onComplete?: () => void
 
             {/* TACTICAL BRIEFING OVERLAY */}
             {showHelp && (
-                <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-[60] flex items-center justify-center p-6" onClick={() => setShowHelp(false)}>
+                <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-[60] flex items-center justify-center p-6" onClick={() => { soundService.playClick(); setShowHelp(false); }}>
                     <div className="max-w-md w-full bg-void-900 p-8 rounded-[3rem] border-4 border-neon-400 shadow-[0_0_80px_rgba(34,211,238,0.2)]" onClick={e => e.stopPropagation()}>
                         <header className="flex justify-between items-center mb-8 border-b border-neon-400/20 pb-4">
                             <h3 className="text-2xl font-black italic uppercase text-neon-400 tracking-tighter">Tactical Briefing</h3>
-                            <button onClick={() => setShowHelp(false)} className="text-zinc-500 hover:text-white"><XIcon className="w-6 h-6" /></button>
+                            <button onClick={() => { soundService.playClick(); setShowHelp(false); }} className="text-zinc-500 hover:text-white"><XIcon className="w-6 h-6" /></button>
                         </header>
                         
                         <div className="space-y-6 text-[11px] font-mono leading-relaxed uppercase tracking-wider text-zinc-300">
@@ -321,7 +328,7 @@ const GridResetPage: React.FC<{ onBackToHub: () => void; onComplete?: () => void
                             </div>
                         </div>
 
-                        <button onClick={() => setShowHelp(false)} className="w-full mt-8 py-4 bg-neon-400 text-black font-black uppercase italic rounded-full shadow-lg active:scale-95 transition-all">Acknowledge</button>
+                        <button onClick={() => { soundService.playClick(); setShowHelp(false); }} className="w-full mt-8 py-4 bg-neon-400 text-black font-black uppercase italic rounded-full shadow-lg active:scale-95 transition-all">Acknowledge</button>
                     </div>
                 </div>
             )}

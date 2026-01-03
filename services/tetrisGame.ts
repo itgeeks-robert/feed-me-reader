@@ -1,5 +1,5 @@
-// This service is adapted from the vanilla JavaScript Tetris implementation
-// by Jake Gordon. Overhauled for VOID ARCADE with neon aesthetic and ghost logic.
+
+import { soundService } from './soundService';
 
 //-------------------------------------------------------------------------
 // Type Definitions
@@ -119,6 +119,7 @@ export function startGame(options: GameOptions) {
   
   const lose = () => {
     playing = false;
+    soundService.playLoss();
     options.onGameOver();
   };
 
@@ -143,6 +144,7 @@ export function startGame(options: GameOptions) {
       }
     }
     if (n > 0) {
+      soundService.playCorrect();
       setRows(rows + n);
       setScore(score + 100 * Math.pow(2, n - 1));
     }
@@ -163,6 +165,7 @@ export function startGame(options: GameOptions) {
     const x = current.x + dx; const y = current.y + dy;
     if (!occupied(current.type, x, y, current.dir)) {
       current.x = x; current.y = y; invalidate();
+      if (dx !== 0) soundService.playClick();
       return true;
     }
     return false;
@@ -171,12 +174,14 @@ export function startGame(options: GameOptions) {
   const rotate = () => {
     const newdir = (current.dir === DIR.MAX ? DIR.MIN : current.dir + 1);
     if (!occupied(current.type, current.x, current.y, newdir)) {
+      soundService.playPop();
       current.dir = newdir; invalidate();
     }
   };
   
   const holdPiece = () => {
     if (canHold) {
+      soundService.playAction();
       canHold = false;
       if (hold) {
         const temp = hold;
@@ -190,7 +195,6 @@ export function startGame(options: GameOptions) {
     }
   };
 
-  let dx: number, dy: number;
   let invalid = true;
   const invalidate = () => { invalid = true; };
 
@@ -205,9 +209,10 @@ export function startGame(options: GameOptions) {
   };
 
   const drawCourt = () => {
-    // Draw matrix background
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
     ctx.lineWidth = 1;
+    const dx = canvas.width / nx;
+    const dy = canvas.height / ny;
     for (let x = 0; x <= nx; x++) {
       ctx.beginPath(); ctx.moveTo(x * dx, 0); ctx.lineTo(x * dx, canvas.height); ctx.stroke();
     }
@@ -219,13 +224,15 @@ export function startGame(options: GameOptions) {
       for (let x = 0; x < nx; x++) {
         const block = getBlock(x, y);
         if (block) {
-            drawBlock(ctx, x, y, block as string);
+            drawBlock(ctx, x, y, block as string, dx, dy);
         }
       }
     }
   };
 
   const drawGhost = () => {
+    const dx = canvas.width / nx;
+    const dy = canvas.height / ny;
     let ghostY = current.y;
     while (!occupied(current.type, current.x, ghostY + 1, current.dir)) {
       ghostY++;
@@ -242,7 +249,9 @@ export function startGame(options: GameOptions) {
   };
 
   const drawPiece = (c: CanvasRenderingContext2D, type: PieceType, x: number, y: number, dir: number) => {
-    eachblock(type, x, y, dir, (bx, by) => drawBlock(c, bx, by, type.color));
+    const dx = c.canvas.width / nx;
+    const dy = c.canvas.height / ny;
+    eachblock(type, x, y, dir, (bx, by) => drawBlock(c, bx, by, type.color, dx, dy));
   };
   
   const drawPieceOnCanvas = (targetCtx: CanvasRenderingContext2D, pieceType: PieceType | null, xOffset: number, yOffset: number) => {
@@ -254,15 +263,13 @@ export function startGame(options: GameOptions) {
         eachblock(pieceType, padding + xOffset, padding + yOffset, DIR.UP, (x,y) => drawBlock(targetCtx, x, y, pieceType.color, tempDx, tempDy));
   };
 
-  const drawBlock = (c: CanvasRenderingContext2D, x: number, y: number, color: string, blockDx = dx, blockDy = dy) => {
+  const drawBlock = (c: CanvasRenderingContext2D, x: number, y: number, color: string, blockDx: number, blockDy: number) => {
     const px = x * blockDx;
     const py = y * blockDy;
     
-    // Main Body
     c.fillStyle = color;
     c.fillRect(px + 1, py + 1, blockDx - 2, blockDy - 2);
 
-    // Inner Glow
     c.save();
     c.shadowBlur = 15;
     c.shadowColor = color;
@@ -271,12 +278,10 @@ export function startGame(options: GameOptions) {
     c.strokeRect(px + 3, py + 3, blockDx - 6, blockDy - 6);
     c.restore();
 
-    // Top Highlight (Technical edge)
     c.fillStyle = 'rgba(255, 255, 255, 0.3)';
     c.fillRect(px + 1, py + 1, blockDx - 2, 2);
     c.fillRect(px + 1, py + 1, 2, blockDy - 2);
     
-    // Bottom Shadow
     c.fillStyle = 'rgba(0, 0, 0, 0.4)';
     c.fillRect(px + 1, py + blockDy - 3, blockDx - 2, 2);
     c.fillRect(px + blockDx - 3, py + 1, 2, blockDy - 2);
@@ -295,18 +300,17 @@ export function startGame(options: GameOptions) {
     canvas = options.canvas;
     ctx = canvas.getContext('2d')!;
 
-    // Scaled internal resolution
     canvas.width = 300;
     canvas.height = 600;
     
-    dx = canvas.width / nx;
-    dy = canvas.height / ny;
+    const dxLocal = canvas.width / nx;
+    const dyLocal = canvas.height / ny;
     
-    const sideCanvasWidth = dx * 5;
+    const sideCanvasWidth = dxLocal * 5;
     options.holdCanvas.width = sideCanvasWidth;
-    options.holdCanvas.height = dy * 5;
+    options.holdCanvas.height = dyLocal * 5;
     options.previewCanvas.width = sideCanvasWidth;
-    options.previewCanvas.height = dy * 13;
+    options.previewCanvas.height = dyLocal * 13;
 
     newGame();
     last = window.performance.now();
@@ -323,9 +327,9 @@ export function startGame(options: GameOptions) {
     softDrop: () => playing && drop(),
     hardDrop: () => {
       if (playing) {
+        soundService.playAction();
         while (move(0, 1)) { /* keep going */ }
         drop();
-        // Shake feedback
         canvas.classList.add('animate-shake');
         setTimeout(() => canvas.classList.remove('animate-shake'), 200);
         last = window.performance.now();

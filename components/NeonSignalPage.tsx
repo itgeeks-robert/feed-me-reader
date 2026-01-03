@@ -3,20 +3,20 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { XIcon, ClockIcon, SparklesIcon, FireIcon, BookOpenIcon, ArrowPathIcon, VoidIcon } from './icons';
 import { VOID_DATA } from '../voidDataArchive';
 import { NEON_IMAGES } from '../neonSignalAssets';
+import { soundService } from '../services/soundService';
 import OrientationGuard from './OrientationGuard';
 
 /**
- * NEON SIGNAL: DATA_SYNC v19.1
- * Refined for Responsive Landscape:
- * - Increased item font size (clamp 2.5rem to 8rem).
- * - Reduced vertical footprints in landscape mode.
- * - Scaled down result screens to fit within mobile horizontal heights.
+ * NEON SIGNAL: DATA_SYNC v19.3
+ * Refined for Responsive Landscape & Tilt Reliability:
+ * - Integrated Sound FX for Sync/Void actions.
+ * - Improved tilt-back (PASS) sensitivity.
  */
 
 const GAME_DURATION = 60;
-const CORRECT_DELTA = 30; 
-const PASS_DELTA = -20; 
-const NEUTRAL_DELTA = 15; 
+const CORRECT_DELTA = 25; 
+const PASS_DELTA = -15;    
+const NEUTRAL_DELTA = 10;  
 
 interface NeonSignalProps {
     onBack: () => void;
@@ -42,6 +42,7 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
     const timerRef = useRef<number | null>(null);
 
     const startTransmission = async (catId: string, catName: string) => {
+        soundService.playClick();
         if (typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
             try {
                 const response = await (DeviceOrientationEvent as any).requestPermission();
@@ -89,6 +90,12 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
         actionLock.current = true;
         neutralLock.current = true; 
 
+        if (correct) {
+            soundService.playCorrect();
+        } else {
+            soundService.playWrong();
+        }
+
         if (window.navigator.vibrate) {
             window.navigator.vibrate(correct ? 60 : [40, 40, 40]);
         }
@@ -106,7 +113,7 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
             setCurrentIndex(prev => prev + 1);
             setTimeout(() => { 
                 actionLock.current = false; 
-            }, 800); 
+            }, 600); 
         } else {
             setGameState('RESULTS');
         }
@@ -125,14 +132,18 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
             if (neutralLock.current) {
                 if (Math.abs(delta) < NEUTRAL_DELTA) {
                     neutralLock.current = false;
+                    referencePitch.current = currentPitch; 
                 }
                 return; 
             }
 
             if (actionLock.current || gracePeriodActive.current) return;
 
-            if (delta > CORRECT_DELTA) handleAction(true);
-            else if (delta < PASS_DELTA) handleAction(false);
+            if (delta > CORRECT_DELTA) {
+                handleAction(true); // TILT DOWN
+            } else if (delta < PASS_DELTA) {
+                handleAction(false); // TILT UP
+            }
         };
 
         if (gameState === 'PLAYING') {
@@ -143,21 +154,29 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
 
     useEffect(() => {
         if ((gameState === 'COUNTDOWN' || gameState === 'PLAYING') && timeLeft > 0) {
-            timerRef.current = window.setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
+            timerRef.current = window.setTimeout(() => {
+                if (gameState === 'COUNTDOWN') soundService.playPop();
+                setTimeLeft(timeLeft - 1);
+            }, 1000);
         } else if (gameState === 'COUNTDOWN' && timeLeft === 0) {
+            soundService.playAction();
             setGameState('PLAYING');
             setTimeLeft(GAME_DURATION);
             referencePitch.current = null; 
             gracePeriodActive.current = true;
             setTimeout(() => { gracePeriodActive.current = false; }, 1500);
         } else if (gameState === 'PLAYING' && timeLeft === 0) {
+            soundService.playLoss();
             setGameState('RESULTS');
         }
         return () => { if (timerRef.current) clearTimeout(timerRef.current); };
     }, [gameState, timeLeft]);
 
     useEffect(() => {
-        if (gameState === 'RESULTS') onWin?.(score);
+        if (gameState === 'RESULTS') {
+            onWin?.(score);
+            if (score > 0) soundService.playWin();
+        }
     }, [gameState, score, onWin]);
 
     const activeCatImage = useMemo(() => {
@@ -167,13 +186,14 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
 
     const abortNode = (e: React.MouseEvent) => {
         e.stopPropagation();
+        soundService.playWrong();
         setGameState('MENU');
     };
 
     if (gameState === 'MENU') return (
         <div className="w-full h-full bg-zinc-950 p-4 md:p-6 font-mono overflow-y-auto scrollbar-hide flex flex-col animate-fade-in pb-32">
             <header className="flex justify-between items-center mb-6 md:mb-12 shrink-0 mt-[var(--safe-top)]">
-                <button onClick={onBack} className="p-3 md:p-4 bg-zinc-900 rounded-2xl border border-white/10 active:scale-90 transition-all shadow-lg">
+                <button onClick={() => { soundService.playClick(); onBack(); }} className="p-3 md:p-4 bg-zinc-900 rounded-2xl border border-white/10 active:scale-90 transition-all shadow-lg">
                     <XIcon className="w-5 h-5 md:w-6 md:h-6 text-white"/>
                 </button>
                 <div className="text-right">
@@ -224,7 +244,7 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
             <div className="mt-8 md:mt-16 flex flex-col items-center gap-6 shrink-0">
                 <div className="h-px w-24 bg-zinc-800" />
                 <button 
-                    onClick={onReturnToFeeds} 
+                    onClick={() => { soundService.playClick(); onReturnToFeeds(); }} 
                     className="w-full max-w-xs py-4 md:py-5 bg-zinc-900 border border-white/5 rounded-2xl text-[9px] font-black text-zinc-500 uppercase italic tracking-[0.4em] hover:text-white hover:bg-zinc-800 transition-all shadow-xl active:scale-95"
                 >
                     Abort_To_Intel
@@ -344,10 +364,10 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
                         </div>
 
                         <div className="space-y-2 md:space-y-6 shrink-0 pb-[calc(1rem+var(--safe-bottom))] bg-zinc-950 pt-1 max-w-xl mx-auto w-full">
-                            <button onClick={() => setGameState('MENU')} className="w-full py-3 md:py-8 bg-white text-black font-black uppercase italic rounded-xl md:rounded-3xl text-sm md:text-3xl shadow-[0_4px_0px_#10b981] active:translate-y-1 active:shadow-none transition-all hover:bg-emerald-50">
+                            <button onClick={() => { soundService.playClick(); setGameState('MENU'); }} className="w-full py-3 md:py-8 bg-white text-black font-black uppercase italic rounded-xl md:rounded-3xl text-sm md:text-3xl shadow-[0_4px_0px_#10b981] active:translate-y-1 active:shadow-none transition-all hover:bg-emerald-50">
                                 New_Uplink
                             </button>
-                            <button onClick={onBack} className="w-full py-1 text-zinc-700 font-black uppercase text-[8px] tracking-[0.5em] italic hover:text-zinc-400 transition-colors text-center">
+                            <button onClick={() => { soundService.playClick(); onBack(); }} className="w-full py-1 text-zinc-700 font-black uppercase text-[8px] tracking-[0.5em] italic hover:text-zinc-400 transition-colors text-center">
                                 [ TERMINATE ]
                             </button>
                         </div>

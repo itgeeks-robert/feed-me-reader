@@ -26,7 +26,6 @@ import SynapseLinkPage from '../components/SynapseLinkPage';
 import GridResetPage from '../components/GridResetPage';
 import HangmanPage from '../components/HangmanPage';
 import NeonSignalPage from '../components/NeonSignalPage';
-import BlackMarket from '../components/BlackMarket';
 import OrientationGuard from '../components/OrientationGuard';
 import { resilientFetch } from '../services/fetch';
 import { parseRssXml } from '../services/rssParser';
@@ -42,13 +41,14 @@ export interface SudokuStats { totalWins: number; lastDailyCompletionDate?: stri
 export interface SolitaireStats { gamesWon: number; currentStreak: number; }
 export interface SolitaireSettings { drawThree: boolean; }
 
+export type Theme = 'noir' | 'liquid-glass' | 'bento-grid' | 'brutalist' | 'claymorphism' | 'monochrome-zen' | 'y2k' | 'terminal';
+
 export type Selection = { 
     type: 'splash' | 'all' | 'folder' | 'bookmarks' | 'search' | 'feed' | 'reddit' | 'game_hub' | 'daily_uplink' | 'grid_reset' | 'deep_sync' | 'signal_scrambler' | 'utility_hub' | 'signal_streamer' | 'transcoder' | 'base64_converter' | 'sudoku' | 'solitaire' | 'minesweeper' | 'tetris' | 'pool' | 'cipher_core' | 'void_runner' | 'synapse_link' | 'hangman' | 'neon_signal'; 
     id: string | number | null; 
     query?: string;
     category?: string;
 };
-export type Theme = 'light' | 'dark';
 export type ArticleView = 'list' | 'grid' | 'featured';
 export interface WidgetSettings { showWeather: boolean; showFinance: boolean; weatherLocation: string; }
 export interface Settings { feeds: Feed[]; folders: Folder[]; theme: Theme; articleView: ArticleView; widgets: WidgetSettings; }
@@ -62,7 +62,6 @@ const THEME_KEY = `void_theme_${GUEST_USER_ID}`;
 const ARTICLE_VIEW_KEY = `void_article_view_${GUEST_USER_ID}`;
 const WIDGET_SETTINGS_KEY = `void_widget_settings_${GUEST_USER_ID}`;
 const UPTIME_KEY = `void_uptime_${GUEST_USER_ID}`;
-const CREDITS_KEY = `void_credits_${GUEST_USER_ID}`;
 const SELECTION_KEY = `void_selection_${GUEST_USER_ID}`;
 const FAV_GAMES_KEY = `void_fav_games_${GUEST_USER_ID}`;
 
@@ -76,7 +75,7 @@ const TerminalView: React.FC<{ children: React.ReactNode; hasBottomNav?: boolean
 );
 
 const App: React.FC = () => {
-    const [theme, setTheme] = useLocalStorage<Theme>(THEME_KEY, 'dark');
+    const [theme, setTheme] = useLocalStorage<Theme>(THEME_KEY, 'noir');
     const [articleView, setArticleView] = useLocalStorage<ArticleView>(ARTICLE_VIEW_KEY, 'list');
     const [widgetSettings, setWidgetSettings] = useLocalStorage<WidgetSettings>(WIDGET_SETTINGS_KEY, { showWeather: true, showFinance: false, weatherLocation: 'London' });
     const [folders, setFolders] = useLocalStorage<Folder[]>(FOLDERS_KEY, []);
@@ -86,13 +85,11 @@ const App: React.FC = () => {
     const [favoriteGameIds, setFavoriteGameIds] = useLocalStorage<Set<string>>(FAV_GAMES_KEY, () => new Set());
     
     const [uptime, setUptime] = useLocalStorage<number>(UPTIME_KEY, 25);
-    const [credits, setCredits] = useLocalStorage<number>(CREDITS_KEY, 100); 
 
     const [selection, setSelection] = useLocalStorage<Selection>(SELECTION_KEY, { type: 'splash', id: null });
 
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
     const [isAddSourceModalOpen, setIsAddSourceModalOpen] = useState(false);
-    const [isShopOpen, setIsShopOpen] = useState(false);
     const [readerArticle, setReaderArticle] = useState<Article | null>(null);
     const [prefetchedArticles, setPrefetchedArticles] = useState<Article[]>([]);
     const [isDecoding, setIsDecoding] = useState(false);
@@ -104,7 +101,6 @@ const App: React.FC = () => {
     const [showIntegrityBriefing, setShowIntegrityBriefing] = useState(false);
     const [skipExternalWarning, setSkipExternalWarning] = useLocalStorage<boolean>('void_skip_external_warning', false);
 
-    // CIPHER CORE PRE-LOADING STATE
     const [cipherData, setCipherData] = useState<{ archiveMap: { date: string; word: string; label: string }[]; isSynced: boolean; loading: boolean }>({
         archiveMap: [],
         isSynced: false,
@@ -121,7 +117,12 @@ const App: React.FC = () => {
         return utilityTypes.includes(selection.type);
     }, [selection.type]);
 
-    // CIPHER CORE GLOBAL INTERCEPTOR
+    const handleToggleTheme = useCallback(() => {
+        const themes: Theme[] = ['noir', 'liquid-glass', 'bento-grid', 'brutalist', 'claymorphism', 'monochrome-zen', 'y2k', 'terminal'];
+        const nextIndex = (themes.indexOf(theme) + 1) % themes.length;
+        setTheme(themes[nextIndex]);
+    }, [theme, setTheme]);
+
     const prefetchCipherFrequency = useCallback(async () => {
         const results = new Map<string, string>();
         try {
@@ -160,7 +161,6 @@ const App: React.FC = () => {
         setCipherData({ archiveMap: finalMap, isSynced: results.size > 0, loading: false });
     }, []);
 
-    // BACKGROUND ARTICLE INTERCEPTOR
     const prefetchContentFrequencies = useCallback(async () => {
         if (feeds.length === 0) return;
         setIsDecoding(true);
@@ -175,7 +175,6 @@ const App: React.FC = () => {
         try {
             const results = await Promise.all(promises);
             const all = results.flat().sort((a, b) => (b.publishedDate?.getTime() || 0) - (a.publishedDate?.getTime() || 0));
-            // De-duplicate
             const unique = Array.from(new Map(all.map(a => [a.id, a])).values());
             setPrefetchedArticles(unique);
         } catch (e) {
@@ -223,12 +222,10 @@ const App: React.FC = () => {
 
     useEffect(() => {
         const root = document.documentElement;
-        if (theme === 'light') {
-            root.classList.add('light');
-            root.classList.remove('dark');
-        } else {
-            root.classList.add('dark');
-            root.classList.remove('light');
+        // Strip previous theme classes
+        root.className = Array.from(root.classList).filter(c => !c.startsWith('theme-')).join(' ');
+        if (theme !== 'noir') {
+            root.classList.add(`theme-${theme}`);
         }
     }, [theme]);
 
@@ -263,25 +260,23 @@ const App: React.FC = () => {
     const openExternal = useCallback((url: string, id: string) => {
         if (skipExternalWarning) {
             handleMarkAsRead(id);
-            setCredits(c => c + 10);
             window.open(url, '_blank', 'noopener,noreferrer');
         } else {
             setOutboundLink({ url, id });
             window.history.pushState({ isOutbound: true }, '');
         }
-    }, [skipExternalWarning, handleMarkAsRead, setCredits]);
+    }, [skipExternalWarning, handleMarkAsRead]);
 
     const confirmExternalLink = useCallback(() => {
         if (outboundLink) {
             handleMarkAsRead(outboundLink.id);
-            setCredits(c => c + 10);
             window.open(outboundLink.url, '_blank', 'noopener,noreferrer');
             setOutboundLink(null);
             if (window.history.state?.isOutbound) {
                 window.history.back();
             }
         }
-    }, [outboundLink, handleMarkAsRead, setCredits]);
+    }, [outboundLink, handleMarkAsRead]);
 
     const toggleFavoriteGame = useCallback((id: string) => {
         setFavoriteGameIds(prev => {
@@ -309,10 +304,14 @@ const App: React.FC = () => {
     const hasBottomNav = !isGameActive && !isUtilityActive;
 
     return (
-        <div className="h-screen w-full font-sans text-sm relative flex flex-col overflow-hidden bg-void-950 text-terminal transition-colors duration-300">
+        <div className="h-screen w-full font-sans text-sm relative flex flex-col overflow-hidden bg-void-bg text-terminal transition-colors duration-300">
             <TerminalView hasBottomNav={hasBottomNav}>
                 {selection.type === 'utility_hub' ? (
-                    <UtilityHubPage onSelect={(id) => updateSelection({ type: id as any, id: null })} onBackToHub={() => updateSelection({ type: 'all', id: null })} />
+                    <UtilityHubPage 
+                        onSelect={(id) => updateSelection({ type: id as any, id: null })} 
+                        onBackToHub={() => updateSelection({ type: 'all', id: null })} 
+                        onToggleTheme={handleToggleTheme}
+                    />
                 ) : selection.type === 'signal_streamer' ? (
                     <SignalStreamerPage onBackToHub={() => updateSelection({ type: 'utility_hub', id: null })} />
                 ) : selection.type === 'transcoder' ? (
@@ -325,12 +324,11 @@ const App: React.FC = () => {
                     <SignalScramblerPage onBackToHub={() => updateSelection({ type: 'utility_hub', id: null })} />
                 ) : selection.type === 'game_hub' ? (
                     <GameHubPage 
-                        credits={credits} 
-                        setShowShop={setIsShopOpen} 
                         onSelect={(type: any) => updateSelection({ type, id: null })} 
                         onReturnToFeeds={() => updateSelection({ type: 'all', id: null })}
                         favoriteGameIds={favoriteGameIds}
                         onToggleFavorite={toggleFavoriteGame}
+                        onToggleTheme={handleToggleTheme}
                     />
                 ) : isGameActive ? (
                     <>
@@ -338,13 +336,12 @@ const App: React.FC = () => {
                             <NeonSignalPage 
                                 onBack={() => updateSelection({ type: 'game_hub', id: null })} 
                                 onReturnToFeeds={() => updateSelection({ type: 'all', id: null })}
-                                onWin={(score) => setCredits(prev => prev + (score * 5))}
                             />
                         ) : (
                             <OrientationGuard portraitOnly>
-                                {selection.type === 'sudoku' && <SudokuPage stats={{totalWins: 0}} onGameWin={() => setCredits(c => c + 50)} onGameLoss={() => {}} onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} onReturnToFeeds={() => updateSelection({ type: 'all', id: null })} />}
-                                {selection.type === 'solitaire' && <SolitairePage stats={{gamesWon: 0, currentStreak: 0}} onGameWin={() => setCredits(c => c + 50)} onGameStart={() => {}} settings={{drawThree: true}} onUpdateSettings={() => {}} onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} onReturnToFeeds={() => updateSelection({ type: 'all', id: null })} />}
-                                {selection.type === 'minesweeper' && <MinesweeperPage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} onReturnToFeeds={() => updateSelection({ type: 'all', id: null })} onDefuse={() => setCredits(c => c + 50)} />}
+                                {selection.type === 'sudoku' && <SudokuPage stats={{totalWins: 0}} onGameWin={() => {}} onGameLoss={() => {}} onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} onReturnToFeeds={() => updateSelection({ type: 'all', id: null })} />}
+                                {selection.type === 'solitaire' && <SolitairePage stats={{gamesWon: 0, currentStreak: 0}} onGameWin={() => {}} onGameStart={() => {}} settings={{drawThree: true}} onUpdateSettings={() => {}} onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} onReturnToFeeds={() => updateSelection({ type: 'all', id: null })} />}
+                                {selection.type === 'minesweeper' && <MinesweeperPage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} onReturnToFeeds={() => updateSelection({ type: 'all', id: null })} onDefuse={() => {}} />}
                                 {selection.type === 'tetris' && <TetrisPage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} onReturnToFeeds={() => updateSelection({ type: 'all', id: null })} />}
                                 {selection.type === 'pool' && <PoolGamePage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} onReturnToFeeds={() => updateSelection({ type: 'all', id: null })} />}
                                 {selection.type === 'cipher_core' && (
@@ -355,7 +352,6 @@ const App: React.FC = () => {
                                         preloadedData={cipherData}
                                         onWin={() => {
                                             setUptime(prev => Math.min(100, prev + 15));
-                                            setCredits(prev => prev + 100);
                                         }}
                                     />
                                 )}
@@ -394,7 +390,7 @@ const App: React.FC = () => {
                         widgetSettings={widgetSettings}
                         articleView={articleView}
                         theme={theme}
-                        onToggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                        onToggleTheme={handleToggleTheme}
                         onOpenSettings={() => setIsSettingsModalOpen(true)}
                         onOpenAddSource={() => setIsAddSourceModalOpen(true)}
                         onAddSource={async (url, type) => { setFeeds([...feeds, { id: Date.now(), url, title: 'New Signal', iconUrl: '', folderId: null, sourceType: type }]); }}
@@ -402,6 +398,8 @@ const App: React.FC = () => {
                         uptime={uptime}
                         initialArticles={prefetchedArticles}
                         onSetSniffErrorModal={setShowSniffErrorModal}
+                        onOpenSearchExplainer={() => { setShowSearchExplainer(true); window.history.pushState({isExplainer: true}, ''); }}
+                        onOpenIntegrityBriefing={() => { setShowIntegrityBriefing(true); window.history.pushState({isIntegrity: true}, ''); }}
                     />
                 )}
             </TerminalView>
@@ -414,7 +412,7 @@ const App: React.FC = () => {
                 isOpen={isSettingsModalOpen} 
                 onClose={() => setIsSettingsModalOpen(false)} 
                 settings={{ feeds, folders, theme, articleView, widgets: widgetSettings }} 
-                onUpdateSettings={(s) => { if(s.theme) setTheme(s.theme); if(s.articleView) setArticleView(s.articleView); }} 
+                onUpdateSettings={(s) => { if(s.theme) setTheme(s.theme as Theme); if(s.articleView) setArticleView(s.articleView); }} 
                 onSelect={(s) => { updateSelection(s); setIsSettingsModalOpen(false); }}
                 onAddFolder={(n) => setFolders([...folders, {id: Date.now(), name: n}])}
                 onRenameFolder={(id, n) => setFolders(folders.map(x => x.id === id ? {...x, name: n} : x))}
@@ -422,51 +420,34 @@ const App: React.FC = () => {
                 onRemoveFeed={(id) => setFeeds(feeds.filter(x => x.id !== id))}
                 onImportOpml={(f, fld) => { setFeeds([...feeds, ...f.map(i => ({...i, id: Date.now() + Math.random()}))]); setFolders([...folders, ...fld]); }}
                 onExportOpml={() => {}} onImportSettings={() => {}} onExportSettings={() => {}}
-                credits={credits} onOpenShop={() => { setIsSettingsModalOpen(false); setIsShopOpen(true); }} 
                 onAddSource={async (url, type) => { setFeeds([...feeds, { id: Date.now(), url, title: 'New Signal', iconUrl: '', folderId: null, sourceType: type }]); }}
                 onEnterUtils={() => updateSelection({ type: 'utility_hub', id: null })}
             />
-            
-            <BlackMarket isOpen={isShopOpen} onClose={() => setIsShopOpen(false)} credits={credits} setCredits={setCredits} uptime={uptime} setUptime={setUptime} />
             
             {readerArticle && <ReaderViewModal article={readerArticle} onClose={closeReader} onMarkAsRead={handleMarkAsRead} onOpenExternal={openExternal} />}
 
             {outboundLink && (
                 <div className="fixed inset-0 bg-black/95 backdrop-blur-md z-[100] flex items-center justify-center p-6 font-mono animate-fade-in">
-                    <div className="bg-zinc-900 border-4 border-pulse-600 shadow-[0_0_80px_rgba(225,29,72,0.3)] w-full max-w-sm relative overflow-hidden flex flex-col rounded-3xl">
-                        <header className="h-10 bg-pulse-600 flex items-center justify-between px-1 relative z-20 border-b-2 border-black">
-                            <div className="flex items-center gap-2 h-full">
-                                <div className="w-8 h-7 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center">
-                                   <div className="w-4 h-1 bg-black shadow-[0_4px_0_black]" />
-                                </div>
-                                <h2 className="text-white text-[9px] font-black uppercase tracking-[0.2em] italic px-2">SIGNAL_INTERCEPT.EXE</h2>
-                            </div>
-                            <button onClick={() => setOutboundLink(null)} className="w-8 h-7 bg-zinc-300 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-600 flex items-center justify-center active:bg-zinc-400">
-                                <XIcon className="w-4 h-4 text-black" />
-                            </button>
-                        </header>
-
-                        <div className="p-8 bg-void-950 text-center space-y-6">
-                            <div className="mx-auto w-16 h-16 bg-pulse-500/10 rounded-full flex items-center justify-center border-2 border-pulse-500 animate-pulse">
-                                <GlobeAltIcon className="w-8 h-8 text-pulse-500" />
-                            </div>
-                            <div className="space-y-2">
-                                <h3 className="text-lg font-black text-white italic uppercase tracking-tighter leading-none">External Frequency Drift</h3>
-                                <p className="text-[9px] text-zinc-500 leading-relaxed uppercase tracking-widest italic px-4">
-                                    Operator, you are jumping to an <span className="text-pulse-500 font-black">external node</span>. System encryption cannot follow.
-                                </p>
-                            </div>
-                            
-                            <label className="flex items-center justify-center gap-3 cursor-pointer group pt-2">
-                                <input type="checkbox" className="sr-only" checked={skipExternalWarning} onChange={(e) => setSkipExternalWarning(e.target.checked)} />
-                                <div className={`w-4 h-4 border-2 flex-shrink-0 transition-colors ${skipExternalWarning ? 'bg-pulse-500 border-pulse-400 shadow-[0_0_10px_#e11d48]' : 'bg-transparent border-zinc-700'}`} />
-                                <span className="text-[9px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-terminal italic leading-none">Do not warn again</span>
-                            </label>
+                    <div className="void-card w-full max-w-sm relative overflow-hidden flex flex-col p-8 text-center space-y-6">
+                        <div className="mx-auto w-16 h-16 bg-pulse-500/10 rounded-full flex items-center justify-center border-2 border-pulse-500 animate-pulse">
+                            <GlobeAltIcon className="w-8 h-8 text-pulse-500" />
                         </div>
+                        <div className="space-y-2">
+                            <h3 className="text-lg font-black text-terminal italic uppercase tracking-tighter leading-none">External Frequency Drift</h3>
+                            <p className="text-[9px] text-muted leading-relaxed uppercase tracking-widest italic px-4">
+                                Operator, you are jumping to an <span className="text-pulse-500 font-black">external node</span>. System encryption cannot follow.
+                            </p>
+                        </div>
+                        
+                        <label className="flex items-center justify-center gap-3 cursor-pointer group pt-2">
+                            <input type="checkbox" className="sr-only" checked={skipExternalWarning} onChange={(e) => setSkipExternalWarning(e.target.checked)} />
+                            <div className={`w-4 h-4 border-2 flex-shrink-0 transition-colors ${skipExternalWarning ? 'bg-pulse-500 border-pulse-400' : 'bg-transparent border-zinc-700'}`} />
+                            <span className="text-[9px] font-black uppercase tracking-widest text-muted group-hover:text-terminal italic leading-none">Do not warn again</span>
+                        </label>
 
-                        <footer className="p-4 bg-zinc-300 border-t-2 border-black flex gap-3">
-                            <button onClick={() => setOutboundLink(null)} className="flex-1 py-3 bg-zinc-100 border-t-2 border-l-2 border-white border-b-2 border-r-2 border-zinc-400 text-[10px] font-black uppercase italic text-zinc-600 active:bg-zinc-200">ABORT</button>
-                            <button onClick={confirmExternalLink} className="flex-1 py-3 bg-pulse-600 border-t-2 border-l-2 border-white/50 border-b-2 border-r-2 border-pulse-950 text-[10px] font-black uppercase italic text-white hover:bg-pulse-500 active:bg-pulse-700">ESTABLISH_LINK</button>
+                        <footer className="pt-4 flex gap-3">
+                            <button onClick={() => setOutboundLink(null)} className="flex-1 py-3 bg-void-bg border border-void-border text-terminal text-[10px] font-black uppercase italic rounded-xl">ABORT</button>
+                            <button onClick={confirmExternalLink} className="flex-1 py-3 bg-pulse-600 text-white text-[10px] font-black uppercase italic rounded-xl shadow-lg">LINK_ESTABLISH</button>
                         </footer>
                     </div>
                 </div>

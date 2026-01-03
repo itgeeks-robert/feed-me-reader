@@ -1,6 +1,8 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { XIcon, VoidIcon, SparklesIcon, ArrowPathIcon, ListIcon, BookOpenIcon, ExclamationTriangleIcon } from './icons';
 import { saveHighScore, getHighScores, HighScoreEntry } from '../services/highScoresService';
+import { soundService } from '../services/soundService';
 import { resilientFetch } from '../services/fetch';
 import { ARCADE_RULES } from '../services/gameRules';
 import HighScoreTable from './HighScoreTable';
@@ -92,6 +94,7 @@ const SynapseLinkPage: React.FC<{ onBackToHub: () => void; onComplete?: () => vo
     }, []);
 
     const initGame = useCallback((groups: SynapseGroup[]) => {
+        soundService.playClick();
         const allWords = groups.flatMap(g => g.words);
         const shuffled = [...allWords];
         for (let i = shuffled.length - 1; i > 0; i--) {
@@ -220,6 +223,7 @@ const SynapseLinkPage: React.FC<{ onBackToHub: () => void; onComplete?: () => vo
 
     const handleWordClick = (word: string) => {
         if (gameState !== 'playing') return;
+        soundService.playClick();
         setGuessFeedback(null);
         if (selection.includes(word)) {
             setSelection(prev => prev.filter(w => w !== word));
@@ -233,6 +237,7 @@ const SynapseLinkPage: React.FC<{ onBackToHub: () => void; onComplete?: () => vo
 
         const group = wall.groups.find(g => selection.every(w => g.words.includes(w)));
         if (group) {
+            soundService.playCorrect();
             const newSolved = [...solvedGroups, group];
             setSolvedGroups(newSolved);
             setShuffledWords(prev => prev.filter(w => !selection.includes(w)));
@@ -240,11 +245,13 @@ const SynapseLinkPage: React.FC<{ onBackToHub: () => void; onComplete?: () => vo
             setGuessFeedback(null);
             
             if (newSolved.length === 4) {
+                soundService.playWin();
                 setGameState('won');
                 stopTimer();
                 onComplete?.();
             }
         } else {
+            soundService.playWrong();
             let maxMatches = 0;
             wall.groups.forEach(g => {
                 if (solvedGroups.some(sg => sg.words[0] === g.words[0])) return;
@@ -258,6 +265,7 @@ const SynapseLinkPage: React.FC<{ onBackToHub: () => void; onComplete?: () => vo
             setMistakes(m => {
                 const next = m + 1;
                 if (next >= MISTAKE_LIMIT) {
+                    soundService.playLoss();
                     setGameState('lost');
                     stopTimer();
                 }
@@ -269,6 +277,7 @@ const SynapseLinkPage: React.FC<{ onBackToHub: () => void; onComplete?: () => vo
     };
 
     const handleSaveScore = () => {
+        soundService.playClick();
         saveHighScore('synapse_link', {
             name: initials.toUpperCase() || "???",
             score: time,
@@ -279,6 +288,7 @@ const SynapseLinkPage: React.FC<{ onBackToHub: () => void; onComplete?: () => vo
     };
 
     const generateNeuralLog = () => {
+        soundService.playAction();
         const phrases = gameState === 'won' ? 
             ["Synaptic pathways aligned.", "Network integrity 100%.", "Logical clusters synchronized."] :
             ["Synaptic overload.", "Connection failure.", "Logic nodes disconnected."];
@@ -320,13 +330,13 @@ const SynapseLinkPage: React.FC<{ onBackToHub: () => void; onComplete?: () => vo
                         >
                             Sync Nodes
                         </button>
-                        <button onClick={() => setShowHelp(true)} className="w-full py-3 bg-zinc-800 text-zinc-400 font-black uppercase italic rounded-xl border border-white/5 hover:text-white transition-all text-[10px] tracking-widest flex items-center justify-center gap-2">
+                        <button onClick={() => { soundService.playClick(); setShowHelp(true); }} className="w-full py-3 bg-zinc-800 text-zinc-400 font-black uppercase italic rounded-xl border border-white/5 hover:text-white transition-all text-[10px] tracking-widest flex items-center justify-center gap-2">
                             <BookOpenIcon className="w-4 h-4" /> Tactical Manual
                         </button>
-                        <button onClick={onBackToHub} className="text-zinc-500 font-bold uppercase tracking-widest text-xs hover:text-white transition-colors pt-2 block w-full italic">Abort Link</button>
+                        <button onClick={() => { soundService.playWrong(); onBackToHub(); }} className="text-zinc-500 font-bold uppercase tracking-widest text-xs hover:text-white transition-colors pt-2 block w-full italic">Abort Link</button>
                     </div>
                 </div>
-                {showHelp && <TacticalManual onClose={() => setShowHelp(false)} />}
+                {showHelp && <TacticalManual onClose={() => { soundService.playClick(); setShowHelp(false); }} />}
             </div>
         );
     }
@@ -345,7 +355,7 @@ const SynapseLinkPage: React.FC<{ onBackToHub: () => void; onComplete?: () => vo
             `}</style>
             
             <header className="w-full max-w-lg flex justify-between items-center mb-8 bg-zinc-900/50 p-4 rounded-3xl border border-white/5 flex-shrink-0 mt-[var(--safe-top)]">
-                <button onClick={onBackToHub} className="p-2 bg-zinc-800 rounded-xl text-zinc-400 hover:text-white transition-colors">
+                <button onClick={() => { soundService.playWrong(); onBackToHub(); }} className="p-2 bg-zinc-800 rounded-xl text-zinc-400 hover:text-white transition-colors">
                     <XIcon className="w-6 h-6" />
                 </button>
                 <div className="text-center">
@@ -353,7 +363,7 @@ const SynapseLinkPage: React.FC<{ onBackToHub: () => void; onComplete?: () => vo
                     <h1 className="text-2xl font-black italic uppercase text-white tracking-tighter leading-none">SYNAPSE LINK</h1>
                 </div>
                 <div className="flex gap-2">
-                    <button onClick={() => setShowHelp(true)} className="p-2 bg-zinc-800 rounded-xl text-zinc-400 hover:text-white border border-white/5"><BookOpenIcon className="w-6 h-6" /></button>
+                    <button onClick={() => { soundService.playClick(); setShowHelp(true); }} className="p-2 bg-zinc-800 rounded-xl text-zinc-400 hover:text-white border border-white/5"><BookOpenIcon className="w-6 h-6" /></button>
                     <div className="bg-black/40 px-3 py-1 rounded-xl border border-white/10 text-xs font-mono font-black text-white flex items-center">
                         {Math.floor(time / 60)}:{String(time % 60).padStart(2, '0')}
                     </div>
@@ -405,7 +415,7 @@ const SynapseLinkPage: React.FC<{ onBackToHub: () => void; onComplete?: () => vo
 
                         <div className="flex gap-4 mt-4">
                             <button 
-                                onClick={() => { setSelection([]); setGuessFeedback(null); }}
+                                onClick={() => { soundService.playAction(); setSelection([]); setGuessFeedback(null); }}
                                 className="flex-1 py-4 bg-zinc-800 text-zinc-400 font-black uppercase italic rounded-2xl hover:text-white transition-all border border-white/5"
                             >
                                 Clear
@@ -468,11 +478,11 @@ const SynapseLinkPage: React.FC<{ onBackToHub: () => void; onComplete?: () => vo
                         ) : (
                             <button onClick={() => fetchAndSynthesizePuzzle()} className="w-full py-5 bg-pulse-600 text-white font-black text-xl italic uppercase rounded-full shadow-xl hover:scale-105 transition-transform">Retry Sync</button>
                         )}
-                        <button onClick={onBackToHub} className="mt-4 text-zinc-500 font-bold uppercase tracking-widest text-[9px] hover:text-white transition-colors block w-full italic">Back to Terminal</button>
+                        <button onClick={() => { soundService.playWrong(); onBackToHub(); }} className="mt-4 text-zinc-500 font-bold uppercase tracking-widest text-[9px] hover:text-white transition-colors block w-full italic">Back to Terminal</button>
                     </div>
                 )}
             </div>
-            {showHelp && <TacticalManual onClose={() => setShowHelp(false)} />}
+            {showHelp && <TacticalManual onClose={() => { soundService.playClick(); setShowHelp(false); }} />}
         </main>
     );
 };
