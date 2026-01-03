@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import type { Article } from '../src/App';
 import { XIcon, GlobeAltIcon, SparklesIcon, CpuChipIcon } from './icons';
 import { fetchAndCacheArticleContent } from '../services/readerService';
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { soundService } from '../services/soundService';
 
 interface ReaderViewModalProps {
@@ -21,6 +20,7 @@ const ReaderViewModal: React.FC<ReaderViewModalProps> = ({ article, onClose, onM
     const [isAiLoading, setIsAiLoading] = useState(false);
     const contentRef = useRef<HTMLDivElement>(null);
 
+    // Fetch and Cache Article Content
     useEffect(() => {
         onMarkAsRead(article.id);
         let isMounted = true;
@@ -40,31 +40,38 @@ const ReaderViewModal: React.FC<ReaderViewModalProps> = ({ article, onClose, onM
         return () => { isMounted = false; };
     }, [article.id]);
     
+    // Set HTML Content
     useEffect(() => {
         if (parsedContent && contentRef.current) {
             contentRef.current.innerHTML = parsedContent.content;
         }
     }, [parsedContent]);
 
+    // AI Intelligence Briefing Logic
     const handleAIBriefing = async () => {
         if (!parsedContent || isAiLoading) return;
         setIsAiLoading(true);
         soundService.playAction();
+        
         try {
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-            const response = await ai.models.generateContent({
-                model: 'gemini-3-flash-preview',
-                contents: `Extract a tactical intelligence briefing from this news content. Return exactly 3 bullet points. Use cold, professional, noir spy terminology. Content: ${parsedContent.content.substring(0, 4000)}`,
-                config: {
-                    systemInstruction: "You are a tactical signal analyst for THE VOID. Your output must be concise, technical, and formatted as a field report.",
-                    temperature: 0.7,
-                }
+            // NOTE: Use VITE_ prefix for client-side env variables in Vite
+            const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY || "");
+            const model = genAI.getGenerativeModel({ 
+                model: "gemini-1.5-flash",
+                systemInstruction: "You are a tactical signal analyst for THE VOID. Your output must be concise, technical, and formatted as a field report.",
             });
-            setAiBriefing(response.text || "NO_DATA_EXTRACTED");
+
+            const prompt = `Extract a tactical intelligence briefing from this news content. Return exactly 3 bullet points. Use cold, professional, noir spy terminology. Content: ${parsedContent.content.substring(0, 4000)}`;
+            
+            const result = await model.generateContent(prompt);
+            const response = await result.response;
+            const text = response.text();
+            
+            setAiBriefing(text || "NO_DATA_EXTRACTED");
             soundService.playCorrect();
         } catch (err) {
-            console.error(err);
-            setAiBriefing("CRITICAL_FAILURE: Neural link severed.");
+            console.error("AI_LINK_ERROR:", err);
+            setAiBriefing("CRITICAL_FAILURE: Neural link severed. Verify API_KEY in Vercel settings.");
             soundService.playWrong();
         } finally {
             setIsAiLoading(false);
@@ -117,6 +124,7 @@ const ReaderViewModal: React.FC<ReaderViewModalProps> = ({ article, onClose, onM
                             </div>
                         ) : parsedContent && (
                             <div className="max-w-none prose prose-invert font-mono text-terminal prose-h1:text-4xl prose-p:text-lg prose-p:leading-relaxed">
+                                
                                 {/* AI Briefing Section */}
                                 <div className="mb-12 void-card bg-void-surface border-pulse-500/40 p-8 shadow-2xl relative overflow-hidden group">
                                     <div className="absolute top-0 right-0 p-2 opacity-20 group-hover:opacity-100 transition-opacity">
