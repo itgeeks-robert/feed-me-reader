@@ -1,38 +1,71 @@
-/* src/theme.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  /* Default: Neon Noir */
-  --app-bg: #030303;
+  /* Default: NOIR (Signature Default) */
+  --app-bg: #050505;
   --app-text: #ffffff;
-  --app-accent: #00f2ff; /* Cyber Blue */
-  --app-card: #0a0a0a;
+  --app-accent: #00f2ff;
+  --app-card: #101012;
 }
 
 [data-theme='sleek'] {
-  --app-bg: #ffffff;
-  --app-text: #18181b;
-  --app-accent: #000000;
-  --app-card: #f4f4f5;
-}
-
-[data-theme='terminal'] {
-  --app-bg: #0d0208;
-  --app-text: #00ff41;
-  --app-accent: #003b00;
-  --app-card: #001100;
+  /* LIQUID GLASS */
+  --app-bg: #f1f5f9;
+  --app-text: #0f172a;
+  --app-accent: #2563eb;
+  --app-card: rgba(255, 255, 255, 0.65);
 }
 
 [data-theme='bento'] {
-  --app-bg: #f0f2f5;
-  --app-text: #1c1e21;
-  --app-accent: #4267b2;
+  /* BENTO GRID */
+  --app-bg: #f8fafc;
+  --app-text: #0f172a;
+  --app-accent: #2563eb;
   --app-card: #ffffff;
 }
 
-/* Custom Utilities for your Components */
+[data-theme='brutalist'] {
+  /* BRUTALIST */
+  --app-bg: #ffffff;
+  --app-text: #000000;
+  --app-accent: #000000;
+  --app-card: #ffffff;
+}
+
+[data-theme='claymorphism'] {
+  /* CLAYMORPHISM */
+  --app-bg: #e0e7ff;
+  --app-text: #312e81;
+  --app-accent: #ec4899;
+  --app-card: #ffffff;
+}
+
+[data-theme='monochrome-zen'] {
+  /* MONOCHROME ZEN */
+  --app-bg: #061a1a;
+  --app-text: #ccfbf1;
+  --app-accent: #14b8a6;
+  --app-card: #0a2626;
+}
+
+[data-theme='y2k'] {
+  /* Y2K FUTUROLOGY */
+  --app-bg: #004d4d;
+  --app-text: #ffffff;
+  --app-accent: #ffff00;
+  --app-card: #008080;
+}
+
+[data-theme='terminal'] {
+  /* TERMINAL / DOS */
+  --app-bg: #0d0208;
+  --app-text: #00ff41;
+  --app-accent: #00ff41;
+  --app-card: #001100;
+}
+
 @layer utilities {
   .bg-app-bg { background-color: var(--app-bg); }
   .bg-app-card { background-color: var(--app-card); }
@@ -40,4 +73,9 @@
   .text-app-accent { color: var(--app-accent); }
   .border-app-accent { border-color: var(--app-accent); }
   .bg-app-accent { background-color: var(--app-accent); }
+}
+
+/* Global Transition for Theme Switching */
+html, body {
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
