@@ -51,26 +51,29 @@ html, body {
 }
 
 /* TV & Remote Navigation: Ultra High Contrast Focus Rings */
+/* Added standard :focus as fallback for older TV browsers */
 *:focus {
   outline: none;
 }
 
-*:focus-visible {
+*:focus-visible, button:focus, [role="button"]:focus {
   outline: 4px solid #fff;
   outline-offset: 4px;
-  box-shadow: 0 0 0 8px var(--app-accent), 0 0 30px var(--app-accent);
-  transform: scale(1.03);
-  transition: transform 0.2s ease, outline 0.2s ease;
-  z-index: 99;
+  box-shadow: 0 0 0 8px var(--app-accent), 0 0 40px var(--app-accent);
+  transform: scale(1.04);
+  transition: transform 0.2s ease, outline 0.2s ease, box-shadow 0.2s ease;
+  z-index: 100;
 }
 
 [data-theme='sleek'] *:focus-visible, 
-[data-theme='bento'] *:focus-visible {
+[data-theme='bento'] *:focus-visible,
+[data-theme='sleek'] button:focus,
+[data-theme='bento'] button:focus {
   outline: 4px solid var(--app-accent);
-  box-shadow: 0 0 0 8px rgba(255,255,255,0.8), 0 10px 25px rgba(0,0,0,0.1);
+  box-shadow: 0 0 0 8px rgba(255,255,255,0.8), 0 10px 30px rgba(0,0,0,0.2);
 }
 
-.void-card:focus-visible, .void-button:focus-visible {
+.void-card:focus-visible, .void-button:focus-visible, .void-button:focus {
   border-color: #fff;
 }
 

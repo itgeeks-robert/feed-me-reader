@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { VoidIcon, ControllerIcon, ListIcon, TrashIcon, XIcon, ExclamationTriangleIcon } from './icons';
 import { soundService } from '../services/soundService';
@@ -78,34 +77,46 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onEnterFeeds, onEnterArcade
     const [showWipeConfirm, setShowWipeConfirm] = useState(false);
     const [breached, setBreached] = useState(false);
     const lastPingRef = useRef(0);
+    const mainButtonRef = useRef<HTMLButtonElement>(null);
+
+    // Snap focus for Android TV Remotes
+    useEffect(() => {
+        if (isBootComplete && breached && mainButtonRef.current) {
+            mainButtonRef.current.focus();
+        }
+    }, [isBootComplete, breached]);
 
     useEffect(() => {
-        const totalDuration = 4500;
-        const intervalTime = 40;
-        const increment = (intervalTime / totalDuration) * 100;
+        const totalDuration = 4000;
+        const intervalTime = 30;
+        const startTime = Date.now();
 
         const timer = setInterval(() => {
-            setLoadingProgress(prev => {
-                if (prev >= 95 && isDecoding) return 95;
-                if (prev >= 100) {
-                    clearInterval(timer);
-                    setIsBootComplete(true);
-                    soundService.playBootComplete();
-                    setTimeout(() => setBreached(true), 200);
-                    return 100;
-                }
-                const next = prev + increment;
+            const elapsed = Date.now() - startTime;
+            const progress = Math.min(100, (elapsed / totalDuration) * 100);
 
-                const currentThresh = Math.floor(next / 20);
-                if (currentThresh > lastPingRef.current) {
-                    soundService.playBootPing(next);
-                    lastPingRef.current = currentThresh;
-                }
+            setLoadingProgress(progress);
 
-                const msgIndex = Math.floor((next / 100) * BOOT_MESSAGES.length);
-                setCurrentMessage(isDecoding && next > 70 ? "DECODING LIVE SIGNALS..." : BOOT_MESSAGES[msgIndex] || BOOT_MESSAGES[BOOT_MESSAGES.length - 1]);
-                return next;
-            });
+            if (progress >= 95 && isDecoding && !isBootComplete) {
+                // Wait for decoding to finish if needed
+                return;
+            }
+
+            if (progress >= 100) {
+                clearInterval(timer);
+                setIsBootComplete(true);
+                soundService.playBootComplete();
+                setTimeout(() => setBreached(true), 200);
+            }
+
+            const currentThresh = Math.floor(progress / 20);
+            if (currentThresh > lastPingRef.current) {
+                soundService.playBootPing(progress);
+                lastPingRef.current = currentThresh;
+            }
+
+            const msgIndex = Math.floor((progress / 100) * BOOT_MESSAGES.length);
+            setCurrentMessage(BOOT_MESSAGES[msgIndex] || BOOT_MESSAGES[BOOT_MESSAGES.length - 1]);
         }, intervalTime);
 
         return () => clearInterval(timer);
@@ -143,6 +154,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onEnterFeeds, onEnterArcade
                     border: 1px solid rgba(255,255,255,0.8);
                     box-shadow: 0 40px 100px rgba(0,0,0,0.1);
                     width: 100%;
+                    border-radius: 2.25rem;
                 }
                 .neon-stroke-text {
                     color: transparent;
@@ -158,11 +170,8 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onEnterFeeds, onEnterArcade
             <div className={`relative z-20 w-full max-w-lg flex flex-col items-center text-center py-6 transition-all duration-1000 ${breached ? 'translate-y-0 scale-100' : 'translate-y-4 scale-95'}`}>
                 
                 <div className="mb-8 landscape:mb-4 group relative">
-                    {/* REFINED GLOW AREA - Tighter and less intense */}
                     <div className={`absolute inset-[-20px] blur-[40px] md:blur-[60px] transition-all duration-1000 rounded-full
                         ${breached ? 'bg-blue-500 opacity-40' : 'bg-red-700 opacity-60'}`} />
-                    <div className={`absolute inset-[-5px] blur-[15px] transition-all duration-1000 rounded-full
-                        ${breached ? 'bg-blue-400/30' : 'bg-red-500/40'}`} />
                     
                     <div className={`relative p-8 md:p-10 rounded-full transition-all duration-1000 border-4
                         ${breached 
@@ -189,8 +198,8 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onEnterFeeds, onEnterArcade
                     <div className="w-full space-y-4 landscape:space-y-2 max-w-[280px] mx-auto animate-fade-in">
                         <div className="w-full h-1.5 bg-void-900 border border-white/10 rounded-full overflow-hidden p-0.5 shadow-inner">
                             <div 
-                                className={`h-full bg-pulse-500 shadow-[0_0_15px_#e11d48] transition-all duration-300 ${isDecoding && loadingProgress > 90 ? 'animate-pulse' : ''}`}
-                                style={{ width: `${loadingProgress}%` }}
+                                className="h-full bg-pulse-500 shadow-[0_0_15px_#e11d48]"
+                                style={{ width: `${loadingProgress}%`, transition: 'width 0.1s linear' }}
                             />
                         </div>
                         <div className="flex justify-between items-center text-[8px] font-black text-zinc-500 italic tracking-[0.2em]">
@@ -200,10 +209,11 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onEnterFeeds, onEnterArcade
                     </div>
                 ) : (
                     <div className="w-full flex flex-col gap-5 landscape:gap-3 animate-fade-in max-w-md items-center">
-                        <div className="glass-reveal p-1 rounded-[2.25rem] shadow-2xl overflow-hidden">
+                        <div className="glass-reveal p-1 shadow-2xl overflow-hidden">
                             <button 
+                                ref={mainButtonRef}
                                 onClick={onEnterFeeds}
-                                className="group relative w-full py-5 bg-slate-900 text-white font-black uppercase italic text-base rounded-[1.75rem] shadow-xl hover:translate-y-[-2px] transition-all active:scale-95 active:bg-blue-600 flex items-center justify-center gap-4 border border-white/10"
+                                className="group relative w-full py-5 bg-slate-900 text-white font-black uppercase italic text-base rounded-[1.75rem] shadow-xl hover:translate-y-[-2px] transition-all active:scale-95 active:bg-blue-600 flex items-center justify-center gap-4 border border-white/10 focus:ring-4 focus:ring-blue-500 focus:bg-blue-700"
                             >
                                 <ListIcon className="w-6 h-6" />
                                 <span>RECON_INTELLIGENCE</span>
@@ -212,7 +222,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onEnterFeeds, onEnterArcade
                         
                         <button 
                             onClick={onEnterArcade}
-                            className="group w-full py-5 bg-white border-2 border-slate-200 text-slate-700 font-black uppercase italic text-base rounded-[1.75rem] hover:bg-slate-50 hover:text-slate-900 transition-all active:scale-95 flex items-center justify-center gap-4 shadow-sm"
+                            className="group w-full py-5 bg-white border-2 border-slate-200 text-slate-700 font-black uppercase italic text-base rounded-[1.75rem] hover:bg-slate-50 hover:text-slate-900 transition-all active:scale-95 flex items-center justify-center gap-4 shadow-sm focus:ring-4 focus:ring-slate-300 focus:bg-slate-100"
                         >
                             <ControllerIcon className="w-6 h-6" />
                             <span>ARCADE_QUICK_ACCESS</span>
@@ -220,24 +230,13 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onEnterFeeds, onEnterArcade
                         
                         <button 
                             onClick={() => setShowWipeConfirm(true)}
-                            className="mt-4 flex items-center justify-center gap-2 text-slate-300 hover:text-red-500 transition-colors py-1 uppercase text-[8px] font-black italic tracking-widest active:scale-95"
+                            className="mt-4 flex items-center justify-center gap-2 text-slate-300 hover:text-red-500 transition-colors py-1 uppercase text-[8px] font-black italic tracking-widest active:scale-95 focus:text-red-500 focus:outline-none"
                         >
                             <TrashIcon className="w-3 h-3" />
                             <span>PURGE_STATION_CACHE</span>
                         </button>
                     </div>
                 )}
-            </div>
-
-            <div className={`fixed bottom-[calc(1.5rem+var(--safe-bottom))] left-6 right-6 flex justify-between items-end pointer-events-none z-20 transition-all duration-1000 ${breached ? 'opacity-20 text-slate-900' : 'opacity-40 text-white'}`}>
-                <div className="text-[7px] font-black uppercase tracking-widest leading-loose italic">
-                    DIMENSION: {breached ? 'THE_REVEAL' : 'THE_VEIL'}<br/>
-                    STATUS: {isDecoding ? 'DECODING' : 'CALIBRATED'}
-                </div>
-                <div className="text-[7px] font-black uppercase tracking-widest italic text-right">
-                    SECTOR: LOCAL_NODE<br/>
-                    ENCRYPTION: 0xCRYSTAL
-                </div>
             </div>
 
             {showWipeConfirm && (
@@ -252,16 +251,14 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onEnterFeeds, onEnterArcade
                                 <XIcon className="w-5 h-5" />
                             </button>
                         </header>
-                        
                         <div className="p-8 text-center space-y-6">
                             <p className="text-xs text-slate-500 leading-relaxed uppercase font-bold tracking-tight px-4 italic">
                                 Operator, committing to a <span className="text-red-500">System Wipe</span> will permanently erase all crystalline cache data, discovered signals, and mission records.
                             </p>
                         </div>
-
                         <footer className="p-5 flex gap-3 bg-slate-50 border-t border-slate-100">
-                            <button onClick={() => { soundService.playClick(); setShowWipeConfirm(false); }} className="flex-1 py-4 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase italic text-slate-400">Abort</button>
-                            <button onClick={handleSystemWipe} className="flex-1 py-4 bg-red-500 text-white rounded-xl text-[10px] font-black uppercase italic shadow-lg active:scale-95">Confirm Purge</button>
+                            <button onClick={() => { soundService.playClick(); setShowWipeConfirm(false); }} className="flex-1 py-4 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase italic text-slate-400 focus:bg-slate-100">Abort</button>
+                            <button onClick={handleSystemWipe} className="flex-1 py-4 bg-red-500 text-white rounded-xl text-[10px] font-black uppercase italic shadow-lg active:scale-95 focus:bg-red-700">Confirm Purge</button>
                         </footer>
                     </div>
                 </div>
