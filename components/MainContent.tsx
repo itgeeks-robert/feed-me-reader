@@ -129,7 +129,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
         return (
             <main className={`flex-grow overflow-y-auto scrollbar-hide ${animationClass} bg-void-bg pb-40 pt-2`}>
                 <Header onSearchSubmit={(e) => { e.preventDefault(); onSearch(searchQuery); }} searchQuery={searchQuery} setSearchQuery={setSearchQuery} onOpenSidebar={onOpenSidebar} onOpenSettings={onOpenSettings} onToggleTheme={onToggleTheme} onRefresh={onRefresh} selection={selection} handleCategoryClick={handleCategoryClick} />
-                <div className="pt-[calc(14rem+var(--safe-top))]">
+                <div className="pt-[calc(10rem+var(--safe-top))]">
                     <FeedOnboarding onComplete={(f, fld) => { onSetFolders(fld); onSetFeeds(f); }} />
                 </div>
             </main>
@@ -154,7 +154,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                 handleCategoryClick={handleCategoryClick} 
             />
             
-            <div className="pt-[calc(14rem+var(--safe-top))] md:pt-[calc(15.5rem+var(--safe-top))] max-w-[1400px] mx-auto transition-all relative">
+            <div className="pt-[calc(11rem+var(--safe-top))] md:pt-[calc(11.5rem+var(--safe-top))] max-w-[1400px] mx-auto transition-all relative">
                 
                 {latestArticle && (
                     <div className="px-4 md:px-6 mb-8">
@@ -221,22 +221,24 @@ const MainContent: React.FC<MainContentProps> = (props) => {
 const Header: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuery, onOpenSidebar, onOpenSettings, onToggleTheme, onRefresh, selection, handleCategoryClick }) => {
     return (
         <header className="fixed top-0 left-0 right-0 z-40 bg-void-bg/95 backdrop-blur-xl border-b border-void-border transition-all">
-            {/* Top Bar - High Density Squeezed Navigation */}
-            <div className="h-11 md:h-12 bg-black flex items-center px-4 md:px-8 justify-between border-b border-white/5">
-                <div className="flex items-center h-full gap-2 md:gap-4 overflow-x-auto scrollbar-hide">
-                    <div className="flex items-center gap-2 shrink-0 pr-3 border-r border-white/10">
-                        <VoidIcon className="w-5 h-5 text-pulse-500" />
-                        <span className="text-[10px] font-black italic text-white tracking-tighter hidden sm:inline">THE VOID</span>
+            {/* Top Bar - High Density Squeezed Navigation with Safe Area Padding */}
+            <div className="bg-black pt-[var(--safe-top)]">
+                <div className="h-11 md:h-12 flex items-center px-4 md:px-8 justify-between border-b border-white/5">
+                    <div className="flex items-center h-full gap-2 md:gap-4 overflow-x-auto scrollbar-hide">
+                        <div className="flex items-center gap-2 shrink-0 pr-3 border-r border-white/10">
+                            <VoidIcon className="w-5 h-5 text-pulse-500" />
+                            <span className="text-[10px] font-black italic text-white tracking-tighter hidden sm:inline">THE VOID</span>
+                        </div>
+                        <nav className="flex h-full items-center gap-2 md:gap-4">
+                            <HeaderNavLink active={!selection.category && selection.type === 'all'} onClick={() => handleCategoryClick(null)} label="ARCADE" icon={<RadioIcon className="w-3.5 h-3.5"/>} />
+                            <HeaderNavLink active={selection.category === 'NEWS'} onClick={() => handleCategoryClick('NEWS')} label="INTEL" icon={<GlobeAltIcon className="w-3.5 h-3.5"/>} />
+                            <HeaderNavLink active={selection.category === 'GAMING'} onClick={() => handleCategoryClick('GAMING')} label="PLAY" icon={<ControllerIcon className="w-3.5 h-3.5"/>} />
+                            <HeaderNavLink active={false} onClick={onOpenSettings} label="TERMINAL" icon={<CpuChipIcon className="w-3.5 h-3.5"/>} />
+                        </nav>
                     </div>
-                    <nav className="flex h-full items-center gap-2 md:gap-4">
-                        <HeaderNavLink active={!selection.category && selection.type === 'all'} onClick={() => handleCategoryClick(null)} label="ARCADE" icon={<RadioIcon className="w-3.5 h-3.5"/>} />
-                        <HeaderNavLink active={selection.category === 'NEWS'} onClick={() => handleCategoryClick('NEWS')} label="INTEL" icon={<GlobeAltIcon className="w-3.5 h-3.5"/>} />
-                        <HeaderNavLink active={selection.category === 'GAMING'} onClick={() => handleCategoryClick('GAMING')} label="PLAY" icon={<ControllerIcon className="w-3.5 h-3.5"/>} />
-                        <HeaderNavLink active={false} onClick={onOpenSettings} label="TERMINAL" icon={<CpuChipIcon className="w-3.5 h-3.5"/>} />
-                    </nav>
-                </div>
-                <div className="flex items-center gap-4 shrink-0 pl-4">
-                    <button onClick={onOpenSidebar} className="text-zinc-500 hover:text-white transition-colors"><MenuIcon className="w-6 h-6" /></button>
+                    <div className="flex items-center gap-4 shrink-0 pl-4">
+                        <button onClick={onOpenSidebar} className="text-zinc-500 hover:text-white transition-colors"><MenuIcon className="w-6 h-6" /></button>
+                    </div>
                 </div>
             </div>
 
@@ -259,7 +261,7 @@ const Header: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuery, on
                 
                 {/* Condensed Action Cluster */}
                 <div className="flex items-center gap-2 w-full md:w-auto shrink-0 justify-end">
-                    <form onSubmit={onSearchSubmit} className="relative w-full md:w-32 lg:w-44 transition-all focus-within:md:w-48 lg:focus-within:w-60">
+                    <form onSubmit={onSearchSubmit} className="relative flex-grow md:w-32 lg:w-44 transition-all focus-within:md:w-48 lg:focus-within:w-60">
                         <SearchIcon className="absolute top-1/2 left-3.5 -translate-y-1/2 w-3 h-3 text-zinc-500" />
                         <input 
                             type="search" 

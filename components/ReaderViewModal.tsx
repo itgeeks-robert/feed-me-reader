@@ -93,24 +93,26 @@ const ReaderViewModal: React.FC<ReaderViewModalProps> = ({ article, onClose, onM
         <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center pt-[calc(1rem+var(--safe-top))] pb-[calc(1rem+var(--safe-bottom))] px-2 md:px-6" onClick={onClose} role="dialog" aria-modal="true">
             <div className="bg-white w-full max-w-5xl h-full flex flex-col shadow-[0_40px_100px_rgba(0,0,0,0.5)] border-4 border-black relative animate-fade-in overflow-hidden" onClick={e => e.stopPropagation()}>
                 
-                {/* Header: Adjusted to high-contrast paper style */}
-                <header className="h-12 bg-black flex items-center justify-between px-1 relative z-20">
-                    <div className="flex items-center gap-2 h-full overflow-hidden">
-                        <button onClick={onClose} className="w-10 h-8 bg-white border-2 border-black flex items-center justify-center active:bg-zinc-200 shrink-0">
-                            <div className="w-5 h-0.5 bg-black shadow-[0_4px_0_black]" />
-                        </button>
-                        <div className="flex items-center gap-3 truncate">
-                            <span className="text-[10px] font-black uppercase italic px-2 py-1 rounded-sm shrink-0 bg-white/20 text-white">
-                                {isLoading ? 'DECODING...' : displayCategory}
-                            </span>
-                            <h2 className="text-white text-xs md:text-sm font-black uppercase tracking-widest truncate italic">
-                               SIG_DECODE: {parsedContent?.title || article.title}
-                            </h2>
+                {/* Header: Adjusted with safe-top and inner layout for legibility */}
+                <header className="bg-black pt-[var(--safe-top)] relative z-20">
+                    <div className="h-12 flex items-center justify-between px-1">
+                        <div className="flex items-center gap-2 h-full overflow-hidden">
+                            <button onClick={onClose} className="w-10 h-8 bg-white border-2 border-black flex items-center justify-center active:bg-zinc-200 shrink-0">
+                                <div className="w-5 h-0.5 bg-black shadow-[0_4px_0_black]" />
+                            </button>
+                            <div className="flex items-center gap-3 truncate">
+                                <span className="text-[10px] font-black uppercase italic px-2 py-1 rounded-sm shrink-0 bg-white/20 text-white">
+                                    {isLoading ? 'DECODING...' : displayCategory}
+                                </span>
+                                <h2 className="text-white text-xs md:text-sm font-black uppercase tracking-widest truncate italic">
+                                   SIG_DECODE: {parsedContent?.title || article.title}
+                                </h2>
+                            </div>
                         </div>
+                        <button onClick={onClose} className="w-10 h-8 bg-white border-2 border-black flex items-center justify-center hover:bg-zinc-100 transition-colors shrink-0">
+                            <XIcon className="w-5 h-5 text-black" />
+                        </button>
                     </div>
-                    <button onClick={onClose} className="w-10 h-8 bg-white border-2 border-black flex items-center justify-center hover:bg-zinc-100 transition-colors shrink-0">
-                        <XIcon className="w-5 h-5 text-black" />
-                    </button>
                 </header>
                 
                 {/* Main Body: Switched to white background and black text */}
