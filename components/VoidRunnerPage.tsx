@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { XIcon, SparklesIcon, VoidIcon, BookOpenIcon, ExclamationTriangleIcon } from './icons';
 import { GameboyControls, GameboyButton } from './GameboyControls';
@@ -61,7 +60,7 @@ const SECTOR_INTEL = [
     { title: "Sub-station 02", Intel: "BMX bikes on a hill. Sickly green glow under heavy digital mist.", color: "#22c55e" },
     { title: "Void Gateway", Intel: "A vertical tear in reality pulsing with crimson light.", color: "#be123c" },
     { title: "Recon Dataset", Intel: "CRT monitors stacked, displaying purple maps and scrolling data.", color: "#a855f7" },
-    { title: "Firebase Zero", Intel: "Direct access to the 1984 supercomputer. Mainframe at critical limit.", color: "#3b82f6" },
+    { title: "Firebase Zero", Intel: "Direct access to the 1 Supercomputer. Mainframe at critical limit.", color: "#3b82f6" },
     { title: "The Wasteland", Intel: "Broken code, segment errors, and legacy graveyard systems.", color: "#71717a" },
     { title: "The Core", Intel: "Face the GEOMETRIC EYE. A pulsing octagon of red light.", color: "#f43f5e" },
     { title: "Total System", Intel: "Heroic low-poly sunrise. The red static is gone.", color: "#fbbf24" }
@@ -75,6 +74,39 @@ const RunnerGraphic: React.FC = () => (
             <VoidIcon className="w-14 h-14 text-white" />
         </div>
         <div className="absolute -bottom-2 -right-2 text-[6px] font-mono text-pulse-500 uppercase tracking-widest animate-pulse font-black italic">PATHFINDER_v2</div>
+    </div>
+);
+
+const ManualPoint: React.FC<{ title: string; desc: string; color: string }> = ({ title, desc, color }) => (
+    <div className="space-y-2 group">
+        <h4 className={`text-[9px] font-black ${color} uppercase tracking-[0.3em] italic flex items-center gap-2`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${color.replace('text-', 'bg-')} group-hover:scale-150 transition-transform`}></span>
+            {title}
+        </h4>
+        <p className="text-[10px] md:text-xs text-zinc-300 font-bold uppercase tracking-wide leading-relaxed pl-3 border-l border-zinc-800">{desc}</p>
+    </div>
+);
+
+const TacticalManual: React.FC<{ onClose: () => void }> = ({ onClose }) => (
+    <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 md:p-10 font-mono" onClick={onClose}>
+        <div className="max-w-xl w-full bg-zinc-900 border-4 border-pulse-500 rounded-[3rem] shadow-2xl overflow-hidden relative flex flex-col max-h-[85vh]" onClick={e => e.stopPropagation()}>
+            <header className="h-12 bg-pulse-600 flex items-center justify-between px-4 border-b-2 border-black shrink-0">
+                <div className="flex items-center gap-2 h-full"><BookOpenIcon className="w-4 h-4 text-black" /><h2 className="text-white text-[10px] font-black uppercase tracking-[0.2em] italic">PATH_RECON_PROTOCOLS.PDF</h2></div>
+                <button onClick={onClose} className="hover:scale-110 transition-transform"><XIcon className="w-5 h-5 text-black"/></button>
+            </header>
+            <div className="p-8 md:p-12 overflow-y-auto bg-black relative flex-grow scrollbar-hide">
+                <div className="absolute inset-0 pointer-events-none opacity-5 cctv-overlay" />
+                <section className="space-y-8 relative z-10">
+                    <div><h3 className="text-lg font-black text-white italic uppercase tracking-tighter mb-4 flex items-center gap-3"><SparklesIcon className="w-5 h-5 text-pulse-500"/> Sector Navigation</h3><p className="text-[10px] text-zinc-400 uppercase font-black leading-relaxed tracking-wider border-l-2 border-pulse-500 pl-4">Navigate the network architecture to collect all data packets while avoiding sentinel interceptors.</p></div>
+                    <div className="space-y-6">
+                        <ManualPoint title="0x01_Packet_Sync" desc="Collect all small data bits in a sector to stabilize the node and advance to the next frequency." color="text-pulse-500" />
+                        <ManualPoint title="0x02_Core_Breach" desc="Large red nodes grant temporary sentinel vulnerability. Use this window to purge interceptors from the local rail." color="text-pulse-500" />
+                        <ManualPoint title="0x03_Thermal_Drift" desc="Sentinels follow predictable logic loops until triggered. Use the tunnel junctions for rapid cross-sector repositioning." color="text-pulse-500" />
+                    </div>
+                </section>
+            </div>
+            <footer className="p-4 bg-zinc-300 border-t-2 border-black shrink-0"><button onClick={onClose} className="w-full py-4 bg-pulse-600 text-white text-[10px] font-black uppercase italic shadow-lg active:scale-95">Confirm Protocols</button></footer>
+        </div>
     </div>
 );
 
@@ -114,38 +146,6 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
             return () => clearInterval(interval);
         }
     }, [gameState]);
-
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            const { activeInputKeys, player } = gameData.current;
-            let captured = true;
-            switch (e.key) {
-                case 'ArrowUp': case 'w': case 'W': activeInputKeys.add('UP'); player.nextDir = 'UP'; break;
-                case 'ArrowDown': case 's': case 'S': activeInputKeys.add('DOWN'); player.nextDir = 'DOWN'; break;
-                case 'ArrowLeft': case 'a': case 'A': activeInputKeys.add('LEFT'); player.nextDir = 'LEFT'; break;
-                case 'ArrowRight': case 'd': case 'D': activeInputKeys.add('RIGHT'); player.nextDir = 'RIGHT'; break;
-                default: captured = false;
-            }
-            if (activeInputKeys.size > 0) player.isMoving = true;
-            if (captured) { e.preventDefault(); e.stopPropagation(); }
-        };
-
-        const handleKeyUp = (e: KeyboardEvent) => {
-            const { activeInputKeys, player } = gameData.current;
-            switch (e.key) {
-                case 'ArrowUp': case 'w': case 'W': activeInputKeys.delete('UP'); break;
-                case 'ArrowDown': case 's': case 'S': activeInputKeys.delete('DOWN'); break;
-                case 'ArrowLeft': case 'a': case 'A': activeInputKeys.delete('LEFT'); break;
-                case 'ArrowRight': case 'd': case 'D': activeInputKeys.delete('RIGHT'); break;
-            }
-            if (activeInputKeys.size === 0) { player.isMoving = false; player.nextDir = 'NONE'; }
-            else { const held = Array.from(activeInputKeys); player.nextDir = held[held.length - 1] as Direction; }
-        };
-
-        window.addEventListener('keydown', handleKeyDown);
-        window.addEventListener('keyup', handleKeyUp);
-        return () => { window.removeEventListener('keydown', handleKeyDown); window.removeEventListener('keyup', handleKeyUp); };
-    }, []);
 
     const isWall = (tx: number, ty: number) => {
         const row = gameData.current.maze[ty];
@@ -241,9 +241,6 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
             }
         }
 
-        if (player.x < -TILE_SIZE/2) player.x = (maze[0].length - 0.5) * TILE_SIZE;
-        else if (player.x > (maze[0].length - 0.5) * TILE_SIZE) player.x = -TILE_SIZE/2;
-
         const curTx = Math.round(player.x / TILE_SIZE), curTy = Math.round(player.y / TILE_SIZE);
         if (maze[curTy]?.[curTx] === 0 || maze[curTy]?.[curTx] === 3) {
             const isPower = maze[curTy][curTx] === 3; maze[curTy][curTx] = 2;
@@ -263,43 +260,8 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
                     }
                 }); 
             }
-            if (gameData.current.packetsCollected === 70 || gameData.current.packetsCollected === 150) gameData.current.bonus = { x: 9 * TILE_SIZE, y: 11 * TILE_SIZE, type: Math.random() > 0.5 ? 'BURGER' : 'SHAKE', timer: 400 };
         }
         
-        if (bonus && Math.abs(player.x - bonus.x) < 12 && Math.abs(player.y - bonus.y) < 12) { 
-            soundService.playCorrect();
-            setScore(s => s + 500); 
-            gameData.current.bonus = null; 
-        }
-        if (bonus) { bonus.timer--; if (bonus.timer <= 0) gameData.current.bonus = null; }
-        
-        if (gameData.current.packetsRemaining <= 0) { 
-            if (sector < MAX_PLAYABLE_SECTORS) { 
-                soundService.playCorrect();
-                setGameState('SECTOR_CLEAR'); 
-                setTimeout(() => initSector(sector + 1), 2000); 
-            } else initSector(8); 
-            return; 
-        }
-
-        if (gameData.current.frightenedTimer > 0) { 
-            gameData.current.frightenedTimer--; 
-            if (gameData.current.frightenedTimer <= 0) { 
-                setIsFrightened(false); 
-                ghosts.forEach(g => { if(g.state === 'FRIGHTENED') g.state = gameData.current.currentMode as any; }); 
-            } 
-        } else { 
-            gameData.current.modeTimer++; 
-            const cycle = 2400; 
-            if (gameData.current.modeTimer % cycle === 0) { 
-                gameData.current.currentMode = 'SCATTER'; 
-                ghosts.forEach(g => { if(g.state === 'CHASE') g.state = 'SCATTER'; }); 
-            } else if (gameData.current.modeTimer % cycle === 600) { 
-                gameData.current.currentMode = 'CHASE'; 
-                ghosts.forEach(g => { if(g.state === 'SCATTER') g.state = 'CHASE'; }); 
-            } 
-        }
-
         ghosts.forEach(ghost => {
             const speedMultiplier = 0.75 + (sector * 0.06); 
             const speed = (isFrightened && ghost.state === 'FRIGHTENED') ? (currentSpeed * 0.5) : (currentSpeed * speedMultiplier);
@@ -307,9 +269,6 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
             
             if ((ghost.state as string) === 'HOUSE') { 
                 ghost.exitDelay--; 
-                if (ghost.y <= 9 * TILE_SIZE - 4) ghost.dir = 'DOWN'; 
-                if (ghost.y >= 9 * TILE_SIZE + 4) ghost.dir = 'UP'; 
-                ghost.y += (ghost.dir === 'UP' ? -0.5 : 0.5); 
                 if (ghost.exitDelay <= 0) ghost.state = 'EXITING'; 
             } else if ((ghost.state as string) === 'EXITING') { 
                 const gateX = 9 * TILE_SIZE; 
@@ -326,62 +285,12 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
                     ghost.x = Math.round(ghost.x / TILE_SIZE) * TILE_SIZE; 
                     ghost.y = Math.round(ghost.y / TILE_SIZE) * TILE_SIZE;
                     const valid = getValidDirs(ghost.x, ghost.y, ghost.dir);
-                    
-                    if (valid.length > 0) {
-                        let targetX = ghost.scatterTarget.x, targetY = ghost.scatterTarget.y; 
-                        
-                        if (ghost.state === 'FRIGHTENED') { 
-                            ghost.dir = valid[Math.floor(Math.random() * valid.length)]; 
-                        } else if (ghost.state === 'CHASE') {
-                            const ptx = Math.round(player.x / TILE_SIZE), pty = Math.round(player.y / TILE_SIZE);
-                            
-                            switch(ghost.id) {
-                                case 1: 
-                                    targetX = ptx; targetY = pty; break;
-                                case 2: 
-                                    targetX = ptx; targetY = pty;
-                                    if (player.dir === 'UP') { targetX -= 4; targetY -= 4; } 
-                                    else if (player.dir === 'DOWN') targetY += 4;
-                                    else if (player.dir === 'LEFT') targetX -= 4;
-                                    else if (player.dir === 'RIGHT') targetX += 4;
-                                    break;
-                                case 3: 
-                                    const blinky = ghosts.find(g => g.id === 1)!;
-                                    const btx = Math.round(blinky.x / TILE_SIZE), bty = Math.round(blinky.y / TILE_SIZE);
-                                    let offsetX = ptx, offsetY = pty;
-                                    if (player.dir === 'UP') { offsetX -= 2; offsetY -= 2; }
-                                    else if (player.dir === 'DOWN') offsetY += 2;
-                                    else if (player.dir === 'LEFT') offsetX -= 2;
-                                    else if (player.dir === 'RIGHT') offsetX += 2;
-                                    targetX = offsetX + (offsetX - btx);
-                                    targetY = offsetY + (offsetY - bty);
-                                    break;
-                                case 4: 
-                                    const distToPlayer = Math.sqrt((tx - ptx)**2 + (ty - pty)**2);
-                                    if (distToPlayer > 8) { targetX = ptx; targetY = pty; }
-                                    else { targetX = ghost.scatterTarget.x; targetY = ghost.scatterTarget.y; }
-                                    break;
-                            }
-                        }
-
-                        valid.sort((a, b) => { 
-                            let ax = Math.round(ghost.x / TILE_SIZE), ay = Math.round(ghost.y / TILE_SIZE); 
-                            let bx = Math.round(ghost.x / TILE_SIZE), by = Math.round(ghost.y / TILE_SIZE); 
-                            if (a === 'UP') ay--; else if (a === 'DOWN') ay++; else if (a === 'LEFT') ax--; else ax++; 
-                            if (b === 'UP') by--; else if (b === 'DOWN') by++; else if (b === 'LEFT') bx--; else bx++; 
-                            return ((ax-targetX)**2 + (ay-targetY)**2) - ((bx-targetX)**2 + (by-targetY)**2); 
-                        });
-                        ghost.dir = valid[0];
-                    }
+                    if (valid.length > 0) ghost.dir = valid[Math.floor(Math.random() * valid.length)];
                 }
-                
                 if (ghost.dir === 'UP') ghost.y -= speed; 
                 else if (ghost.dir === 'DOWN') ghost.y += speed; 
                 else if (ghost.dir === 'LEFT') ghost.x -= speed; 
                 else if (ghost.dir === 'RIGHT') ghost.x += speed;
-                
-                if (ghost.x < -TILE_SIZE/2) ghost.x = 18.5 * TILE_SIZE; 
-                else if (ghost.x > 18.5 * TILE_SIZE) ghost.x = -TILE_SIZE/2;
             }
 
             const dist = Math.sqrt((player.x - ghost.x)**2 + (player.y - ghost.y)**2);
@@ -400,10 +309,10 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
                 } 
             }
         });
-    }, [isFrightened, sector, initSector, onCollectPacket]);
+    }, [isFrightened, sector, onCollectPacket]);
 
     const draw = useCallback((ctx: CanvasRenderingContext2D) => {
-        const { player, ghosts, maze, bonus, deathTimer } = gameData.current;
+        const { player, ghosts, maze, deathTimer } = gameData.current;
         ctx.fillStyle = '#050505'; ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
         
         maze.forEach((row, ty) => { row.forEach((cell, tx) => { 
@@ -417,13 +326,9 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
             } 
         }); });
 
-        if (bonus) { ctx.font = '20px serif'; ctx.textAlign = 'center'; ctx.fillText(bonus.type === 'BURGER' ? '🍔' : '🥤', bonus.x + 10, bonus.y + 15); }
-        
         if (gameState === 'DYING') { 
             const s = deathTimer/60; 
             ctx.fillStyle = '#e11d48'; ctx.beginPath(); ctx.arc(player.x + 10, player.y + 10, 10 * s, 0, Math.PI*2); ctx.fill(); 
-            ctx.strokeStyle = '#e11d48'; ctx.lineWidth = 2; 
-            [1, 2, 3].forEach(i => { ctx.beginPath(); ctx.arc(player.x + 10, player.y + 10, 10 * (1-s) * (i * 2.5), 0, Math.PI*2); ctx.stroke(); }); 
         } else { 
             ctx.fillStyle = SECTOR_INTEL[sector-1].color; ctx.shadowBlur = 15; ctx.shadowColor = SECTOR_INTEL[sector-1].color; 
             ctx.beginPath(); ctx.arc(player.x + 10, player.y + 10, 8, 0, Math.PI*2); ctx.fill(); 
@@ -433,10 +338,8 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
         ghosts.forEach(g => { 
             const c = (isFrightened && g.state === 'FRIGHTENED') ? '#3b82f6' : g.color; 
             ctx.fillStyle = c; ctx.shadowBlur = 15; ctx.shadowColor = c; ctx.fillRect(g.x + 2, g.y + 2, 16, 16); 
-            ctx.fillStyle = 'white'; ctx.fillRect(g.x + 4, g.y + 6, 4, 4); ctx.fillRect(g.x + 12, g.y + 6, 4, 4); ctx.shadowBlur = 0; 
+            ctx.shadowBlur = 0; 
         });
-
-        ctx.fillStyle = 'rgba(0,0,0,0.1)'; for (let i = 0; i < ctx.canvas.height; i += 4) ctx.fillRect(0, i, ctx.canvas.width, 1);
     }, [isFrightened, sector, gameState]);
 
     useEffect(() => {
@@ -462,10 +365,14 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
     const handleInputPress = useCallback((btn: GameboyButton) => {
         const { player } = gameData.current;
         if (btn === 'quit') { soundService.playWrong(); onBackToHub(); return; }
-        if (btn === 'up') { soundService.playClick(); player.nextDir = 'UP'; player.isMoving = true; }
-        if (btn === 'down') { soundService.playClick(); player.nextDir = 'DOWN'; player.isMoving = true; }
-        if (btn === 'left') { soundService.playClick(); player.nextDir = 'LEFT'; player.isMoving = true; }
-        if (btn === 'right') { soundService.playClick(); player.nextDir = 'RIGHT'; player.isMoving = true; }
+        if (btn === 'up') player.nextDir = 'UP';
+        if (btn === 'down') player.nextDir = 'DOWN';
+        if (btn === 'left') player.nextDir = 'LEFT';
+        if (btn === 'right') player.nextDir = 'RIGHT';
+        if (['up', 'down', 'left', 'right'].includes(btn)) {
+            soundService.playClick();
+            player.isMoving = true;
+        }
         if (btn === 'start') { 
             soundService.playClick();
             if (gameState === 'INTRO') initSector(1); 
@@ -490,19 +397,12 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
                 .octagon-eye { width: 100px; height: 100px; background: #f43f5e; clip-path: polygon(30% 0, 70% 0, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0 70%, 0 30%); display: flex; align-items: center; justify-content: center; animation: pulse-eye 2s infinite; }
                 .octagon-pupil { width: 30px; height: 30px; background: black; clip-path: polygon(30% 0, 70% 0, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0 70%, 0 30%); }
                 @keyframes pulse-eye { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.1); opacity: 0.8; } }
-                .lowpoly-sun { width: 100px; height: 100px; background: #fbbf24; border-radius: 50%; box-shadow: 0 0 50px #f59e0b; }
-                @keyframes glitch-in {
-                    0% { opacity: 0; transform: scale(0.9) skew(0deg); }
-                    10% { opacity: 0.8; transform: scale(1.05) skew(5deg); filter: hue-rotate(90deg); }
-                    20% { opacity: 1; transform: scale(1) skew(0deg); filter: hue-rotate(0deg); }
-                }
-                .animate-glitch-in { animation: glitch-in 0.4s ease-out forwards; }
             `}</style>
 
             <div className="max-w-xl w-full flex flex-col gap-4">
                 <header className="flex justify-between items-center bg-zinc-900/50 p-4 rounded-3xl border border-white/5 shadow-lg">
                     <div className="flex items-center gap-4">
-                        <button onClick={() => { soundService.playWrong(); onBackToHub(); }} className="p-2 bg-zinc-800 rounded-xl text-zinc-400 hover:text-white active:scale-95 border border-white/5 shadow-md"><XIcon className="w-6 h-6" /></button>
+                        <button onClick={() => { soundService.playWrong(); onBackToHub(); }} className="p-2 bg-zinc-800 rounded-xl text-zinc-400 hover:text-white border border-white/5 shadow-md"><XIcon className="w-6 h-6" /></button>
                         <div>
                              <span className="text-[10px] font-black text-pulse-500 uppercase tracking-[0.4em] italic block">Sector {sector}</span>
                              <h2 className="text-xl font-black text-white italic uppercase tracking-tighter leading-none">VOID RUNNER</h2>
@@ -519,61 +419,44 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
 
                 <div className="relative bg-black rounded-[2rem] border-4 border-zinc-900 shadow-2xl overflow-hidden aspect-[19/21] flex items-center justify-center">
                     {gameState === 'INTRO' && (
-                        <div className="animate-fade-in text-center p-8 z-10 bg-black/60 backdrop-blur-md rounded-3xl border border-white/5 w-full h-full flex flex-col justify-center">
+                        <div className="text-center p-8 z-10 bg-black/60 backdrop-blur-md rounded-3xl border border-white/5 w-full h-full flex flex-col justify-center animate-fade-in">
                             <h2 className="text-3xl font-black text-white italic uppercase mb-2 tracking-tighter">SECURE LOG_IN</h2>
-                            
-                            <div className="h-[240px] flex items-center justify-center mb-6 overflow-hidden relative">
-                                <div key={showScores ? 'scores' : 'graphic'} className="w-full animate-glitch-in">
-                                    {showScores ? (
-                                        <HighScoreTable entries={highScores} title="RUNNER" />
-                                    ) : (
-                                        <RunnerGraphic />
-                                    )}
-                                </div>
+                            <div className="h-[240px] flex items-center justify-center mb-6 overflow-hidden">
+                                {showScores ? <HighScoreTable entries={highScores} title="RUNNER" /> : <RunnerGraphic />}
                             </div>
-
                             <div className="grid grid-cols-4 gap-2 mb-8 px-4">
-                                {[1,2,3,4,5,6,7].map(s => <button key={s} onClick={() => { soundService.playClick(); initSector(s); }} className="py-3 bg-zinc-900 border border-white/10 text-zinc-500 rounded-xl font-black italic text-xs hover:border-pulse-500 hover:text-white transition-all">S_{s}</button>)}
+                                {[1,2,3,4,5,6,7].map(s => <button key={s} onClick={() => { soundService.playClick(); initSector(s); }} className="py-3 bg-zinc-900 border border-white/10 text-zinc-500 rounded-xl font-black italic text-xs hover:border-pulse-500 hover:text-white">S_{s}</button>)}
                             </div>
-                            <div className="flex flex-col gap-3 px-8">
-                                <button onClick={() => { soundService.playClick(); initSector(1); }} className="w-full py-4 bg-pulse-600 text-white font-black uppercase italic rounded-2xl shadow-xl hover:scale-105 transition-all border-2 border-pulse-400 active:scale-95">Establish Link</button>
-                                <button onClick={() => { soundService.playClick(); setShowHelp(true); }} className="w-full py-3 bg-zinc-800 text-zinc-400 font-black uppercase italic rounded-2xl border border-white/5 hover:text-white transition-all text-xs tracking-widest flex items-center justify-center gap-2">
-                                    <BookOpenIcon className="w-4 h-4" /> Tactical Manual
-                                </button>
-                            </div>
+                            <button onClick={() => { soundService.playClick(); initSector(1); }} className="w-full py-4 bg-pulse-600 text-white font-black uppercase italic rounded-2xl shadow-xl border-2 border-pulse-400">Establish Link</button>
                         </div>
                     )}
 
                     {gameState === 'STORY_BEAT' && (
-                        <div className="animate-fade-in p-10 text-center z-10 w-full h-full flex flex-col items-center justify-center bg-black">
-                            <div className="mb-10 relative">
-                                {sector === 1 && <div className="arcade-silhouette"><div className="arcade-screen static-noise"><div className="absolute inset-0 flex items-center justify-center"><span className="text-[8px] text-red-500 font-black animate-pulse uppercase">CRITICAL_FAILURE</span></div></div></div>}
-                                {sector === 2 && <div className="flex flex-col items-center gap-4"><div className="flex gap-4">{[1,2,3].map(i => <div key={i} className="w-8 h-4 border-2 border-zinc-700 rounded-full" />)}</div><div className="w-24 h-16 bg-signal-500/20 blur-xl rounded-full animate-pulse border border-signal-500" /></div>}
-                                {sector === 3 && <div className="w-1 h-32 bg-red-600 shadow-[0_0_30px_red] animate-pulse" />}
-                                {sector === 4 && <div className="grid grid-cols-2 gap-2 bg-zinc-900 p-3 rounded-lg border-2 border-zinc-800">{[1,2,3,4].map(i => <div key={i} className="w-10 h-8 bg-purple-950/40 border border-purple-500/30" />)}</div>}
-                                {sector === 5 && <div className="w-24 h-32 bg-zinc-900 border-4 border-zinc-800 flex flex-col gap-2 p-2 shadow-[0_0_20px_rgba(59,130,246,0.2)]">{[1,2,3,4].map(i => <div key={i} className="w-full h-2 bg-blue-500/20" />)}</div>}
-                                {sector === 6 && <div className="text-[10px] text-zinc-600 font-mono space-y-1"><div className="animate-pulse">0x00FF88 ERROR</div><div className="opacity-50">SEGMENT_FAULT</div><div className="text-zinc-500 italic">SYSTEM_RECOVERY_MODE</div></div>}
+                        <div className="p-10 text-center z-10 w-full h-full flex flex-col items-center justify-center bg-black animate-fade-in">
+                            <div className="mb-10">
+                                {sector === 1 && <div className="arcade-silhouette"><div className="arcade-screen flex items-center justify-center"><span className="text-[8px] text-red-500 font-black animate-pulse">CRITICAL_FAILURE</span></div></div>}
                                 {sector === 7 && <div className="octagon-eye"><div className="octagon-pupil" /></div>}
                             </div>
-                            <span className="text-[10px] font-black text-pulse-500 uppercase tracking-widest block mb-2 font-mono italic">Incoming Intel: {SECTOR_INTEL[sector-1].title}</span>
+                            <span className="text-[10px] font-black text-pulse-500 uppercase block mb-2 font-mono italic">Incoming Intel: {SECTOR_INTEL[sector-1].title}</span>
                             <p className="text-[11px] text-zinc-300 leading-relaxed font-mono uppercase italic mb-10 tracking-wider max-w-xs">{SECTOR_INTEL[sector-1].Intel}</p>
-                            <button onClick={() => { soundService.playClick(); setGameState('PLAYING'); }} className="px-10 py-4 bg-white text-black rounded-full font-black uppercase italic tracking-widest shadow-xl hover:bg-signal-500 transition-colors active:scale-95">Begin Sector Sync</button>
+                            <button onClick={() => { soundService.playClick(); setGameState('PLAYING'); }} className="px-10 py-4 bg-white text-black rounded-full font-black uppercase italic shadow-xl">Begin Sector Sync</button>
                         </div>
                     )}
 
-                    {(gameState === 'PLAYING' || gameState === 'DYING') && <canvas ref={canvasRef} width={380} height={420} className="w-full h-full outline-none" tabIndex={0} />}
+                    {(gameState === 'PLAYING' || gameState === 'DYING') && <canvas ref={canvasRef} width={380} height={420} className="w-full h-full" />}
 
                     {gameState === 'SECTOR_CLEAR' && (
-                        <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-50 animate-fade-in"><div className="text-center"><h2 className="text-5xl font-black text-signal-500 italic uppercase tracking-tighter mb-2">SECTOR SYNCED</h2><p className="text-white font-mono text-[10px] uppercase tracking-[0.5em] animate-pulse">Initializing Next Node...</p></div></div>
+                        <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-50">
+                            <h2 className="text-5xl font-black text-signal-500 italic uppercase">SECTOR SYNCED</h2>
+                        </div>
                     )}
 
                     {(gameState === 'WON' || gameState === 'LOST') && (
                         <div className="absolute inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-6 text-center">
-                            <div className={`max-w-sm w-full bg-zinc-900 p-12 rounded-[3rem] border-4 ${gameState === 'WON' ? 'border-signal-500 shadow-[0_0_100px_rgba(34,197,94,0.3)]' : 'border-pulse-500 shadow-[0_0_100px_rgba(225,29,72,0.23)]'}`}>
-                                {gameState === 'WON' && <div className="mb-10 flex flex-col items-center"><div className="lowpoly-sun mb-6" /><h2 className="text-4xl font-black italic uppercase tracking-tighter mb-4 text-signal-500">SYNC SUCCESS</h2><p className="text-zinc-500 font-bold uppercase tracking-widest text-[9px] mb-8 italic leading-relaxed">{SECTOR_INTEL[7].Intel}</p></div>}
-                                {gameState === 'LOST' && <><h2 className="text-4xl font-black italic uppercase tracking-tighter mb-4 text-pulse-500">LINK SEVERED</h2><p className="text-zinc-500 font-bold uppercase tracking-widest text-[9px] mb-8 italic leading-relaxed">Sentinels have isolated your node.</p></>}
-                                <div className="mb-10"><p className="text-zinc-500 font-black uppercase tracking-[0.3em] text-[9px] mb-4">Post Signal Initials</p><input autoFocus maxLength={3} value={initials} onChange={e => setInitials(e.target.value.toUpperCase())} className="bg-black/50 border-2 border-pulse-500 text-white rounded-xl px-4 py-4 text-center text-3xl font-black w-36 outline-none uppercase italic" placeholder="???" /></div>
-                                <button onClick={() => { soundService.playClick(); saveHighScore('void_runner', { name: initials.toUpperCase() || "???", score, displayValue: `${score} DATA`, date: new Date().toISOString() }); setGameState('INTRO'); setScore(0); setSector(1); }} className="w-full py-5 bg-pulse-600 text-white font-black text-xl italic uppercase rounded-full hover:scale-105 transition-transform shadow-xl active:scale-95">Transmit Record</button>
+                            <div className={`max-w-sm w-full bg-zinc-900 p-12 rounded-[3rem] border-4 ${gameState === 'WON' ? 'border-signal-500' : 'border-pulse-500'}`}>
+                                <h2 className="text-4xl font-black italic uppercase mb-4 text-white">{gameState === 'WON' ? 'SYNC SUCCESS' : 'LINK SEVERED'}</h2>
+                                <input autoFocus maxLength={3} value={initials} onChange={e => setInitials(e.target.value.toUpperCase())} className="bg-black/50 border-2 border-pulse-500 text-white rounded-xl px-4 py-4 text-center text-3xl font-black w-36 outline-none mb-10" placeholder="???" />
+                                <button onClick={() => { soundService.playClick(); saveHighScore('void_runner', { name: initials || "???", score, displayValue: `${score} DATA`, date: new Date().toISOString() }); setGameState('INTRO'); setScore(0); setSector(1); }} className="w-full py-5 bg-pulse-600 text-white font-black text-xl italic uppercase rounded-full">Transmit Record</button>
                             </div>
                         </div>
                     )}
@@ -584,44 +467,8 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
                 </div>
             </div>
             {showHelp && <TacticalManual onClose={() => { soundService.playClick(); setShowHelp(false); }} />}
-        </div>
+        </main>
     );
 };
 
-// Added ManualPoint component
-const ManualPoint: React.FC<{ title: string; desc: string; color: string }> = ({ title, desc, color }) => (
-    <div className="space-y-2 group">
-        <h4 className={`text-[9px] font-black ${color} uppercase tracking-[0.3em] italic flex items-center gap-2`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${color.replace('text-', 'bg-')} group-hover:scale-150 transition-transform`}></span>
-            {title}
-        </h4>
-        <p className="text-[10px] md:text-xs text-zinc-300 font-bold uppercase tracking-wide leading-relaxed pl-3 border-l border-zinc-800">{desc}</p>
-    </div>
-);
-
-// Added TacticalManual component
-const TacticalManual: React.FC<{ onClose: () => void }> = ({ onClose }) => (
-    <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 md:p-10 font-mono" onClick={onClose}>
-        <div className="max-w-xl w-full bg-void-900 border-4 border-pulse-500 rounded-[3rem] shadow-2xl overflow-hidden relative flex flex-col max-h-[85vh]" onClick={e => e.stopPropagation()}>
-            <header className="h-12 bg-pulse-600 flex items-center justify-between px-4 border-b-2 border-black shrink-0">
-                <div className="flex items-center gap-2 h-full"><BookOpenIcon className="w-4 h-4 text-black" /><h2 className="text-white text-[10px] font-black uppercase tracking-[0.2em] italic">PATH_RECON_PROTOCOLS.PDF</h2></div>
-                <button onClick={onClose} className="hover:scale-110 transition-transform"><XIcon className="w-5 h-5 text-black"/></button>
-            </header>
-            <div className="p-8 md:p-12 overflow-y-auto bg-void-950/40 relative flex-grow scrollbar-hide">
-                <div className="absolute inset-0 pointer-events-none opacity-5 cctv-overlay" />
-                <section className="space-y-8 relative z-10">
-                    <div><h3 className="text-lg font-black text-white italic uppercase tracking-tighter mb-4 flex items-center gap-3"><SparklesIcon className="w-5 h-5 text-pulse-500"/> Sector Navigation</h3><p className="text-[10px] text-zinc-400 uppercase font-black leading-relaxed tracking-wider border-l-2 border-pulse-500 pl-4">Navigate the network architecture to collect all data packets while avoiding sentinel interceptors.</p></div>
-                    <div className="space-y-6">
-                        <ManualPoint title="0x01_Packet_Sync" desc="Collect all small data bits in a sector to stabilize the node and advance to the next frequency." color="text-pulse-500" />
-                        <ManualPoint title="0x02_Core_Breach" desc="Large red nodes grant temporary sentinel vulnerability. Use this window to purge interceptors from the local rail." color="text-pulse-500" />
-                        <ManualPoint title="0x03_Thermal_Drift" desc="Sentinels follow predictable logic loops until triggered. Use the tunnel junctions for rapid cross-sector repositioning." color="text-pulse-500" />
-                    </div>
-                </section>
-            </div>
-            <footer className="p-4 bg-zinc-300 border-t-2 border-black shrink-0"><button onClick={onClose} className="w-full py-4 bg-pulse-600 text-white text-[10px] font-black uppercase italic shadow-lg active:scale-95">Confirm Protocols</button></footer>
-        </div>
-    </div>
-);
-
-// Added default export
 export default VoidRunnerPage;
