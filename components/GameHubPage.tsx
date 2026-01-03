@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import { WalkieTalkieIcon, ControllerIcon, RadioIcon, EntityIcon, KeypadIcon, SparklesIcon, XIcon, ListIcon, CpuChipIcon, BoltIcon, StarIcon, ContrastIcon, WandIcon, PaletteIcon, SkinsIcon, StyleIcon, GlobeAltIcon } from './icons';
 import { getHighScores, ScoreCategory } from '../services/highScoresService';
@@ -102,15 +101,24 @@ const CabinetPoster: React.FC<{
 }> = ({ game, onPlay, isFavorite, onToggleFavorite }) => {
     return (
         <div className="relative group aspect-[2/3] sm:aspect-[3/4] transition-all duration-300">
-            {/* AMBIENT GLOW */}
             <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-4/5 h-8 opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-2xl" 
                  style={{ backgroundColor: game.accentColor }} />
 
             <button 
                 onClick={onPlay}
-                className="w-full h-full text-left relative bg-zinc-900 border-[3px] border-void-border rounded-void overflow-hidden shadow-2xl transition-all duration-500 outline-none focus:ring-4 focus:ring-pulse-500 focus:scale-105 hover:scale-105 hover:z-10 group"
+                onKeyDown={(e) => {
+                    if(e.key === 'ArrowUp') {
+                        // Attempt to move back to hub header if at the top of the grid
+                        const posters = document.querySelectorAll('.cabinet-grid button');
+                        const index = Array.from(posters).indexOf(e.currentTarget);
+                        if (index < 5) { // Assuming 5 columns
+                            e.preventDefault();
+                            (document.querySelector('header button') as HTMLElement)?.focus();
+                        }
+                    }
+                }}
+                className="w-full h-full text-left relative bg-zinc-900 border-[3px] border-void-border rounded-void overflow-hidden shadow-2xl transition-all duration-500 outline-none focus:ring-8 focus:ring-pulse-500 focus:scale-105 hover:scale-105 hover:z-10 group"
             >
-                {/* PERSISTENT DARK ART AREA */}
                 <div className={`absolute inset-0 ${game.artStyle} opacity-90 group-hover:opacity-100 transition-opacity`}>
                     <CabinetGraphicPattern type={game.gameType} color={game.accentColor} />
                     
@@ -125,7 +133,6 @@ const CabinetPoster: React.FC<{
                     </div>
                 </div>
 
-                {/* PERSISTENT DARK MARQUEE (Solves legibility in Light Modes) */}
                 <div className="absolute bottom-0 left-0 right-0 p-4 md:p-6 bg-black/90 backdrop-blur-md border-t border-white/5">
                     <div className="mb-2">
                          <span className="text-[7px] md:text-[8px] font-black text-white px-2 py-0.5 rounded-sm uppercase tracking-widest shadow-lg" style={{ backgroundColor: game.accentColor }}>
@@ -147,13 +154,12 @@ const CabinetPoster: React.FC<{
                     </div>
                 </div>
 
-                {/* HARDWARE OVERLAY */}
                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10 pointer-events-none mix-blend-overlay" />
             </button>
 
             <button 
                 onClick={(e) => { e.stopPropagation(); onToggleFavorite(game.id); }}
-                className={`absolute top-3 right-3 p-2 rounded-full backdrop-blur-xl transition-all z-30 active:scale-75 shadow-2xl
+                className={`absolute top-3 right-3 p-2 rounded-full backdrop-blur-xl transition-all z-30 active:scale-75 shadow-2xl outline-none focus:ring-4 focus:ring-yellow-400
                     ${isFavorite ? 'bg-yellow-500 text-black border-2 border-white' : 'bg-black/60 text-zinc-400 hover:text-white border border-white/10'}`}
             >
                 <StarIcon className="w-4 h-4" filled={isFavorite} />
@@ -218,7 +224,7 @@ const GameHubPage: React.FC<any> = (props) => {
             id: 'solitaire', title: 'SIGNAL ALIGN', protocol: 'DATA_STACK', inspiredBy: 'Solitaire',
             description: 'Sorting frequency packets.',
             icon: <RadioIcon />, cameraId: 'FEED_09', gameType: 'cards', scoreKey: 'solitaire',
-            accentColor: '#e4e4e7', glowColor: '#71717a', artStyle: 'bg-zinc-900'
+            accentColor: '#e4e4e4', glowColor: '#71717a', artStyle: 'bg-zinc-900'
         },
         { 
             id: 'tetris', title: 'STACK TRACE', protocol: 'BUFFER_FILL', inspiredBy: 'Tetris',
@@ -239,7 +245,7 @@ const GameHubPage: React.FC<any> = (props) => {
     }, [games, favoriteGameIds]);
 
     return (
-        <main className="h-full min-h-0 flex-grow overflow-y-auto bg-void-bg p-4 md:p-14 pt-[calc(4rem+env(safe-area-inset-top))] pb-[calc(10rem+env(safe-area-inset-bottom))] animate-fade-in relative scrollbar-hide font-mono">
+        <main className="h-full min-h-0 flex-grow overflow-y-auto bg-void-bg p-4 md:p-14 pt-[calc(4rem+env(safe-area-inset-top))] pb-[calc(10rem+env(safe-area-inset-bottom))] animate-fade-in relative scrollbar-hide font-mono main-content-area">
             <ContextualIntel 
                 tipId="arcade_intel" 
                 title="The Void Arcade" 
@@ -264,14 +270,24 @@ const GameHubPage: React.FC<any> = (props) => {
                     </div>
                     
                     <div className="flex items-center gap-3 md:gap-4">
-                        <button onClick={onToggleTheme} className="p-3 bg-void-surface rounded-2xl text-muted border border-void-border active:scale-90 transition-transform hover:text-pulse-500 shadow-xl">
+                        <button 
+                            onClick={onToggleTheme} 
+                            onKeyDown={(e) => { if(e.key === 'ArrowDown') { e.preventDefault(); (document.querySelector('.cabinet-grid button') as HTMLElement)?.focus(); } }}
+                            className="p-3 bg-void-surface rounded-2xl text-muted border border-void-border active:scale-90 transition-transform hover:text-pulse-500 shadow-xl focus:ring-4 focus:ring-pulse-500 outline-none"
+                        >
                             <ThemeIcon className="w-6 h-6" />
                         </button>
-                        <button onClick={props.onReturnToFeeds} className="px-8 py-3 bg-terminal text-inverse text-xs font-black uppercase italic tracking-widest hover:bg-pulse-500 hover:text-white transition-all shadow-xl rounded-void border border-void-border">Exit</button>
+                        <button 
+                            onClick={props.onReturnToFeeds} 
+                            onKeyDown={(e) => { if(e.key === 'ArrowDown') { e.preventDefault(); (document.querySelector('.cabinet-grid button') as HTMLElement)?.focus(); } }}
+                            className="px-8 py-3 bg-terminal text-inverse text-xs font-black uppercase italic tracking-widest hover:bg-pulse-500 hover:text-white transition-all shadow-xl rounded-void border border-void-border focus:ring-4 focus:ring-pulse-500 outline-none"
+                        >
+                            Exit
+                        </button>
                     </div>
                 </header>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-10 pb-40">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-10 pb-40 cabinet-grid">
                     {sortedGames.map(game => (
                         <CabinetPoster 
                             key={game.id} 

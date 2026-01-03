@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef, useLayoutEffect } from 'react';
 import MainContent from '../components/MainContent';
 import type { SourceType } from '../components/AddSource';
 import Sidebar from '../components/Sidebar';
@@ -67,7 +67,7 @@ const FALLBACK_WORD = "FABLE";
 const SECTOR_LIMIT = 7;
 
 const TerminalView: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-    <div className="flex-1 flex flex-col min-w-0 relative h-full overflow-hidden">
+    <div className="flex-1 flex flex-col min-w-0 relative h-full overflow-hidden main-content-area">
         {children}
     </div>
 );
@@ -99,12 +99,27 @@ const App: React.FC = () => {
         loading: true
     });
 
+    // --- TV SPATIAL NAVIGATION BRIDGE ---
+    useLayoutEffect(() => {
+        if (selection.type === 'splash') return;
+        
+        const focusContent = () => {
+            // Force focus down to content area to bridge the "fixed header" gap
+            const firstTarget = document.querySelector('.main-content-area button, .main-content-area [tabindex="0"]') as HTMLElement;
+            if (firstTarget) {
+                firstTarget.focus();
+            }
+        };
+
+        const timer = setTimeout(focusContent, 400);
+        return () => clearTimeout(timer);
+    }, [selection.type, selection.category, isSettingsModalOpen]);
+
     useEffect(() => {
         const doc = document.documentElement;
         const dataThemeMap: Record<Theme, string> = {
             'noir': 'noir',
             'terminal': 'terminal',
-            // Fix: Remove invalid key 'bento' from dataThemeMap Record, as it is not part of the Theme type.
             'liquid-glass': 'sleek',
             'brutalist': 'brutalist',
             'claymorphism': 'claymorphism',
@@ -234,10 +249,14 @@ const App: React.FC = () => {
             <header className="fixed top-0 left-0 right-0 z-[60] bg-black border-b border-white/10 pt-[var(--safe-top)] shrink-0">
                 <div className="h-11 md:h-12 flex items-center px-2 md:px-8 justify-between">
                     <div className="flex items-center h-full gap-2 md:gap-3 overflow-x-auto scrollbar-hide">
-                        <div onClick={() => updateSelection({ type: 'all', id: null })} className="flex items-center gap-1.5 shrink-0 pr-2 border-r border-white/10 cursor-pointer active:scale-95 transition-transform">
+                        <button 
+                            onClick={() => updateSelection({ type: 'all', id: null })} 
+                            onKeyDown={(e) => { if(e.key === 'ArrowDown') { e.preventDefault(); (document.querySelector('.main-content-area button') as HTMLElement)?.focus(); } }}
+                            className="flex items-center gap-1.5 shrink-0 pr-2 border-r border-white/10 cursor-pointer active:scale-95 transition-transform focus:ring-4 focus:ring-pulse-500 outline-none"
+                        >
                             <VoidIcon className="w-4 h-4 md:w-5 md:h-5 text-pulse-500" />
                             <span className="text-[10px] font-black italic text-white tracking-tighter hidden sm:inline uppercase">Void</span>
-                        </div>
+                        </button>
                         <nav className="flex h-full items-center gap-1 md:gap-2">
                             <GlobalNavLink active={selection.type === 'game_hub'} onClick={() => updateSelection({ type: 'game_hub', id: null })} label="ARCADE" icon={<RadioIcon className="w-3.5 h-3.5"/>} />
                             <GlobalNavLink active={selection.type === 'all' && !selection.category} onClick={() => updateSelection({ type: 'all', id: null })} label="INTEL" icon={<GlobeAltIcon className="w-3.5 h-3.5"/>} />
@@ -246,7 +265,7 @@ const App: React.FC = () => {
                         </nav>
                     </div>
                     <div className={`flex items-center gap-1 shrink-0 pl-1 transition-opacity duration-500 ${hideMenuTrigger ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-                        <button onClick={() => setIsSidebarOpen(true)} className="p-1.5 md:p-2 text-zinc-500 hover:text-white transition-colors active:scale-90"><MenuIcon className="w-5 h-5 md:w-6 md:h-6" /></button>
+                        <button onClick={() => setIsSidebarOpen(true)} className="p-1.5 md:p-2 text-zinc-500 hover:text-white transition-colors active:scale-90 focus:ring-2 focus:ring-pulse-500"><MenuIcon className="w-5 h-5 md:w-6 md:h-6" /></button>
                     </div>
                 </div>
             </header>
@@ -285,20 +304,43 @@ const App: React.FC = () => {
                 <Sidebar feeds={feeds} folders={folders} selection={selection} onAddSource={handleAddSource} onRemoveFeed={(id) => setFeeds(feeds.filter(x => x.id !== id))} onSelect={updateSelection} onAddFolder={(n) => setFolders([...folders, {id: Date.now(), name: n}])} onRenameFolder={(id, n) => setFolders(folders.map(x => x.id === id ? {...x, name: n} : x))} onDeleteFolder={(id) => setFolders(folders.filter(x => x.id !== id))} onMoveFeedToFolder={(fid, foldId) => setFeeds(feeds.map(x => x.id === fid ? {...x, folderId: foldId} : x))} isSidebarOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} onOpenSettings={() => setIsSettingsModalOpen(true)} />
             )}
             <SettingsModal isOpen={isSettingsModalOpen} onClose={() => setIsSettingsModalOpen(false)} settings={{ feeds, folders, theme, articleView, widgets: widgetSettings }} onUpdateSettings={(s) => { if(s.theme) setTheme(s.theme as Theme); if(s.articleView) setArticleView(s.articleView); }} onSelect={(s) => { updateSelection(s); setIsSettingsModalOpen(false); }} onAddFolder={(n) => setFolders([...folders, {id: Date.now(), name: n}])} onRenameFolder={(id, n) => setFolders(folders.map(x => x.id === id ? {...x, name: n} : x))} onDeleteFolder={(id) => setFolders(folders.filter(x => x.id !== id))} onRemoveFeed={(id) => setFeeds(feeds.filter(x => x.id !== id))} onImportOpml={(f, fld) => { setFeeds([...feeds, ...f.map(i => ({...i, id: Date.now() + Math.random()}))]); setFolders([...folders, ...fld]); }} onExportOpml={() => {}} onImportSettings={() => {}} onExportSettings={() => {}} onAddSource={handleAddSource} onEnterUtils={() => updateSelection({ type: 'utility_hub', id: null })} onResetFeeds={handleResetSystem} />
-            {readerArticle && <ReaderViewModal article={readerArticle} onClose={() => setReaderArticle(null)} onMarkAsRead={(id) => setReadArticleIds(prev => new Set(prev).add(id))} onOpenExternal={(url) => window.open(url, '_blank')} />}
+            {readerArticle && <ReaderViewModal article={readerArticle} onClose={() => setReaderArticle(null)} onMarkAsRead={(id) => setReadArticleIds(prev => new Set(prev).add(id))} onOpenExternal={(url, id) => { setReadArticleIds(prev => new Set(prev).add(id)); window.open(url, '_blank', 'noopener,noreferrer'); }} />}
         </div>
     );
 };
 
-const GlobalNavLink: React.FC<{ active: boolean; onClick: () => void; label: string; icon: React.ReactNode }> = ({ active, onClick, label, icon }) => (
-    <button 
-        onClick={onClick}
-        className={`flex items-center gap-1 md:gap-1.5 h-11 md:h-12 px-2 md:px-3 border-b-2 transition-all relative group shrink-0
-            ${active ? 'border-pulse-500 text-white' : 'border-transparent text-zinc-500 hover:text-zinc-300'}`}
-    >
-        <span className="scale-90 md:scale-100">{icon}</span>
-        <span className="text-[8px] md:text-[9.5px] font-black tracking-widest uppercase">{label}</span>
-    </button>
-);
+const GlobalNavLink: React.FC<{ active: boolean; onClick: () => void; label: string; icon: React.ReactNode }> = ({ active, onClick, label, icon }) => {
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'ArrowDown') {
+            // Force focus down to the sub-header or first article
+            e.preventDefault();
+            const targets = [
+                '.sub-header-nav button',
+                '.main-content-area button',
+                '[tabindex="0"]'
+            ];
+            for (const selector of targets) {
+                const el = document.querySelector(selector) as HTMLElement;
+                if (el) {
+                    el.focus();
+                    return;
+                }
+            }
+        }
+    };
+
+    return (
+        <button 
+            onClick={onClick}
+            onKeyDown={handleKeyDown}
+            className={`flex items-center gap-1 md:gap-1.5 h-11 md:h-12 px-2 md:px-3 border-b-2 transition-all relative group shrink-0
+                ${active ? 'border-pulse-500 text-white' : 'border-transparent text-zinc-500 hover:text-zinc-300'} 
+                focus:ring-4 focus:ring-pulse-500 outline-none`}
+        >
+            <span className="scale-90 md:scale-100">{icon}</span>
+            <span className="text-[8px] md:text-[9.5px] font-black tracking-widest uppercase">{label}</span>
+        </button>
+    );
+};
 
 export default App;

@@ -35,11 +35,11 @@ const MagazineArticleListItem: React.FC<MagazineArticleListItemProps> = ({ artic
 
     return (
         <div className="relative group/wrapper pb-6">
-            <div 
+            <button 
                 onClick={onReadHere}
-                className={`group relative flex flex-col bg-zinc-900 border border-white/5 overflow-hidden h-full transition-all duration-300 hover:bg-zinc-800/80 hover:border-white/20 hover:shadow-xl cursor-pointer rounded-sm ${isRead ? 'opacity-30' : ''}`}
+                className={`w-full text-left group relative flex flex-col bg-zinc-900 border border-white/5 overflow-hidden h-full transition-all duration-300 hover:bg-zinc-800/80 hover:border-white/20 hover:shadow-xl focus:ring-4 focus:ring-pulse-500 rounded-sm outline-none ${isRead ? 'opacity-30' : ''}`}
             >
-                <div className="relative aspect-[16/10] w-full overflow-hidden border-b border-white/5 bg-black shrink-0">
+                <div className="relative aspect-[16/10] w-full overflow-hidden border-b border-white/5 bg-black shrink-0 pointer-events-none">
                     <ImageWithProxy
                         src={activeSrc}
                         alt=""
@@ -54,7 +54,7 @@ const MagazineArticleListItem: React.FC<MagazineArticleListItemProps> = ({ artic
                     <div className="absolute inset-0 cctv-overlay pointer-events-none opacity-20" />
                 </div>
 
-                <div className="p-4 flex flex-col flex-grow">
+                <div className="p-4 flex flex-col flex-grow pointer-events-none">
                     <div className="flex items-center gap-2 mb-3">
                         <span className="text-[8px] font-black text-pulse-500 uppercase tracking-widest italic">{article.source}</span>
                     </div>
@@ -71,11 +71,11 @@ const MagazineArticleListItem: React.FC<MagazineArticleListItemProps> = ({ artic
                         </div>
                     </div>
                 </div>
-            </div>
+            </button>
             
             <button 
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); onReadExternal(); }}
-                className="absolute bottom-0 right-1 text-[7px] font-black uppercase tracking-[0.2em] text-zinc-700 hover:text-white transition-colors italic z-20"
+                className="absolute bottom-0 right-1 text-[7px] font-black uppercase tracking-[0.2em] text-zinc-700 hover:text-white transition-colors italic z-20 focus:text-white outline-none"
             >
                 Raw_Dat_0x{article.id.substring(0,4)}
             </button>

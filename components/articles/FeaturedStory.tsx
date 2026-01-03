@@ -59,15 +59,15 @@ const CCTVMonitor: React.FC<{ src: string | null; label: string; headline: strin
 const FeaturedStory: React.FC<{article: Article; onReadHere: () => void; onReadExternal: () => void; isRead: boolean;}> = ({ article, onReadHere, onReadExternal, isRead }) => {
     return (
         <div className="relative group/wrapper mb-8">
-            <div 
+            <button 
                 onClick={onReadHere}
-                className={`group relative grid grid-cols-1 lg:grid-cols-[1.5fr,1fr] bg-black border border-white/10 overflow-hidden min-h-[450px] md:min-h-[500px] transition-all duration-500 hover:border-white/30 hover:shadow-[0_0_40px_rgba(255,255,255,0.05)] cursor-pointer rounded-void shadow-[0_20px_60px_rgba(0,0,0,0.8)] ${isRead ? 'opacity-40' : ''}`}
+                className={`w-full text-left group relative grid grid-cols-1 lg:grid-cols-[1.5fr,1fr] bg-black border border-white/10 overflow-hidden min-h-[450px] md:min-h-[500px] transition-all duration-500 hover:border-white/30 hover:shadow-[0_0_40px_rgba(255,255,255,0.05)] focus:ring-4 focus:ring-pulse-500 rounded-void shadow-[0_20px_60px_rgba(0,0,0,0.8)] outline-none ${isRead ? 'opacity-40' : ''}`}
             >
-                <div className="h-64 sm:h-96 lg:h-auto border-b lg:border-b-0 lg:border-r border-white/10">
+                <div className="h-64 sm:h-96 lg:h-auto border-b lg:border-b-0 lg:border-r border-white/10 pointer-events-none">
                     <CCTVMonitor src={article.imageUrl} label={article.source} headline={article.title} url={article.link} />
                 </div>
 
-                <div className="relative p-6 md:p-12 flex flex-col justify-center bg-zinc-950">
+                <div className="relative p-6 md:p-12 flex flex-col justify-center bg-zinc-950 pointer-events-none">
                     <div className="flex items-center gap-3 mb-6">
                         <span className="bg-pulse-600 text-white text-[8px] font-black px-2 py-0.5 uppercase tracking-widest italic rounded-sm">BREAKING_INTEL</span>
                         <span className="text-zinc-500 text-[8px] font-black uppercase tracking-widest truncate">{article.source}</span>
@@ -88,11 +88,11 @@ const FeaturedStory: React.FC<{article: Article; onReadHere: () => void; onReadE
                         </div>
                     </div>
                 </div>
-            </div>
+            </button>
             
             <button 
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); onReadExternal(); }}
-                className="absolute -bottom-6 right-2 text-[8px] font-black uppercase tracking-[0.3em] text-zinc-600 hover:text-white transition-colors italic z-20"
+                className="absolute -bottom-6 right-2 text-[8px] font-black uppercase tracking-[0.3em] text-zinc-600 hover:text-white transition-colors italic z-20 focus:text-white outline-none"
             >
                 Access_Raw_Data_Stream_0x{article.id.substring(0,4)}
             </button>

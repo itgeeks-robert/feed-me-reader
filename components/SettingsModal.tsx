@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import type { Settings, Theme, ArticleView, WidgetSettings, Feed, Folder, Selection } from '../src/App';
 import { XIcon, SunIcon, MoonIcon, CloudArrowUpIcon, CloudArrowDownIcon, TrashIcon, BookmarkIcon, ListIcon, PlusIcon, FolderIcon, ShieldCheckIcon, SparklesIcon, CpuChipIcon, ExclamationTriangleIcon, RadioIcon, GlobeAltIcon } from './icons';
@@ -51,8 +50,19 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     const [localSettings, setLocalSettings] = useState({ ...settings });
     const [showWipeConfirm, setShowWipeConfirm] = useState(false);
     const opmlInputRef = useRef<HTMLInputElement>(null);
+    const firstTabRef = useRef<HTMLButtonElement>(null);
 
     useEffect(() => { if (isOpen) setLocalSettings({ ...settings }); }, [isOpen, settings]);
+
+    // TV FOCUS TRAP: Pull focus to the first tab when modal opens
+    useEffect(() => {
+        if (isOpen) {
+            const timer = setTimeout(() => {
+                firstTabRef.current?.focus();
+            }, 300);
+            return () => clearTimeout(timer);
+        }
+    }, [isOpen]);
 
     if (!isOpen) return null;
 
@@ -75,10 +85,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         }
     };
     
-    const TabButton: React.FC<{ name: Tab, label: string }> = ({ name, label }) => (
+    const TabButton: React.FC<{ name: Tab, label: string; innerRef?: React.RefObject<HTMLButtonElement> }> = ({ name, label, innerRef }) => (
         <button
+            ref={innerRef}
             onClick={() => setActiveTab(name)}
-            className={`flex-1 py-3 text-[8px] md:text-[9px] font-black uppercase tracking-widest transition-all border-b-2
+            className={`flex-1 py-3 text-[8px] md:text-[9px] font-black uppercase tracking-widest transition-all border-b-2 outline-none focus:ring-4 focus:ring-pulse-500
                 ${activeTab === name 
                     ? 'bg-void-950 text-terminal border-pulse-500' 
                     : 'text-muted hover:text-terminal border-void-border'}`}
@@ -101,13 +112,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                         <CpuChipIcon className="w-5 h-5 text-pulse-500" />
                         <h2 className="text-terminal text-[10px] font-black uppercase tracking-[0.2em] italic">SYSTEM_DIAGNOSTICS v1.8.5</h2>
                     </div>
-                    <button onClick={onClose} className="p-2 text-muted hover:text-terminal transition-colors">
+                    <button onClick={onClose} className="p-2 text-muted hover:text-terminal transition-colors focus:ring-2 focus:ring-white outline-none">
                         <XIcon className="w-6 h-6" />
                     </button>
                 </header>
                 
                 <nav className="flex border-b border-void-border shrink-0">
-                    <TabButton name="CORE" label="0x00_CORE" />
+                    <TabButton innerRef={firstTabRef} name="CORE" label="0x00_CORE" />
                     <TabButton name="NODES" label="0x01_NODES" />
                     <TabButton name="DISPLAY" label="0x02_VISUAL" />
                     <TabButton name="MEMORY" label="0x03_DATA" />
@@ -145,14 +156,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                     <button 
                                         key={t.id}
                                         onClick={() => setLocalSettings(p => ({...p, theme: t.id}))}
-                                        className={`p-4 rounded-void border-2 transition-all flex flex-col gap-3 group text-left
+                                        className={`p-4 rounded-void border-2 transition-all flex flex-col gap-3 group text-left outline-none focus:ring-4 focus:ring-pulse-500
                                             ${localSettings.theme === t.id ? 'border-pulse-500 bg-void-bg shadow-lg' : 'border-void-border bg-void-surface opacity-60 hover:opacity-100 hover:border-terminal/20'}`}
                                     >
-                                        <div className={`w-full h-12 rounded-xl border-2 ${t.colors} relative overflow-hidden`}>
+                                        <div className={`w-full h-12 rounded-xl border-2 ${t.colors} relative overflow-hidden pointer-events-none`}>
                                             <div className="absolute inset-0 opacity-10 bg-black/20" />
                                             <div className="absolute top-1 left-1 w-2 h-2 rounded-full bg-white/40" />
                                         </div>
-                                        <div>
+                                        <div className="pointer-events-none">
                                             <p className="text-[9px] font-black uppercase text-terminal leading-none mb-1">{t.name}</p>
                                             <p className="text-[7px] font-bold text-muted uppercase italic line-clamp-1">{t.desc}</p>
                                         </div>
@@ -165,7 +176,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     {activeTab === 'NODES' && (<div className="space-y-6 animate-fade-in">
                         <div className="flex items-center justify-between border-b border-void-border pb-2">
                             <h3 className="text-[10px] font-black text-muted uppercase tracking-widest italic">Established Zones</h3>
-                            <button onClick={() => onAddFolder("NEW_ZONE")} className="p-2 hover:bg-void-surface rounded-lg text-pulse-500 transition-colors">
+                            <button onClick={() => onAddFolder("NEW_ZONE")} className="p-2 hover:bg-void-surface rounded-lg text-pulse-500 transition-colors focus:ring-2 focus:ring-pulse-500 outline-none">
                                 <PlusIcon className="w-5 h-5" />
                             </button>
                         </div>
@@ -174,9 +185,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                 <div key={f.id} className="flex items-center justify-between p-4 void-card bg-void-bg group">
                                     <div className="flex items-center gap-3 flex-1">
                                         <FolderIcon className="w-4 h-4 text-muted" />
-                                        <input value={f.name} onChange={e => onRenameFolder(f.id, e.target.value)} className="bg-transparent text-terminal font-black uppercase italic text-xs outline-none focus:text-pulse-500 w-full" />
+                                        <input value={f.name} onChange={e => onRenameFolder(f.id, e.target.value)} className="bg-transparent text-terminal font-black uppercase italic text-xs outline-none focus:text-pulse-500 w-full focus:ring-2 focus:ring-pulse-500/20" />
                                     </div>
-                                    <button onClick={() => onDeleteFolder(f.id)} className="text-muted hover:text-pulse-500 ml-4 opacity-0 group-hover:opacity-100 transition-opacity"><TrashIcon className="w-4 h-4" /></button>
+                                    <button onClick={() => onDeleteFolder(f.id)} className="text-muted hover:text-pulse-500 ml-4 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity focus:ring-2 focus:ring-white outline-none"><TrashIcon className="w-4 h-4" /></button>
                                 </div>
                             ))}
                         </div>
@@ -199,8 +210,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                         reader.readAsText(file);
                                     }
                                 }} style={hiddenInputStyle} accept=".opml,.xml" />
-                                <button onClick={() => opmlInputRef.current?.click()} className="flex items-center justify-center gap-3 py-4 bg-void-bg border border-void-border rounded-void text-[9px] font-black uppercase italic hover:bg-void-surface transition-all"><CloudArrowUpIcon className="w-4 h-4" /> Import_Data</button>
-                                <button onClick={onExportOpml} className="flex items-center justify-center gap-3 py-4 bg-void-bg border border-void-border rounded-void text-[9px] font-black uppercase italic hover:bg-void-surface transition-all"><CloudArrowDownIcon className="w-4 h-4" /> Export_Data</button>
+                                <button onClick={() => opmlInputRef.current?.click()} className="flex items-center justify-center gap-3 py-4 bg-void-bg border border-void-border rounded-void text-[9px] font-black uppercase italic hover:bg-void-surface transition-all focus:ring-4 focus:ring-pulse-500 outline-none"><CloudArrowUpIcon className="w-4 h-4" /> Import_Data</button>
+                                <button onClick={onExportOpml} className="flex items-center justify-center gap-3 py-4 bg-void-bg border border-void-border rounded-void text-[9px] font-black uppercase italic hover:bg-void-surface transition-all focus:ring-4 focus:ring-pulse-500 outline-none"><CloudArrowDownIcon className="w-4 h-4" /> Export_Data</button>
                             </div>
                         </div>
 
@@ -208,7 +219,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                             <h3 className="text-[10px] font-black text-red-500 uppercase tracking-widest mb-4 italic">Security Actions</h3>
                             <button 
                                 onClick={() => { soundService.playClick(); setShowWipeConfirm(true); }}
-                                className="w-full py-4 bg-red-500/10 border border-red-500/40 text-red-500 rounded-void text-[9px] font-black uppercase italic hover:bg-red-500 hover:text-white transition-all flex items-center justify-center gap-3"
+                                className="w-full py-4 bg-red-500/10 border border-red-500/40 text-red-500 rounded-void text-[9px] font-black uppercase italic hover:bg-red-500 hover:text-white transition-all flex items-center justify-center gap-3 focus:ring-4 focus:ring-white outline-none"
                             >
                                 <TrashIcon className="w-4 h-4" />
                                 <span>Purge System Data</span>
@@ -219,8 +230,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 </div>
 
                 <footer className="p-6 border-t border-void-border bg-void-bg flex gap-3 shrink-0 z-20">
-                    <button onClick={onClose} className="flex-1 py-4 bg-void-surface text-terminal text-[10px] font-black uppercase italic rounded-void active:scale-95 transition-all">ABORT</button>
-                    <button onClick={handleSave} className="flex-1 py-4 bg-terminal text-inverse text-[10px] font-black uppercase italic rounded-void active:scale-95 transition-all shadow-xl">COMMIT_CHANGES</button>
+                    <button onClick={onClose} className="flex-1 py-4 bg-void-surface text-terminal text-[10px] font-black uppercase italic rounded-void active:scale-95 transition-all focus:ring-4 focus:ring-white outline-none">ABORT</button>
+                    <button onClick={handleSave} className="flex-1 py-4 bg-terminal text-inverse text-[10px] font-black uppercase italic rounded-void active:scale-95 transition-all shadow-xl focus:ring-4 focus:ring-pulse-500 outline-none">COMMIT_CHANGES</button>
                 </footer>
 
                 {showWipeConfirm && (
@@ -231,7 +242,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                     <ExclamationTriangleIcon className="w-4 h-4 text-white" />
                                     <h2 className="text-white text-[9px] font-black uppercase tracking-[0.2em] italic">SYSTEM_PURGE.EXE</h2>
                                 </div>
-                                <button onClick={() => setShowWipeConfirm(false)} className="text-white hover:opacity-70">
+                                <button onClick={() => setShowWipeConfirm(false)} className="text-white hover:opacity-70 focus:ring-2 focus:ring-white outline-none">
                                     <XIcon className="w-5 h-5" />
                                 </button>
                             </header>
@@ -246,8 +257,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                             </div>
 
                             <footer className="p-5 flex gap-3 bg-zinc-900 border-t border-white/5">
-                                <button onClick={() => setShowWipeConfirm(false)} className="flex-1 py-3 bg-zinc-800 rounded-xl text-[9px] font-black uppercase italic text-zinc-400">Abort</button>
-                                <button onClick={handleSystemWipe} className="flex-1 py-3 bg-red-600 text-white rounded-xl text-[9px] font-black uppercase italic shadow-lg active:scale-95">Purge Data</button>
+                                <button onClick={() => setShowWipeConfirm(false)} className="flex-1 py-3 bg-zinc-800 rounded-xl text-[9px] font-black uppercase italic text-zinc-400 focus:ring-2 focus:ring-white outline-none">Abort</button>
+                                <button onClick={handleSystemWipe} className="flex-1 py-3 bg-red-600 text-white rounded-xl text-[9px] font-black uppercase italic shadow-lg active:scale-95 focus:ring-4 focus:ring-white outline-none">Purge Data</button>
                             </footer>
                         </div>
                     </div>

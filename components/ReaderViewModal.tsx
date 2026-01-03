@@ -18,6 +18,7 @@ const ReaderViewModal: React.FC<ReaderViewModalProps> = ({ article, onClose, onM
     const [intelBriefing, setIntelBriefing] = useState<string[] | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const contentRef = useRef<HTMLDivElement>(null);
+    const closeBtnRef = useRef<HTMLButtonElement>(null);
 
     useEffect(() => {
         onMarkAsRead(article.id);
@@ -37,6 +38,13 @@ const ReaderViewModal: React.FC<ReaderViewModalProps> = ({ article, onClose, onM
         fetchContent();
         return () => { isMounted = false; };
     }, [article.id]);
+
+    // TV FOCUS TRAP
+    useEffect(() => {
+        if (!isLoading && closeBtnRef.current) {
+            closeBtnRef.current.focus();
+        }
+    }, [isLoading]);
     
     useEffect(() => {
         if (parsedContent && contentRef.current) {
@@ -88,7 +96,7 @@ const ReaderViewModal: React.FC<ReaderViewModalProps> = ({ article, onClose, onM
                 <header className="bg-app-accent pt-[var(--safe-top)] relative z-20">
                     <div className="h-12 flex items-center justify-between px-1">
                         <div className="flex items-center gap-2 h-full overflow-hidden">
-                            <button onClick={onClose} className="w-10 h-8 bg-app-bg border-2 border-app-accent flex items-center justify-center active:opacity-70 shrink-0">
+                            <button onClick={onClose} className="w-10 h-8 bg-app-bg border-2 border-app-accent flex items-center justify-center active:opacity-70 shrink-0 focus:ring-2 focus:ring-white outline-none">
                                 <div className="w-5 h-0.5 bg-app-text shadow-[0_4px_0_var(--app-text)]" />
                             </button>
                             <div className="flex items-center gap-3 truncate">
@@ -100,7 +108,7 @@ const ReaderViewModal: React.FC<ReaderViewModalProps> = ({ article, onClose, onM
                                 </h2>
                             </div>
                         </div>
-                        <button onClick={onClose} className="w-10 h-8 bg-app-bg border-2 border-app-accent flex items-center justify-center hover:opacity-80 transition-colors shrink-0">
+                        <button ref={closeBtnRef} onClick={onClose} className="w-10 h-8 bg-app-bg border-2 border-app-accent flex items-center justify-center hover:opacity-80 transition-colors shrink-0 focus:ring-2 focus:ring-white outline-none">
                             <XIcon className="w-5 h-5 text-app-text" />
                         </button>
                     </div>
@@ -119,7 +127,7 @@ const ReaderViewModal: React.FC<ReaderViewModalProps> = ({ article, onClose, onM
                         ) : error ? (
                             <div className="text-center py-24 border-4 border-red-600 bg-red-50">
                                 <p className="font-black uppercase tracking-widest text-red-600 text-2xl italic mb-6">Signal Corruption</p>
-                                <button onClick={handleExternalJump} className="px-12 py-5 bg-app-accent text-app-bg font-black uppercase tracking-[0.2em] italic">Access Raw Stream</button>
+                                <button onClick={handleExternalJump} className="px-12 py-5 bg-app-accent text-app-bg font-black uppercase tracking-[0.2em] italic focus:ring-4 focus:ring-white outline-none">Access Raw Stream</button>
                             </div>
                         ) : parsedContent && (
                             <div className="max-w-none prose prose-app font-mono text-app-text prose-headings:text-app-text prose-p:text-app-text prose-p:leading-relaxed">
@@ -144,7 +152,7 @@ const ReaderViewModal: React.FC<ReaderViewModalProps> = ({ article, onClose, onM
                                         <button 
                                             onClick={handleLocalIntelAnalysis}
                                             disabled={isProcessing}
-                                            className="w-full py-4 border-2 border-dashed border-app-accent/30 text-app-accent hover:bg-app-accent hover:text-app-bg transition-all font-black uppercase italic text-xs tracking-[0.3em]"
+                                            className="w-full py-4 border-2 border-dashed border-app-accent/30 text-app-accent hover:bg-app-accent hover:text-app-bg transition-all font-black uppercase italic text-xs tracking-[0.3em] focus:ring-2 focus:ring-white outline-none"
                                         >
                                             {isProcessing ? 'Interrogating_Buffer...' : 'Initialize_Heuristic_Scan'}
                                         </button>
@@ -156,8 +164,8 @@ const ReaderViewModal: React.FC<ReaderViewModalProps> = ({ article, onClose, onM
                                 <div className="mt-24 pb-24 flex flex-col items-center border-t-2 border-app-accent/20 pt-16 mb-12">
                                     <p className="text-xs font-black text-app-accent/40 uppercase tracking-[0.5em] mb-8 italic">End of Intercept</p>
                                     <div className="flex flex-col sm:flex-row gap-6 w-full max-w-2xl">
-                                        <button onClick={onClose} className="flex-1 py-6 bg-app-bg border-2 border-app-accent text-app-text font-black uppercase italic tracking-[0.2em] hover:opacity-80 transition-all text-xs md:text-sm">Close_Buffer</button>
-                                        <button onClick={handleExternalJump} className="flex-1 py-6 bg-app-accent border-2 border-app-accent text-app-bg font-black uppercase italic tracking-[0.2em] hover:opacity-90 transition-all text-xs md:text-sm">Raw_Source</button>
+                                        <button onClick={onClose} className="flex-1 py-6 bg-app-bg border-2 border-app-accent text-app-text font-black uppercase italic tracking-[0.2em] hover:opacity-80 transition-all text-xs md:text-sm focus:ring-4 focus:ring-white outline-none">Close_Buffer</button>
+                                        <button onClick={handleExternalJump} className="flex-1 py-6 bg-app-accent border-2 border-app-accent text-app-bg font-black uppercase italic tracking-[0.2em] hover:opacity-90 transition-all text-xs md:text-sm focus:ring-4 focus:ring-white outline-none">Raw_Source</button>
                                     </div>
                                 </div>
                             </div>

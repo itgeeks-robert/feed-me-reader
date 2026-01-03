@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import type { Feed, Folder, Selection, WidgetSettings, Article, ArticleView, Theme } from '../src/App';
 import type { SourceType } from './AddSource';
@@ -150,7 +149,6 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                 handleCategoryClick={handleCategoryClick} 
             />
             
-            {/* Lowered to clear the stacked fixed global + sub headers perfectly */}
             <div className="pt-[calc(13.5rem+var(--safe-top))] md:pt-[calc(14.5rem+var(--safe-top))] max-w-[1400px] mx-auto transition-all relative">
                 
                 {latestArticle && (
@@ -203,7 +201,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                         <div className="mt-16 text-center">
                             <button 
                                 onClick={() => setVisibleCount(c => c + LOAD_MORE_BATCH)} 
-                                className="bg-terminal text-inverse void-button font-black uppercase italic py-4 px-10 text-[10px] tracking-[0.2em] active:scale-95 border border-void-border shadow-xl rounded-void"
+                                className="bg-terminal text-inverse void-button font-black uppercase italic py-4 px-10 text-[10px] tracking-[0.2em] active:scale-95 border border-void-border shadow-xl rounded-void focus:ring-4 focus:ring-pulse-500 outline-none"
                             >
                                 Load_Additional_Clusters
                             </button>
@@ -218,15 +216,26 @@ const MainContent: React.FC<MainContentProps> = (props) => {
 const LocalHeader: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuery, onToggleTheme, onRefresh, selection, handleCategoryClick }) => {
     return (
         <div className="fixed top-11 md:top-12 left-0 right-0 z-40 bg-void-bg/95 backdrop-blur-xl border-b border-void-border transition-all px-4 md:px-8 py-3 flex flex-col md:flex-row items-center gap-4">
-            <div className="flex items-center h-10 gap-2 overflow-x-auto scrollbar-hide flex-grow w-full md:w-auto">
+            <div className="flex items-center h-10 gap-2 overflow-x-auto scrollbar-hide flex-grow w-full md:w-auto sub-header-nav">
                 {CATEGORY_MAP.map(cat => (
                     <button 
                         key={cat.id} 
                         onClick={() => handleCategoryClick(cat.id)} 
-                        className={`shrink-0 px-4 py-1.5 rounded-full text-[9px] font-black uppercase italic transition-all border
+                        onKeyDown={(e) => {
+                            if(e.key === 'ArrowUp') {
+                                e.preventDefault();
+                                (document.querySelector('header button') as HTMLElement)?.focus();
+                            }
+                            if(e.key === 'ArrowDown') {
+                                e.preventDefault();
+                                (document.querySelector('.main-content-area button, .main-content-area [tabindex="0"]') as HTMLElement)?.focus();
+                            }
+                        }}
+                        className={`shrink-0 px-4 py-1.5 rounded-full text-[9px] font-black uppercase italic transition-all border outline-none
                             ${selection.category === cat.id 
                                 ? 'bg-pulse-500 border-pulse-400 text-white' 
-                                : 'bg-void-surface border-void-border text-zinc-500 hover:text-white'}`}
+                                : 'bg-void-surface border-void-border text-zinc-500 hover:text-white'}
+                            focus:ring-4 focus:ring-pulse-500`}
                     >
                         {cat.id}
                     </button>
@@ -241,14 +250,14 @@ const LocalHeader: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuer
                         placeholder="Find..." 
                         value={searchQuery} 
                         onChange={e => setSearchQuery(e.target.value)} 
-                        className="w-full bg-void-surface/50 border border-void-border rounded-full py-1.5 pl-9 pr-4 text-[9px] uppercase tracking-widest outline-none text-terminal placeholder-zinc-700 focus:border-pulse-500/50 transition-all" 
+                        className="w-full bg-void-surface/50 border border-void-border rounded-full py-1.5 pl-9 pr-4 text-[9px] uppercase tracking-widest outline-none text-terminal placeholder-zinc-700 focus:border-pulse-500/50 transition-all focus:ring-2 focus:ring-pulse-500" 
                     />
                 </form>
 
                 <div className="flex items-center gap-1.5 bg-void-surface/30 p-1 rounded-full border border-void-border">
                     <button 
                         onClick={onRefresh}
-                        className="p-2 bg-void-surface border border-void-border rounded-full text-zinc-500 hover:text-terminal hover:border-terminal/30 transition-all active:rotate-180 duration-500"
+                        className="p-2 bg-void-surface border border-void-border rounded-full text-zinc-500 hover:text-terminal hover:border-terminal/30 transition-all active:rotate-180 duration-500 focus:ring-2 focus:ring-pulse-500 outline-none"
                         title="Refresh Signals"
                     >
                         <ArrowPathIcon className="w-3.5 h-3.5" />
@@ -256,7 +265,7 @@ const LocalHeader: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuer
 
                     <button 
                         onClick={onToggleTheme}
-                        className="p-2 bg-void-surface border border-void-border rounded-full text-zinc-500 hover:text-pulse-500 hover:border-pulse-500/30 transition-all"
+                        className="p-2 bg-void-surface border border-void-border rounded-full text-zinc-500 hover:text-pulse-500 hover:border-pulse-500/30 transition-all focus:ring-2 focus:ring-pulse-500 outline-none"
                         title="Phase Shift"
                     >
                         <PaletteIcon className="w-3.5 h-3.5" />
@@ -268,7 +277,7 @@ const LocalHeader: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuer
 };
 
 const UnreadFilterToggle: React.FC<any> = ({ checked, onChange }) => (
-    <label className="flex items-center cursor-pointer group bg-void-surface/50 px-4 py-2 border border-void-border rounded-full hover:border-terminal/20 transition-all">
+    <label className="flex items-center cursor-pointer group bg-void-surface/50 px-4 py-2 border border-void-border rounded-full hover:border-terminal/20 transition-all focus-within:ring-2 focus-within:ring-pulse-500">
         <input type="checkbox" className="sr-only" checked={checked} onChange={(e) => onChange(e.target.checked)} />
         <div className={`w-3 h-3 border rounded-sm flex-shrink-0 mr-3 transition-all ${checked ? 'bg-pulse-500 border-pulse-400' : 'bg-transparent border-zinc-700'}`} />
         <span className="text-[9px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-terminal italic">Unread_Only</span>
