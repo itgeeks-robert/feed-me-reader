@@ -1,16 +1,31 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { VoidIcon, ControllerIcon, ListIcon, TrashIcon, XIcon, ExclamationTriangleIcon } from './icons';
+import { VoidIcon, ControllerIcon, ListIcon, TrashIcon, XIcon, ExclamationTriangleIcon, PaletteIcon } from './icons';
 import { soundService } from '../services/soundService';
+import type { Theme } from '../src/App';
 
 interface SplashScreenProps {
+    theme: Theme;
     onEnterFeeds: () => void;
     onEnterArcade: () => void;
+    onToggleTheme: () => void;
     isDecoding: boolean;
     onReset?: () => void;
 }
 
+const THEME_VERSIONS: Record<Theme, { v: string; tag: string; refraction: string }> = {
+    'noir': { v: 'v2.0.5', tag: 'STABLE_CORE', refraction: '0px' },
+    'liquid-glass': { v: 'v3.1.2', tag: 'REFRACTION_OS', refraction: '60px' },
+    'bento-grid': { v: 'v1.9.8', tag: 'GRID_STRUCTURE', refraction: '4px' },
+    'brutalist': { v: 'v0.4.1', tag: 'RAW_BINARY', refraction: '0px' },
+    'claymorphism': { v: 'v2.2.4', tag: 'TACTILE_BUILD', refraction: '12px' },
+    'monochrome-zen': { v: 'v4.0.0', tag: 'ZEN_FOCUSED', refraction: '2px' },
+    'y2k': { v: 'v9.9.9', tag: 'FUTURE_WAVE', refraction: '20px' },
+    'terminal': { v: 'v0.0.1', tag: 'KERNEL_LEVEL', refraction: '0px' },
+    'comic': { v: 'v5.2.0', tag: 'INKED_FRAME', refraction: '0px' }
+};
+
 const BOOT_MESSAGES = [
-    "INITIALIZING VOID_KERNEL_7.2...",
+    "INITIALIZING VOID_KERNEL...",
     "LINKING SYNAPTIC PROTOCOLS...",
     "MOUNTING ARCADE_FILESYSTEM...",
     "DECRYPTING FREQUENCY_BUFFER...",
@@ -24,11 +39,11 @@ const TechnicalBlueprint: React.FC<{ progress: number }> = ({ progress }) => (
         <svg width="100%" height="100%" className="absolute inset-0">
             <defs>
                 <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(225,29,72,0.15)" strokeWidth="1" />
+                    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="var(--app-accent)" strokeWidth="1" strokeOpacity="0.2" />
                 </pattern>
             </defs>
             <rect width="100%" height="100%" fill="url(#grid)" />
-            <g stroke="rgba(225,29,72,0.2)" fill="none" strokeWidth="1">
+            <g stroke="var(--app-accent)" fill="none" strokeWidth="1" strokeOpacity="0.1">
                 <circle cx="50%" cy="50%" r="150" strokeDasharray="5,5" />
                 <path d="M 50% 0 L 50% 100%" strokeDasharray="10,10" />
                 <path d="M 0 50% L 100% 50%" strokeDasharray="10,10" />
@@ -37,40 +52,7 @@ const TechnicalBlueprint: React.FC<{ progress: number }> = ({ progress }) => (
     </div>
 );
 
-const VoidParticles: React.FC = () => (
-    <div className="absolute inset-0 pointer-events-none overflow-hidden z-10">
-        <style>{`
-            @keyframes float {
-                0% { transform: translateY(100vh) translateX(0); opacity: 0; }
-                50% { opacity: 0.5; }
-                100% { transform: translateY(-100px) translateX(20px); opacity: 0; }
-            }
-            .particle {
-                position: absolute;
-                background: white;
-                border-radius: 50%;
-                filter: blur(1px);
-                animation: float linear infinite;
-            }
-        `}</style>
-        {[...Array(30)].map((_, i) => (
-            <div 
-                key={i} 
-                className="particle"
-                style={{
-                    width: `${Math.random() * 4 + 1}px`,
-                    height: `${Math.random() * 4 + 1}px`,
-                    left: `${Math.random() * 100}%`,
-                    animationDuration: `${Math.random() * 5 + 5}s`,
-                    animationDelay: `${Math.random() * 5}s`,
-                    opacity: Math.random() * 0.4
-                }}
-            />
-        ))}
-    </div>
-);
-
-const SplashScreen: React.FC<SplashScreenProps> = ({ onEnterFeeds, onEnterArcade, isDecoding, onReset }) => {
+const SplashScreen: React.FC<SplashScreenProps> = ({ theme, onEnterFeeds, onEnterArcade, onToggleTheme, isDecoding, onReset }) => {
     const [loadingProgress, setLoadingProgress] = useState(0);
     const [currentMessage, setCurrentMessage] = useState(BOOT_MESSAGES[0]);
     const [isBootComplete, setIsBootComplete] = useState(false);
@@ -79,28 +61,17 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onEnterFeeds, onEnterArcade
     const lastPingRef = useRef(0);
     const mainButtonRef = useRef<HTMLButtonElement>(null);
 
-    // Snap focus for Android TV Remotes
-    useEffect(() => {
-        if (isBootComplete && breached && mainButtonRef.current) {
-            mainButtonRef.current.focus();
-        }
-    }, [isBootComplete, breached]);
+    const themeMeta = THEME_VERSIONS[theme];
 
     useEffect(() => {
-        const totalDuration = 4000;
-        const intervalTime = 30;
+        const totalDuration = 2000;
+        const intervalTime = 20;
         const startTime = Date.now();
 
         const timer = setInterval(() => {
             const elapsed = Date.now() - startTime;
             const progress = Math.min(100, (elapsed / totalDuration) * 100);
-
             setLoadingProgress(progress);
-
-            if (progress >= 95 && isDecoding && !isBootComplete) {
-                // Wait for decoding to finish if needed
-                return;
-            }
 
             if (progress >= 100) {
                 clearInterval(timer);
@@ -109,158 +80,111 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onEnterFeeds, onEnterArcade
                 setTimeout(() => setBreached(true), 200);
             }
 
-            const currentThresh = Math.floor(progress / 20);
-            if (currentThresh > lastPingRef.current) {
-                soundService.playBootPing(progress);
-                lastPingRef.current = currentThresh;
-            }
-
             const msgIndex = Math.floor((progress / 100) * BOOT_MESSAGES.length);
             setCurrentMessage(BOOT_MESSAGES[msgIndex] || BOOT_MESSAGES[BOOT_MESSAGES.length - 1]);
         }, intervalTime);
 
         return () => clearInterval(timer);
-    }, [isDecoding]);
-
-    const handleSystemWipe = () => {
-        if (onReset) {
-            onReset();
-            setShowWipeConfirm(false);
-        } else {
-            localStorage.clear();
-            const req = indexedDB.deleteDatabase('SeeMoreCache');
-            req.onsuccess = () => window.location.reload();
-            req.onerror = () => window.location.reload();
-            req.onblocked = () => window.location.reload();
-        }
-    };
+    }, []);
 
     return (
-        <div className={`fixed inset-0 z-[100] transition-all duration-[2000ms] flex flex-col items-center justify-center overflow-x-hidden overflow-y-auto font-mono scrollbar-hide pt-[calc(2rem+var(--safe-top))] pb-[calc(2rem+var(--safe-bottom))] px-6
-            ${breached ? 'bg-white shadow-[inset_0_0_200px_rgba(0,0,0,0.05)]' : 'bg-void-950'}`}>
+        <div className="fixed inset-0 z-[100] transition-all duration-[800ms] flex flex-col items-center justify-center overflow-hidden font-mono bg-app-bg text-app-text">
             
             <style>{`
-                @keyframes dimension-shift {
-                    0% { clip-path: circle(0% at 50% 50%); }
-                    100% { clip-path: circle(150% at 50% 50%); }
-                }
-                .dimension-breach {
-                    animation: dimension-shift 2.5s cubic-bezier(0.23, 1, 0.32, 1) forwards;
-                }
                 .glass-reveal {
-                    background: rgba(255, 255, 255, 0.3);
-                    backdrop-filter: blur(60px);
-                    -webkit-backdrop-filter: blur(60px);
-                    border: 1px solid rgba(255,255,255,0.8);
-                    box-shadow: 0 40px 100px rgba(0,0,0,0.1);
+                    background: var(--app-card);
+                    backdrop-filter: blur(${themeMeta.refraction});
+                    -webkit-backdrop-filter: blur(${themeMeta.refraction});
+                    border: 4px solid var(--comic-ink);
+                    box-shadow: var(--panel-shadow);
                     width: 100%;
-                    border-radius: 2.25rem;
+                    border-radius: var(--void-radius);
                 }
-                .neon-stroke-text {
-                    color: transparent;
-                    -webkit-text-stroke: 2px currentColor;
-                }
+                .theme-comic .glass-reveal { border-width: 6px; box-shadow: 12px 12px 0 #000; }
+                .theme-liquid-glass .glass-reveal { border: 1px solid rgba(255,255,255,1); }
             `}</style>
 
             {!breached && <TechnicalBlueprint progress={loadingProgress} />}
-            {breached && <VoidParticles />}
-            
-            <div className={`absolute inset-0 z-10 pointer-events-none transition-opacity duration-1000 ${breached ? 'opacity-0' : 'opacity-30 cctv-overlay'}`} />
             
             <div className={`relative z-20 w-full max-w-lg flex flex-col items-center text-center py-6 transition-all duration-1000 ${breached ? 'translate-y-0 scale-100' : 'translate-y-4 scale-95'}`}>
                 
                 <div className="mb-8 landscape:mb-4 group relative">
-                    <div className={`absolute inset-[-20px] blur-[40px] md:blur-[60px] transition-all duration-1000 rounded-full
-                        ${breached ? 'bg-blue-500 opacity-40' : 'bg-red-700 opacity-60'}`} />
+                    <div className="absolute inset-[-20px] blur-[40px] md:blur-[60px] transition-all duration-1000 rounded-full opacity-30" style={{ backgroundColor: 'var(--app-accent)' }} />
                     
-                    <div className={`relative p-8 md:p-10 rounded-full transition-all duration-1000 border-4
-                        ${breached 
-                            ? 'bg-white border-blue-500 shadow-[0_0_80px_rgba(37,99,235,0.5)]' 
-                            : 'bg-pulse-500 border-white/20 shadow-[0_0_60px_rgba(225,29,72,0.4)]'}`}>
-                        <VoidIcon className={`w-16 h-16 md:w-24 md:h-24 transition-colors duration-1000 ${breached ? 'text-blue-600' : 'text-white'}`} />
+                    <div className="relative p-10 rounded-full transition-all duration-1000 border-4 border-zinc-950 bg-app-card shadow-[10px_10px_0_black]">
+                        <VoidIcon className="w-16 h-16 md:w-24 md:h-24 transition-colors duration-1000 text-app-text" />
                     </div>
                 </div>
 
                 <div className="mb-8 landscape:mb-4 flex flex-col items-center">
-                    <h1 className={`text-5xl md:text-8xl font-black italic uppercase tracking-tighter mb-4 transition-colors duration-1000
-                        ${breached ? 'text-slate-900' : 'text-white'}`}>
+                    <h1 className="text-5xl md:text-8xl font-black italic uppercase tracking-tighter mb-4 transition-colors duration-1000 text-app-text drop-shadow-[6px_6px_0_black]">
                         THE VOID
                     </h1>
 
                     <div className="flex items-center justify-center gap-3">
-                        <div className={`h-px w-12 transition-colors duration-1000 ${breached ? 'bg-blue-500' : 'bg-pulse-500'}`}></div>
-                        <p className={`font-bold uppercase tracking-[0.6em] text-[8px] md:text-[10px] transition-colors duration-1000 ${breached ? 'text-blue-600' : 'text-pulse-500'}`}>CRYSTAL_OS v1.8.5</p>
-                        <div className={`h-px w-12 transition-colors duration-1000 ${breached ? 'bg-blue-500' : 'bg-pulse-500'}`}></div>
+                        <div className="h-1 w-12 bg-zinc-950 transition-colors duration-1000"></div>
+                        <p className="font-bold uppercase tracking-[0.6em] text-[8px] md:text-[10px] transition-colors duration-1000" style={{ color: 'var(--app-accent)' }}>
+                            {themeMeta.v}_{themeMeta.tag}
+                        </p>
+                        <div className="h-1 w-12 bg-zinc-950 transition-colors duration-1000"></div>
                     </div>
                 </div>
 
                 {!isBootComplete ? (
                     <div className="w-full space-y-4 landscape:space-y-2 max-w-[280px] mx-auto animate-fade-in">
-                        <div className="w-full h-1.5 bg-void-900 border border-white/10 rounded-full overflow-hidden p-0.5 shadow-inner">
+                        <div className="w-full h-4 bg-zinc-950 border-2 border-zinc-900 rounded-sm overflow-hidden p-1 shadow-inner">
                             <div 
-                                className="h-full bg-pulse-500 shadow-[0_0_15px_#e11d48]"
-                                style={{ width: `${loadingProgress}%`, transition: 'width 0.1s linear' }}
+                                className="h-full bg-app-accent transition-all duration-200"
+                                style={{ width: `${loadingProgress}%` }}
                             />
                         </div>
                         <div className="flex justify-between items-center text-[8px] font-black text-zinc-500 italic tracking-[0.2em]">
-                            <span className="truncate max-w-[80%]">{currentMessage}</span>
+                            <span className="truncate max-w-[80%] uppercase">{currentMessage}</span>
                             <span>{Math.floor(loadingProgress)}%</span>
                         </div>
                     </div>
                 ) : (
-                    <div className="w-full flex flex-col gap-5 landscape:gap-3 animate-fade-in max-w-md items-center">
-                        <div className="glass-reveal p-1 shadow-2xl overflow-hidden">
+                    <div className="w-full flex flex-col gap-6 landscape:gap-4 animate-fade-in max-w-md items-center main-content-area px-4">
+                        <div className="glass-reveal p-1 shadow-2xl overflow-hidden w-full transform -rotate-1">
                             <button 
                                 ref={mainButtonRef}
                                 onClick={onEnterFeeds}
-                                className="group relative w-full py-5 bg-slate-900 text-white font-black uppercase italic text-base rounded-[1.75rem] shadow-xl hover:translate-y-[-2px] transition-all active:scale-95 active:bg-blue-600 flex items-center justify-center gap-4 border border-white/10 focus:ring-4 focus:ring-blue-500 focus:bg-blue-700"
+                                className="group relative w-full py-6 bg-app-text text-app-bg font-black uppercase italic text-lg shadow-xl transition-all active:translate-x-1 active:translate-y-1 flex items-center justify-center gap-4 border-2 border-app-bg outline-none focus:ring-8 focus:ring-app-accent"
                             >
-                                <ListIcon className="w-6 h-6" />
+                                <ListIcon className="w-8 h-8" />
                                 <span>RECON_INTELLIGENCE</span>
                             </button>
                         </div>
                         
-                        <button 
-                            onClick={onEnterArcade}
-                            className="group w-full py-5 bg-white border-2 border-slate-200 text-slate-700 font-black uppercase italic text-base rounded-[1.75rem] hover:bg-slate-50 hover:text-slate-900 transition-all active:scale-95 flex items-center justify-center gap-4 shadow-sm focus:ring-4 focus:ring-slate-300 focus:bg-slate-100"
-                        >
-                            <ControllerIcon className="w-6 h-6" />
-                            <span>ARCADE_QUICK_ACCESS</span>
-                        </button>
-                        
-                        <button 
-                            onClick={() => setShowWipeConfirm(true)}
-                            className="mt-4 flex items-center justify-center gap-2 text-slate-300 hover:text-red-500 transition-colors py-1 uppercase text-[8px] font-black italic tracking-widest active:scale-95 focus:text-red-500 focus:outline-none"
-                        >
-                            <TrashIcon className="w-3 h-3" />
-                            <span>PURGE_STATION_CACHE</span>
-                        </button>
+                        <div className="glass-reveal p-1 shadow-2xl overflow-hidden w-full transform rotate-1">
+                            <button 
+                                onClick={onEnterArcade}
+                                className="group w-full py-6 bg-app-card border-2 border-zinc-950 text-app-text font-black uppercase italic text-lg hover:bg-app-bg transition-all active:translate-x-1 active:translate-y-1 flex items-center justify-center gap-4 outline-none focus:ring-8 focus:ring-app-accent"
+                            >
+                                <ControllerIcon className="w-8 h-8" />
+                                <span>ARCADE_QUICK_ACCESS</span>
+                            </button>
+                        </div>
                     </div>
                 )}
             </div>
 
-            {showWipeConfirm && (
-                <div className="fixed inset-0 z-[110] bg-black/95 backdrop-blur-md flex items-center justify-center p-6 animate-fade-in">
-                    <div className="bg-white border-2 border-white shadow-[0_30px_100px_rgba(0,0,0,0.2)] w-full max-w-sm relative overflow-hidden flex flex-col rounded-[2rem]">
-                        <header className="h-12 bg-slate-100 flex items-center justify-between px-4 border-b border-slate-200">
-                            <div className="flex items-center gap-3">
-                                <ExclamationTriangleIcon className="w-4 h-4 text-red-500" />
-                                <h2 className="text-slate-900 text-[10px] font-black uppercase tracking-[0.2em] italic">SYSTEM_PURGE.DAT</h2>
-                            </div>
-                            <button onClick={() => { soundService.playClick(); setShowWipeConfirm(false); }} className="text-slate-400 hover:text-slate-900">
-                                <XIcon className="w-5 h-5" />
-                            </button>
-                        </header>
-                        <div className="p-8 text-center space-y-6">
-                            <p className="text-xs text-slate-500 leading-relaxed uppercase font-bold tracking-tight px-4 italic">
-                                Operator, committing to a <span className="text-red-500">System Wipe</span> will permanently erase all crystalline cache data, discovered signals, and mission records.
-                            </p>
-                        </div>
-                        <footer className="p-5 flex gap-3 bg-slate-50 border-t border-slate-100">
-                            <button onClick={() => { soundService.playClick(); setShowWipeConfirm(false); }} className="flex-1 py-4 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase italic text-slate-400 focus:bg-slate-100">Abort</button>
-                            <button onClick={handleSystemWipe} className="flex-1 py-4 bg-red-500 text-white rounded-xl text-[10px] font-black uppercase italic shadow-lg active:scale-95 focus:bg-red-700">Confirm Purge</button>
-                        </footer>
-                    </div>
+            {isBootComplete && (
+                <div className="fixed bottom-0 left-0 right-0 p-8 md:p-12 pb-[calc(2.5rem+var(--safe-bottom))] flex justify-between items-center z-50 pointer-events-none">
+                    <button 
+                        onClick={onToggleTheme}
+                        className="footer-button group inline-flex items-center gap-3 text-zinc-500 hover:text-app-accent transition-all py-4 px-8 bg-app-card border-4 border-zinc-950 uppercase text-[10px] font-black italic tracking-widest active:translate-x-1 active:translate-y-1 outline-none focus:ring-8 focus:ring-app-accent pointer-events-auto shadow-[6px_6px_0_black] shrink-0"
+                    >
+                        <PaletteIcon className="w-5 h-5" />
+                    </button>
+                    
+                    <button 
+                        onClick={() => setShowWipeConfirm(true)}
+                        className="footer-button group inline-flex items-center justify-center gap-3 text-zinc-500 hover:text-red-500 transition-all py-4 px-8 bg-app-card border-4 border-zinc-950 uppercase text-[10px] font-black italic tracking-widest active:translate-x-1 active:translate-y-1 outline-none focus:ring-8 focus:ring-red-500 pointer-events-auto shadow-[6px_6px_0_black] shrink-0"
+                    >
+                        <TrashIcon className="w-5 h-5" />
+                        <span>PURGE</span>
+                    </button>
                 </div>
             )}
         </div>

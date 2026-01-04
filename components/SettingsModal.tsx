@@ -36,6 +36,7 @@ const THEME_PREVIEWS: { id: Theme; name: string; desc: string; colors: string }[
     { id: 'monochrome-zen', name: 'ZEN', desc: 'Low-stimulus focus.', colors: 'bg-teal-950 border-teal-500' },
     { id: 'y2k', name: 'Y2K', desc: 'Glossy retro-future.', colors: 'bg-cyan-500 border-yellow-300' },
     { id: 'terminal', name: 'TERMINAL', desc: 'DOS green phosphor.', colors: 'bg-black border-green-500' },
+    { id: 'comic', name: 'COMIC', desc: 'Ink-lined pop art.', colors: 'bg-[#fffceb] border-[#1a1a1a]' },
 ];
 
 const hiddenInputStyle: React.CSSProperties = { display: 'none' };

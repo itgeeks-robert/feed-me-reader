@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React, { useMemo } from 'react';
 import { ShieldCheckIcon, MusicIcon, CodeBracketIcon, ClockIcon, XIcon, RadioIcon, SparklesIcon, CpuChipIcon, BookmarkIcon, ContrastIcon, WandIcon, PaletteIcon, SkinsIcon, StyleIcon, GlobeAltIcon } from './icons';
 import ContextualIntel from './ContextualIntel';
 import { Theme } from '../src/App';
@@ -14,11 +13,19 @@ interface UtilityInfo {
     nodeId: string;
 }
 
-const ThemeIcon: React.FC<{ className?: string }> = ({ className }) => {
-    return <PaletteIcon className={className} />;
-};
-
 const UtilityHubPage: React.FC<{ onSelect: (id: string) => void; onBackToHub: () => void; theme: Theme; onToggleTheme: () => void }> = ({ onSelect, onBackToHub, theme, onToggleTheme }) => {
+    
+    const themeLabel = useMemo(() => {
+        switch(theme) {
+            case 'liquid-glass': return 'GLASS';
+            case 'bento-grid': return 'BENTO';
+            case 'monochrome-zen': return 'ZEN';
+            case 'claymorphism': return 'CLAY';
+            case 'brutalist': return 'BRUTAL';
+            default: return theme.toUpperCase();
+        }
+    }, [theme]);
+
     const utils: UtilityInfo[] = [
         {
             id: 'signal_streamer',
@@ -82,10 +89,11 @@ const UtilityHubPage: React.FC<{ onSelect: (id: string) => void; onBackToHub: ()
                         </div>
                     </div>
                     <div className="flex items-center gap-3 md:gap-4 shrink-0">
-                        <button onClick={onToggleTheme} className="p-3 md:p-4 bg-void-surface rounded-2xl text-muted border border-void-border active:scale-90 transition-transform hover:text-pulse-500 shadow-xl">
-                            <ThemeIcon className="w-5 h-5 md:w-7 md:h-7" />
+                        <button onClick={onToggleTheme} className="flex items-center gap-3 p-3 md:p-4 bg-void-surface rounded-2xl text-muted border border-void-border active:scale-90 transition-transform hover:text-pulse-500 shadow-xl focus:ring-4 focus:ring-pulse-500 outline-none">
+                            <PaletteIcon className="w-5 h-5 md:w-7 md:h-7" />
+                            <span className="text-xs font-black uppercase italic tracking-widest hidden sm:inline">{themeLabel}</span>
                         </button>
-                        <button onClick={onBackToHub} className="group p-3 md:p-4 bg-void-surface border-2 border-void-border rounded-void text-muted hover:text-terminal hover:border-pulse-500 transition-all active:scale-90 shadow-xl flex items-center justify-center gap-3">
+                        <button onClick={onBackToHub} className="group p-3 md:p-4 bg-void-surface border-2 border-void-border rounded-void text-muted hover:text-terminal hover:border-pulse-500 transition-all active:scale-90 shadow-xl flex items-center justify-center gap-3 outline-none focus:ring-4 focus:ring-terminal">
                             <span className="text-[9px] font-black uppercase tracking-widest hidden sm:block">Close_Console</span>
                             <XIcon className="w-5 h-5 md:w-7 md:h-7" />
                         </button>

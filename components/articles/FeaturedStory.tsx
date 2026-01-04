@@ -21,7 +21,7 @@ const CCTVMonitor: React.FC<{ src: string | null; label: string; headline: strin
     const activeSrc = src || reconstructedSrc;
 
     return (
-        <div className="relative w-full h-full bg-black overflow-hidden group/monitor">
+        <div className="relative w-full h-full bg-black overflow-hidden group/monitor image-halftone-overlay">
             <div className="absolute inset-0 z-0">
                 <ImageWithProxy
                     src={activeSrc}
@@ -61,30 +61,30 @@ const FeaturedStory: React.FC<{article: Article; onReadHere: () => void; onReadE
         <div className="relative group/wrapper mb-8">
             <button 
                 onClick={onReadHere}
-                className={`w-full text-left group relative grid grid-cols-1 lg:grid-cols-[1.5fr,1fr] bg-black border border-white/10 overflow-hidden min-h-[450px] md:min-h-[500px] transition-all duration-500 hover:border-white/30 hover:shadow-[0_0_40px_rgba(255,255,255,0.05)] focus:ring-4 focus:ring-pulse-500 rounded-void shadow-[0_20px_60px_rgba(0,0,0,0.8)] outline-none ${isRead ? 'opacity-40' : ''}`}
+                className={`w-full text-left group relative grid grid-cols-1 lg:grid-cols-[1.5fr,1fr] bg-app-card border border-app-border overflow-hidden min-h-[450px] md:min-h-[500px] transition-all duration-500 hover:border-app-accent hover:shadow-[0_20px_60px_rgba(0,0,0,0.1)] focus:ring-4 focus:ring-pulse-500 rounded-void shadow-[0_20px_40px_rgba(0,0,0,0.4)] outline-none ${isRead ? 'opacity-40' : ''}`}
             >
-                <div className="h-64 sm:h-96 lg:h-auto border-b lg:border-b-0 lg:border-r border-white/10 pointer-events-none">
+                <div className="h-64 sm:h-96 lg:h-auto border-b lg:border-b-0 lg:border-r border-app-border pointer-events-none">
                     <CCTVMonitor src={article.imageUrl} label={article.source} headline={article.title} url={article.link} />
                 </div>
 
-                <div className="relative p-6 md:p-12 flex flex-col justify-center bg-zinc-950 pointer-events-none">
+                <div className="relative p-6 md:p-12 flex flex-col justify-center bg-app-card pointer-events-none">
                     <div className="flex items-center gap-3 mb-6">
                         <span className="bg-pulse-600 text-white text-[8px] font-black px-2 py-0.5 uppercase tracking-widest italic rounded-sm">BREAKING_INTEL</span>
-                        <span className="text-zinc-500 text-[8px] font-black uppercase tracking-widest truncate">{article.source}</span>
+                        <span className="text-muted text-[8px] font-black uppercase tracking-widest truncate">{article.source}</span>
                     </div>
                     
-                    <h1 className="text-2xl md:text-5xl font-black italic uppercase tracking-tighter mb-8 leading-[0.95] line-clamp-4 text-white group-hover:text-pulse-400 transition-colors drop-shadow-md">
+                    <h1 className="text-2xl md:text-5xl font-black italic uppercase tracking-tighter mb-8 leading-[0.95] line-clamp-4 text-app-text group-hover:text-pulse-400 transition-colors drop-shadow-md">
                         {article.title}
                     </h1>
                     
-                    <p className="text-sm md:text-base text-zinc-400 line-clamp-3 mb-10 leading-relaxed uppercase tracking-tight italic border-l border-zinc-800 pl-6">
+                    <p className="text-sm md:text-base text-muted line-clamp-3 mb-10 leading-relaxed uppercase tracking-tight italic border-l border-app-border pl-6">
                         {article.snippet}
                     </p>
                     
                     <div className="mt-auto">
-                        <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-sm">
+                        <div className="inline-flex items-center gap-2 px-4 py-2 bg-app-text/5 border border-app-border rounded-sm">
                             <BoltIcon className="w-4 h-4 text-pulse-500" />
-                            <span className="text-[10px] font-black uppercase text-white/50 tracking-widest italic">TAP_TO_DECODE</span>
+                            <span className="text-[10px] font-black uppercase text-app-text/50 tracking-widest italic">TAP_TO_DECODE</span>
                         </div>
                     </div>
                 </div>
@@ -92,7 +92,7 @@ const FeaturedStory: React.FC<{article: Article; onReadHere: () => void; onReadE
             
             <button 
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); onReadExternal(); }}
-                className="absolute -bottom-6 right-2 text-[8px] font-black uppercase tracking-[0.3em] text-zinc-600 hover:text-white transition-colors italic z-20 focus:text-white outline-none"
+                className="absolute -bottom-6 right-2 text-[8px] font-black uppercase tracking-[0.3em] text-muted hover:text-app-text transition-colors italic z-20 focus:text-app-text outline-none"
             >
                 Access_Raw_Data_Stream_0x{article.id.substring(0,4)}
             </button>

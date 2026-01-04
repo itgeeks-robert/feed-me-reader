@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { XIcon, SparklesIcon, ShieldCheckIcon } from './icons';
 
 interface ContextualIntelProps {
@@ -14,6 +13,7 @@ const ContextualIntel: React.FC<ContextualIntelProps> = ({ tipId, title, content
     const [isVisible, setIsVisible] = useState(false);
     const [dontShowAgain, setDontShowAgain] = useState(false);
     const storageKey = `void_intel_dismissed_${tipId}`;
+    const checkboxRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         const isDismissed = localStorage.getItem(storageKey);
@@ -22,6 +22,16 @@ const ContextualIntel: React.FC<ContextualIntelProps> = ({ tipId, title, content
             return () => clearTimeout(timer);
         }
     }, [storageKey]);
+
+    // Focus Trap for TV/D-Pad
+    useLayoutEffect(() => {
+        if (isVisible) {
+            const timer = setTimeout(() => {
+                checkboxRef.current?.focus();
+            }, 300);
+            return () => clearTimeout(timer);
+        }
+    }, [isVisible]);
 
     const handleClose = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -36,7 +46,7 @@ const ContextualIntel: React.FC<ContextualIntelProps> = ({ tipId, title, content
 
     return (
         <div 
-            className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm animate-fade-in pointer-events-auto"
+            className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm animate-fade-in pointer-events-auto"
             onClick={(e) => e.stopPropagation()}
         >
             <div className="void-card w-full max-w-sm relative overflow-hidden group shadow-[0_30px_100px_rgba(0,0,0,0.8)] border-2 border-pulse-500/30">
@@ -64,10 +74,11 @@ const ContextualIntel: React.FC<ContextualIntelProps> = ({ tipId, title, content
 
                 <footer className="p-5 pt-0 relative z-10 space-y-4">
                     <label 
-                        className="flex items-center gap-3 cursor-pointer group/check"
+                        className="flex items-center gap-3 cursor-pointer group/check outline-none"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <input 
+                            ref={checkboxRef}
                             type="checkbox" 
                             className="sr-only" 
                             checked={dontShowAgain} 
@@ -81,7 +92,7 @@ const ContextualIntel: React.FC<ContextualIntelProps> = ({ tipId, title, content
 
                     <button 
                         onClick={handleClose}
-                        className="w-full py-4 bg-terminal text-inverse text-[10px] font-black uppercase italic rounded-xl transition-all shadow-xl active:scale-95"
+                        className="w-full py-4 bg-terminal text-inverse text-[10px] font-black uppercase italic rounded-xl transition-all shadow-xl active:scale-95 focus:ring-4 focus:ring-pulse-500 outline-none"
                     >
                         Acknowledge Protocol
                     </button>

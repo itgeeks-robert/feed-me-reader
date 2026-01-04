@@ -37,9 +37,9 @@ const MagazineArticleListItem: React.FC<MagazineArticleListItemProps> = ({ artic
         <div className="relative group/wrapper pb-6">
             <button 
                 onClick={onReadHere}
-                className={`w-full text-left group relative flex flex-col bg-zinc-900 border border-white/5 overflow-hidden h-full transition-all duration-300 hover:bg-zinc-800/80 hover:border-white/20 hover:shadow-xl focus:ring-4 focus:ring-pulse-500 rounded-sm outline-none ${isRead ? 'opacity-30' : ''}`}
+                className={`w-full text-left group relative flex flex-col bg-app-card border border-app-border overflow-hidden h-full transition-all duration-300 hover:shadow-xl focus:ring-4 focus:ring-pulse-500 rounded-sm outline-none ${isRead ? 'opacity-30' : ''}`}
             >
-                <div className="relative aspect-[16/10] w-full overflow-hidden border-b border-white/5 bg-black shrink-0 pointer-events-none">
+                <div className="relative aspect-[16/10] w-full overflow-hidden border-b border-app-border shrink-0 pointer-events-none image-halftone-overlay bg-black">
                     <ImageWithProxy
                         src={activeSrc}
                         alt=""
@@ -59,15 +59,15 @@ const MagazineArticleListItem: React.FC<MagazineArticleListItemProps> = ({ artic
                         <span className="text-[8px] font-black text-pulse-500 uppercase tracking-widest italic">{article.source}</span>
                     </div>
                     
-                    <h3 className="font-black text-white italic uppercase tracking-tighter line-clamp-3 leading-[1.05] mb-4 text-base md:text-lg group-hover:text-pulse-400 transition-colors">
+                    <h3 className="font-black text-app-text italic uppercase tracking-tighter line-clamp-3 leading-[1.05] mb-4 text-base md:text-lg group-hover:text-pulse-400 transition-colors">
                         {article.title}
                     </h3>
                     
-                    <div className="mt-auto pt-4 border-t border-white/5 flex items-center justify-between">
-                        <span className="text-[8px] font-mono font-black text-zinc-500 uppercase tracking-widest">{timeAgo(article.publishedDate)}</span>
+                    <div className="mt-auto pt-4 border-t border-app-border flex items-center justify-between">
+                        <span className="text-[8px] font-mono font-black text-muted uppercase tracking-widest">{timeAgo(article.publishedDate)}</span>
                         <div className="flex items-center gap-1.5 opacity-40 group-hover:opacity-100 transition-opacity">
                             <div className="w-1 h-1 rounded-full bg-pulse-500 animate-pulse" />
-                            <span className="text-[7px] font-black text-white/50 uppercase italic tracking-widest">DECODE</span>
+                            <span className="text-[7px] font-black text-app-text/50 uppercase italic tracking-widest">DECODE</span>
                         </div>
                     </div>
                 </div>
@@ -75,7 +75,7 @@ const MagazineArticleListItem: React.FC<MagazineArticleListItemProps> = ({ artic
             
             <button 
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); onReadExternal(); }}
-                className="absolute bottom-0 right-1 text-[7px] font-black uppercase tracking-[0.2em] text-zinc-700 hover:text-white transition-colors italic z-20 focus:text-white outline-none"
+                className="absolute bottom-0 right-1 text-[7px] font-black uppercase tracking-[0.2em] text-muted hover:text-app-text transition-colors italic z-20 focus:text-app-text outline-none"
             >
                 Raw_Dat_0x{article.id.substring(0,4)}
             </button>

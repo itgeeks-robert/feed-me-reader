@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { WalkieTalkieIcon, ControllerIcon, RadioIcon, EntityIcon, KeypadIcon, SparklesIcon, XIcon, ListIcon, CpuChipIcon, BoltIcon, StarIcon, ContrastIcon, WandIcon, PaletteIcon, SkinsIcon, StyleIcon, GlobeAltIcon } from './icons';
+import { WalkieTalkieIcon, ControllerIcon, RadioIcon, EntityIcon, KeypadIcon, SparklesIcon, XIcon, ListIcon, CpuChipIcon, BoltIcon, StarIcon, PaletteIcon } from './icons';
 import { getHighScores, ScoreCategory } from '../services/highScoresService';
 import ContextualIntel from './ContextualIntel';
 import { Theme } from '../src/App';
@@ -20,79 +20,6 @@ interface GameInfo {
     glowColor: string;
 }
 
-const ThemeIcon: React.FC<{ className?: string }> = ({ className }) => {
-    return <PaletteIcon className={className} />;
-};
-
-const CabinetGraphicPattern: React.FC<{ type: string; color: string }> = ({ type, color }) => {
-    switch (type) {
-        case 'gyro':
-            return (
-                <div className="absolute inset-0 overflow-hidden">
-                    {[...Array(5)].map((_, i) => (
-                        <div key={i} className="absolute w-[150%] h-4 -rotate-12 blur-[1px]" 
-                             style={{ backgroundColor: color, opacity: 0.25, top: `${20 * i}%`, left: '-25%', boxShadow: `0 0 20px ${color}` }} />
-                    ))}
-                    <div className="absolute inset-0 opacity-10" style={{ backgroundImage: `repeating-linear-gradient(90deg, ${color}, ${color} 1px, transparent 1px, transparent 10px)` }} />
-                </div>
-            );
-        case 'connections':
-            return (
-                <div className="absolute inset-0 overflow-hidden opacity-30">
-                    <div className="absolute inset-0" style={{ backgroundImage: `radial-gradient(circle at 2px 2px, ${color} 2px, transparent 0)`, backgroundSize: '16px 16px' }} />
-                </div>
-            );
-        case 'wordle':
-            return (
-                <div className="absolute inset-0 flex justify-around opacity-30">
-                    {[...Array(8)].map((_, i) => (
-                        <div key={i} className="w-1.5 h-full blur-[1px]" style={{ backgroundColor: color, boxShadow: `0 0 10px ${color}` }} />
-                    ))}
-                </div>
-            );
-        case 'hangman':
-            return (
-                <div className="absolute inset-0 opacity-40" style={{ backgroundImage: `repeating-linear-gradient(45deg, ${color}, ${color} 15px, transparent 15px, transparent 30px)` }}>
-                    <div className="absolute inset-0 bg-black/20" />
-                </div>
-            );
-        default:
-            return <div className="absolute inset-0 opacity-10 bg-white/10" />;
-    }
-};
-
-const GameBoardCCTV: React.FC<{ type: string }> = ({ type }) => {
-    const renderBoard = () => {
-        switch (type) {
-            case 'sudoku':
-                return (
-                    <div className="grid grid-cols-3 grid-rows-3 gap-0.5 w-12 h-12 border border-white/20">
-                        {[...Array(9)].map((_, i) => (
-                            <div key={i} className="border border-white/10 flex items-center justify-center text-[5px] font-black text-emerald-500">{i + 1}</div>
-                        ))}
-                    </div>
-                );
-            case 'tetris':
-                return (
-                    <div className="w-10 h-14 border border-white/20 relative">
-                        <div className="absolute bottom-0 left-0 w-3 h-3 bg-white/80" />
-                        <div className="absolute bottom-0 left-3 w-3 h-3 bg-white/80" />
-                        <div className="absolute bottom-3 left-1.5 w-3 h-3 bg-white/80" />
-                    </div>
-                );
-            default:
-                return <ControllerIcon className="w-8 h-8 opacity-40 text-emerald-500" />;
-        }
-    };
-
-    return (
-        <div className="relative p-1.5 bg-black border-2 border-zinc-700 shadow-[inset_0_0_20px_rgba(0,255,0,0.2)]">
-            {renderBoard()}
-            <div className="absolute inset-0 bg-[repeating-linear-gradient(0deg,transparent,transparent_2px,rgba(34,197,94,0.1)_2px,rgba(34,197,94,0.1)_4px)] pointer-events-none" />
-        </div>
-    );
-};
-
 const CabinetPoster: React.FC<{ 
     game: GameInfo; 
     onPlay: () => void; 
@@ -100,67 +27,37 @@ const CabinetPoster: React.FC<{
     onToggleFavorite: (id: string) => void; 
 }> = ({ game, onPlay, isFavorite, onToggleFavorite }) => {
     return (
-        <div className="relative group aspect-[2/3] sm:aspect-[3/4] transition-all duration-300">
-            <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-4/5 h-8 opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-2xl" 
-                 style={{ backgroundColor: game.accentColor }} />
-
+        <div className="relative group cabinet-poster aspect-[2/3] sm:aspect-[3/4]">
             <button 
                 onClick={onPlay}
-                onKeyDown={(e) => {
-                    if(e.key === 'ArrowUp') {
-                        // Attempt to move back to hub header if at the top of the grid
-                        const posters = document.querySelectorAll('.cabinet-grid button');
-                        const index = Array.from(posters).indexOf(e.currentTarget);
-                        if (index < 5) { // Assuming 5 columns
-                            e.preventDefault();
-                            (document.querySelector('header button') as HTMLElement)?.focus();
-                        }
-                    }
-                }}
-                className="w-full h-full text-left relative bg-zinc-900 border-[3px] border-void-border rounded-void overflow-hidden shadow-2xl transition-all duration-500 outline-none focus:ring-8 focus:ring-pulse-500 focus:scale-105 hover:scale-105 hover:z-10 group"
+                className="w-full h-full text-left relative bg-zinc-900 border-[3px] border-void-border overflow-hidden shadow-2xl transition-all duration-300 outline-none focus:ring-8 focus:ring-pulse-500 hover:z-10 flex flex-col"
             >
-                <div className={`absolute inset-0 ${game.artStyle} opacity-90 group-hover:opacity-100 transition-opacity`}>
-                    <CabinetGraphicPattern type={game.gameType} color={game.accentColor} />
-                    
-                    <div className="absolute -right-6 -bottom-6 opacity-20 group-hover:opacity-40 transition-opacity pointer-events-none">
+                <div className={`relative flex-grow ${game.artStyle} opacity-90 group-hover:opacity-100 transition-opacity overflow-hidden image-halftone-overlay`}>
+                    <div className="absolute -right-4 -bottom-4 opacity-20 group-hover:opacity-40 transition-opacity pointer-events-none">
                          {React.cloneElement(game.icon, { className: "w-40 h-40 md:w-56 md:h-56" })}
                     </div>
-
+                    
                     <div className="absolute top-4 left-4 z-20">
-                         <div className="relative p-1 bg-black border-[2px] border-white/10 rounded-sm shadow-2xl">
-                            <GameBoardCCTV type={game.gameType} />
-                         </div>
-                    </div>
-                </div>
-
-                <div className="absolute bottom-0 left-0 right-0 p-4 md:p-6 bg-black/90 backdrop-blur-md border-t border-white/5">
-                    <div className="mb-2">
-                         <span className="text-[7px] md:text-[8px] font-black text-white px-2 py-0.5 rounded-sm uppercase tracking-widest shadow-lg" style={{ backgroundColor: game.accentColor }}>
+                         <span className="text-[7px] md:text-[9px] font-black text-white px-2 py-1 rounded-sm uppercase tracking-[0.2em] shadow-xl" style={{ backgroundColor: game.accentColor }}>
                             {game.protocol}
                         </span>
                     </div>
-                    
-                    <h3 className="text-sm sm:text-xl font-black text-white italic uppercase tracking-tighter leading-none mb-2 line-clamp-1">
-                        {game.title}
-                    </h3>
-                    
-                    <div className="flex flex-col gap-0.5">
-                        <span className="text-[6px] md:text-[8px] font-black text-zinc-500 uppercase tracking-widest italic">
-                            Inspired by
-                        </span>
-                        <span className="text-[7px] md:text-[9px] font-black text-zinc-300 uppercase tracking-tighter truncate">
-                            {game.inspiredBy}
-                        </span>
-                    </div>
                 </div>
 
-                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10 pointer-events-none mix-blend-overlay" />
+                <div className="p-4 md:p-6 bg-app-card border-t-4 border-zinc-950">
+                    <h3 className="text-base sm:text-xl font-black text-app-text italic uppercase tracking-tighter leading-none mb-1 line-clamp-1">
+                        {game.title}
+                    </h3>
+                    <p className="text-[8px] font-black text-zinc-500 uppercase tracking-widest italic truncate opacity-60">
+                        {game.description}
+                    </p>
+                </div>
             </button>
 
             <button 
                 onClick={(e) => { e.stopPropagation(); onToggleFavorite(game.id); }}
-                className={`absolute top-3 right-3 p-2 rounded-full backdrop-blur-xl transition-all z-30 active:scale-75 shadow-2xl outline-none focus:ring-4 focus:ring-yellow-400
-                    ${isFavorite ? 'bg-yellow-500 text-black border-2 border-white' : 'bg-black/60 text-zinc-400 hover:text-white border border-white/10'}`}
+                className={`absolute top-2 right-2 p-2 rounded-full backdrop-blur-xl transition-all z-30 active:scale-75 shadow-lg
+                    ${isFavorite ? 'bg-yellow-500 text-black border-2 border-white' : 'bg-black/40 text-zinc-400 hover:text-white border border-white/10'}`}
             >
                 <StarIcon className="w-4 h-4" filled={isFavorite} />
             </button>
@@ -170,6 +67,17 @@ const CabinetPoster: React.FC<{
 
 const GameHubPage: React.FC<any> = (props) => {
     const { onSelect, favoriteGameIds, onToggleFavorite, theme, onToggleTheme } = props;
+
+    const themeLabel = useMemo(() => {
+        switch(theme) {
+            case 'liquid-glass': return 'GLASS';
+            case 'bento-grid': return 'BENTO';
+            case 'monochrome-zen': return 'ZEN';
+            case 'claymorphism': return 'CLAY';
+            case 'brutalist': return 'BRUTAL';
+            default: return theme.toUpperCase();
+        }
+    }, [theme]);
 
     const games: GameInfo[] = [
         { 
@@ -249,45 +157,35 @@ const GameHubPage: React.FC<any> = (props) => {
             <ContextualIntel 
                 tipId="arcade_intel" 
                 title="The Void Arcade" 
-                content="Engage with technical simulations to maintain neural sync. Use favorites to pin your most frequent nodes for rapid access." 
+                content="Engage with technical simulations to maintain neural sync. In Comic mode, look for the skewed panels representing your active session blocks." 
             />
             
-            <div className="fixed inset-0 pointer-events-none opacity-[0.05]" style={{ backgroundImage: 'linear-gradient(var(--void-text-main) 1px, transparent 1px), linear-gradient(90deg, var(--void-text-main) 1px, transparent 1px)', backgroundSize: '80px 80px' }} />
-            <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(circle_at_50%_120%,var(--void-accent-deep)_0%,transparent_70%)] opacity-20" />
-
             <div className="max-w-7xl mx-auto relative z-10">
-                <header className="mb-8 md:mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6 border-b-4 border-void-border pb-8 md:pb-10">
+                <header className="mb-12 md:mb-16 flex flex-col md:flex-row md:items-end justify-between gap-6 border-b-8 border-zinc-950 pb-8 md:pb-10">
                     <div className="flex items-center gap-6 md:gap-8">
-                        <div className="p-3 md:p-4 bg-pulse-500 border-2 border-white/20 shadow-2xl rotate-3 rounded-void">
-                            <ControllerIcon className="w-8 h-8 md:w-10 md:h-10 text-white" />
+                        <div className="p-3 md:p-4 bg-pulse-500 border-4 border-zinc-950 shadow-[8px_8px_0_black] -rotate-3">
+                            <ControllerIcon className="w-8 h-8 md:w-12 md:h-12 text-white" />
                         </div>
                         <div>
-                            <h1 className="text-3xl md:text-7xl font-black text-terminal tracking-tighter uppercase italic leading-none drop-shadow-md">VOID_ARCADE</h1>
-                            <div className="flex items-center gap-3 md:gap-4 mt-2 md:mt-4">
-                                <span className="text-pulse-500 font-black uppercase text-[9px] md:text-sm bg-void-surface px-3 py-1 rounded-sm border border-void-border">Unit_Selection</span>
+                            <h1 className="text-4xl md:text-8xl font-black text-app-text tracking-tighter uppercase italic leading-none drop-shadow-[4px_4px_0_rgba(0,0,0,0.2)]">VOID_ARCADE</h1>
+                            <div className="flex items-center gap-3 mt-4">
+                                <span className="bg-app-accent text-white font-black uppercase text-[10px] md:text-sm px-4 py-1 italic tracking-widest shadow-[4px_4px_0_black]">Simulation_Active</span>
                             </div>
                         </div>
                     </div>
                     
-                    <div className="flex items-center gap-3 md:gap-4">
-                        <button 
-                            onClick={onToggleTheme} 
-                            onKeyDown={(e) => { if(e.key === 'ArrowDown') { e.preventDefault(); (document.querySelector('.cabinet-grid button') as HTMLElement)?.focus(); } }}
-                            className="p-3 bg-void-surface rounded-2xl text-muted border border-void-border active:scale-90 transition-transform hover:text-pulse-500 shadow-xl focus:ring-4 focus:ring-pulse-500 outline-none"
-                        >
-                            <ThemeIcon className="w-6 h-6" />
+                    <div className="flex items-center gap-4">
+                        <button onClick={onToggleTheme} className="flex items-center gap-3 p-4 bg-app-card border-4 border-zinc-950 rounded-2xl text-zinc-500 hover:text-app-accent shadow-[6px_6px_0_black] active:translate-x-1 active:translate-y-1 transition-all focus:ring-4 focus:ring-pulse-500 outline-none">
+                            <PaletteIcon className="w-6 h-6 md:w-8 md:h-8" />
+                            <span className="text-xs font-black uppercase italic tracking-widest hidden sm:inline">{themeLabel}</span>
                         </button>
-                        <button 
-                            onClick={props.onReturnToFeeds} 
-                            onKeyDown={(e) => { if(e.key === 'ArrowDown') { e.preventDefault(); (document.querySelector('.cabinet-grid button') as HTMLElement)?.focus(); } }}
-                            className="px-8 py-3 bg-terminal text-inverse text-xs font-black uppercase italic tracking-widest hover:bg-pulse-500 hover:text-white transition-all shadow-xl rounded-void border border-void-border focus:ring-4 focus:ring-pulse-500 outline-none"
-                        >
+                        <button onClick={props.onReturnToFeeds} className="px-10 py-4 bg-app-text text-app-bg text-sm font-black uppercase italic tracking-widest hover:bg-app-accent hover:text-white transition-all shadow-[8px_8px_0_black] active:translate-x-1 active:translate-y-1 focus:ring-4 focus:ring-pulse-500 outline-none">
                             Exit
                         </button>
                     </div>
                 </header>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-10 pb-40 cabinet-grid">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-8 md:gap-12 pb-40 cabinet-grid">
                     {sortedGames.map(game => (
                         <CabinetPoster 
                             key={game.id} 

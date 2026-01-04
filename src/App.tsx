@@ -25,7 +25,7 @@ import OrientationGuard from '../components/OrientationGuard';
 import { resilientFetch } from '../services/fetch';
 import { parseRssXml } from '../services/rssParser';
 import { useLocalStorage } from '../hooks/useLocalStorage';
-import { GlobeAltIcon, RadioIcon, XIcon, SearchIcon, VoidIcon, ControllerIcon, CpuChipIcon, MenuIcon, BoltIcon, ShieldCheckIcon } from '../components/icons';
+import { GlobeAltIcon, RadioIcon, XIcon, SearchIcon, VoidIcon, ControllerIcon, CpuChipIcon, MenuIcon, BoltIcon, ShieldCheckIcon, PaletteIcon } from '../components/icons';
 import { soundService } from '../services/soundService';
 import SettingsModal from '../components/SettingsModal';
 
@@ -38,7 +38,7 @@ export interface SudokuStats { totalWins: number; }
 export interface SolitaireStats { gamesWon: number; currentStreak: number; }
 export interface SolitaireSettings { drawThree: boolean; }
 
-export type Theme = 'noir' | 'liquid-glass' | 'bento-grid' | 'brutalist' | 'claymorphism' | 'monochrome-zen' | 'y2k' | 'terminal';
+export type Theme = 'noir' | 'liquid-glass' | 'bento-grid' | 'brutalist' | 'claymorphism' | 'monochrome-zen' | 'y2k' | 'terminal' | 'comic';
 
 export type Selection = { 
     type: 'splash' | 'all' | 'folder' | 'bookmarks' | 'search' | 'feed' | 'reddit' | 'game_hub' | 'daily_uplink' | 'grid_reset' | 'deep_sync' | 'signal_scrambler' | 'utility_hub' | 'signal_streamer' | 'surveillance_radar' | 'transcoder' | 'base64_converter' | 'sudoku' | 'solitaire' | 'minesweeper' | 'tetris' | 'pool' | 'cipher_core' | 'void_runner' | 'synapse_link' | 'hangman' | 'neon_signal'; 
@@ -62,6 +62,7 @@ const UPTIME_KEY = `void_uptime_${GUEST_USER_ID}`;
 const SELECTION_KEY = `void_selection_${GUEST_USER_ID}`;
 const FAV_GAMES_KEY = `void_fav_games_${GUEST_USER_ID}`;
 const AMBIENT_SOUND_KEY = `void_ambient_sound_${GUEST_USER_ID}`;
+const TV_MODE_KEY = `void_tv_mode_${GUEST_USER_ID}`;
 
 const FALLBACK_WORD = "FABLE";
 const SECTOR_LIMIT = 7;
@@ -82,6 +83,7 @@ const App: React.FC = () => {
     const [bookmarkedArticleIds, setBookmarkedArticleIds] = useLocalStorage<Set<string>>(BOOKMARKED_ARTICLES_KEY, () => new Set());
     const [favoriteGameIds, setFavoriteGameIds] = useLocalStorage<Set<string>>(FAV_GAMES_KEY, () => new Set());
     const [ambientEnabled, setAmbientEnabled] = useLocalStorage<boolean>(AMBIENT_SOUND_KEY, false);
+    const [tvMode, setTvMode] = useLocalStorage<boolean>(TV_MODE_KEY, true);
     
     const [uptime, setUptime] = useLocalStorage<number>(UPTIME_KEY, 25);
     const [selection, setSelection] = useLocalStorage<Selection>(SELECTION_KEY, { type: 'splash', id: null });
@@ -99,47 +101,130 @@ const App: React.FC = () => {
         loading: true
     });
 
-    // --- TV SPATIAL NAVIGATION BRIDGE ---
+    const themeLabel = useMemo(() => {
+        switch(theme) {
+            case 'liquid-glass': return 'GLASS';
+            case 'bento-grid': return 'BENTO';
+            case 'monochrome-zen': return 'ZEN';
+            case 'claymorphism': return 'CLAY';
+            case 'brutalist': return 'BRUTAL';
+            default: return theme.toUpperCase();
+        }
+    }, [theme]);
+
+    // --- REFINED SPATIAL NAVIGATION ENGINE (BALANCED ROW ROUTING) ---
+    useEffect(() => {
+        if (!tvMode) return;
+
+        const handleGlobalKeyDown = (e: KeyboardEvent) => {
+            const activeElement = document.activeElement as HTMLElement;
+            
+            if (activeElement?.tagName === 'INPUT' || activeElement?.tagName === 'TEXTAREA') {
+                 if (e.key === 'Escape' || e.key === 'Enter') {
+                     activeElement.blur();
+                     soundService.playPop();
+                 }
+                 return; 
+            }
+            
+            const key = e.key.toUpperCase();
+            const directionMap: Record<string, string> = {
+                'W': 'ArrowUp', 'S': 'ArrowDown', 'A': 'ArrowLeft', 'D': 'ArrowRight',
+                'ARROWUP': 'ArrowUp', 'ARROWDOWN': 'ArrowDown', 'ARROWLEFT': 'ArrowLeft', 'ARROWRIGHT': 'ArrowRight'
+            };
+
+            const mappedKey = directionMap[key];
+            if (!mappedKey) return;
+
+            e.preventDefault();
+
+            const current = document.activeElement as HTMLElement;
+            const focusable = Array.from(document.querySelectorAll('button:not([disabled]), a, input, [tabindex="0"]')) as HTMLElement[];
+            
+            if (!current || current === document.body) {
+                const first = focusable[0];
+                if (first) first.focus();
+                return;
+            }
+
+            const rect = current.getBoundingClientRect();
+            const cx = rect.left + rect.width / 2;
+            const cy = rect.top + rect.height / 2;
+
+            let bestMatch: HTMLElement | null = null;
+            let minScore = Infinity;
+
+            focusable.forEach(candidate => {
+                if (candidate === current) return;
+                const cRect = candidate.getBoundingClientRect();
+                const ccx = cRect.left + cRect.width / 2;
+                const ccy = cRect.top + cRect.height / 2;
+
+                const dx = ccx - cx;
+                const dy = ccy - cy;
+
+                let isValidDirection = false;
+                if (mappedKey === 'ArrowUp' && dy < -5) isValidDirection = true;
+                if (mappedKey === 'ArrowDown' && dy > 5) isValidDirection = true;
+                if (mappedKey === 'ArrowLeft' && dx < -5) isValidDirection = true;
+                if (mappedKey === 'ArrowRight' && dx > 5) isValidDirection = true;
+
+                if (isValidDirection) {
+                    const isHorizontalMove = mappedKey === 'ArrowLeft' || mappedKey === 'ArrowRight';
+                    const primaryDist = isHorizontalMove ? Math.abs(dx) : Math.abs(dy);
+                    const secondaryDist = isHorizontalMove ? Math.abs(dy) : Math.abs(dx);
+                    
+                    const score = primaryDist + (secondaryDist * 8);
+
+                    if (score < minScore) {
+                        minScore = score;
+                        bestMatch = candidate;
+                    }
+                }
+            });
+
+            if (bestMatch) {
+                bestMatch.focus();
+                bestMatch.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+                soundService.playPop();
+            }
+        };
+
+        window.addEventListener('keydown', handleGlobalKeyDown);
+        return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+    }, [tvMode, selection.type, isSettingsModalOpen]);
+
     useLayoutEffect(() => {
         if (selection.type === 'splash') return;
         
-        const focusContent = () => {
-            // Force focus down to content area to bridge the "fixed header" gap
+        const timer = setTimeout(() => {
             const firstTarget = document.querySelector('.main-content-area button, .main-content-area [tabindex="0"]') as HTMLElement;
             if (firstTarget) {
                 firstTarget.focus();
             }
-        };
-
-        const timer = setTimeout(focusContent, 400);
+        }, 500);
         return () => clearTimeout(timer);
-    }, [selection.type, selection.category, isSettingsModalOpen]);
+    }, [selection.type, selection.category]);
 
     useEffect(() => {
         const doc = document.documentElement;
         const dataThemeMap: Record<Theme, string> = {
-            'noir': 'noir',
-            'terminal': 'terminal',
-            'liquid-glass': 'sleek',
-            'brutalist': 'brutalist',
-            'claymorphism': 'claymorphism',
-            'monochrome-zen': 'monochrome-zen',
-            'y2k': 'y2k',
-            'bento-grid': 'bento'
+            'noir': 'noir', 'terminal': 'terminal', 'liquid-glass': 'sleek',
+            'brutalist': 'brutalist', 'claymorphism': 'claymorphism',
+            'monochrome-zen': 'monochrome-zen', 'y2k': 'y2k', 'bento-grid': 'bento',
+            'comic': 'comic'
         };
         doc.setAttribute('data-theme', dataThemeMap[theme] || 'noir');
 
-        const themeClasses = ['theme-liquid-glass', 'theme-bento-grid', 'theme-brutalist', 'theme-claymorphism', 'theme-monochrome-zen', 'theme-y2k', 'theme-terminal'];
+        const themeClasses = ['theme-liquid-glass', 'theme-bento-grid', 'theme-brutalist', 'theme-claymorphism', 'theme-monochrome-zen', 'theme-y2k', 'theme-terminal', 'theme-comic'];
         themeClasses.forEach(c => doc.classList.remove(c));
-        if (theme !== 'noir') {
-            doc.classList.add(`theme-${theme}`);
-        }
+        if (theme !== 'noir') doc.classList.add(`theme-${theme}`);
 
         soundService.setAmbient(ambientEnabled, theme);
     }, [ambientEnabled, theme]);
 
     const isGameActive = useMemo(() => {
-        const gameTypes = ['sudoku', 'solitaire', 'minesweeper', 'tetris', 'pool', 'cipher_core', 'void_runner', 'synapse_link', 'grid_reset', 'hangman', 'neon_signal'];
+        const gameTypes = ['sudoku', 'solitaire', 'minesweeper', 'tetris', 'pool', 'cipher_core', 'void_runner', 'synapse_link', 'hangman', 'neon_signal'];
         return gameTypes.includes(selection.type);
     }, [selection.type]);
 
@@ -149,9 +234,10 @@ const App: React.FC = () => {
     }, [selection.type]);
 
     const handleToggleTheme = useCallback(() => {
-        const themes: Theme[] = ['noir', 'liquid-glass', 'bento-grid', 'brutalist', 'claymorphism', 'monochrome-zen', 'y2k', 'terminal'];
+        const themes: Theme[] = ['noir', 'liquid-glass', 'bento-grid', 'brutalist', 'claymorphism', 'monochrome-zen', 'y2k', 'terminal', 'comic'];
         const nextIndex = (themes.indexOf(theme) + 1) % themes.length;
         setTheme(themes[nextIndex]);
+        soundService.playClick();
     }, [theme, setTheme]);
 
     const handleResetSystem = useCallback(() => {
@@ -238,24 +324,23 @@ const App: React.FC = () => {
     }, [setSelection]);
 
     if (selection.type === 'splash') {
-        return <SplashScreen onEnterFeeds={() => updateSelection({ type: 'all', id: null })} onEnterArcade={() => updateSelection({ type: 'game_hub', id: null })} isDecoding={isDecoding} onReset={handleResetSystem} />;
+        return <SplashScreen theme={theme} onEnterFeeds={() => updateSelection({ type: 'all', id: null })} onEnterArcade={() => updateSelection({ type: 'game_hub', id: null })} onToggleTheme={handleToggleTheme} isDecoding={isDecoding} onReset={handleResetSystem} />;
     }
 
-    // Shield sidebar when in games
     const hideMenuTrigger = isGameActive || selection.type === 'game_hub';
 
     return (
         <div className="h-screen w-full font-sans text-sm relative flex flex-col overflow-hidden bg-app-bg text-app-text transition-colors duration-300">
             <header className="fixed top-0 left-0 right-0 z-[60] bg-black border-b border-white/10 pt-[var(--safe-top)] shrink-0">
-                <div className="h-11 md:h-12 flex items-center px-2 md:px-8 justify-between">
+                <div className="h-11 md:h-12 flex items-center px-4 md:px-8 justify-between">
                     <div className="flex items-center h-full gap-2 md:gap-3 overflow-x-auto scrollbar-hide">
                         <button 
                             onClick={() => updateSelection({ type: 'all', id: null })} 
-                            onKeyDown={(e) => { if(e.key === 'ArrowDown') { e.preventDefault(); (document.querySelector('.main-content-area button') as HTMLElement)?.focus(); } }}
-                            className="flex items-center gap-1.5 shrink-0 pr-2 border-r border-white/10 cursor-pointer active:scale-95 transition-transform focus:ring-4 focus:ring-pulse-500 outline-none"
+                            className="flex items-center gap-1.5 shrink-0 pr-2 border-r border-white/10 cursor-pointer transition-transform outline-none group relative"
                         >
                             <VoidIcon className="w-4 h-4 md:w-5 md:h-5 text-pulse-500" />
-                            <span className="text-[10px] font-black italic text-white tracking-tighter hidden sm:inline uppercase">Void</span>
+                            <span className="text-[10px] font-black italic text-white tracking-tighter hidden sm:inline uppercase group-focus:font-black group-focus:scale-110 transition-all">Void</span>
+                            <div className="nav-underline" />
                         </button>
                         <nav className="flex h-full items-center gap-1 md:gap-2">
                             <GlobalNavLink active={selection.type === 'game_hub'} onClick={() => updateSelection({ type: 'game_hub', id: null })} label="ARCADE" icon={<RadioIcon className="w-3.5 h-3.5"/>} />
@@ -264,8 +349,29 @@ const App: React.FC = () => {
                             <GlobalNavLink active={isSettingsModalOpen} onClick={() => setIsSettingsModalOpen(true)} label="CORE" icon={<CpuChipIcon className="w-3.5 h-3.5"/>} />
                         </nav>
                     </div>
-                    <div className={`flex items-center gap-1 shrink-0 pl-1 transition-opacity duration-500 ${hideMenuTrigger ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-                        <button onClick={() => setIsSidebarOpen(true)} className="p-1.5 md:p-2 text-zinc-500 hover:text-white transition-colors active:scale-90 focus:ring-2 focus:ring-pulse-500"><MenuIcon className="w-5 h-5 md:w-6 md:h-6" /></button>
+                    <div className="flex items-center gap-2 md:gap-4 shrink-0">
+                        <button 
+                            onClick={handleToggleTheme}
+                            className="flex items-center gap-2 px-3 py-1.5 bg-zinc-900 border border-white/10 rounded-full text-[8px] font-black uppercase text-zinc-400 hover:text-pulse-500 transition-all active:scale-95 shadow-lg group shrink-0 outline-none focus:ring-4 focus:ring-app-accent/40"
+                            title="Phase Shift"
+                        >
+                            <PaletteIcon className="w-3.5 h-3.5" />
+                            <span className="hidden xs:inline">UI: {themeLabel}</span>
+                        </button>
+
+                        <button 
+                            onClick={() => setTvMode(!tvMode)} 
+                            className={`px-3 py-1.5 rounded-full text-[8px] font-black uppercase transition-all border shadow-lg relative group shrink-0 outline-none focus:ring-4 focus:ring-emerald-500/40 ${tvMode ? 'bg-emerald-600 border-emerald-400 text-white' : 'bg-zinc-800 border-zinc-700 text-zinc-500'}`}
+                        >
+                            {tvMode ? 'TV_ON' : 'TV_OFF'}
+                            <div className="nav-underline" />
+                        </button>
+                        <div className={`flex items-center gap-1 shrink-0 pl-1 transition-opacity duration-500 ${hideMenuTrigger ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+                            <button onClick={() => setIsSidebarOpen(true)} className="p-2 text-zinc-500 hover:text-white transition-colors relative group outline-none focus:ring-2 focus:ring-white rounded-full">
+                                <MenuIcon className="w-5 h-5 md:w-6 md:h-6" />
+                                <div className="nav-underline" />
+                            </button>
+                        </div>
                     </div>
                 </div>
             </header>
@@ -310,35 +416,16 @@ const App: React.FC = () => {
 };
 
 const GlobalNavLink: React.FC<{ active: boolean; onClick: () => void; label: string; icon: React.ReactNode }> = ({ active, onClick, label, icon }) => {
-    const handleKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === 'ArrowDown') {
-            // Force focus down to the sub-header or first article
-            e.preventDefault();
-            const targets = [
-                '.sub-header-nav button',
-                '.main-content-area button',
-                '[tabindex="0"]'
-            ];
-            for (const selector of targets) {
-                const el = document.querySelector(selector) as HTMLElement;
-                if (el) {
-                    el.focus();
-                    return;
-                }
-            }
-        }
-    };
-
     return (
         <button 
             onClick={onClick}
-            onKeyDown={handleKeyDown}
-            className={`flex items-center gap-1 md:gap-1.5 h-11 md:h-12 px-2 md:px-3 border-b-2 transition-all relative group shrink-0
-                ${active ? 'border-pulse-500 text-white' : 'border-transparent text-zinc-500 hover:text-zinc-300'} 
-                focus:ring-4 focus:ring-pulse-500 outline-none`}
+            className={`flex items-center gap-1.5 h-11 md:h-12 px-3 md:px-5 transition-all relative group shrink-0
+                ${active ? 'text-white font-black' : 'text-zinc-500 hover:text-zinc-300 font-bold'} 
+                outline-none header-link`}
         >
             <span className="scale-90 md:scale-100">{icon}</span>
-            <span className="text-[8px] md:text-[9.5px] font-black tracking-widest uppercase">{label}</span>
+            <span className="text-[10px] md:text-[11px] uppercase tracking-[0.15em]">{label}</span>
+            <div className={`nav-underline ${active ? 'w-[80%]' : 'w-0'}`} />
         </button>
     );
 };

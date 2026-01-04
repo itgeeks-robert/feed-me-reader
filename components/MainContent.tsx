@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import type { Feed, Folder, Selection, WidgetSettings, Article, ArticleView, Theme } from '../src/App';
 import type { SourceType } from './AddSource';
-import { SearchIcon, GlobeAltIcon, CpuChipIcon, BeakerIcon, ChartBarIcon, FlagIcon, FireIcon, ControllerIcon, ArrowPathIcon, PaletteIcon } from './icons';
+import { SearchIcon, GlobeAltIcon, CpuChipIcon, BeakerIcon, ChartBarIcon, FlagIcon, FireIcon, ControllerIcon, ArrowPathIcon, PaletteIcon, XIcon, RadioIcon } from './icons';
 import { resilientFetch } from '../services/fetch';
 import { parseRssXml } from '../services/rssParser';
 import FeaturedStory from './articles/FeaturedStory';
@@ -67,6 +67,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
     const [articles, setArticles] = useState<Article[]>(initialArticles || []);
     const [loading, setLoading] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [isSearchActive, setIsSearchActive] = useState(false);
     const [visibleCount, setVisibleCount] = useState(ARTICLES_PER_PAGE);
     const [showOnlyUnread, setShowOnlyUnread] = useState(false);
 
@@ -125,7 +126,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
     if (allFeeds.length === 0 && selection.type === 'all' && onSetFeeds && onSetFolders) {
         return (
             <main className={`flex-grow overflow-y-auto scrollbar-hide ${animationClass} bg-void-bg pb-40`}>
-                <LocalHeader onSearchSubmit={(e) => { e.preventDefault(); onSearch(searchQuery); }} searchQuery={searchQuery} setSearchQuery={setSearchQuery} onToggleTheme={onToggleTheme} onRefresh={onRefresh} selection={selection} handleCategoryClick={handleCategoryClick} />
+                <LocalHeader onSearchSubmit={(e: any) => { e.preventDefault(); onSearch(searchQuery); setIsSearchActive(false); }} isSearchActive={isSearchActive} setIsSearchActive={setIsSearchActive} searchQuery={searchQuery} setSearchQuery={setSearchQuery} onToggleTheme={onToggleTheme} onRefresh={onRefresh} selection={selection} handleCategoryClick={handleCategoryClick} theme={theme} />
                 <div className="pt-[calc(10rem+var(--safe-top))] md:pt-[calc(11rem+var(--safe-top))]">
                     <FeedOnboarding onComplete={(f, fld) => { onSetFolders(fld); onSetFeeds(f); }} />
                 </div>
@@ -138,21 +139,24 @@ const MainContent: React.FC<MainContentProps> = (props) => {
     const rollingNews = filteredArticles.slice(4, visibleCount);
 
     return (
-        <main className={`flex-grow overflow-y-auto scrollbar-hide ${animationClass} bg-void-bg pb-40 scroll-smooth`}>
+        <main className={`flex-grow overflow-y-auto scrollbar-hide ${animationClass} bg-void-bg pb-40 scroll-smooth main-content-area`}>
             <LocalHeader 
-                onSearchSubmit={(e) => { e.preventDefault(); onSearch(searchQuery); }} 
+                onSearchSubmit={(e: any) => { e.preventDefault(); onSearch(searchQuery); setIsSearchActive(false); }} 
+                isSearchActive={isSearchActive}
+                setIsSearchActive={setIsSearchActive}
                 searchQuery={searchQuery} 
                 setSearchQuery={setSearchQuery} 
                 onToggleTheme={onToggleTheme}
                 onRefresh={onRefresh}
                 selection={selection} 
                 handleCategoryClick={handleCategoryClick} 
+                theme={theme}
             />
             
             <div className="pt-[calc(13.5rem+var(--safe-top))] md:pt-[calc(14.5rem+var(--safe-top))] max-w-[1400px] mx-auto transition-all relative">
                 
                 {latestArticle && (
-                    <div className="px-4 md:px-6 mb-8">
+                    <div className="px-4 md:px-6 mb-12">
                         <FeaturedStory 
                             article={latestArticle} 
                             onReadHere={() => onOpenReader(latestArticle)} 
@@ -162,46 +166,60 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                     </div>
                 )}
 
-                <div className="px-4 md:px-6 mb-12 grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+                <div className="px-4 md:px-6 mb-16 grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-10 article-list-grid">
                     {trendingArticles.map(article => (
-                        <MagazineArticleListItem 
-                            key={article.id} 
-                            article={article} 
-                            onMarkAsRead={() => onMarkAsRead(article.id)} 
-                            onReadHere={() => onOpenReader(article)} 
-                            onReadExternal={() => onOpenExternal(article.link, article.id)} 
-                            isRead={readArticleIds.has(article.id)} 
-                        />
-                    ))}
-                </div>
-
-                <div className="px-4 md:px-6 border-t border-void-border pt-10">
-                    <div className="flex items-center justify-between mb-8">
-                        <div className="flex items-center gap-3">
-                            <div className="w-1.5 h-6 bg-pulse-500" />
-                            <h2 className="font-black text-xl md:text-3xl text-terminal italic uppercase tracking-tighter">Rolling_Signals</h2>
-                        </div>
-                        <UnreadFilterToggle checked={showOnlyUnread} onChange={setShowOnlyUnread} />
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                        {rollingNews.map(article => (
+                        <div key={article.id} className="void-card p-1">
                             <MagazineArticleListItem 
-                                key={article.id} 
                                 article={article} 
                                 onMarkAsRead={() => onMarkAsRead(article.id)} 
                                 onReadHere={() => onOpenReader(article)} 
                                 onReadExternal={() => onOpenExternal(article.link, article.id)} 
                                 isRead={readArticleIds.has(article.id)} 
                             />
+                        </div>
+                    ))}
+                </div>
+
+                <div className="px-4 md:px-6 border-t-8 border-app-border pt-16">
+                    <div className="flex flex-wrap items-center justify-between mb-12 gap-6">
+                        <div className="flex items-center gap-4">
+                            <div className="p-2 bg-app-accent border-4 border-app-border shadow-[4px_4px_0_black]">
+                                <RadioIcon className="w-6 h-6 text-white" />
+                            </div>
+                            <h2 className="font-black text-2xl md:text-5xl text-app-text italic uppercase tracking-tighter leading-none">Rolling_Signals</h2>
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <button 
+                                onClick={onRefresh}
+                                className="flex items-center gap-2 px-6 py-3 bg-app-card border-4 border-app-border text-[10px] font-black uppercase italic text-muted hover:text-app-text transition-all shadow-[6px_6px_0_black] active:translate-x-1 active:translate-y-1 outline-none"
+                                title="Refresh Signals"
+                            >
+                                <ArrowPathIcon className="w-4 h-4" />
+                                <span>Re-Sync</span>
+                            </button>
+                            <UnreadFilterToggle checked={showOnlyUnread} onChange={setShowOnlyUnread} />
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-10 article-list-grid">
+                        {rollingNews.map(article => (
+                            <div key={article.id} className="void-card p-1">
+                                <MagazineArticleListItem 
+                                    article={article} 
+                                    onMarkAsRead={() => onMarkAsRead(article.id)} 
+                                    onReadHere={() => onOpenReader(article)} 
+                                    onReadExternal={() => onOpenExternal(article.link, article.id)} 
+                                    isRead={readArticleIds.has(article.id)} 
+                            />
+                        </div>
                         ))}
                     </div>
 
                     {filteredArticles.length > visibleCount && (
-                        <div className="mt-16 text-center">
+                        <div className="mt-20 text-center pb-24">
                             <button 
                                 onClick={() => setVisibleCount(c => c + LOAD_MORE_BATCH)} 
-                                className="bg-terminal text-inverse void-button font-black uppercase italic py-4 px-10 text-[10px] tracking-[0.2em] active:scale-95 border border-void-border shadow-xl rounded-void focus:ring-4 focus:ring-pulse-500 outline-none"
+                                className="bg-app-text text-app-bg font-black uppercase italic py-6 px-16 text-sm tracking-[0.2em] active:translate-y-1 border-4 border-app-border shadow-[8px_8px_0_black] focus:ring-8 focus:ring-pulse-500 outline-none"
                             >
                                 Load_Additional_Clusters
                             </button>
@@ -213,63 +231,58 @@ const MainContent: React.FC<MainContentProps> = (props) => {
     );
 };
 
-const LocalHeader: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuery, onToggleTheme, onRefresh, selection, handleCategoryClick }) => {
+const LocalHeader: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuery, isSearchActive, setIsSearchActive, onToggleTheme, onRefresh, selection, handleCategoryClick, theme }) => {
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        if (isSearchActive) inputRef.current?.focus();
+    }, [isSearchActive]);
+
     return (
-        <div className="fixed top-11 md:top-12 left-0 right-0 z-40 bg-void-bg/95 backdrop-blur-xl border-b border-void-border transition-all px-4 md:px-8 py-3 flex flex-col md:flex-row items-center gap-4">
-            <div className="flex items-center h-10 gap-2 overflow-x-auto scrollbar-hide flex-grow w-full md:w-auto sub-header-nav">
+        <div className="fixed top-11 md:top-12 left-0 right-0 z-40 bg-app-bg border-b-4 border-app-border px-4 md:px-8 py-4 flex flex-col md:flex-row items-center gap-4">
+            <div className="flex items-center h-12 gap-1.5 overflow-x-auto scrollbar-hide flex-grow w-full md:w-auto sub-header-nav">
                 {CATEGORY_MAP.map(cat => (
                     <button 
                         key={cat.id} 
                         onClick={() => handleCategoryClick(cat.id)} 
-                        onKeyDown={(e) => {
-                            if(e.key === 'ArrowUp') {
-                                e.preventDefault();
-                                (document.querySelector('header button') as HTMLElement)?.focus();
-                            }
-                            if(e.key === 'ArrowDown') {
-                                e.preventDefault();
-                                (document.querySelector('.main-content-area button, .main-content-area [tabindex="0"]') as HTMLElement)?.focus();
-                            }
-                        }}
-                        className={`shrink-0 px-4 py-1.5 rounded-full text-[9px] font-black uppercase italic transition-all border outline-none
+                        className={`shrink-0 px-2 md:px-2.5 h-11 border-2 transition-all relative group outline-none uppercase font-black italic text-[10px] tracking-widest shadow-[4px_4px_0_black]
                             ${selection.category === cat.id 
-                                ? 'bg-pulse-500 border-pulse-400 text-white' 
-                                : 'bg-void-surface border-void-border text-zinc-500 hover:text-white'}
-                            focus:ring-4 focus:ring-pulse-500`}
+                                ? 'bg-app-accent border-app-border text-white translate-y-1 shadow-none' 
+                                : 'bg-app-card border-app-border text-muted hover:text-app-text'}`}
                     >
-                        {cat.id}
+                        <span className="relative z-10">{cat.id}</span>
+                        <div className={`nav-underline ${selection.category === cat.id ? 'w-[70%]' : 'w-0'}`} />
                     </button>
                 ))}
             </div>
             
             <div className="flex items-center gap-2 w-full md:w-auto shrink-0 justify-end">
-                <form onSubmit={onSearchSubmit} className="relative flex-grow md:w-32 lg:w-44 transition-all focus-within:md:w-48 lg:focus-within:w-60">
-                    <SearchIcon className="absolute top-1/2 left-3.5 -translate-y-1/2 w-3 h-3 text-zinc-500" />
-                    <input 
-                        type="search" 
-                        placeholder="Find..." 
-                        value={searchQuery} 
-                        onChange={e => setSearchQuery(e.target.value)} 
-                        className="w-full bg-void-surface/50 border border-void-border rounded-full py-1.5 pl-9 pr-4 text-[9px] uppercase tracking-widest outline-none text-terminal placeholder-zinc-700 focus:border-pulse-500/50 transition-all focus:ring-2 focus:ring-pulse-500" 
-                    />
-                </form>
-
-                <div className="flex items-center gap-1.5 bg-void-surface/30 p-1 rounded-full border border-void-border">
-                    <button 
-                        onClick={onRefresh}
-                        className="p-2 bg-void-surface border border-void-border rounded-full text-zinc-500 hover:text-terminal hover:border-terminal/30 transition-all active:rotate-180 duration-500 focus:ring-2 focus:ring-pulse-500 outline-none"
-                        title="Refresh Signals"
-                    >
-                        <ArrowPathIcon className="w-3.5 h-3.5" />
-                    </button>
-
-                    <button 
-                        onClick={onToggleTheme}
-                        className="p-2 bg-void-surface border border-void-border rounded-full text-zinc-500 hover:text-pulse-500 hover:border-pulse-500/30 transition-all focus:ring-2 focus:ring-pulse-500 outline-none"
-                        title="Phase Shift"
-                    >
-                        <PaletteIcon className="w-3.5 h-3.5" />
-                    </button>
+                <div className="relative shrink-0">
+                    {!isSearchActive ? (
+                        <button 
+                            onClick={() => setIsSearchActive(true)}
+                            className="search-trigger flex items-center gap-2 px-3 h-11 bg-app-card border-4 border-app-border text-[10px] font-black uppercase italic text-muted hover:text-app-text transition-all shadow-[6px_6px_0_black] active:translate-x-1 active:translate-y-1 outline-none shrink-0"
+                        >
+                            <SearchIcon className="w-4 h-4" />
+                            <span>Find</span>
+                        </button>
+                    ) : (
+                        <form onSubmit={onSearchSubmit} className="relative flex items-center gap-3 animate-fade-in">
+                            <div className="relative">
+                                <SearchIcon className="absolute top-1/2 left-4 -translate-y-1/2 w-4 h-4 text-muted" />
+                                <input 
+                                    ref={inputRef}
+                                    type="text" 
+                                    placeholder="SCANNING..." 
+                                    value={searchQuery} 
+                                    onChange={e => setSearchQuery(e.target.value)} 
+                                    onBlur={() => !searchQuery && setIsSearchActive(false)}
+                                    className="w-48 md:w-72 bg-app-card border-4 border-app-border py-3 pl-12 pr-6 text-sm uppercase font-black tracking-widest outline-none text-app-text transition-all shadow-[6px_6px_0_black]" 
+                                />
+                            </div>
+                            <button type="button" onClick={() => { setIsSearchActive(false); setSearchQuery(''); }} className="p-3 text-muted hover:text-app-text"><XIcon className="w-5 h-5"/></button>
+                        </form>
+                    )}
                 </div>
             </div>
         </div>
@@ -277,10 +290,10 @@ const LocalHeader: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuer
 };
 
 const UnreadFilterToggle: React.FC<any> = ({ checked, onChange }) => (
-    <label className="flex items-center cursor-pointer group bg-void-surface/50 px-4 py-2 border border-void-border rounded-full hover:border-terminal/20 transition-all focus-within:ring-2 focus-within:ring-pulse-500">
+    <label className="flex items-center cursor-pointer group bg-app-card px-6 py-3 border-4 border-app-border shadow-[6px_6px_0_black] hover:shadow-[2px_2px_0_black] transition-all active:translate-x-1 active:translate-y-1 outline-none relative">
         <input type="checkbox" className="sr-only" checked={checked} onChange={(e) => onChange(e.target.checked)} />
-        <div className={`w-3 h-3 border rounded-sm flex-shrink-0 mr-3 transition-all ${checked ? 'bg-pulse-500 border-pulse-400' : 'bg-transparent border-zinc-700'}`} />
-        <span className="text-[9px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-terminal italic">Unread_Only</span>
+        <div className={`w-4 h-4 border-4 rounded-sm flex-shrink-0 mr-4 transition-all ${checked ? 'bg-app-accent border-app-border' : 'bg-transparent border-app-border'}`} />
+        <span className="text-xs font-black uppercase tracking-widest text-muted group-hover:text-app-text italic">Unread_Only</span>
     </label>
 );
 

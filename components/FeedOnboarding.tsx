@@ -1,13 +1,13 @@
-
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import type { Feed, Folder } from '../src/App';
 import { 
     RadioIcon, GlobeAltIcon, RssIcon, ShieldCheckIcon, 
     CpuChipIcon, FireIcon, BeakerIcon, ChartBarIcon,
     ControllerIcon, FlagIcon, SparklesIcon, ArrowPathIcon,
-    ExclamationTriangleIcon, SearchIcon, PlusIcon
+    ExclamationTriangleIcon, SearchIcon, PlusIcon, XIcon
 } from './icons';
 import { discoverFeedSignals } from '../services/feedDiscoveryService';
+import { soundService } from '../services/soundService';
 
 export type Category = 'NEWS' | 'TECH' | 'SCIENCE' | 'CULTURE' | 'SPORTS' | 'FINANCE' | 'GAMING' | 'CUSTOM';
 type Region = 'GLOBAL' | 'UK' | 'US' | 'EU';
@@ -88,12 +88,14 @@ const FeedOnboarding: React.FC<FeedOnboardingProps> = ({ onComplete }) => {
     const [activeCategory, setActiveCategory] = useState<Category>('NEWS');
     const [region, setRegion] = useState<Region>('GLOBAL');
     const [isDetecting, setIsDetecting] = useState(true);
+    const [showRegionOverlay, setShowRegionOverlay] = useState(false);
     
-    // Custom probing states
     const [customUrl, setCustomUrl] = useState('');
     const [isProbing, setIsProbing] = useState(false);
     const [discoveredSignals, setDiscoveredSignals] = useState<Preset[]>([]);
     const [probeError, setProbeError] = useState<string | null>(null);
+
+    const firstRegionButtonRef = useRef<HTMLButtonElement>(null);
 
     useEffect(() => {
         const detectRegion = async () => {
@@ -117,6 +119,13 @@ const FeedOnboarding: React.FC<FeedOnboardingProps> = ({ onComplete }) => {
         detectRegion();
     }, []);
 
+    // Focus first option when region overlay opens
+    useEffect(() => {
+        if (showRegionOverlay) {
+            setTimeout(() => firstRegionButtonRef.current?.focus(), 100);
+        }
+    }, [showRegionOverlay]);
+
     const togglePreset = (id: string) => {
         const next = new Set(selectedIds);
         if (next.has(id)) next.delete(id);
@@ -132,7 +141,6 @@ const FeedOnboarding: React.FC<FeedOnboardingProps> = ({ onComplete }) => {
             { id: 4, name: 'Cultural Output' }
         ];
 
-        // Combine standard presets and discovered ones
         const allAvailable = [...PRESETS, ...discoveredSignals];
         const targetPresets = manualFeeds || allAvailable.filter(p => selectedIds.has(p.id));
         
@@ -171,9 +179,7 @@ const FeedOnboarding: React.FC<FeedOnboardingProps> = ({ onComplete }) => {
         setProbeError(null);
         try {
             let normalized = url;
-            if (!normalized.includes('.') && !normalized.includes('://')) {
-                throw new Error("Target node address invalid.");
-            }
+            if (!normalized.includes('.') && !normalized.includes('://')) throw new Error("Target node address invalid.");
             if (!normalized.includes('://')) normalized = `https://${normalized}`;
             
             const results = await discoverFeedSignals(normalized);
@@ -186,9 +192,7 @@ const FeedOnboarding: React.FC<FeedOnboardingProps> = ({ onComplete }) => {
                     description: `Operator discovered signal at ${normalized}.`,
                     isCustom: true
                 }));
-                
                 setDiscoveredSignals(prev => [...newSignals, ...prev]);
-                // Auto-select discovered signals
                 const nextSelected = new Set(selectedIds);
                 newSignals.forEach(s => nextSelected.add(s.id));
                 setSelectedIds(nextSelected);
@@ -208,155 +212,128 @@ const FeedOnboarding: React.FC<FeedOnboardingProps> = ({ onComplete }) => {
         return PRESETS.filter(p => p.category === activeCategory && (p.region === region || p.region === 'GLOBAL' || activeCategory !== 'NEWS'));
     }, [activeCategory, region, discoveredSignals]);
 
+    const regionLabels: Record<Region, string> = {
+        GLOBAL: 'Global Node', UK: 'UK Node', US: 'US Node', EU: 'EU Node'
+    };
+
     return (
-        <div className="max-w-6xl mx-auto px-4 md:px-6 py-8 animate-fade-in font-mono flex flex-col min-h-screen">
-            <header className="mb-6 text-center shrink-0">
+        <div className="max-w-6xl mx-auto px-4 md:px-6 py-8 animate-fade-in font-mono flex flex-col min-h-screen main-content-area">
+            <header className="mb-6 text-center shrink-0 border-b border-white/5 pb-8">
                 <div className="p-4 bg-pulse-500 w-14 h-14 mx-auto mb-6 flex items-center justify-center shadow-[0_0_30px_rgba(225,29,72,0.4)] border-2 border-white/20">
                     <RadioIcon className="w-8 h-8 text-white animate-pulse" />
                 </div>
                 <h2 className="text-3xl md:text-5xl font-black text-terminal italic uppercase tracking-tighter mb-4 glitch-text">Initial Calibration</h2>
                 
-                <div className="flex flex-wrap items-center justify-center gap-3 mt-4">
-                    <div className="bg-void-900 border border-zinc-800 px-3 py-1.5 rounded-xl flex items-center gap-3">
-                        <span className="text-[8px] font-black text-muted uppercase tracking-widest italic">Region:</span>
+                <div className="flex flex-wrap items-center justify-center gap-4 mt-6">
+                    {/* Focusable Region Button (instead of Select) */}
+                    <button 
+                        onClick={() => { soundService.playClick(); setShowRegionOverlay(true); }}
+                        className="bg-void-900 border-2 border-zinc-800 px-6 py-2.5 rounded-2xl flex items-center gap-3 transition-all hover:border-app-accent focus:ring-8 focus:ring-app-accent/40 outline-none"
+                    >
+                        <span className="text-[10px] font-black text-muted uppercase tracking-widest italic">Region:</span>
                         {isDetecting ? (
-                            <ArrowPathIcon className="w-3 h-3 text-pulse-500 animate-spin" />
+                            <ArrowPathIcon className="w-4 h-4 text-pulse-500 animate-spin" />
                         ) : (
-                            <select 
-                                value={region} 
-                                onChange={(e) => setRegion(e.target.value as Region)}
-                                className="bg-transparent text-terminal text-[10px] font-black uppercase outline-none cursor-pointer hover:text-pulse-500"
-                            >
-                                <option value="GLOBAL">Global Node</option>
-                                <option value="UK">UK Node</option>
-                                <option value="US">US Node</option>
-                                <option value="EU">EU Node</option>
-                            </select>
+                            <span className="text-terminal text-xs font-black uppercase">{regionLabels[region]}</span>
                         )}
-                    </div>
+                        <div className="w-2 h-2 rounded-full bg-pulse-500 animate-pulse" />
+                    </button>
                     
                     <button 
                         onClick={handleQuickStart}
-                        className="group flex items-center gap-2 px-4 py-1.5 bg-pulse-600 hover:bg-terminal hover:text-void-bg border border-pulse-400 rounded-xl transition-all active:scale-95 shadow-lg text-white"
+                        className="group flex items-center gap-3 px-6 py-2.5 bg-pulse-600 border-2 border-pulse-400 rounded-2xl transition-all shadow-xl text-white outline-none focus:ring-8 focus:ring-app-accent"
                     >
-                        <SparklesIcon className="w-4 h-4 animate-pulse" />
-                        <span className="text-[9px] font-black uppercase italic tracking-widest">Tactical Auto-Sync</span>
+                        <SparklesIcon className="w-5 h-5 animate-pulse" />
+                        <span className="text-[10px] font-black uppercase italic tracking-widest">Tactical Auto-Sync</span>
                     </button>
                 </div>
             </header>
 
-            <div className="mb-10 bg-void-900 border-l-4 border-amber-500/50 p-4 rounded-r-xl max-w-4xl mx-auto flex items-start gap-4">
-                <ExclamationTriangleIcon className="w-5 h-5 text-amber-500 shrink-0 mt-0.5 animate-pulse" />
-                <div>
-                    <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-1 italic">Protocol Advisory: External Encryption</p>
-                    <p className="text-[9px] text-muted uppercase font-black leading-relaxed tracking-wide">Certain signal streams (e.g., NYT, Bloomberg, FT) utilize high-level external encryption (paywalls). Access to full transmissions may require independent operator credentials.</p>
-                </div>
-            </div>
-
-            <div className="flex flex-col md:flex-row gap-6 flex-grow pb-48">
-                <div className="w-full md:w-56 flex flex-row md:flex-col gap-2 shrink-0 overflow-x-auto md:overflow-x-visible scrollbar-hide pb-2 md:pb-0">
+            <div className="flex flex-col md:flex-row gap-8 flex-grow pb-48">
+                {/* Vertical Category Column */}
+                <div className="w-full md:w-64 flex flex-row md:flex-col gap-3 shrink-0 overflow-x-auto md:overflow-x-visible scrollbar-hide pb-4 md:pb-0">
+                    <h3 className="hidden md:block text-[9px] font-black text-zinc-600 uppercase tracking-[0.4em] mb-4 px-2 italic">Select_Category</h3>
                     {CATEGORIES.map(cat => {
                         const allAvailable = [...PRESETS, ...discoveredSignals];
                         const countInSelected = allAvailable.filter(p => p.category === cat.id && selectedIds.has(p.id)).length;
                         return (
                             <button
                                 key={cat.id}
-                                onClick={() => setActiveCategory(cat.id as Category)}
-                                className={`flex items-center justify-between px-4 py-3 rounded-xl border-2 transition-all shrink-0 md:shrink
+                                onClick={() => { soundService.playClick(); setActiveCategory(cat.id as Category); }}
+                                className={`flex items-center justify-between px-5 py-4 rounded-2xl border-2 transition-all shrink-0 md:shrink outline-none relative group
                                     ${activeCategory === cat.id 
-                                        ? 'bg-pulse-600 border-pulse-400 text-white shadow-lg' 
-                                        : 'bg-void-900 border-void-border text-muted hover:border-terminal/40'}`}
+                                        ? 'bg-void-surface border-app-accent text-white shadow-xl' 
+                                        : 'bg-void-900 border-void-border text-muted'}`}
                             >
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-3">
                                     {cat.icon}
-                                    <span className="text-[10px] font-black italic uppercase tracking-widest">{cat.id}</span>
+                                    <span className="text-[11px] font-black italic uppercase tracking-widest">{cat.id}</span>
                                 </div>
                                 {countInSelected > 0 && (
-                                    <span className="bg-white text-black text-[9px] font-black px-1.5 rounded-full ml-2">{countInSelected}</span>
+                                    <span className="bg-app-accent text-white text-[10px] font-black px-2 py-0.5 rounded-full ml-2 shadow-lg">{countInSelected}</span>
                                 )}
+                                <div className={`nav-underline ${activeCategory === cat.id ? 'w-[60%]' : 'w-0'}`} />
                             </button>
                         );
                     })}
                 </div>
 
-                <div className="flex-grow flex flex-col gap-4">
+                {/* Right Side Body */}
+                <div className="flex-grow flex flex-col gap-6">
                     {activeCategory === 'CUSTOM' && (
-                        <div className="bg-void-900 p-6 border-2 border-emerald-500/30 rounded-2xl mb-4 animate-fade-in shadow-xl">
-                            <h3 className="text-xs font-black text-terminal italic uppercase tracking-widest mb-4 flex items-center gap-2">
-                                <SearchIcon className="w-4 h-4 text-emerald-500" />
+                        <div className="bg-void-900 p-8 border-2 border-emerald-500/30 rounded-[2rem] mb-4 animate-fade-in shadow-2xl relative overflow-hidden">
+                            <div className="absolute inset-0 cctv-overlay opacity-10 pointer-events-none" />
+                            <h3 className="text-xs font-black text-terminal italic uppercase tracking-widest mb-6 flex items-center gap-3">
+                                <SearchIcon className="w-5 h-5 text-emerald-500" />
                                 Custom Node Probing
                             </h3>
-                            <form onSubmit={handleProbe} className="flex gap-2">
+                            <form onSubmit={handleProbe} className="flex gap-3 relative z-10">
                                 <div className="flex-grow relative">
                                     <input 
                                         type="text" 
                                         value={customUrl} 
                                         onChange={(e) => setCustomUrl(e.target.value)}
-                                        placeholder="Enter website URL (e.g. hackaday.com)..."
-                                        className="w-full bg-void-950 border-2 border-void-border rounded-xl py-3 px-4 text-xs text-terminal focus:outline-none focus:border-emerald-500 transition-all font-mono"
+                                        placeholder="Enter website URL..."
+                                        className="w-full bg-void-950 border-2 border-void-border rounded-xl py-4 px-6 text-sm text-terminal outline-none focus:border-emerald-500 transition-all font-mono"
                                     />
-                                    {isProbing && (
-                                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                                            <ArrowPathIcon className="w-4 h-4 text-emerald-500 animate-spin" />
-                                        </div>
-                                    )}
+                                    {isProbing && <div className="absolute right-4 top-1/2 -translate-y-1/2"><ArrowPathIcon className="w-5 h-5 text-emerald-500 animate-spin" /></div>}
                                 </div>
-                                <button 
-                                    type="submit"
-                                    disabled={!customUrl.trim() || isProbing}
-                                    className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 rounded-xl font-black uppercase italic text-[10px] transition-all disabled:opacity-30 flex items-center gap-2"
-                                >
-                                    <PlusIcon className="w-4 h-4" />
+                                <button type="submit" disabled={!customUrl.trim() || isProbing} className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-4 rounded-xl font-black uppercase italic text-xs transition-all disabled:opacity-30 flex items-center gap-3 active:scale-95 shadow-xl">
+                                    <PlusIcon className="w-5 h-5" />
                                     <span>Probe</span>
                                 </button>
                             </form>
-                            {probeError && (
-                                <p className="mt-3 text-[9px] font-black text-pulse-500 uppercase italic tracking-widest animate-shake leading-relaxed">{probeError}</p>
-                            )}
-                            <p className="mt-4 text-[8px] text-muted uppercase tracking-widest italic">Note: Interception success depends on the node's broadcast metadata.</p>
+                            {probeError && <p className="mt-4 text-[10px] font-black text-pulse-500 uppercase italic tracking-widest animate-shake leading-relaxed">{probeError}</p>}
                         </div>
                     )}
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
                         {filteredPresets.length === 0 ? (
-                            <div className="col-span-full py-16 text-center border-2 border-dashed border-void-border rounded-[2rem]">
-                                {activeCategory === 'CUSTOM' ? (
-                                    <div className="space-y-2">
-                                        <p className="text-[10px] text-muted font-black uppercase tracking-[0.4em] italic leading-relaxed">No signals discovered yet.</p>
-                                        <p className="text-[9px] text-muted uppercase italic">Probe a node above to start surveillance.</p>
-                                    </div>
-                                ) : (
-                                    <>
-                                        <p className="text-[10px] text-muted font-black uppercase tracking-[0.4em] italic">No sector packets found</p>
-                                        <button onClick={() => setRegion('GLOBAL')} className="mt-4 text-pulse-500 text-[10px] font-black uppercase underline">Access Global Nodes</button>
-                                    </>
-                                )}
+                            <div className="col-span-full py-24 text-center border-4 border-dashed border-void-border rounded-[3rem] bg-void-surface/30">
+                                <p className="text-sm text-muted font-black uppercase tracking-[0.4em] italic">No sector packets found</p>
+                                <button onClick={() => setRegion('GLOBAL')} className="mt-6 text-pulse-500 text-xs font-black uppercase underline hover:text-white transition-colors">Access Global Nodes</button>
                             </div>
                         ) : (
                             filteredPresets.map(preset => {
                                 const isSelected = selectedIds.has(preset.id);
                                 return (
-                                    <div 
+                                    <button 
                                         key={preset.id}
-                                        onClick={() => togglePreset(preset.id)}
-                                        className={`group relative bg-void-900 border-2 transition-all duration-300 cursor-pointer p-5 flex flex-col h-44 shadow-[6px_6px_0px_black] hover:translate-x-[-2px] hover:translate-y-[-2px]
-                                            ${isSelected ? 'border-pulse-500 shadow-[0_0_20px_rgba(225,29,72,0.2)]' : 'border-void-border opacity-60 grayscale hover:opacity-100 hover:grayscale-0'}`}
+                                        onClick={() => { soundService.playClick(); togglePreset(preset.id); }}
+                                        className={`group text-left relative bg-zinc-900 border-[3px] transition-all duration-300 p-6 flex flex-col h-56 rounded-void shadow-2xl outline-none focus:ring-8 focus:ring-app-accent
+                                            ${isSelected ? 'border-app-accent scale-105 z-10' : 'border-void-border opacity-70 grayscale hover:opacity-100 hover:grayscale-0'}`}
                                     >
-                                        <div className="flex justify-between items-start mb-2">
-                                            <span className="text-[7px] font-black text-muted uppercase tracking-widest italic">
-                                                {preset.isCustom ? 'DISCOVERED NODE' : `${preset.region} NODE`}
-                                            </span>
-                                            <div className={`w-2 h-2 rounded-full border ${isSelected ? 'bg-pulse-500 border-pulse-400 animate-pulse' : 'bg-void-border'}`} />
+                                        <div className="flex justify-between items-start mb-3">
+                                            <span className="text-[8px] font-black text-muted uppercase tracking-widest italic">{preset.isCustom ? 'DISCOVERED NODE' : `${preset.region} NODE`}</span>
+                                            <div className={`w-3 h-3 rounded-full border-2 ${isSelected ? 'bg-app-accent border-white animate-pulse' : 'bg-void-border border-zinc-700'}`} />
                                         </div>
-                                        
-                                        <h3 className="text-base font-black text-terminal italic uppercase tracking-tighter mb-1 leading-tight">{preset.title}</h3>
-                                        <p className="text-[9px] text-muted uppercase leading-tight font-bold line-clamp-3 mb-2">{preset.description}</p>
-                                        
+                                        <h3 className="text-lg font-black text-terminal italic uppercase tracking-tighter mb-2 leading-tight line-clamp-2">{preset.title}</h3>
+                                        <p className="text-[10px] text-zinc-500 uppercase leading-relaxed font-bold line-clamp-3 mb-4 group-hover:text-zinc-300 transition-colors italic">{preset.description}</p>
                                         <div className="mt-auto flex justify-between items-end">
-                                            <span className="text-[6px] text-muted/40 uppercase">PKG_{preset.id.substring(0, 8)}</span>
-                                            {isSelected && <span className="text-[7px] font-black text-pulse-500 uppercase animate-pulse">Synced</span>}
+                                            <span className="text-[7px] text-muted/40 uppercase font-mono tracking-tighter">NODE_{preset.id.substring(0, 8)}</span>
+                                            {isSelected && <span className="text-[8px] font-black text-app-accent uppercase animate-pulse italic tracking-widest">Uplink_Confirmed</span>}
                                         </div>
-                                    </div>
+                                    </button>
                                 );
                             })
                         )}
@@ -364,17 +341,48 @@ const FeedOnboarding: React.FC<FeedOnboardingProps> = ({ onComplete }) => {
                 </div>
             </div>
 
-            <div className="fixed bottom-6 left-0 right-0 md:left-72 z-[60] px-4 pointer-events-none">
-                <div className="max-w-xl mx-auto pointer-events-auto">
+            {/* Region Selection Overlay */}
+            {showRegionOverlay && (
+                <div className="fixed inset-0 z-[110] bg-black/95 backdrop-blur-xl flex items-center justify-center p-6 animate-fade-in">
+                    <div className="bg-zinc-900 border-4 border-app-accent shadow-[0_0_80px_rgba(0,0,0,0.5)] w-full max-w-sm relative overflow-hidden flex flex-col rounded-[2.5rem]">
+                        <header className="h-12 bg-app-accent flex items-center justify-between px-4 border-b-2 border-black">
+                            <div className="flex items-center gap-2 h-full">
+                                <GlobeAltIcon className="w-5 h-5 text-black" />
+                                <h2 className="text-black text-[10px] font-black uppercase tracking-[0.2em] italic px-2">GEOGRAPHIC_SYNC.DAT</h2>
+                            </div>
+                            <button onClick={() => setShowRegionOverlay(false)} className="hover:scale-110 transition-transform"><XIcon className="w-5 h-5 text-black"/></button>
+                        </header>
+                        <div className="p-8 space-y-3">
+                            <p className="text-[9px] text-zinc-500 uppercase font-black tracking-widest mb-4 italic text-center">Select Local Intercept Point</p>
+                            {(Object.keys(regionLabels) as Region[]).map((r, i) => (
+                                <button 
+                                    key={r}
+                                    ref={i === 0 ? firstRegionButtonRef : null}
+                                    onClick={() => { setRegion(r); setShowRegionOverlay(false); soundService.playCorrect(); }}
+                                    className={`w-full py-4 px-6 rounded-xl font-black uppercase italic text-xs tracking-widest transition-all outline-none border-2
+                                        ${region === r ? 'bg-app-accent text-black border-white shadow-xl' : 'bg-zinc-800 text-zinc-400 border-zinc-700 hover:text-white'}`}
+                                >
+                                    {regionLabels[r]}
+                                </button>
+                            ))}
+                        </div>
+                        <footer className="p-4 bg-zinc-300 border-t-2 border-black">
+                             <button onClick={() => setShowRegionOverlay(false)} className="w-full py-3 bg-zinc-400 text-zinc-800 font-black uppercase italic text-[10px] outline-none">Cancel Sync</button>
+                        </footer>
+                    </div>
+                </div>
+            )}
+
+            <div className="fixed bottom-10 left-0 right-0 z-[60] px-8 pointer-events-none flex justify-center">
+                <div className="max-w-2xl w-full pointer-events-auto">
                     <button 
                         onClick={() => handleConfirm()}
                         disabled={selectedIds.size === 0}
-                        className="w-full py-5 bg-terminal text-inverse font-black uppercase italic text-xl rounded-2xl shadow-[8px_8px_0px_#e11d48] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all active:scale-95 disabled:opacity-50 disabled:grayscale disabled:pointer-events-none flex items-center justify-center gap-4"
+                        className="w-full py-6 bg-terminal text-inverse font-black uppercase italic text-2xl rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.5)] border-4 border-void-border hover:bg-app-accent hover:text-white transition-all active:scale-95 disabled:opacity-30 outline-none focus:ring-12 focus:ring-app-accent/40"
                     >
-                        <RssIcon className="w-7 h-7" />
+                        <RssIcon className="w-8 h-8" />
                         <span>Establish Uplink ({selectedIds.size})</span>
                     </button>
-                    <p className="text-center text-[8px] text-muted uppercase tracking-widest mt-4 font-black italic drop-shadow-md">Calibration will initialize core frequency cache.</p>
                 </div>
             </div>
         </div>

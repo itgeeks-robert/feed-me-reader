@@ -3,32 +3,105 @@
 @tailwind utilities;
 
 :root {
-  /* Default: NOIR (Signature Default) */
+  /* GLOBAL THEME VARIABLES - Synchronized for legacy and new classes */
   --app-bg: #050505;
+  --void-bg: #050505;
   --app-text: #ffffff;
-  --app-accent: #e11d48; /* Void Red */
+  --void-text-main: #ffffff;
+  --app-accent: #e11d48;
+  --void-accent: #e11d48;
   --app-card: #101012;
+  --void-surface: #101012;
+  --app-border: rgba(255, 255, 255, 0.1);
+  --void-border: rgba(255, 255, 255, 0.1);
+  --halo-color: rgba(225, 29, 72, 0.3);
+  --void-radius: 1.25rem;
+  --comic-ink: #1a1a1a;
+  --panel-shadow: 0 10px 30px rgba(0,0,0,0.5);
 }
 
 [data-theme='sleek'] {
-  --app-bg: #f1f5f9;
-  --app-text: #0f172a;
-  --app-accent: #2563eb;
-  --app-card: rgba(255, 255, 255, 0.65);
-}
-
-[data-theme='bento'] {
-  --app-bg: #f8fafc;
-  --app-text: #0f172a;
-  --app-accent: #2563eb;
-  --app-card: #ffffff;
+  --app-bg: radial-gradient(circle at 20% 20%, #f8fafc 0%, #e2e8f0 100%);
+  --void-bg: radial-gradient(circle at 20% 20%, #f8fafc 0%, #e2e8f0 100%);
+  --app-text: #1e293b;
+  --void-text-main: #1e293b;
+  --app-accent: #3b82f6;
+  --void-accent: #3b82f6;
+  --app-card: rgba(255, 255, 255, 0.25);
+  --void-surface: rgba(255, 255, 255, 0.25);
+  --app-border: rgba(255, 255, 255, 0.6);
+  --void-border: rgba(255, 255, 255, 0.6);
+  --void-radius: 2rem;
 }
 
 [data-theme='terminal'] {
-  --app-bg: #0d0208;
-  --app-text: #00ff41;
-  --app-accent: #00ff41;
-  --app-card: #001100;
+  --app-bg: #000000;
+  --void-bg: #000000;
+  --app-text: #33ff33;
+  --void-text-main: #33ff33;
+  --app-accent: #33ff33;
+  --void-accent: #33ff33;
+  --app-card: #000000;
+  --void-surface: #000000;
+  --app-border: #33ff33;
+  --void-border: #33ff33;
+  --void-radius: 0.5rem;
+}
+
+[data-theme='brutalist'] {
+  --app-bg: #ffffff;
+  --void-bg: #ffffff;
+  --app-text: #000000;
+  --void-text-main: #000000;
+  --app-accent: #000000;
+  --void-accent: #000000;
+  --app-card: #ffffff;
+  --void-surface: #ffffff;
+  --app-border: #000000;
+  --void-border: #000000;
+  --void-radius: 0px;
+  --panel-shadow: 6px 6px 0px #000000;
+}
+
+[data-theme='monochrome-zen'] {
+  --app-bg: #0d1b1b;
+  --void-bg: #0d1b1b;
+  --app-text: #99f6e4;
+  --void-text-main: #99f6e4;
+  --app-accent: #2dd4bf;
+  --void-accent: #2dd4bf;
+  --app-card: #132a2a;
+  --void-surface: #132a2a;
+  --app-border: rgba(45, 212, 191, 0.2);
+  --void-border: rgba(45, 212, 191, 0.2);
+}
+
+[data-theme='y2k'] {
+  --app-bg: #004d4d;
+  --void-bg: #004d4d;
+  --app-text: #ffffff;
+  --void-text-main: #ffffff;
+  --app-accent: #ffff00;
+  --void-accent: #ffff00;
+  --app-card: #00cccc;
+  --void-surface: #00cccc;
+  --app-border: rgba(255, 255, 255, 0.5);
+  --void-radius: 3rem;
+}
+
+[data-theme='comic'] {
+  --app-bg: #fffceb; /* Parchment Yellow */
+  --void-bg: #fffceb;
+  --app-text: #1a1a1a;
+  --void-text-main: #1a1a1a;
+  --app-accent: #ff3e3e;
+  --void-accent: #ff3e3e;
+  --app-card: #ffffff;
+  --void-surface: #ffffff;
+  --app-border: #1a1a1a;
+  --void-border: #1a1a1a;
+  --void-radius: 2px;
+  --panel-shadow: 8px 8px 0px var(--comic-ink);
 }
 
 @layer utilities {
@@ -38,50 +111,142 @@
   .text-app-accent { color: var(--app-accent); }
   .border-app-accent { border-color: var(--app-accent); }
   .bg-app-accent { background-color: var(--app-accent); }
-  
-  /* Procedural Loader */
-  .void-spinner {
-    border-right-color: transparent;
-    border-bottom-color: transparent;
-  }
+  .border-app-border { border-color: var(--app-border); }
+  .text-muted { color: var(--void-text-muted); opacity: 0.7; }
 }
 
 html, body {
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition: background 0.6s cubic-bezier(0.4, 0, 0.2, 1), color 0.6s ease;
+  background: var(--app-bg);
+  color: var(--app-text);
+  height: 100dvh;
+  width: 100%;
 }
 
-/* TV & Remote Navigation: Ultra High Contrast Focus Rings */
-/* Added standard :focus as fallback for older TV browsers */
-*:focus {
-  outline: none;
+.void-card {
+  overflow: hidden;
+  border-radius: var(--void-radius);
+  border-color: var(--app-border);
+  background-color: var(--app-card);
 }
 
-*:focus-visible, button:focus, [role="button"]:focus {
-  outline: 4px solid #fff;
-  outline-offset: 4px;
-  box-shadow: 0 0 0 8px var(--app-accent), 0 0 40px var(--app-accent);
-  transform: scale(1.04);
-  transition: transform 0.2s ease, outline 0.2s ease, box-shadow 0.2s ease;
-  z-index: 100;
+/* --- THEME: COMIC BOOK ENGINE --- */
+.theme-comic body, 
+.theme-comic main, 
+.theme-comic .bg-void-950, 
+.theme-comic .bg-black,
+.theme-comic .bg-zinc-950,
+.theme-comic .bg-zinc-900,
+.theme-comic .bg-void-bg {
+  background-color: var(--app-bg) !important;
+  background-image: 
+    radial-gradient(rgba(0,0,0,0.05) 1.5px, transparent 0),
+    linear-gradient(rgba(0,0,0,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,0.02) 1px, transparent 1px) !important;
+  background-size: 15px 15px, 40px 40px, 40px 40px !important;
 }
 
-[data-theme='sleek'] *:focus-visible, 
-[data-theme='bento'] *:focus-visible,
-[data-theme='sleek'] button:focus,
-[data-theme='bento'] button:focus {
-  outline: 4px solid var(--app-accent);
-  box-shadow: 0 0 0 8px rgba(255,255,255,0.8), 0 10px 30px rgba(0,0,0,0.2);
+.theme-comic .void-card, 
+.theme-comic .main-content-area button:not(.footer-button),
+.theme-comic .cabinet-poster,
+.theme-comic aside,
+.theme-comic .bg-app-card {
+  border: 4px solid var(--comic-ink) !important;
+  box-shadow: var(--panel-shadow) !important;
+  background-color: var(--app-card) !important;
 }
 
-.void-card:focus-visible, .void-button:focus-visible, .void-button:focus {
-  border-color: #fff;
+.theme-comic .text-white, .theme-comic .text-zinc-200, .theme-comic .text-zinc-300, .theme-comic .text-terminal {
+  color: var(--app-text) !important;
 }
 
-/* Scrollbar Hide Utility */
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
+.theme-comic .image-halftone-overlay::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, #000 0.8px, transparent 0.8px);
+  background-size: 4px 4px;
+  opacity: 0.15;
+  pointer-events: none;
+  z-index: 10;
 }
-.scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+
+/* --- THEME: LIQUID GLASS ENGINE (APPLE STYLE) --- */
+.theme-liquid-glass .void-card,
+.theme-liquid-glass .main-content-area button:not(.footer-button),
+.theme-liquid-glass header {
+  backdrop-filter: blur(25px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(25px) saturate(160%) !important;
+  background: rgba(255, 255, 255, 0.35) !important;
+  border: 1px solid rgba(255, 255, 255, 0.6) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05), inset 0 1px 2px rgba(255, 255, 255, 1) !important;
+}
+
+.theme-liquid-glass .text-white, 
+.theme-liquid-glass .text-zinc-200, 
+.theme-liquid-glass .text-zinc-300,
+.theme-liquid-glass .text-app-text {
+  color: #0f172a !important;
+}
+
+.theme-liquid-glass .bg-app-bg {
+  background: radial-gradient(circle at 20% 20%, #f8fafc 0%, #e2e8f0 100%) !important;
+}
+
+/* --- THEME: BRUTALIST GRID --- */
+.theme-brutalist .void-card {
+  border: 3px solid black !important;
+  box-shadow: 8px 8px 0px black !important;
+}
+
+/* --- GLOBAL ANIMATIONS --- */
+.animate-fade-in {
+  animation: fadeIn 0.5s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.nav-underline {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  height: 4px;
+  background: var(--app-accent);
+  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transform: translateX(-50%);
+  border-radius: 4px;
+}
+
+*:focus-visible .nav-underline,
+button:focus .nav-underline {
+  width: 80%;
+  box-shadow: 0 0 15px var(--app-accent);
+}
+
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+.cctv-overlay {
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), 
+              repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255, 255, 255, 0.02) 2px, rgba(255, 255, 255, 0.02) 4px);
+  pointer-events: none;
+}
+
+/* Search Button Hover/Focus Feedback */
+@keyframes search-focus-pulse {
+  0%, 100% { box-shadow: 0 0 0px var(--app-accent); }
+  50% { box-shadow: 0 0 20px var(--app-accent); }
+}
+
+.search-trigger:hover, .search-trigger:focus {
+  transform: scale(1.03) translateY(-1px);
+  animation: search-focus-pulse 1.8s infinite ease-in-out;
+}
+
+.theme-liquid-glass .search-trigger:hover, .theme-liquid-glass .search-trigger:focus {
+  background: rgba(255, 255, 255, 0.55) !important;
 }
