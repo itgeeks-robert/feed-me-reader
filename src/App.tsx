@@ -338,9 +338,8 @@ const App: React.FC = () => {
                             onClick={() => updateSelection({ type: 'all', id: null })} 
                             className="flex items-center gap-1.5 shrink-0 pr-2 border-r border-white/10 cursor-pointer transition-transform outline-none group relative"
                         >
-                            <VoidIcon className="w-4 h-4 md:w-5 md:h-5 text-pulse-500" />
+                            <VoidIcon className={`w-4 h-4 md:w-5 md:h-5 transition-all ${selection.type === 'all' ? 'text-app-accent nav-illumination' : 'text-white'}`} />
                             <span className="text-[10px] font-black italic text-white tracking-tighter hidden sm:inline uppercase group-focus:font-black group-focus:scale-110 transition-all">Void</span>
-                            <div className="nav-underline" />
                         </button>
                         <nav className="flex h-full items-center gap-1 md:gap-2">
                             <GlobalNavLink active={selection.type === 'game_hub'} onClick={() => updateSelection({ type: 'game_hub', id: null })} label="ARCADE" icon={<RadioIcon className="w-3.5 h-3.5"/>} />
@@ -364,12 +363,10 @@ const App: React.FC = () => {
                             className={`px-3 py-1.5 rounded-full text-[8px] font-black uppercase transition-all border shadow-lg relative group shrink-0 outline-none focus:ring-4 focus:ring-emerald-500/40 ${tvMode ? 'bg-emerald-600 border-emerald-400 text-white' : 'bg-zinc-800 border-zinc-700 text-zinc-500'}`}
                         >
                             {tvMode ? 'TV_ON' : 'TV_OFF'}
-                            <div className="nav-underline" />
                         </button>
                         <div className={`flex items-center gap-1 shrink-0 pl-1 transition-opacity duration-500 ${hideMenuTrigger ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
                             <button onClick={() => setIsSidebarOpen(true)} className="p-2 text-zinc-500 hover:text-white transition-colors relative group outline-none focus:ring-2 focus:ring-white rounded-full">
                                 <MenuIcon className="w-5 h-5 md:w-6 md:h-6" />
-                                <div className="nav-underline" />
                             </button>
                         </div>
                     </div>
@@ -423,9 +420,8 @@ const GlobalNavLink: React.FC<{ active: boolean; onClick: () => void; label: str
                 ${active ? 'text-white font-black' : 'text-zinc-500 hover:text-zinc-300 font-bold'} 
                 outline-none header-link`}
         >
-            <span className="scale-90 md:scale-100">{icon}</span>
+            <span className={`scale-90 md:scale-100 transition-all duration-300 ${active ? 'text-app-accent nav-illumination scale-110' : ''}`}>{icon}</span>
             <span className="text-[10px] md:text-[11px] uppercase tracking-[0.15em]">{label}</span>
-            <div className={`nav-underline ${active ? 'w-[80%]' : 'w-0'}`} />
         </button>
     );
 };

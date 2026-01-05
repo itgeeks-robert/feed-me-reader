@@ -263,10 +263,10 @@ const LocalHeader: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuer
                     <button 
                         key={cat.id} 
                         onClick={() => handleCategoryClick(cat.id)} 
-                        className={`shrink-0 px-2 md:px-4 h-11 border-2 transition-all relative group outline-none uppercase font-black italic text-[10px] tracking-widest
+                        className={`shrink-0 px-2 md:px-4 h-11 transition-all relative group outline-none uppercase font-black italic text-[10px] tracking-widest
                             ${selection.category === cat.id 
-                                ? 'bg-app-accent border-app-border text-white translate-y-1 shadow-none' 
-                                : 'bg-transparent border-app-border/40 text-muted hover:text-app-text hover:border-app-border'}`}
+                                ? 'bg-app-accent border-2 border-app-border text-white translate-y-1 shadow-none' 
+                                : 'bg-transparent border-0 text-muted hover:text-app-text'}`}
                     >
                         <span className="relative z-10">{cat.id}</span>
                         <div className={`nav-underline ${selection.category === cat.id ? 'w-[70%]' : 'w-0'}`} />
