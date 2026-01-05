@@ -18,6 +18,7 @@
   --void-radius: 1.25rem;
   --comic-ink: #1a1a1a;
   --panel-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  --void-text-muted: #888891;
 }
 
 [data-theme='sleek'] {
@@ -25,8 +26,8 @@
   --void-bg: radial-gradient(circle at 20% 20%, #f8fafc 0%, #e2e8f0 100%);
   --app-text: #1e293b;
   --void-text-main: #1e293b;
-  --app-accent: #3b82f6;
-  --void-accent: #3b82f6;
+  --app-accent: #2563eb;
+  --void-accent: #2563eb;
   --app-card: rgba(255, 255, 255, 0.25);
   --void-surface: rgba(255, 255, 255, 0.25);
   --app-border: rgba(255, 255, 255, 0.6);
@@ -112,7 +113,7 @@
   .border-app-accent { border-color: var(--app-accent); }
   .bg-app-accent { background-color: var(--app-accent); }
   .border-app-border { border-color: var(--app-border); }
-  .text-muted { color: var(--void-text-muted); opacity: 0.7; }
+  .text-muted { color: var(--void-text-muted); }
 }
 
 html, body {
@@ -128,6 +129,25 @@ html, body {
   border-radius: var(--void-radius);
   border-color: var(--app-border);
   background-color: var(--app-card);
+}
+
+/* Splash Title Layering - Updated to use accent colors for shadow layers in specific themes */
+.void-title {
+  text-shadow: 4px 4px 0px black;
+}
+@media (min-width: 768px) {
+  .void-title { text-shadow: 8px 8px 0px black; }
+}
+
+.theme-liquid-glass .void-title,
+.theme-comic .void-title,
+.theme-brutalist .void-title {
+  text-shadow: 4px 4px 0px var(--app-accent);
+}
+@media (min-width: 768px) {
+  .theme-liquid-glass .void-title,
+  .theme-comic .void-title,
+  .theme-brutalist .void-title { text-shadow: 8px 8px 0px var(--app-accent); }
 }
 
 /* --- THEME: COMIC BOOK ENGINE --- */
@@ -182,11 +202,15 @@ html, body {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05), inset 0 1px 2px rgba(255, 255, 255, 1) !important;
 }
 
-.theme-liquid-glass .text-white, 
-.theme-liquid-glass .text-zinc-200, 
-.theme-liquid-glass .text-zinc-300,
-.theme-liquid-glass .text-app-text {
-  color: #0f172a !important;
+/* Enforce black text in modals/cards for Refraction theme for visibility */
+.theme-liquid-glass .void-card *,
+.theme-liquid-glass [role="dialog"] *,
+.theme-liquid-glass main *,
+.theme-liquid-glass .text-app-text,
+.theme-liquid-glass .text-muted,
+.theme-liquid-glass .text-white,
+.theme-liquid-glass .text-zinc-400 {
+  color: #1e293b !important;
 }
 
 .theme-liquid-glass .bg-app-bg {

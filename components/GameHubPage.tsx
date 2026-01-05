@@ -161,25 +161,25 @@ const GameHubPage: React.FC<any> = (props) => {
             />
             
             <div className="max-w-7xl mx-auto relative z-10">
-                <header className="mb-12 md:mb-16 flex flex-col md:flex-row md:items-end justify-between gap-6 border-b-8 border-zinc-950 pb-8 md:pb-10">
+                <header className="mb-12 md:mb-16 flex flex-col items-start gap-6 border-b-8 border-zinc-950 pb-8 md:pb-10">
                     <div className="flex items-center gap-6 md:gap-8">
-                        <div className="p-3 md:p-4 bg-pulse-500 border-4 border-zinc-950 shadow-[8px_8px_0_black] -rotate-3">
+                        <div className="p-3 md:p-4 bg-pulse-500 border-4 border-zinc-950 shadow-[8px_8px_0_black] -rotate-3 shrink-0">
                             <ControllerIcon className="w-8 h-8 md:w-12 md:h-12 text-white" />
                         </div>
                         <div>
-                            <h1 className="text-4xl md:text-8xl font-black text-app-text tracking-tighter uppercase italic leading-none drop-shadow-[4px_4px_0_rgba(0,0,0,0.2)]">VOID_ARCADE</h1>
-                            <div className="flex items-center gap-3 mt-4">
-                                <span className="bg-app-accent text-white font-black uppercase text-[10px] md:text-sm px-4 py-1 italic tracking-widest shadow-[4px_4px_0_black]">Simulation_Active</span>
+                            <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-app-text tracking-tighter uppercase italic leading-none drop-shadow-[4px_4px_0_rgba(0,0,0,0.2)]">VOID_ARCADE</h1>
+                            <div className="flex items-center gap-3 mt-3">
+                                <span className="bg-app-accent text-white font-black uppercase text-[10px] md:text-xs px-4 py-1 italic tracking-widest shadow-[4px_4px_0_black]">Simulation_Active</span>
                             </div>
                         </div>
                     </div>
                     
-                    <div className="flex items-center gap-4">
-                        <button onClick={onToggleTheme} className="flex items-center gap-3 p-4 bg-app-card border-4 border-zinc-950 rounded-2xl text-zinc-500 hover:text-app-accent shadow-[6px_6px_0_black] active:translate-x-1 active:translate-y-1 transition-all focus:ring-4 focus:ring-pulse-500 outline-none">
-                            <PaletteIcon className="w-6 h-6 md:w-8 md:h-8" />
-                            <span className="text-xs font-black uppercase italic tracking-widest hidden sm:inline">{themeLabel}</span>
+                    <div className="flex items-center gap-4 mt-2">
+                        <button onClick={onToggleTheme} className="flex items-center gap-3 p-3 bg-app-card border-4 border-zinc-950 rounded-2xl text-zinc-500 hover:text-app-accent shadow-[6px_6px_0_black] active:translate-x-1 active:translate-y-1 transition-all focus:ring-4 focus:ring-pulse-500 outline-none">
+                            <PaletteIcon className="w-5 h-5 md:w-7 md:h-7" />
+                            <span className="text-[10px] font-black uppercase italic tracking-widest">{themeLabel}</span>
                         </button>
-                        <button onClick={props.onReturnToFeeds} className="px-10 py-4 bg-app-text text-app-bg text-sm font-black uppercase italic tracking-widest hover:bg-app-accent hover:text-white transition-all shadow-[8px_8px_0_black] active:translate-x-1 active:translate-y-1 focus:ring-4 focus:ring-pulse-500 outline-none">
+                        <button onClick={props.onReturnToFeeds} className="px-8 py-3 bg-app-text text-app-bg text-[10px] font-black uppercase italic tracking-widest hover:bg-app-accent hover:text-white transition-all shadow-[8px_8px_0_black] active:translate-x-1 active:translate-y-1 focus:ring-4 focus:ring-pulse-500 outline-none">
                             Exit
                         </button>
                     </div>

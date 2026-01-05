@@ -76,15 +76,15 @@ const UtilityHubPage: React.FC<{ onSelect: (id: string) => void; onBackToHub: ()
             <div className="fixed inset-0 pointer-events-none opacity-[0.05]" style={{ backgroundImage: 'linear-gradient(var(--void-text-main) 1px, transparent 1px), linear-gradient(90deg, var(--void-text-main) 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
 
             <div className="max-w-7xl mx-auto relative z-10">
-                <header className="mb-10 md:mb-16 flex flex-col lg:flex-row lg:items-end justify-between gap-6 md:gap-8 border-b-4 border-void-border pb-8 md:pb-12">
-                    <div className="flex items-center gap-4 md:gap-8 max-w-full overflow-hidden">
+                <header className="mb-10 md:mb-16 flex flex-col lg:flex-row lg:items-end justify-between gap-6 md:gap-8 border-b-4 border-void-border pb-8 md:pb-12 px-4 md:px-0">
+                    <div className="flex items-center gap-4 md:gap-8 max-w-full">
                         <div className="p-3 md:p-4 bg-terminal border-2 md:border-4 border-void-bg shadow-[4px_4px_0px_var(--void-accent)] md:shadow-[8px_8px_0px_var(--void-accent)] rounded-void shrink-0">
                             <CpuChipIcon className="w-8 h-8 md:w-12 md:h-12 text-void-bg" />
                         </div>
-                        <div className="min-w-0">
-                            <h1 className="text-xl sm:text-3xl md:text-6xl lg:text-7xl font-black text-terminal tracking-tighter uppercase italic leading-none truncate">SECTOR_UTILITIES</h1>
+                        <div className="min-w-0 pr-6 overflow-visible">
+                            <h1 className="text-xl sm:text-3xl md:text-5xl lg:text-6xl font-black text-terminal tracking-tighter uppercase italic leading-none whitespace-nowrap">SECTOR_UTILITIES</h1>
                             <div className="flex items-center gap-2 md:gap-3 mt-2 md:mt-5">
-                                <span className="text-pulse-500 font-black uppercase text-[8px] md:text-sm tracking-[0.2em] md:tracking-[0.4em] italic whitespace-nowrap">Link_Active</span>
+                                <span className="text-pulse-500 font-black uppercase text-[8px] md:text-xs tracking-[0.2em] md:tracking-[0.4em] italic whitespace-nowrap">Link_Active</span>
                             </div>
                         </div>
                     </div>

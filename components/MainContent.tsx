@@ -81,9 +81,11 @@ const MainContent: React.FC<MainContentProps> = (props) => {
         }));
     }, [selection.category, allFeeds]);
 
+    // Staggered RSS load: Part 1 immediately (6 feeds), Part 2 after 15s (remainder)
     useEffect(() => {
-        const fetchRssFeeds = async (targetFeeds: Feed[]) => {
-            if (targetFeeds.length === 0) { setArticles([]); return; };
+        if (activeFeeds.length === 0) { setArticles([]); return; };
+        
+        const fetchRssSubset = async (targetFeeds: Feed[], append: boolean = false) => {
             setLoading(true);
             const promises = targetFeeds.map(feed => 
                 resilientFetch(feed.url, { timeout: 10000 })
@@ -96,12 +98,28 @@ const MainContent: React.FC<MainContentProps> = (props) => {
             );
             try {
                 const results = await Promise.all(promises);
-                const allArticles = results.flat();
-                allArticles.sort((a, b) => (b.publishedDate?.getTime() || 0) - (a.publishedDate?.getTime() || 0));
-                setArticles(Array.from(new Map(allArticles.map(a => [a.id, a])).values()));
+                const fetched = results.flat();
+                setArticles(prev => {
+                    const combined = append ? [...prev, ...fetched] : fetched;
+                    combined.sort((a, b) => (b.publishedDate?.getTime() || 0) - (a.publishedDate?.getTime() || 0));
+                    return Array.from(new Map(combined.map(a => [a.id, a])).values());
+                });
             } finally { setLoading(false); }
         };
-        fetchRssFeeds(activeFeeds);
+
+        const firstBatch = activeFeeds.slice(0, 6);
+        const secondBatch = activeFeeds.slice(6);
+        
+        fetchRssSubset(firstBatch);
+
+        let timer: number | null = null;
+        if (secondBatch.length > 0) {
+            timer = window.setTimeout(() => {
+                fetchRssSubset(secondBatch, true);
+            }, 15000);
+        }
+
+        return () => { if (timer) clearTimeout(timer); };
     }, [activeFeeds, refreshKey]);
 
     const filteredArticles = useMemo(() => {
@@ -127,7 +145,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
         return (
             <main className={`flex-grow overflow-y-auto scrollbar-hide ${animationClass} bg-void-bg pb-40`}>
                 <LocalHeader onSearchSubmit={(e: any) => { e.preventDefault(); onSearch(searchQuery); setIsSearchActive(false); }} isSearchActive={isSearchActive} setIsSearchActive={setIsSearchActive} searchQuery={searchQuery} setSearchQuery={setSearchQuery} onToggleTheme={onToggleTheme} onRefresh={onRefresh} selection={selection} handleCategoryClick={handleCategoryClick} theme={theme} />
-                <div className="pt-[calc(10rem+var(--safe-top))] md:pt-[calc(11rem+var(--safe-top))]">
+                <div className="pt-[calc(14rem+var(--safe-top))] md:pt-[calc(11rem+var(--safe-top))]">
                     <FeedOnboarding onComplete={(f, fld) => { onSetFolders(fld); onSetFeeds(f); }} />
                 </div>
             </main>
@@ -153,7 +171,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                 theme={theme}
             />
             
-            <div className="pt-[calc(13.5rem+var(--safe-top))] md:pt-[calc(14.5rem+var(--safe-top))] max-w-[1400px] mx-auto transition-all relative">
+            <div className="pt-[calc(10rem+var(--safe-top))] md:pt-[calc(11rem+var(--safe-top))] max-w-[1400px] mx-auto transition-all relative">
                 
                 {latestArticle && (
                     <div className="px-4 md:px-6 mb-12">
@@ -239,16 +257,16 @@ const LocalHeader: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuer
     }, [isSearchActive]);
 
     return (
-        <div className="fixed top-11 md:top-12 left-0 right-0 z-40 bg-app-bg border-b-4 border-app-border px-4 md:px-8 py-4 flex flex-col md:flex-row items-center gap-4">
-            <div className="flex items-center h-12 gap-1.5 overflow-x-auto scrollbar-hide flex-grow w-full md:w-auto sub-header-nav">
+        <div className="fixed top-11 md:top-12 left-0 right-0 z-40 bg-app-bg border-b-4 border-app-border px-4 md:px-8 py-2 md:py-4 flex flex-row items-center justify-between gap-4">
+            <div className="flex items-center h-12 gap-1.5 overflow-x-auto scrollbar-hide flex-grow max-w-[calc(100%-80px)] md:max-w-none sub-header-nav">
                 {CATEGORY_MAP.map(cat => (
                     <button 
                         key={cat.id} 
                         onClick={() => handleCategoryClick(cat.id)} 
-                        className={`shrink-0 px-2 md:px-2.5 h-11 border-2 transition-all relative group outline-none uppercase font-black italic text-[10px] tracking-widest shadow-[4px_4px_0_black]
+                        className={`shrink-0 px-2 md:px-4 h-11 border-2 transition-all relative group outline-none uppercase font-black italic text-[10px] tracking-widest
                             ${selection.category === cat.id 
                                 ? 'bg-app-accent border-app-border text-white translate-y-1 shadow-none' 
-                                : 'bg-app-card border-app-border text-muted hover:text-app-text'}`}
+                                : 'bg-transparent border-app-border/40 text-muted hover:text-app-text hover:border-app-border'}`}
                     >
                         <span className="relative z-10">{cat.id}</span>
                         <div className={`nav-underline ${selection.category === cat.id ? 'w-[70%]' : 'w-0'}`} />
@@ -256,12 +274,12 @@ const LocalHeader: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuer
                 ))}
             </div>
             
-            <div className="flex items-center gap-2 w-full md:w-auto shrink-0 justify-end">
+            <div className="flex items-center gap-2 shrink-0 justify-end">
                 <div className="relative shrink-0">
                     {!isSearchActive ? (
                         <button 
                             onClick={() => setIsSearchActive(true)}
-                            className="search-trigger flex items-center gap-2 px-3 h-11 bg-app-card border-4 border-app-border text-[10px] font-black uppercase italic text-muted hover:text-app-text transition-all shadow-[6px_6px_0_black] active:translate-x-1 active:translate-y-1 outline-none shrink-0"
+                            className="search-trigger flex items-center gap-2 px-4 h-11 bg-app-card border-4 border-app-border text-[10px] font-black uppercase italic text-muted hover:text-app-text transition-all shadow-[6px_6px_0_black] active:translate-x-1 active:translate-y-1 outline-none shrink-0"
                         >
                             <SearchIcon className="w-4 h-4" />
                             <span>Find</span>
@@ -277,10 +295,10 @@ const LocalHeader: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuer
                                     value={searchQuery} 
                                     onChange={e => setSearchQuery(e.target.value)} 
                                     onBlur={() => !searchQuery && setIsSearchActive(false)}
-                                    className="w-48 md:w-72 bg-app-card border-4 border-app-border py-3 pl-12 pr-6 text-sm uppercase font-black tracking-widest outline-none text-app-text transition-all shadow-[6px_6px_0_black]" 
+                                    className="w-40 md:w-72 bg-app-card border-4 border-app-border py-3 pl-12 pr-6 text-sm uppercase font-black tracking-widest outline-none text-app-text transition-all shadow-[6px_6px_0_black]" 
                                 />
                             </div>
-                            <button type="button" onClick={() => { setIsSearchActive(false); setSearchQuery(''); }} className="p-3 text-muted hover:text-app-text"><XIcon className="w-5 h-5"/></button>
+                            <button type="button" onClick={() => { setIsSearchActive(false); setSearchQuery(''); }} className="p-3 text-muted hover:text-app-text shrink-0"><XIcon className="w-5 h-5"/></button>
                         </form>
                     )}
                 </div>
