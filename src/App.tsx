@@ -59,7 +59,6 @@ const THEME_KEY = `void_theme_${GUEST_USER_ID}`;
 const ARTICLE_VIEW_KEY = `void_article_view_${GUEST_USER_ID}`;
 const WIDGET_SETTINGS_KEY = `void_widget_settings_${GUEST_USER_ID}`;
 const UPTIME_KEY = `void_uptime_${GUEST_USER_ID}`;
-const SELECTION_KEY = `void_selection_${GUEST_USER_ID}`;
 const FAV_GAMES_KEY = `void_fav_games_${GUEST_USER_ID}`;
 const AMBIENT_SOUND_KEY = `void_ambient_sound_${GUEST_USER_ID}`;
 const TV_MODE_KEY = `void_tv_mode_${GUEST_USER_ID}`;
@@ -86,7 +85,8 @@ const App: React.FC = () => {
     const [tvMode, setTvMode] = useLocalStorage<boolean>(TV_MODE_KEY, true);
     
     const [uptime, setUptime] = useLocalStorage<number>(UPTIME_KEY, 25);
-    const [selection, setSelection] = useLocalStorage<Selection>(SELECTION_KEY, { type: 'splash', id: null });
+    // Selection is no longer persisted to ensure splash screen is seen every session
+    const [selection, setSelection] = useState<Selection>({ type: 'splash', id: null });
 
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
