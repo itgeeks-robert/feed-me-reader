@@ -50,6 +50,32 @@ export type ArticleView = 'list' | 'grid' | 'featured';
 export interface WidgetSettings { showWeather: boolean; showFinance: boolean; weatherLocation: string; }
 export interface Settings { feeds: Feed[]; folders: Folder[]; theme: Theme; articleView: ArticleView; widgets: WidgetSettings; }
 
+// FIX: Defined the missing GlobalNavLink component used in the header.
+const GlobalNavLink: React.FC<{
+    active: boolean;
+    onClick: () => void;
+    label: string;
+    icon: React.ReactNode;
+}> = ({ active, onClick, label, icon }) => (
+    <button
+        onClick={onClick}
+        className={`flex items-center gap-1.5 md:gap-2 px-2 md:px-3 h-full relative transition-all duration-300 outline-none group focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:ring-pulse-500 rounded-md
+            ${active
+                ? 'text-app-accent'
+                : 'text-zinc-400 hover:text-white'}`}
+    >
+        <div className={`transition-transform duration-300 ${active ? 'scale-110' : 'group-hover:scale-110'}`}>
+            {icon}
+        </div>
+        <span className="text-[10px] font-black italic uppercase tracking-widest hidden sm:inline">
+            {label}
+        </span>
+        {active && (
+            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-3/4 h-[3px] bg-app-accent shadow-[0_0_10px_var(--app-accent)] rounded-full" />
+        )}
+    </button>
+);
+
 const GUEST_USER_ID = 'survivor';
 const READ_ARTICLES_KEY = `void_read_articles_${GUEST_USER_ID}`;
 const BOOKMARKED_ARTICLES_KEY = `void_bookmarked_articles_${GUEST_USER_ID}`;
@@ -67,7 +93,7 @@ const FALLBACK_WORD = "FABLE";
 const SECTOR_LIMIT = 7;
 
 const TerminalView: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-    <div className="flex-1 flex flex-col min-w-0 relative h-full overflow-hidden main-content-area">
+    <div className="flex-1 flex flex-col min-w-0 relative h-full overflow-hidden main-content-area pt-11 md:pt-12">
         {children}
     </div>
 );
@@ -332,7 +358,7 @@ const App: React.FC = () => {
     return (
         <div className="h-screen w-full font-sans text-sm relative flex flex-col overflow-hidden bg-app-bg text-app-text transition-colors duration-300">
             <header className="fixed top-0 left-0 right-0 z-[60] bg-black border-b border-white/10 pt-[var(--safe-top)] shrink-0">
-                <div className="h-11 md:h-12 flex items-center px-4 md:px-8 justify-between">
+                <div className="h-11 md:h-12 flex items-center justify-between px-4 md:px-8 flex-nowrap">
                     <div className="flex items-center h-full gap-2 md:gap-3 overflow-x-auto scrollbar-hide">
                         <button 
                             onClick={() => updateSelection({ type: 'all', id: null })} 
@@ -351,79 +377,127 @@ const App: React.FC = () => {
                     <div className="flex items-center gap-2 md:gap-4 shrink-0">
                         <button 
                             onClick={handleToggleTheme}
-                            className="flex items-center gap-2 px-3 py-1.5 bg-zinc-900 border border-white/10 rounded-full text-[8px] font-black uppercase text-zinc-400 hover:text-pulse-500 transition-all active:scale-95 shadow-lg group shrink-0 outline-none focus:ring-4 focus:ring-app-accent/40"
-                            title="Phase Shift"
+                            className="flex items-center gap-2 px-3 py-1.5 bg-zinc-900 border border-white/10 rounded-full text-[8px] font-black uppercase text-zinc-400 hover:text-pulse-500 transition-all active-scale-95 outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-black focus:ring-pulse-500"
                         >
-                            <PaletteIcon className="w-3.5 h-3.5" />
-                            <span className="hidden xs:inline">UI: {themeLabel}</span>
+                            <PaletteIcon className="w-3.5 h-3.5"/>
+                            <span>{themeLabel}</span>
                         </button>
-
-                        <button 
-                            onClick={() => setTvMode(!tvMode)} 
-                            className={`px-3 py-1.5 rounded-full text-[8px] font-black uppercase transition-all border shadow-lg relative group shrink-0 outline-none focus:ring-4 focus:ring-emerald-500/40 ${tvMode ? 'bg-emerald-600 border-emerald-400 text-white' : 'bg-zinc-800 border-zinc-700 text-zinc-500'}`}
-                        >
-                            {tvMode ? 'TV_ON' : 'TV_OFF'}
-                        </button>
-                        <div className={`flex items-center gap-1 shrink-0 pl-1 transition-opacity duration-500 ${hideMenuTrigger ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-                            <button onClick={() => setIsSidebarOpen(true)} className="p-2 text-zinc-500 hover:text-white transition-colors relative group outline-none focus:ring-2 focus:ring-white rounded-full">
-                                <MenuIcon className="w-5 h-5 md:w-6 md:h-6" />
-                            </button>
-                        </div>
                     </div>
                 </div>
             </header>
-
-            <TerminalView>
-                {selection.type === 'game_hub' ? (
-                    <GameHubPage onSelect={(type: any) => updateSelection({ type, id: null })} onReturnToFeeds={() => updateSelection({ type: 'all', id: null })} favoriteGameIds={favoriteGameIds} onToggleFavorite={(id: string) => setFavoriteGameIds(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; })} theme={theme} onToggleTheme={handleToggleTheme} />
-                ) : isGameActive ? (
-                    <OrientationGuard portraitOnly>
-                        {selection.type === 'sudoku' && <SudokuPage stats={{totalWins: 0}} onGameWin={() => {}} onGameLoss={() => {}} onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} onReturnToFeeds={() => updateSelection({ type: 'all', id: null })} />}
-                        {selection.type === 'solitaire' && <SolitairePage stats={{gamesWon: 0, currentStreak: 0}} onGameWin={() => {}} onGameStart={() => {}} settings={{drawThree: true}} onUpdateSettings={() => {}} onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} onReturnToFeeds={() => updateSelection({ type: 'all', id: null })} />}
-                        {selection.type === 'minesweeper' && <MinesweeperPage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} onReturnToFeeds={() => updateSelection({ type: 'all', id: null })} onDefuse={() => {}} />}
-                        {selection.type === 'tetris' && <TetrisPage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} onReturnToFeeds={() => updateSelection({ type: 'all', id: null })} />}
-                        {selection.type === 'pool' && <PoolGamePage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} onReturnToFeeds={() => updateSelection({ type: 'all', id: null })} />}
-                        {selection.type === 'cipher_core' && <CipherCorePage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} uptime={uptime} setUptime={setUptime} preloadedData={cipherData} onWin={() => setUptime(prev => Math.min(100, prev + 15))} />}
-                        {selection.type === 'void_runner' && <VoidRunnerPage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} onReturnToFeeds={() => updateSelection({ type: 'all', id: null })} />}
-                        {selection.type === 'synapse_link' && <SynapseLinkPage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} />}
-                        {selection.type === 'grid_reset' && <GridResetPage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} />}
-                        {selection.type === 'hangman' && <HangmanPage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} />}
-                        {selection.type === 'neon_signal' && <NeonSignalPage onBack={() => updateSelection({ type: 'game_hub', id: null })} onReturnToFeeds={() => updateSelection({ type: 'all', id: null })} />}
-                    </OrientationGuard>
-                ) : isUtilityActive ? (
-                    <>
-                        {selection.type === 'utility_hub' && <UtilityHubPage onSelect={(id) => updateSelection({ type: id as any, id: null })} onBackToHub={() => updateSelection({ type: 'all', id: null })} theme={theme} onToggleTheme={handleToggleTheme} />}
-                        {selection.type === 'signal_streamer' && <SignalStreamerPage onBackToHub={() => updateSelection({ type: 'utility_hub', id: null })} />}
-                        {selection.type === 'surveillance_radar' && <SurveillanceRadarPage onBackToHub={() => updateSelection({ type: 'utility_hub', id: null })} />}
-                        {selection.type === 'transcoder' && <TranscoderPage onBackToHub={() => updateSelection({ type: 'utility_hub', id: null })} />}
-                        {selection.type === 'base64_converter' && <Base64ConverterPage onBackToHub={() => updateSelection({ type: 'utility_hub', id: null })} />}
-                    </>
-                ) : (
-                    <MainContent animationClass="animate-fade-in" pageTitle={selection.type === 'search' ? `SCANNING: "${selection.query}"` : 'INCOMING INTEL'} onSearch={(query: string) => updateSelection({ type: 'search', id: null, query })} feedsToDisplay={feeds} selection={selection} onSelectCategory={(cat) => updateSelection(cat ? { type: 'all', id: null, category: cat } : { type: 'all', id: null }, false)} readArticleIds={readArticleIds} bookmarkedArticleIds={bookmarkedArticleIds} articleTags={new Map()} onMarkAsRead={(id) => setReadArticleIds(prev => new Set(prev).add(id))} onPurgeBuffer={(ids) => setReadArticleIds(new Set([...Array.from(readArticleIds), ...ids]))} onMarkAsUnread={(id) => { const n = new Set(readArticleIds); n.delete(id); setReadArticleIds(n); }} onMarkMultipleAsRead={(ids) => setReadArticleIds(new Set([...Array.from(readArticleIds), ...ids]))} onToggleBookmark={(id) => { const n = new Set(bookmarkedArticleIds); if (n.has(id)) n.delete(id); else n.add(id); setBookmarkedArticleIds(n); }} onSetArticleTags={() => {}} onOpenReader={(a) => { setReaderArticle(a); window.history.pushState({ isReader: true }, ''); }} onOpenExternal={(url, id) => { setReadArticleIds(prev => new Set(prev).add(id)); window.open(url, '_blank', 'noopener,noreferrer'); }} allFeeds={feeds} onSetFeeds={setFeeds} onSetFolders={setFolders} refreshKey={lastRefresh} onRefresh={() => { setPrefetchedArticles([]); setLastRefresh(Date.now()); }} widgetSettings={widgetSettings} articleView={articleView} theme={theme} onToggleTheme={handleToggleTheme} onOpenSettings={() => setIsSettingsModalOpen(true)} onOpenAddSource={() => {}} onOpenSidebar={() => setIsSidebarOpen(true)} onAddSource={handleAddSource} initialArticles={prefetchedArticles} onSetSniffErrorModal={() => {}} onOpenSearchExplainer={() => {}} onOpenIntegrityBriefing={() => {}} ambientEnabled={ambientEnabled} onToggleAmbient={() => setAmbientEnabled(!ambientEnabled)} />
-                )}
-            </TerminalView>
             
-            {!hideMenuTrigger && (
-                <Sidebar feeds={feeds} folders={folders} selection={selection} onAddSource={handleAddSource} onRemoveFeed={(id) => setFeeds(feeds.filter(x => x.id !== id))} onSelect={updateSelection} onAddFolder={(n) => setFolders([...folders, {id: Date.now(), name: n}])} onRenameFolder={(id, n) => setFolders(folders.map(x => x.id === id ? {...x, name: n} : x))} onDeleteFolder={(id) => setFolders(folders.filter(x => x.id !== id))} onMoveFeedToFolder={(fid, foldId) => setFeeds(feeds.map(x => x.id === fid ? {...x, folderId: foldId} : x))} isSidebarOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} onOpenSettings={() => setIsSettingsModalOpen(true)} />
+            <div className="flex-1 flex min-h-0 relative">
+                <Sidebar 
+                    feeds={feeds}
+                    folders={folders}
+                    selection={selection}
+                    onSelect={(sel) => updateSelection(sel)}
+                    onAddSource={handleAddSource}
+                    onRemoveFeed={() => {}}
+                    onAddFolder={() => {}}
+                    onRenameFolder={() => {}}
+                    onDeleteFolder={() => {}}
+                    onMoveFeedToFolder={() => {}}
+                    isSidebarOpen={isSidebarOpen}
+                    onClose={() => setIsSidebarOpen(false)}
+                    onOpenSettings={() => setIsSettingsModalOpen(true)}
+                />
+                
+                {selection.type === 'game_hub' ? <GameHubPage onSelect={(id: any) => updateSelection({ type: id, id })} favoriteGameIds={favoriteGameIds} onToggleFavorite={() => {}} theme={theme} onToggleTheme={handleToggleTheme} onReturnToFeeds={() => updateSelection({type: 'all', id: null})} /> :
+                selection.type === 'utility_hub' ? <UtilityHubPage onSelect={(id: any) => updateSelection({type: id, id})} onBackToHub={() => updateSelection({ type: 'all', id: null })} theme={theme} onToggleTheme={handleToggleTheme} /> :
+                selection.type === 'signal_streamer' ? <SignalStreamerPage onBackToHub={() => updateSelection({ type: 'utility_hub', id: null })} /> :
+                selection.type === 'surveillance_radar' ? <SurveillanceRadarPage onBackToHub={() => updateSelection({ type: 'utility_hub', id: null })} /> :
+                selection.type === 'transcoder' ? <TranscoderPage onBackToHub={() => updateSelection({ type: 'utility_hub', id: null })} /> :
+                selection.type === 'base64_converter' ? <Base64ConverterPage onBackToHub={() => updateSelection({ type: 'utility_hub', id: null })} /> :
+                selection.type === 'sudoku' ? <SudokuPage stats={{totalWins: 0}} onGameWin={() => {}} onGameLoss={() => {}} onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} onReturnToFeeds={() => updateSelection({type: 'all', id: null})} /> :
+                selection.type === 'solitaire' ? <SolitairePage stats={{gamesWon: 0, currentStreak: 0}} onGameWin={() => {}} onGameStart={() => {}} settings={{drawThree: true}} onUpdateSettings={() => {}} onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} onReturnToFeeds={() => updateSelection({type: 'all', id: null})} /> :
+                selection.type === 'minesweeper' ? <MinesweeperPage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} onReturnToFeeds={() => updateSelection({type: 'all', id: null})} /> :
+                selection.type === 'tetris' ? <TetrisPage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} onReturnToFeeds={() => updateSelection({type: 'all', id: null})} /> :
+                selection.type === 'pool' ? <PoolGamePage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} onReturnToFeeds={() => updateSelection({type: 'all', id: null})} /> :
+                selection.type === 'cipher_core' ? <CipherCorePage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} preloadedData={cipherData} /> :
+                selection.type === 'void_runner' ? <VoidRunnerPage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} onReturnToFeeds={() => updateSelection({type: 'all', id: null})} /> :
+                selection.type === 'synapse_link' ? <SynapseLinkPage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} /> :
+                selection.type === 'grid_reset' ? <GridResetPage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} /> :
+                selection.type === 'hangman' ? <HangmanPage onBackToHub={() => updateSelection({ type: 'game_hub', id: null })} /> :
+                selection.type === 'neon_signal' ? <NeonSignalPage onBack={() => updateSelection({ type: 'game_hub', id: null })} onReturnToFeeds={() => updateSelection({type: 'all', id: null})} /> :
+                (
+                    <MainContent 
+                        feedsToDisplay={feeds} 
+                        selection={selection} 
+                        onSelectCategory={(cat: string | null) => updateSelection({ ...selection, category: cat })}
+                        readArticleIds={readArticleIds}
+                        bookmarkedArticleIds={bookmarkedArticleIds}
+                        articleTags={new Map()}
+                        onMarkAsRead={(id: string) => setReadArticleIds(prev => new Set(prev).add(id))}
+                        onMarkAsUnread={() => {}}
+                        onMarkMultipleAsRead={() => {}}
+                        onPurgeBuffer={() => {}}
+                        onToggleBookmark={(id: string) => setBookmarkedArticleIds(prev => {
+                            const next = new Set(prev);
+                            if (next.has(id)) next.delete(id); else next.add(id);
+                            return next;
+                        })}
+                        onSetArticleTags={() => {}}
+                        onSearch={(query: string) => updateSelection({ type: 'search', id: null, query })}
+                        onOpenReader={(article: Article) => setReaderArticle(article)}
+                        onOpenExternal={(url: string, id: string) => { window.open(url, '_blank'); setReadArticleIds(prev => new Set(prev).add(id)); }}
+                        allFeeds={feeds}
+                        onSetFeeds={setFeeds}
+                        onSetFolders={setFolders}
+                        refreshKey={lastRefresh}
+                        onRefresh={() => setLastRefresh(Date.now())}
+                        widgetSettings={widgetSettings}
+                        articleView={articleView}
+                        theme={theme}
+                        onToggleTheme={handleToggleTheme}
+                        onOpenSettings={() => {}}
+                        onOpenAddSource={() => {}}
+                        onOpenSidebar={() => setIsSidebarOpen(true)}
+                        onAddSource={handleAddSource}
+                        animationClass="animate-fade-in"
+                        pageTitle="Signals"
+                        initialArticles={prefetchedArticles}
+                        onSetSniffErrorModal={() => {}}
+                        ambientEnabled={ambientEnabled}
+                        onToggleAmbient={() => setAmbientEnabled(!ambientEnabled)}
+                    />
+                )}
+            </div>
+
+            {readerArticle && (
+                <ReaderViewModal 
+                    article={readerArticle}
+                    onClose={() => setReaderArticle(null)}
+                    onMarkAsRead={(id: string) => setReadArticleIds(prev => new Set(prev).add(id))}
+                    onOpenExternal={(url: string, id: string) => { window.open(url, '_blank'); setReadArticleIds(prev => new Set(prev).add(id)); }}
+                />
             )}
-            <SettingsModal isOpen={isSettingsModalOpen} onClose={() => setIsSettingsModalOpen(false)} settings={{ feeds, folders, theme, articleView, widgets: widgetSettings }} onUpdateSettings={(s) => { if(s.theme) setTheme(s.theme as Theme); if(s.articleView) setArticleView(s.articleView); }} onSelect={(s) => { updateSelection(s); setIsSettingsModalOpen(false); }} onAddFolder={(n) => setFolders([...folders, {id: Date.now(), name: n}])} onRenameFolder={(id, n) => setFolders(folders.map(x => x.id === id ? {...x, name: n} : x))} onDeleteFolder={(id) => setFolders(folders.filter(x => x.id !== id))} onRemoveFeed={(id) => setFeeds(feeds.filter(x => x.id !== id))} onImportOpml={(f, fld) => { setFeeds([...feeds, ...f.map(i => ({...i, id: Date.now() + Math.random()}))]); setFolders([...folders, ...fld]); }} onExportOpml={() => {}} onImportSettings={() => {}} onExportSettings={() => {}} onAddSource={handleAddSource} onEnterUtils={() => updateSelection({ type: 'utility_hub', id: null })} onResetFeeds={handleResetSystem} />
-            {readerArticle && <ReaderViewModal article={readerArticle} onClose={() => setReaderArticle(null)} onMarkAsRead={(id) => setReadArticleIds(prev => new Set(prev).add(id))} onOpenExternal={(url, id) => { setReadArticleIds(prev => new Set(prev).add(id)); window.open(url, '_blank', 'noopener,noreferrer'); }} />}
+
+            <SettingsModal
+                isOpen={isSettingsModalOpen}
+                onClose={() => setIsSettingsModalOpen(false)}
+                settings={{ feeds, folders, theme, articleView, widgets: widgetSettings }}
+                onUpdateSettings={(newSettings: any) => {
+                    if (newSettings.theme) setTheme(newSettings.theme);
+                    if (newSettings.articleView) setArticleView(newSettings.articleView);
+                    if (newSettings.widgets) setWidgetSettings(newSettings.widgets);
+                }}
+                onSelect={(sel) => updateSelection(sel)}
+                onAddFolder={(name: string) => setFolders(f => [...f, { id: Date.now(), name }])}
+                onRenameFolder={(id: number, name: string) => setFolders(f => f.map(fld => fld.id === id ? { ...fld, name } : fld))}
+                onDeleteFolder={(id: number) => setFolders(f => f.filter(fld => fld.id !== id))}
+                onRemoveFeed={(id: number) => setFeeds(f => f.filter(feed => feed.id !== id))}
+                onImportOpml={() => {}}
+                onExportOpml={() => {}}
+                onImportSettings={() => {}}
+                onExportSettings={() => {}}
+                onAddSource={handleAddSource}
+                onEnterUtils={() => updateSelection({ type: 'utility_hub', id: null })}
+                onResetFeeds={handleResetSystem}
+            />
         </div>
     );
 };
 
-const GlobalNavLink: React.FC<{ active: boolean; onClick: () => void; label: string; icon: React.ReactNode }> = ({ active, onClick, label, icon }) => {
-    return (
-        <button 
-            onClick={onClick}
-            className={`flex items-center gap-1.5 h-11 md:h-12 px-3 md:px-5 transition-all relative group shrink-0
-                ${active ? 'text-white font-black' : 'text-zinc-500 hover:text-zinc-300 font-bold'} 
-                outline-none header-link`}
-        >
-            <span className={`scale-90 md:scale-100 transition-all duration-300 ${active ? 'text-app-accent nav-illumination scale-110' : ''}`}>{icon}</span>
-            <span className="text-[10px] md:text-[11px] uppercase tracking-[0.15em]">{label}</span>
-        </button>
-    );
-};
-
+// FIX: Added default export for the App component.
 export default App;

@@ -55,8 +55,8 @@ const OrientationGuard: React.FC<OrientationGuardProps> = ({ children, portraitO
             {children}
             
             {showAdvisory && (
-                <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[200] w-[90%] max-w-sm pointer-events-none animate-fade-in">
-                    <div className="bg-zinc-900/90 backdrop-blur-xl border-2 border-amber-500/50 rounded-2xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex items-start gap-4 border-l-[6px] pointer-events-auto relative">
+                <div className="fixed inset-0 z-[200] flex items-start justify-center pt-8 sm:pt-16 bg-black/70 backdrop-blur-sm animate-fade-in" onClick={(e) => e.stopPropagation()}>
+                    <div className="bg-zinc-900/90 border-2 border-amber-500/50 rounded-2xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex items-start gap-4 border-l-[6px] w-[90%] max-w-sm relative">
                         
                         {/* Dismiss Button */}
                         <button 
@@ -101,11 +101,6 @@ const OrientationGuard: React.FC<OrientationGuardProps> = ({ children, portraitO
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    
-                    {/* Visual hint for the user that the game is still active underneath */}
-                    <div className="mt-2 text-center pointer-events-none">
-                        <span className="text-[8px] font-black text-white/20 uppercase tracking-[0.5em] italic">Simulation_Active // Proceed_At_Risk</span>
                     </div>
                 </div>
             )}

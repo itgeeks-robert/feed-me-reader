@@ -145,7 +145,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
         return (
             <main className={`flex-grow overflow-y-auto scrollbar-hide ${animationClass} bg-void-bg pb-40`}>
                 <LocalHeader onSearchSubmit={(e: any) => { e.preventDefault(); onSearch(searchQuery); setIsSearchActive(false); }} isSearchActive={isSearchActive} setIsSearchActive={setIsSearchActive} searchQuery={searchQuery} setSearchQuery={setSearchQuery} onToggleTheme={onToggleTheme} onRefresh={onRefresh} selection={selection} handleCategoryClick={handleCategoryClick} theme={theme} />
-                <div className="pt-[calc(14rem+var(--safe-top))] md:pt-[calc(11rem+var(--safe-top))]">
+                <div className="pt-12 md:pt-16">
                     <FeedOnboarding onComplete={(f, fld) => { onSetFolders(fld); onSetFeeds(f); }} />
                 </div>
             </main>
@@ -171,7 +171,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                 theme={theme}
             />
             
-            <div className="pt-[calc(10rem+var(--safe-top))] md:pt-[calc(11rem+var(--safe-top))] max-w-[1400px] mx-auto transition-all relative">
+            <div className="max-w-[1400px] mx-auto transition-all relative pt-8 md:pt-12">
                 
                 {latestArticle && (
                     <div className="px-4 md:px-6 mb-12">
@@ -257,7 +257,7 @@ const LocalHeader: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuer
     }, [isSearchActive]);
 
     return (
-        <div className="fixed top-11 md:top-12 left-0 right-0 z-40 bg-app-bg border-b-4 border-app-border px-4 md:px-8 py-2 md:py-4 flex flex-row items-center justify-between gap-4">
+        <div className="sticky top-0 z-30 bg-app-bg border-b-4 border-app-border px-4 md:px-8 py-2 md:py-4 flex flex-row items-center justify-between gap-4">
             <div className="flex items-center h-12 gap-1.5 overflow-x-auto scrollbar-hide flex-grow max-w-[calc(100%-80px)] md:max-w-none sub-header-nav">
                 {CATEGORY_MAP.map(cat => (
                     <button 
@@ -265,7 +265,7 @@ const LocalHeader: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuer
                         onClick={() => handleCategoryClick(cat.id)} 
                         className={`shrink-0 px-2 md:px-4 h-11 transition-all relative group outline-none uppercase font-black italic text-[10px] tracking-widest
                             ${selection.category === cat.id 
-                                ? 'bg-app-accent border-2 border-app-border text-white translate-y-1 shadow-none' 
+                                ? 'bg-app-accent border-2 border-app-border text-white shadow-none' 
                                 : 'bg-transparent border-0 text-muted hover:text-app-text'}`}
                     >
                         <span className="relative z-10">{cat.id}</span>
