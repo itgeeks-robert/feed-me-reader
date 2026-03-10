@@ -157,7 +157,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
     const rollingNews = filteredArticles.slice(4, visibleCount);
 
     return (
-        <main className={`flex-grow overflow-y-auto scrollbar-hide ${animationClass} bg-void-bg pb-40 scroll-smooth main-content-area`}>
+        <main className={`flex-grow overflow-y-auto scrollbar-hide ${animationClass} bg-void-bg pb-40 scroll-smooth main-content-area pl-[var(--safe-left)] pr-[var(--safe-right)]`}>
             <LocalHeader 
                 onSearchSubmit={(e: any) => { e.preventDefault(); onSearch(searchQuery); setIsSearchActive(false); }} 
                 isSearchActive={isSearchActive}

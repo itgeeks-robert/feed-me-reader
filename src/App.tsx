@@ -21,7 +21,6 @@ import SynapseLinkPage from '../components/SynapseLinkPage';
 import GridResetPage from '../components/GridResetPage';
 import HangmanPage from '../components/HangmanPage';
 import NeonSignalPage from '../components/NeonSignalPage';
-import OrientationGuard from '../components/OrientationGuard';
 import { resilientFetch } from '../services/fetch';
 import { parseRssXml } from '../services/rssParser';
 import { useLocalStorage } from '../hooks/useLocalStorage';
@@ -92,12 +91,6 @@ const TV_MODE_KEY = `void_tv_mode_${GUEST_USER_ID}`;
 const FALLBACK_WORD = "FABLE";
 const SECTOR_LIMIT = 7;
 
-const TerminalView: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-    <div className="flex-1 flex flex-col min-w-0 relative h-full overflow-hidden main-content-area pt-11 md:pt-12">
-        {children}
-    </div>
-);
-
 const App: React.FC = () => {
     const [theme, setTheme] = useLocalStorage<Theme>(THEME_KEY, 'noir');
     const [articleView, setArticleView] = useLocalStorage<ArticleView>(ARTICLE_VIEW_KEY, 'list');
@@ -138,6 +131,13 @@ const App: React.FC = () => {
         }
     }, [theme]);
 
+    const updateSelection = useCallback((newSel: Selection, replace: boolean = false) => {
+        setSelection(newSel);
+        if (replace) window.history.replaceState({ selection: newSel }, '');
+        else window.history.pushState({ selection: newSel }, '');
+        setIsSidebarOpen(false);
+    }, [setSelection]);
+
     // --- REFINED SPATIAL NAVIGATION ENGINE (BALANCED ROW ROUTING) ---
     useEffect(() => {
         if (!tvMode) return;
@@ -145,6 +145,17 @@ const App: React.FC = () => {
         const handleGlobalKeyDown = (e: KeyboardEvent) => {
             const activeElement = document.activeElement as HTMLElement;
             
+            // Handle Back Button (Escape, Backspace, or Android Back)
+            if (e.key === 'Escape' || e.key === 'Backspace') {
+                // If we are in a sub-page, go back to main
+                if (selection.type !== 'all' && selection.type !== 'splash') {
+                    e.preventDefault();
+                    updateSelection({ type: 'all', id: null });
+                    soundService.playClick();
+                    return;
+                }
+            }
+
             if (activeElement?.tagName === 'INPUT' || activeElement?.tagName === 'TEXTAREA') {
                  if (e.key === 'Escape' || e.key === 'Enter') {
                      activeElement.blur();
@@ -190,17 +201,21 @@ const App: React.FC = () => {
                 const dy = ccy - cy;
 
                 let isValidDirection = false;
-                if (mappedKey === 'ArrowUp' && dy < -5) isValidDirection = true;
-                if (mappedKey === 'ArrowDown' && dy > 5) isValidDirection = true;
-                if (mappedKey === 'ArrowLeft' && dx < -5) isValidDirection = true;
-                if (mappedKey === 'ArrowRight' && dx > 5) isValidDirection = true;
+                // Use a small buffer to avoid floating point issues
+                const buffer = 2;
+                if (mappedKey === 'ArrowUp' && dy < -buffer) isValidDirection = true;
+                if (mappedKey === 'ArrowDown' && dy > buffer) isValidDirection = true;
+                if (mappedKey === 'ArrowLeft' && dx < -buffer) isValidDirection = true;
+                if (mappedKey === 'ArrowRight' && dx > buffer) isValidDirection = true;
 
                 if (isValidDirection) {
                     const isHorizontalMove = mappedKey === 'ArrowLeft' || mappedKey === 'ArrowRight';
                     const primaryDist = isHorizontalMove ? Math.abs(dx) : Math.abs(dy);
                     const secondaryDist = isHorizontalMove ? Math.abs(dy) : Math.abs(dx);
                     
-                    const score = primaryDist + (secondaryDist * 8);
+                    // Heavily penalize elements that are not in the same row/column
+                    // This makes navigation feel much more "grid-like"
+                    const score = primaryDist + (secondaryDist * 12);
 
                     if (score < minScore) {
                         minScore = score;
@@ -210,15 +225,15 @@ const App: React.FC = () => {
             });
 
             if (bestMatch) {
-                bestMatch.focus();
-                bestMatch.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+                (bestMatch as HTMLElement).focus();
+                (bestMatch as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
                 soundService.playPop();
             }
         };
 
         window.addEventListener('keydown', handleGlobalKeyDown);
         return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-    }, [tvMode, selection.type, isSettingsModalOpen]);
+    }, [tvMode, selection.type, isSettingsModalOpen, updateSelection]);
 
     useLayoutEffect(() => {
         if (selection.type === 'splash') return;
@@ -234,6 +249,8 @@ const App: React.FC = () => {
 
     useEffect(() => {
         const doc = document.documentElement;
+        doc.setAttribute('data-tv-mode', tvMode.toString());
+        
         const dataThemeMap: Record<Theme, string> = {
             'noir': 'noir', 'terminal': 'terminal', 'liquid-glass': 'sleek',
             'brutalist': 'brutalist', 'claymorphism': 'claymorphism',
@@ -247,7 +264,7 @@ const App: React.FC = () => {
         if (theme !== 'noir') doc.classList.add(`theme-${theme}`);
 
         soundService.setAmbient(ambientEnabled, theme);
-    }, [ambientEnabled, theme]);
+    }, [ambientEnabled, theme, tvMode]);
 
     const isGameActive = useMemo(() => {
         const gameTypes = ['sudoku', 'solitaire', 'minesweeper', 'tetris', 'pool', 'cipher_core', 'void_runner', 'synapse_link', 'hangman', 'neon_signal'];
@@ -342,13 +359,6 @@ const App: React.FC = () => {
         if (selection.type === 'splash' && feeds.length > 0) prefetchContentFrequencies();
     }, [prefetchCipherFrequency, prefetchContentFrequencies, selection.type, feeds.length]);
 
-    const updateSelection = useCallback((newSel: Selection, replace: boolean = false) => {
-        setSelection(newSel);
-        if (replace) window.history.replaceState({ selection: newSel }, '');
-        else window.history.pushState({ selection: newSel }, '');
-        setIsSidebarOpen(false);
-    }, [setSelection]);
-
     if (selection.type === 'splash') {
         return <SplashScreen theme={theme} onEnterFeeds={() => updateSelection({ type: 'all', id: null })} onEnterArcade={() => updateSelection({ type: 'game_hub', id: null })} onToggleTheme={handleToggleTheme} isDecoding={isDecoding} onReset={handleResetSystem} />;
     }
@@ -424,7 +434,7 @@ const App: React.FC = () => {
                     <MainContent 
                         feedsToDisplay={feeds} 
                         selection={selection} 
-                        onSelectCategory={(cat: string | null) => updateSelection({ ...selection, category: cat })}
+                        onSelectCategory={(cat: string | null) => updateSelection({ ...selection, category: cat || undefined })}
                         readArticleIds={readArticleIds}
                         bookmarkedArticleIds={bookmarkedArticleIds}
                         articleTags={new Map()}

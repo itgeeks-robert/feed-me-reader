@@ -63,6 +63,23 @@
             
             --safe-top: env(safe-area-inset-top, 0px);
             --safe-bottom: env(safe-area-inset-bottom, 0px);
+            --safe-left: env(safe-area-inset-left, 0px);
+            --safe-right: env(safe-area-inset-right, 0px);
+        }
+
+        /* TV FOCUS STYLES */
+        [data-tv-mode="true"] *:focus {
+            outline: none !important;
+            box-shadow: 0 0 0 4px var(--void-bg-solid), 0 0 0 8px var(--void-accent) !important;
+            transform: scale(1.05) !important;
+            z-index: 50 !important;
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+        }
+
+        /* Ensure background covers everything including safe areas */
+        #root {
+            background: var(--void-bg);
+            min-height: 100dvh;
         }
 
         /* THEME 2: LIQUID GLASS (Frosted Crystal Light) */
@@ -243,7 +260,6 @@
   }
 }
 </script>
-<link rel="stylesheet" href="/index.css">
 </head>
 <body class="antialiased selection:bg-pulse-500 selection:text-white">
     <div id="root"></div>

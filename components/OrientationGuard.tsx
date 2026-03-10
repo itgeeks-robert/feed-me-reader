@@ -37,7 +37,11 @@ const OrientationGuard: React.FC<OrientationGuardProps> = ({ children, portraitO
 
     const subOptimalPortrait = portraitOnly && isLandscape;
     const subOptimalLandscape = landscapeOnly && !isLandscape;
-    const isCurrentlySubOptimal = subOptimalPortrait || subOptimalLandscape;
+    
+    // On TV, we usually don't want to nag the user about orientation since they can't change it.
+    const isTv = typeof document !== 'undefined' && document.documentElement.getAttribute('data-tv-mode') === 'true';
+    
+    const isCurrentlySubOptimal = !isTv && (subOptimalPortrait || subOptimalLandscape);
 
     // Reset dismissal when the user fixes the orientation, 
     // so it will show again if they rotate back to a "bad" mode.

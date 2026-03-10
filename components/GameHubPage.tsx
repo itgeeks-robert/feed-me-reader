@@ -153,7 +153,7 @@ const GameHubPage: React.FC<any> = (props) => {
     }, [games, favoriteGameIds]);
 
     return (
-        <main className="h-full min-h-0 flex-grow overflow-y-auto bg-void-bg p-4 md:p-14 pt-[calc(4rem+env(safe-area-inset-top))] pb-[calc(10rem+env(safe-area-inset-bottom))] animate-fade-in relative scrollbar-hide font-mono main-content-area">
+        <main className="h-full min-h-0 flex-grow overflow-y-auto bg-void-bg p-4 md:p-14 pt-[calc(4rem+var(--safe-top))] pb-[calc(10rem+var(--safe-bottom))] pl-[var(--safe-left)] pr-[var(--safe-right)] animate-fade-in relative scrollbar-hide font-mono main-content-area">
             <ContextualIntel 
                 tipId="arcade_intel" 
                 title="The Void Arcade" 
