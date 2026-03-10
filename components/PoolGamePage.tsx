@@ -560,10 +560,10 @@ const PoolGamePage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () => v
                 const firstPotted = pottedThisTurn.find(b => b.type === 'solid' || b.type === 'stripe');
                 if (firstPotted) {
                     if (turn === 'human') {
-                        game.current.humanPlayerBallType = firstPotted.type;
+                        game.current.humanPlayerBallType = firstPotted.type as BallType;
                         game.current.aiPlayerBallType = firstPotted.type === 'solid' ? 'stripe' : 'solid';
                     } else {
-                        game.current.aiPlayerBallType = firstPotted.type;
+                        game.current.aiPlayerBallType = firstPotted.type as BallType;
                         game.current.humanPlayerBallType = firstPotted.type === 'solid' ? 'stripe' : 'solid';
                     }
                 }
