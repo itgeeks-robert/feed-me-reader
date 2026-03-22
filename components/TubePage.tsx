@@ -40,7 +40,11 @@ export const TubePage: React.FC<{ onReturnToFeeds: () => void }> = ({ onReturnTo
     const [activeCategory, setActiveCategory] = useState('Home');
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [userProfile, setUserProfile] = useState<{ name: string; picture: string; email: string } | null>(null);
     const [showSettings, setShowSettings] = useState(false);
+    const [deviceAuthData, setDeviceAuthData] = useState<{ user_code: string; verification_url: string; device_code: string; expires_in: number; interval: number } | null>(null);
+    const [isPolling, setIsPolling] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
     const [tubeSettings, setTubeSettings] = useState<TubeSettings>({
         quality: 'Auto',
         speed: 1,
@@ -50,6 +54,32 @@ export const TubePage: React.FC<{ onReturnToFeeds: () => void }> = ({ onReturnTo
     const searchInputRef = useRef<HTMLInputElement>(null);
 
     const toggleSidebar = () => setIsSidebarCollapsed(!isSidebarCollapsed);
+
+    const fetchTrending = async () => {
+        setIsLoading(true);
+        try {
+            const res = await fetch('/api/youtube/trending');
+            if (res.ok) {
+                const data = await res.json();
+                setVideos(data);
+            } else {
+                // Fallback to mock data if API key is missing or error
+                setVideos(MOCK_VIDEOS);
+            }
+        } catch (error) {
+            console.error('Failed to fetch trending:', error);
+            setVideos(MOCK_VIDEOS);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleCategoryClick = (categoryId: string) => {
+        setActiveCategory(categoryId);
+        if (categoryId === 'Trending' || categoryId === 'Home') {
+            fetchTrending();
+        }
+    };
 
     const handleSearch = async (e?: React.FormEvent) => {
         if (e) e.preventDefault();
@@ -82,6 +112,107 @@ export const TubePage: React.FC<{ onReturnToFeeds: () => void }> = ({ onReturnTo
 
     const homeRows = ['New', 'Shorts', 'Music', 'Gaming'];
 
+    const checkLoginStatus = async () => {
+        try {
+            const res = await fetch('/api/auth/status');
+            const data = await res.json();
+            if (data.loggedIn) {
+                setIsLoggedIn(true);
+                setUserProfile(data.user);
+            } else {
+                setIsLoggedIn(false);
+                setUserProfile(null);
+            }
+        } catch (error) {
+            console.error('Failed to check login status:', error);
+        }
+    };
+
+    const handleLogin = async () => {
+        if (isLoggedIn) {
+            // Logout
+            try {
+                await fetch('/api/auth/logout', { method: 'POST' });
+                setIsLoggedIn(false);
+                setUserProfile(null);
+            } catch (error) {
+                console.error('Logout failed:', error);
+            }
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/auth/device/code');
+            if (res.status === 412) {
+                alert('VOIDTUBE_AUTH_ERROR: GOOGLE_CLIENT_ID NOT CONFIGURED. PLEASE SET UP CREDENTIALS IN SETTINGS.');
+                return;
+            }
+            const data = await res.json();
+            if (data.error) {
+                alert(`AUTH_ERROR: ${data.error_description || data.error}`);
+                return;
+            }
+            setDeviceAuthData(data);
+            setIsPolling(true);
+        } catch (error) {
+            console.error('Login failed:', error);
+        }
+    };
+
+    useEffect(() => {
+        let pollTimer: NodeJS.Timeout;
+
+        if (isPolling && deviceAuthData) {
+            const poll = async () => {
+                try {
+                    const res = await fetch('/api/auth/device/poll', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ device_code: deviceAuthData.device_code })
+                    });
+                    const data = await res.json();
+
+                    if (data.success) {
+                        setIsPolling(false);
+                        setDeviceAuthData(null);
+                        checkLoginStatus();
+                    } else if (data.error === 'authorization_pending') {
+                        // Continue polling
+                        pollTimer = setTimeout(poll, deviceAuthData.interval * 1000);
+                    } else {
+                        // Error (expired, slow down, etc)
+                        setIsPolling(false);
+                        setDeviceAuthData(null);
+                        if (data.error !== 'authorization_pending') {
+                            alert(`AUTH_SESSION_ENDED: ${data.error_description || data.error}`);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Polling error:', error);
+                    setIsPolling(false);
+                }
+            };
+
+            pollTimer = setTimeout(poll, deviceAuthData.interval * 1000);
+        }
+
+        return () => clearTimeout(pollTimer);
+    }, [isPolling, deviceAuthData]);
+
+    useEffect(() => {
+        checkLoginStatus();
+        fetchTrending();
+
+        const handleMessage = (event: MessageEvent) => {
+            if (event.data?.type === 'OAUTH_AUTH_SUCCESS') {
+                checkLoginStatus();
+            }
+        };
+
+        window.addEventListener('message', handleMessage);
+        return () => window.removeEventListener('message', handleMessage);
+    }, []);
+
     useEffect(() => {
         if (activeCategory === 'Search') {
             searchInputRef.current?.focus();
@@ -92,7 +223,7 @@ export const TubePage: React.FC<{ onReturnToFeeds: () => void }> = ({ onReturnTo
         <button
             key={video.id}
             onClick={() => setSelectedVideo(video)}
-            className="group text-left flex flex-col gap-3 outline-none focus:ring-4 focus:ring-red-500/50 rounded-2xl p-2 transition-all hover:bg-white/5 shrink-0 w-64 md:w-72"
+            className="group text-left flex flex-col gap-3 outline-none focus:ring-4 focus:ring-red-500 rounded-2xl p-2 transition-all hover:bg-white/5 shrink-0 w-64 md:w-72"
         >
             <div className="relative aspect-video rounded-xl overflow-hidden bg-zinc-800">
                 <img 
@@ -221,55 +352,69 @@ export const TubePage: React.FC<{ onReturnToFeeds: () => void }> = ({ onReturnTo
     return (
         <div className="flex-1 flex min-h-0 bg-[#0f0f0f] text-white font-sans overflow-hidden animate-fade-in">
             {/* Sidebar */}
-            <aside className={`flex flex-col border-r border-white/5 bg-[#0f0f0f] transition-all duration-300 ${isSidebarCollapsed ? 'w-20' : 'w-64'}`}>
-                <div className="p-6 flex items-center gap-3">
-                    <button 
-                        onClick={toggleSidebar}
-                        className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center shrink-0 outline-none focus:ring-2 focus:ring-white"
-                    >
-                        <PlayIcon className="w-5 h-5 text-white" />
-                    </button>
-                    {!isSidebarCollapsed && <span className="font-black text-xl tracking-tighter uppercase italic">VoidTube</span>}
-                </div>
-
-                <nav className="flex-1 px-3 py-4 space-y-2 overflow-y-auto scrollbar-hide">
-                    {categories.map(cat => (
-                        <button
-                            key={cat.id}
-                            onClick={() => setActiveCategory(cat.id)}
-                            className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all outline-none focus:ring-2 focus:ring-red-500 ${activeCategory === cat.id ? 'bg-white/10 text-white shadow-lg' : 'text-zinc-400 hover:text-white hover:bg-white/5'}`}
+            <aside className={`flex flex-col border-r border-white/5 bg-[#0f0f0f] transition-all duration-300 ${isSidebarCollapsed ? 'w-20' : 'w-64'} shrink-0`}>
+                <div className="flex-1 flex flex-col overflow-y-auto scrollbar-hide">
+                    <div className="p-6 flex items-center gap-3">
+                        <button 
+                            onClick={toggleSidebar}
+                            className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center shrink-0 outline-none focus:ring-4 focus:ring-white"
+                            aria-label="Toggle Sidebar"
                         >
-                            <span className={activeCategory === cat.id ? 'text-red-500' : ''}>{cat.icon}</span>
-                            {!isSidebarCollapsed && <span className="font-bold text-sm uppercase tracking-wider">{cat.id}</span>}
+                            <PlayIcon className="w-5 h-5 text-white" />
                         </button>
-                    ))}
-                    
-                    <div className="pt-4 mt-4 border-t border-white/5">
-                        <button
-                            onClick={() => setIsLoggedIn(!isLoggedIn)}
-                            className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all outline-none focus:ring-2 focus:ring-red-500 ${isLoggedIn ? 'text-emerald-500' : 'text-zinc-400 hover:text-white'}`}
+                        {!isSidebarCollapsed && <span className="font-black text-xl tracking-tighter uppercase italic">VoidTube</span>}
+                    </div>
+
+                    <nav className="px-3 py-4 space-y-2">
+                        {categories.map(cat => (
+                            <button
+                                key={cat.id}
+                                onClick={() => handleCategoryClick(cat.id)}
+                                className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all outline-none focus:ring-4 focus:ring-red-500 ${activeCategory === cat.id ? 'bg-white/10 text-white shadow-lg' : 'text-zinc-400 hover:text-white hover:bg-white/5'}`}
+                            >
+                                <span className={activeCategory === cat.id ? 'text-red-500' : ''}>{cat.icon}</span>
+                                {!isSidebarCollapsed && <span className="font-bold text-sm uppercase tracking-wider">{cat.id}</span>}
+                            </button>
+                        ))}
+                        
+                        <div className="pt-4 mt-4 border-t border-white/5">
+                            <button
+                                onClick={handleLogin}
+                                className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all outline-none focus:ring-4 focus:ring-red-500 ${isLoggedIn ? 'text-emerald-500' : 'text-zinc-400 hover:text-white'}`}
+                            >
+                                {userProfile?.picture ? (
+                                    <img src={userProfile.picture} alt="Profile" className="w-6 h-6 rounded-full border border-emerald-500/50" referrerPolicy="no-referrer" />
+                                ) : (
+                                    <UserIcon className="w-5 h-5" />
+                                )}
+                                {!isSidebarCollapsed && (
+                                    <div className="flex flex-col items-start overflow-hidden">
+                                        <span className="font-bold text-sm uppercase tracking-wider truncate w-full">
+                                            {isLoggedIn ? userProfile?.name || 'Survivor_01' : 'Login'}
+                                        </span>
+                                        {isLoggedIn && <span className="text-[8px] font-black text-zinc-500 italic uppercase">Uplink_Active</span>}
+                                    </div>
+                                )}
+                            </button>
+                        </div>
+                    </nav>
+
+                    <div className="mt-auto p-4 border-t border-white/5">
+                        <button 
+                            onClick={onReturnToFeeds}
+                            className="w-full flex items-center gap-4 px-4 py-3 text-zinc-400 hover:text-white transition-all outline-none focus:ring-4 focus:ring-red-500 rounded-xl"
                         >
-                            <UserIcon className="w-5 h-5" />
-                            {!isSidebarCollapsed && <span className="font-bold text-sm uppercase tracking-wider">{isLoggedIn ? 'Survivor_01' : 'Login'}</span>}
+                            <GlobeAltIcon className="w-5 h-5" />
+                            {!isSidebarCollapsed && <span className="font-bold text-sm uppercase tracking-wider">Back to Intel</span>}
                         </button>
                     </div>
-                </nav>
-
-                <div className="p-4 border-t border-white/5">
-                    <button 
-                        onClick={onReturnToFeeds}
-                        className="w-full flex items-center gap-4 px-4 py-3 text-zinc-400 hover:text-white transition-all outline-none focus:ring-2 focus:ring-red-500"
-                    >
-                        <GlobeAltIcon className="w-5 h-5" />
-                        {!isSidebarCollapsed && <span className="font-bold text-sm uppercase tracking-wider">Back to Intel</span>}
-                    </button>
                 </div>
             </aside>
 
             {/* Main Content */}
-            <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+            <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
                 {/* Header / Search */}
-                <header className="h-20 border-b border-white/5 flex items-center px-8 gap-8">
+                <header className="h-20 border-b border-white/5 flex items-center px-8 gap-8 shrink-0">
                     {activeCategory === 'Search' ? (
                         <form onSubmit={handleSearch} className="flex-1 flex items-center gap-4">
                             <div className="flex-1 relative">
@@ -280,21 +425,26 @@ export const TubePage: React.FC<{ onReturnToFeeds: () => void }> = ({ onReturnTo
                                     placeholder="Search videos..."
                                     value={searchQuery}
                                     onChange={e => setSearchQuery(e.target.value)}
-                                    className="w-full bg-zinc-800/50 border border-white/10 rounded-2xl py-3 pl-12 pr-4 text-white outline-none focus:border-red-500/50 transition-all"
+                                    className="w-full bg-zinc-800/50 border border-white/10 rounded-2xl py-3 pl-12 pr-4 text-white outline-none focus:border-red-500 focus:ring-4 focus:ring-red-500/50 transition-all"
                                 />
                             </div>
                             <button 
                                 type="submit"
-                                className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-2xl transition-all outline-none focus:ring-2 focus:ring-white"
+                                className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-2xl transition-all outline-none focus:ring-4 focus:ring-white"
                             >
                                 SEARCH
                             </button>
                         </form>
                     ) : (
                         <div className="flex-1 flex items-center justify-between">
-                            <h2 className="text-2xl font-black uppercase tracking-tight">{activeCategory}</h2>
+                            <h2 
+                                tabIndex={0}
+                                className="text-2xl font-black uppercase tracking-tight outline-none focus:ring-4 focus:ring-red-500 rounded-lg px-2"
+                            >
+                                {activeCategory}
+                            </h2>
                             <div className="flex items-center gap-4">
-                                <button className="p-2 text-zinc-400 hover:text-white transition-all outline-none focus:ring-2 focus:ring-red-500">
+                                <button className="p-3 text-zinc-400 hover:text-white transition-all outline-none focus:ring-4 focus:ring-red-500 rounded-xl bg-white/5">
                                     <ArrowPathIcon className="w-5 h-5" />
                                 </button>
                             </div>
@@ -303,7 +453,15 @@ export const TubePage: React.FC<{ onReturnToFeeds: () => void }> = ({ onReturnTo
                 </header>
 
                 {/* Video Content */}
-                <div className="flex-1 overflow-y-auto scrollbar-hide">
+                <div className="flex-1 overflow-y-auto scrollbar-hide relative">
+                    {isLoading && (
+                        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+                            <div className="flex flex-col items-center gap-4">
+                                <ArrowPathIcon className="w-12 h-12 text-red-600 animate-spin" />
+                                <span className="text-xs font-bold uppercase tracking-[0.3em] text-red-500">Syncing_VoidTube...</span>
+                            </div>
+                        </div>
+                    )}
                     {isSearching ? (
                         <div className="h-full flex flex-col items-center justify-center gap-4">
                             <ArrowPathIcon className="w-12 h-12 text-red-600 animate-spin" />
@@ -315,7 +473,7 @@ export const TubePage: React.FC<{ onReturnToFeeds: () => void }> = ({ onReturnTo
                                 <section key={row} className="space-y-4">
                                     <div className="flex items-center justify-between">
                                         <h3 className="text-lg font-black uppercase tracking-widest text-zinc-500">{row}</h3>
-                                        <button className="text-xs font-bold text-red-500 hover:underline uppercase tracking-widest">View All</button>
+                                        <button className="text-xs font-bold text-red-500 hover:underline uppercase tracking-widest outline-none focus:ring-4 focus:ring-red-500 rounded-lg px-2 py-1">View All</button>
                                     </div>
                                     <div className="flex gap-6 overflow-x-auto pb-4 scrollbar-hide snap-x">
                                         {MOCK_VIDEOS.filter(v => v.category === row).map(video => (
@@ -334,6 +492,60 @@ export const TubePage: React.FC<{ onReturnToFeeds: () => void }> = ({ onReturnTo
                     )}
                 </div>
             </main>
+
+            {/* Device Auth Modal */}
+            {deviceAuthData && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-fade-in">
+                    <div className="bg-zinc-900 border border-red-500/30 rounded-3xl p-10 w-full max-w-lg shadow-2xl text-center relative overflow-hidden">
+                        {/* Scanning effect */}
+                        <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-red-500/5 to-transparent h-1/2 animate-pulse" />
+                        
+                        <div className="relative z-10 space-y-8">
+                            <div className="flex flex-col items-center gap-4">
+                                <div className="w-16 h-16 bg-red-600 rounded-2xl flex items-center justify-center animate-bounce">
+                                    <UserIcon className="w-10 h-10 text-white" />
+                                </div>
+                                <h2 className="text-3xl font-black uppercase tracking-tighter italic text-red-500">Uplink_Authorization</h2>
+                            </div>
+
+                            <div className="space-y-4">
+                                <p className="text-zinc-400 font-medium uppercase tracking-widest text-sm">
+                                    Scan signal on another device:
+                                </p>
+                                <div className="bg-white/5 border border-white/10 rounded-2xl p-4 font-mono text-red-400 break-all">
+                                    {deviceAuthData.verification_url}
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <p className="text-zinc-400 font-medium uppercase tracking-widest text-sm">
+                                    Enter this decryption code:
+                                </p>
+                                <div className="text-6xl font-black tracking-widest text-white bg-white/5 rounded-2xl py-6 border-2 border-red-600/50 shadow-[0_0_30px_rgba(220,38,38,0.3)]">
+                                    {deviceAuthData.user_code}
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col items-center gap-6 pt-4">
+                                <div className="flex items-center gap-3 text-zinc-500">
+                                    <ArrowPathIcon className="w-5 h-5 animate-spin" />
+                                    <span className="text-xs font-bold uppercase tracking-[0.2em]">Waiting for signal...</span>
+                                </div>
+                                
+                                <button 
+                                    onClick={() => {
+                                        setIsPolling(false);
+                                        setDeviceAuthData(null);
+                                    }}
+                                    className="px-8 py-3 bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white font-bold rounded-xl transition-all uppercase tracking-widest text-xs border border-white/10"
+                                >
+                                    Abort Uplink
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
