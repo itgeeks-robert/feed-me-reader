@@ -69,23 +69,23 @@ const AddSource: React.FC<AddSourceProps> = ({ onAddSource, onSuccess }) => {
         <button 
             type="button"
             onClick={() => setActiveTab(type)} 
-            className={`flex-1 min-w-0 py-2 text-[8px] font-black uppercase tracking-tighter rounded-lg transition-all duration-300 border ${activeTab === type ? 'bg-pulse-500 border-pulse-400 text-white shadow-[0_0_10px_rgba(225,29,72,0.3)]' : 'bg-void-950 border-zinc-800 text-zinc-600 hover:text-zinc-400'}`}
+            className={`flex-1 min-w-0 py-2 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all duration-200 border ${activeTab === type ? 'bg-app-accent border-app-accent text-white shadow-sm' : 'bg-app-bg border-app-border text-muted hover:text-app-text'}`}
         >
             {label}
         </button>
     );
 
     return (
-        <div className="space-y-4 font-mono">
-            <div className="flex gap-1.5 bg-void-950/50 p-1 rounded-xl border border-zinc-800/50">
+        <div className="space-y-4">
+            <div className="flex gap-1.5 bg-app-bg p-1 rounded-xl border border-app-border">
                 <TabButton type="rss" label="RSS" />
-                <TabButton type="website" label="SNIFFER" />
-                <TabButton type="reddit" label="REDDIT" />
+                <TabButton type="website" label="Sniffer" />
+                <TabButton type="reddit" label="Reddit" />
             </div>
 
             <div className="px-1">
-                <span className={`text-[7px] font-black uppercase tracking-[0.2em] transition-colors duration-500 ${activeTab === 'website' ? 'text-emerald-500' : 'text-zinc-600'}`}>
-                    // {instructions[activeTab]}
+                <span className={`text-[10px] font-semibold uppercase tracking-widest transition-colors duration-300 ${activeTab === 'website' ? 'text-app-accent' : 'text-muted'}`}>
+                    {instructions[activeTab]}
                 </span>
             </div>
 
@@ -99,30 +99,30 @@ const AddSource: React.FC<AddSourceProps> = ({ onAddSource, onSuccess }) => {
                         placeholder={placeholders[activeTab]} 
                         required 
                         disabled={isLoading}
-                        className={`w-full bg-void-950 border-2 rounded-xl py-3 pl-4 pr-12 text-xs text-white placeholder-zinc-800 focus:outline-none transition-all shadow-inner font-mono
-                            ${error ? 'border-red-900/50 focus:border-red-500' : 'border-zinc-800 focus:border-pulse-500'}`} 
+                        className={`w-full bg-app-card border rounded-xl py-3 pl-4 pr-12 text-sm text-app-text placeholder-muted focus:outline-none transition-all shadow-sm
+                            ${error ? 'border-app-error focus:ring-2 focus:ring-app-error' : 'border-app-border focus:ring-2 focus:ring-app-accent'}`} 
                     />
-                    <button type="submit" disabled={isLoading} className="absolute inset-y-0 right-0 flex items-center pr-3 text-zinc-700 hover:text-pulse-500 disabled:opacity-50 transition-all active:scale-90">
+                    <button type="submit" disabled={isLoading} className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted hover:text-app-accent disabled:opacity-50 transition-all active:scale-95">
                         {isLoading ? (
-                            <ArrowPathIcon className="w-5 h-5 animate-spin text-pulse-500" />
+                            <ArrowPathIcon className="w-5 h-5 animate-spin text-app-accent" />
                         ) : (
-                            <PlusIcon className="w-7 h-7" />
+                            <PlusIcon className="w-6 h-6" />
                         )}
                     </button>
                 </div>
                  
                  {isLoading && activeTab === 'website' && (
                     <div className="flex items-center gap-3 mt-3 px-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-                        <p className="text-emerald-500 text-[8px] font-black uppercase tracking-[0.4em] animate-pulse italic">Probing_Website_Metadata...</p>
+                        <div className="w-1.5 h-1.5 rounded-full bg-app-accent animate-ping" />
+                        <p className="text-app-accent text-xs font-medium animate-pulse">Probing website metadata...</p>
                     </div>
                  )}
 
                  {error && (
-                    <div className="mt-3 p-3 bg-red-950/20 border border-red-500/30 rounded-lg flex items-start gap-3 animate-shake">
-                        <ExclamationTriangleIcon className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
-                        <p className="text-red-500 text-[8px] font-black uppercase tracking-widest leading-relaxed italic">
-                            SYSTEM_ALERT: {error}
+                    <div className="mt-3 p-3 bg-app-error/10 border border-app-error/30 rounded-lg flex items-start gap-3">
+                        <ExclamationTriangleIcon className="w-5 h-5 text-app-error shrink-0 mt-0.5" />
+                        <p className="text-app-error text-sm font-medium leading-relaxed">
+                            {error}
                         </p>
                     </div>
                  )}

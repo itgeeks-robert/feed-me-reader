@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import type { Feed, Folder, Selection, WidgetSettings, Article, ArticleView, Theme } from '../src/App';
 import type { SourceType } from './AddSource';
-import { SearchIcon, GlobeAltIcon, CpuChipIcon, BeakerIcon, ChartBarIcon, FlagIcon, FireIcon, ControllerIcon, ArrowPathIcon, PaletteIcon, XIcon, RadioIcon } from './icons';
+import { SearchIcon, ControllerIcon, ArrowPathIcon, XIcon, RadioIcon, NewspaperIcon, DoubleGearIcon, TestTubeIcon, CoinsIcon, SoccerBallIcon, BuildingIcon } from './icons';
 import { resilientFetch } from '../services/fetch';
 import { parseRssXml } from '../services/rssParser';
 import FeaturedStory from './articles/FeaturedStory';
@@ -52,12 +52,12 @@ const ARTICLES_PER_PAGE = 25;
 const LOAD_MORE_BATCH = 15;
 
 const CATEGORY_MAP = [
-    { id: 'NEWS', icon: <GlobeAltIcon className="w-4 h-4" /> },
-    { id: 'TECH', icon: <CpuChipIcon className="w-4 h-4" /> },
-    { id: 'SCIENCE', icon: <BeakerIcon className="w-4 h-4" /> },
-    { id: 'FINANCE', icon: <ChartBarIcon className="w-4 h-4" /> },
-    { id: 'SPORTS', icon: <FlagIcon className="w-4 h-4" /> },
-    { id: 'CULTURE', icon: <FireIcon className="w-4 h-4" /> },
+    { id: 'NEWS', icon: <NewspaperIcon className="w-4 h-4" /> },
+    { id: 'TECH', icon: <DoubleGearIcon className="w-4 h-4" /> },
+    { id: 'SCIENCE', icon: <TestTubeIcon className="w-4 h-4" /> },
+    { id: 'FINANCE', icon: <CoinsIcon className="w-4 h-4" /> },
+    { id: 'SPORTS', icon: <SoccerBallIcon className="w-4 h-4" /> },
+    { id: 'CULTURE', icon: <BuildingIcon className="w-4 h-4" /> },
     { id: 'GAMING', icon: <ControllerIcon className="w-4 h-4" /> }
 ];
 
@@ -198,48 +198,48 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                     ))}
                 </div>
 
-                <div className="px-4 md:px-6 border-t-8 border-app-border pt-16">
+                <div className="px-4 md:px-6 border-t border-app-border/50 pt-16">
                     <div className="flex flex-wrap items-center justify-between mb-12 gap-6">
-                        <div className="flex items-center gap-4">
-                            <div className="p-2 bg-app-accent border-4 border-app-border shadow-[4px_4px_0_black]">
-                                <RadioIcon className="w-6 h-6 text-white" />
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-app-accent/10 text-app-accent rounded-xl">
+                                <RadioIcon className="w-5 h-5" />
                             </div>
-                            <h2 className="font-black text-2xl md:text-5xl text-app-text italic uppercase tracking-tighter leading-none">Rolling_Signals</h2>
+                            <h2 className="font-bold text-2xl md:text-3xl text-app-text tracking-tight leading-none">Latest Stories</h2>
                         </div>
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-3">
                             <button 
                                 onClick={onRefresh}
-                                className="flex items-center gap-2 px-6 py-3 bg-app-card border-4 border-app-border text-[10px] font-black uppercase italic text-muted hover:text-app-text transition-all shadow-[6px_6px_0_black] active:translate-x-1 active:translate-y-1 outline-none"
-                                title="Refresh Signals"
+                                className="flex items-center gap-2 px-4 py-2 bg-app-card border border-app-border rounded-xl text-sm font-medium text-muted hover:text-app-text hover:border-app-accent/50 transition-all shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-app-accent"
+                                title="Refresh Stories"
                             >
                                 <ArrowPathIcon className="w-4 h-4" />
-                                <span>Re-Sync</span>
+                                <span className="hidden sm:inline">Refresh</span>
                             </button>
                             <UnreadFilterToggle checked={showOnlyUnread} onChange={setShowOnlyUnread} />
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-10 article-list-grid">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8 article-list-grid">
                         {rollingNews.map(article => (
-                            <div key={article.id} className="void-card p-1">
+                            <div key={article.id} className="group">
                                 <MagazineArticleListItem 
                                     article={article} 
                                     onMarkAsRead={() => onMarkAsRead(article.id)} 
                                     onReadHere={() => onOpenReader(article)} 
                                     onReadExternal={() => onOpenExternal(article.link, article.id)} 
                                     isRead={readArticleIds.has(article.id)} 
-                            />
-                        </div>
+                                />
+                            </div>
                         ))}
                     </div>
 
                     {filteredArticles.length > visibleCount && (
-                        <div className="mt-20 text-center pb-24">
+                        <div className="mt-16 text-center pb-24">
                             <button 
                                 onClick={() => setVisibleCount(c => c + LOAD_MORE_BATCH)} 
-                                className="bg-app-text text-app-bg font-black uppercase italic py-6 px-16 text-sm tracking-[0.2em] active:translate-y-1 border-4 border-app-border shadow-[8px_8px_0_black] focus:ring-8 focus:ring-pulse-500 outline-none"
+                                className="bg-app-card border border-app-border text-app-text font-medium py-3 px-8 rounded-xl text-sm hover:border-app-accent/50 hover:shadow-md transition-all outline-none focus-visible:ring-2 focus-visible:ring-app-accent"
                             >
-                                Load_Additional_Clusters
+                                Load More Stories
                             </button>
                         </div>
                     )}
@@ -257,48 +257,49 @@ const LocalHeader: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuer
     }, [isSearchActive]);
 
     return (
-        <div className="sticky top-0 z-30 bg-app-bg border-b-4 border-app-border px-4 md:px-8 py-2 md:py-4 flex flex-row items-center justify-between gap-4">
-            <div className="flex items-center h-12 gap-1.5 overflow-x-auto scrollbar-hide flex-grow max-w-[calc(100%-80px)] md:max-w-none sub-header-nav">
+        <div className="sticky top-0 z-30 bg-app-bg/80 backdrop-blur-md border-b border-app-border px-4 md:px-8 py-0 flex flex-row items-center gap-2 md:gap-4 overflow-hidden">
+            <div className="flex items-center gap-2 md:gap-4 flex-nowrap flex-grow overflow-x-auto scrollbar-hide py-6 px-4">
                 {CATEGORY_MAP.map(cat => (
                     <button 
                         key={cat.id} 
                         onClick={() => handleCategoryClick(cat.id)} 
-                        className={`shrink-0 px-2 md:px-4 h-11 transition-all relative group outline-none uppercase font-black italic text-[10px] tracking-widest
+                        className={`shrink-0 px-3 md:px-4 py-2 transition-all relative group outline-none font-medium text-sm rounded-xl whitespace-nowrap flex items-center gap-2
                             ${selection.category === cat.id 
-                                ? 'bg-app-accent border-2 border-app-border text-white shadow-none' 
-                                : 'bg-transparent border-0 text-muted hover:text-app-text'}`}
+                                ? 'category-active-glow' 
+                                : 'bg-transparent text-muted hover:text-app-text hover:bg-app-border/50'}`}
+                        title={cat.id}
                     >
-                        <span className="relative z-10">{cat.id}</span>
-                        <div className={`nav-underline ${selection.category === cat.id ? 'w-[70%]' : 'w-0'}`} />
+                        <span className="shrink-0">{cat.icon}</span>
+                        <span className="relative z-10 hidden md:inline">{cat.id}</span>
                     </button>
                 ))}
             </div>
             
-            <div className="flex items-center gap-2 shrink-0 justify-end">
+            <div className="flex items-center gap-2 shrink-0">
                 <div className="relative shrink-0">
                     {!isSearchActive ? (
                         <button 
                             onClick={() => setIsSearchActive(true)}
-                            className="search-trigger flex items-center gap-2 px-4 h-11 bg-app-card border-4 border-app-border text-[10px] font-black uppercase italic text-muted hover:text-app-text transition-all shadow-[6px_6px_0_black] active:translate-x-1 active:translate-y-1 outline-none shrink-0"
+                            className="flex items-center gap-2 p-2 md:px-4 md:py-2 bg-app-card border border-app-border rounded-xl text-sm font-medium text-muted hover:text-app-text hover:border-app-accent/50 transition-all shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-app-accent shrink-0"
                         >
-                            <SearchIcon className="w-4 h-4" />
-                            <span>Find</span>
+                            <SearchIcon className="w-5 h-5 md:w-4 md:h-4" />
+                            <span className="hidden md:inline">Search</span>
                         </button>
                     ) : (
-                        <form onSubmit={onSearchSubmit} className="relative flex items-center gap-3 animate-fade-in">
+                        <form onSubmit={onSearchSubmit} className="relative flex items-center gap-2 animate-fade-in">
                             <div className="relative">
-                                <SearchIcon className="absolute top-1/2 left-4 -translate-y-1/2 w-4 h-4 text-muted" />
+                                <SearchIcon className="absolute top-1/2 left-3 -translate-y-1/2 w-4 h-4 text-muted" />
                                 <input 
                                     ref={inputRef}
                                     type="text" 
-                                    placeholder="SCANNING..." 
+                                    placeholder="Search..." 
                                     value={searchQuery} 
                                     onChange={e => setSearchQuery(e.target.value)} 
                                     onBlur={() => !searchQuery && setIsSearchActive(false)}
-                                    className="w-40 md:w-72 bg-app-card border-4 border-app-border py-3 pl-12 pr-6 text-sm uppercase font-black tracking-widest outline-none text-app-text transition-all shadow-[6px_6px_0_black]" 
+                                    className="w-32 sm:w-48 md:w-64 bg-app-card border border-app-border rounded-xl py-2 pl-9 pr-4 text-sm outline-none text-app-text transition-all shadow-sm focus:ring-2 focus:ring-app-accent focus:border-app-accent" 
                                 />
                             </div>
-                            <button type="button" onClick={() => { setIsSearchActive(false); setSearchQuery(''); }} className="p-3 text-muted hover:text-app-text shrink-0"><XIcon className="w-5 h-5"/></button>
+                            <button type="button" onClick={() => { setIsSearchActive(false); setSearchQuery(''); }} className="p-2 text-muted hover:text-app-text hover:bg-app-border/50 rounded-lg transition-colors shrink-0"><XIcon className="w-5 h-5"/></button>
                         </form>
                     )}
                 </div>
@@ -308,10 +309,12 @@ const LocalHeader: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuer
 };
 
 const UnreadFilterToggle: React.FC<any> = ({ checked, onChange }) => (
-    <label className="flex items-center cursor-pointer group bg-app-card px-6 py-3 border-4 border-app-border shadow-[6px_6px_0_black] hover:shadow-[2px_2px_0_black] transition-all active:translate-x-1 active:translate-y-1 outline-none relative">
+    <label className="flex items-center cursor-pointer group bg-app-card px-4 py-2 border border-app-border rounded-xl shadow-sm hover:border-app-accent/50 hover:shadow-md transition-all outline-none relative focus-within:ring-2 focus-within:ring-app-accent">
         <input type="checkbox" className="sr-only" checked={checked} onChange={(e) => onChange(e.target.checked)} />
-        <div className={`w-4 h-4 border-4 rounded-sm flex-shrink-0 mr-4 transition-all ${checked ? 'bg-app-accent border-app-border' : 'bg-transparent border-app-border'}`} />
-        <span className="text-xs font-black uppercase tracking-widest text-muted group-hover:text-app-text italic">Unread_Only</span>
+        <div className={`w-4 h-4 border rounded flex-shrink-0 mr-2 transition-all flex items-center justify-center ${checked ? 'bg-app-accent border-app-accent' : 'bg-transparent border-app-border group-hover:border-app-accent/50'}`}>
+            {checked && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
+        </div>
+        <span className="text-sm font-medium text-muted group-hover:text-app-text">Unread Only</span>
     </label>
 );
 

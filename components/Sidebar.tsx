@@ -31,19 +31,19 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
         return (
             <div 
                 onClick={() => onSelect(sel)} 
-                className={`group relative flex items-center space-x-4 px-5 py-4 rounded-2xl cursor-pointer transition-all duration-300 overflow-hidden
+                className={`group relative flex items-center space-x-3 px-4 py-3 rounded-xl cursor-pointer transition-all duration-200 overflow-hidden
                     ${isActive 
-                        ? 'bg-pulse-600 text-white shadow-lg scale-[1.02] z-10' 
-                        : 'hover:bg-zinc-900 text-zinc-400 hover:text-zinc-200'}`}
+                        ? 'bg-app-accent/10 text-app-accent font-medium' 
+                        : 'hover:bg-app-border/30 text-muted hover:text-app-text'}`}
             >
                 {isActive && (
-                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-8 bg-white rounded-r-full shadow-[0_0_10px_rgba(255,255,255,0.8)] animate-pulse" />
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-app-accent rounded-r-full" />
                 )}
                 
-                <div className={`p-2.5 rounded-xl transition-colors duration-300 ${isActive ? 'bg-white/20' : 'bg-zinc-800 group-hover:bg-zinc-700'}`}>
+                <div className={`transition-colors duration-200 ${isActive ? 'text-app-accent' : 'text-muted group-hover:text-app-text'}`}>
                     {icon}
                 </div>
-                <span className={`truncate uppercase tracking-widest min-w-0 transition-all duration-300 font-black text-xs`}>
+                <span className="truncate text-sm tracking-wide min-w-0 transition-all duration-200">
                     {label}
                 </span>
             </div>
@@ -51,43 +51,43 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
     };
 
     return (
-        <aside className={`fixed inset-y-0 left-0 z-[70] w-72 bg-zinc-950 border-r border-zinc-900 flex flex-col h-full transform transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} shadow-2xl pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]`}>
+        <aside className={`fixed inset-y-0 left-0 z-[70] w-72 bg-app-card border-r border-app-border flex flex-col h-full transform transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} shadow-2xl pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]`}>
             <div className="p-6 flex-shrink-0">
                 <div className="flex items-center justify-between space-x-2 mb-10">
                     <div className="flex items-center space-x-4">
-                        <div className="p-1.5 bg-pulse-500 rounded-xl shadow-[0_0_15px_rgba(225,29,72,0.4)]">
+                        <div className="p-1.5 bg-app-accent rounded-xl shadow-[0_0_15px_var(--app-accent)]">
                             <VoidIcon className="w-7 h-7 text-white" />
                         </div>
                         <div className="flex flex-col">
-                            <span className="text-xs font-black text-white tracking-tighter uppercase italic leading-none">THE VOID</span>
-                            <span className="text-[8px] font-bold text-zinc-500 uppercase tracking-[0.4em]">S I G N A L</span>
+                            <span className="text-sm font-bold text-app-text tracking-tight uppercase leading-none">THE VOID</span>
+                            <span className="text-[10px] font-medium text-muted uppercase tracking-widest">S I G N A L</span>
                         </div>
                     </div>
-                    <button onClick={onClose} className="p-2 -mr-2 rounded-2xl text-zinc-500 hover:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-pulse-500">
-                        <XIcon className="w-7 h-7" />
+                    <button onClick={onClose} className="p-2 -mr-2 rounded-xl text-muted hover:bg-app-border/50 focus:outline-none focus:ring-2 focus:ring-app-accent">
+                        <XIcon className="w-6 h-6" />
                     </button>
                 </div>
                 
                 <div className="mb-2 px-1 flex items-center justify-between">
-                    <span className="text-[9px] font-black text-zinc-600 uppercase tracking-[0.4em]">Establish Uplink</span>
-                    <RadioIcon className="w-3 h-3 text-pulse-500 animate-pulse" />
+                    <span className="text-xs font-semibold text-muted uppercase tracking-wider">Establish Uplink</span>
+                    <RadioIcon className="w-4 h-4 text-app-accent animate-pulse" />
                 </div>
-                <div className="bg-void-900/40 p-3 rounded-2xl border border-zinc-900 mb-6">
+                <div className="bg-app-bg/50 p-3 rounded-xl border border-app-border mb-6">
                     <AddSource onAddSource={onAddSource} />
                 </div>
             </div>
             
             <div className="flex-grow overflow-y-auto px-6 space-y-1 scrollbar-hide pb-12">
-                <h3 className="px-3 mb-2 text-[9px] font-black text-zinc-600 uppercase tracking-[0.4em]">Core Interface</h3>
+                <h3 className="px-3 mb-2 text-xs font-semibold text-muted uppercase tracking-wider">Core Interface</h3>
                 <NavItem sel={{type: 'game_hub', id: null}} label="The Arcade" icon={<ControllerIcon className="w-5 h-5 flex-shrink-0" />} />
                 <NavItem sel={{type: 'utility_hub', id: null}} label="Tactical Hub" icon={<ShieldCheckIcon className="w-5 h-5 flex-shrink-0" />} />
                 <NavItem sel={{type: 'all', id: null}} label="Incoming Intel" icon={<ListIcon className="w-5 h-5 flex-shrink-0" />} />
                 <NavItem sel={{type: 'bookmarks', id: 'bookmarks'}} label="Saved Signals" icon={<BookmarkIcon className="w-5 h-5 flex-shrink-0" />} />
                 
-                <div className="pt-6 pb-2 border-t border-zinc-900/50 mt-4">
+                <div className="pt-6 pb-2 border-t border-app-border mt-4">
                     <div className="flex items-center justify-between px-3 mb-3">
-                        <h3 className="text-[9px] font-black text-zinc-600 uppercase tracking-[0.4em]">Zones</h3>
-                        <button onClick={() => onAddFolder("New Zone")} className="p-1 hover:bg-zinc-900 rounded-lg text-zinc-500 transition-colors">
+                        <h3 className="text-xs font-semibold text-muted uppercase tracking-wider">Zones</h3>
+                        <button onClick={() => onAddFolder("New Zone")} className="p-1.5 hover:bg-app-border/50 rounded-lg text-muted transition-colors">
                             <PlusIcon className="w-4 h-4" />
                         </button>
                     </div>
@@ -98,16 +98,16 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                                 <div 
                                     key={folder.id} 
                                     onClick={() => onSelect({type: 'folder', id: folder.id})} 
-                                    className={`relative flex items-center gap-4 px-5 py-3 rounded-xl cursor-pointer transition-all duration-300 group
+                                    className={`relative flex items-center gap-3 px-4 py-2.5 rounded-xl cursor-pointer transition-all duration-200 group
                                         ${isActive 
-                                            ? 'bg-pulse-600 text-white shadow-md scale-[1.01]' 
-                                            : 'text-zinc-400 hover:text-white hover:bg-zinc-900/40'}`}
+                                            ? 'bg-app-accent/10 text-app-accent font-medium' 
+                                            : 'text-muted hover:text-app-text hover:bg-app-border/30'}`}
                                 >
                                     {isActive && (
-                                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-white rounded-r-full" />
+                                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-app-accent rounded-r-full" />
                                     )}
-                                    <FolderIcon className={`w-5 h-5 transition-colors ${isActive ? 'text-white' : 'text-zinc-600 group-hover:text-zinc-400'}`} />
-                                    <span className={`text-xs uppercase truncate transition-all font-black`}>
+                                    <FolderIcon className={`w-4 h-4 transition-colors ${isActive ? 'text-app-accent' : 'text-muted group-hover:text-app-text'}`} />
+                                    <span className="text-sm truncate transition-all">
                                         {folder.name}
                                     </span>
                                 </div>
@@ -117,8 +117,8 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                 </div>
             </div>
             
-            <div className="p-6 mt-auto flex-shrink-0 bg-zinc-950 border-t border-zinc-900">
-                <button onClick={onOpenSettings} className="w-full flex items-center gap-4 py-4 px-5 text-xs font-black uppercase tracking-widest rounded-2xl text-zinc-500 bg-zinc-900 hover:bg-zinc-800 hover:text-white transition-all focus:ring-2 focus:ring-pulse-500">
+            <div className="p-6 mt-auto flex-shrink-0 bg-app-card border-t border-app-border">
+                <button onClick={onOpenSettings} className="w-full flex items-center gap-3 py-3 px-4 text-sm font-medium rounded-xl text-muted bg-app-bg hover:bg-app-border/30 hover:text-app-text transition-all focus:ring-2 focus:ring-app-accent outline-none">
                     <SettingsIcon className="w-5 h-5" />
                     <span>Diagnostics</span>
                 </button>

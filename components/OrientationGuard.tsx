@@ -53,6 +53,37 @@ const OrientationGuard: React.FC<OrientationGuardProps> = ({ children, portraitO
 
     const showAdvisory = isCurrentlySubOptimal && !userDismissed;
 
+    const handleForceRotation = async () => {
+        try {
+            const isLandscape = window.innerWidth > window.innerHeight;
+            
+            // Try Android WebView interface first
+            if ((window as any).AndroidInterface) {
+                if (isLandscape) {
+                    (window as any).AndroidInterface.forcePortrait();
+                } else {
+                    (window as any).AndroidInterface.forceLandscape();
+                }
+                return;
+            }
+
+            // Fallback to Web API
+            if (!document.fullscreenElement) {
+                await document.documentElement.requestFullscreen();
+            }
+            if (window.screen && window.screen.orientation) {
+                const currentType = window.screen.orientation.type;
+                if (currentType.startsWith('portrait')) {
+                    await window.screen.orientation.lock('landscape');
+                } else {
+                    await window.screen.orientation.lock('portrait');
+                }
+            }
+        } catch (err) {
+            console.error("Failed to force rotation:", err);
+        }
+    };
+
     return (
         <div className="relative w-full h-full">
             {/* The game always renders */}
@@ -91,11 +122,19 @@ const OrientationGuard: React.FC<OrientationGuardProps> = ({ children, portraitO
                                 {subOptimalPortrait ? 'PORTRAIT MODE RECOMMENDED' : 'LANDSCAPE MODE RECOMMENDED'}
                             </h4>
                             
-                            <p className="text-zinc-400 text-[9px] uppercase font-bold leading-snug tracking-wide italic">
+                            <p className="text-zinc-400 text-[9px] uppercase font-bold leading-snug tracking-wide italic mb-3">
                                 {subOptimalPortrait 
                                     ? 'Horizontal drift detected. Tactical controls and UI scaling may be fragmented in this orientation.' 
                                     : 'Vertical clearance is insufficient. Terminal sync requires a wider horizontal plane for optimal data visualization.'}
                             </p>
+
+                            <button
+                                onClick={handleForceRotation}
+                                className="w-full py-2 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-lg text-[10px] font-black text-amber-500 uppercase tracking-widest transition-colors active:scale-95 flex items-center justify-center gap-2"
+                            >
+                                <ArrowPathIcon className="w-3.5 h-3.5" />
+                                Force Rotation
+                            </button>
                             
                             <div className="mt-3 pt-2 border-t border-white/5 flex items-center justify-between">
                                 <span className="text-[7px] font-black text-zinc-600 uppercase tracking-widest italic">Error_Code: 0xORNT_FAIL</span>

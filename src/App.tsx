@@ -24,7 +24,7 @@ import NeonSignalPage from '../components/NeonSignalPage';
 import { resilientFetch } from '../services/fetch';
 import { parseRssXml } from '../services/rssParser';
 import { useLocalStorage } from '../hooks/useLocalStorage';
-import { GlobeAltIcon, RadioIcon, XIcon, SearchIcon, VoidIcon, ControllerIcon, CpuChipIcon, MenuIcon, BoltIcon, ShieldCheckIcon, PaletteIcon } from '../components/icons';
+import { GlobeAltIcon, RadioIcon, XIcon, SearchIcon, VoidIcon, ControllerIcon, CpuChipIcon, MenuIcon, BoltIcon, ShieldCheckIcon, PaletteIcon, ArrowPathIcon } from '../components/icons';
 import { soundService } from '../services/soundService';
 import SettingsModal from '../components/SettingsModal';
 
@@ -37,7 +37,7 @@ export interface SudokuStats { totalWins: number; }
 export interface SolitaireStats { gamesWon: number; currentStreak: number; }
 export interface SolitaireSettings { drawThree: boolean; }
 
-export type Theme = 'noir' | 'liquid-glass' | 'bento-grid' | 'brutalist' | 'claymorphism' | 'monochrome-zen' | 'y2k' | 'terminal' | 'comic';
+export type Theme = 'noir' | 'liquid-glass' | 'bento-grid' | 'brutalist' | 'claymorphism' | 'monochrome-zen' | 'y2k' | 'terminal' | 'comic' | 'aurora' | 'retro' | 'refraction' | 'sleek';
 
 export type Selection = { 
     type: 'splash' | 'all' | 'folder' | 'bookmarks' | 'search' | 'feed' | 'reddit' | 'game_hub' | 'daily_uplink' | 'grid_reset' | 'deep_sync' | 'signal_scrambler' | 'utility_hub' | 'signal_streamer' | 'surveillance_radar' | 'transcoder' | 'base64_converter' | 'sudoku' | 'solitaire' | 'minesweeper' | 'tetris' | 'pool' | 'cipher_core' | 'void_runner' | 'synapse_link' | 'hangman' | 'neon_signal'; 
@@ -58,20 +58,17 @@ const GlobalNavLink: React.FC<{
 }> = ({ active, onClick, label, icon }) => (
     <button
         onClick={onClick}
-        className={`flex items-center gap-1.5 md:gap-2 px-2 md:px-3 h-full relative transition-all duration-300 outline-none group focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:ring-pulse-500 rounded-md
+        className={`flex items-center gap-1.5 md:gap-2 px-2 md:px-3 py-1.5 relative transition-all duration-300 outline-none group focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:ring-pulse-500 rounded-md
             ${active
-                ? 'text-app-accent'
+                ? 'category-active-glow'
                 : 'text-zinc-400 hover:text-white'}`}
     >
         <div className={`transition-transform duration-300 ${active ? 'scale-110' : 'group-hover:scale-110'}`}>
             {icon}
         </div>
-        <span className="text-[10px] font-black italic uppercase tracking-widest hidden sm:inline">
+        <span className="text-xs font-semibold tracking-wide hidden sm:inline">
             {label}
         </span>
-        {active && (
-            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-3/4 h-[3px] bg-app-accent shadow-[0_0_10px_var(--app-accent)] rounded-full" />
-        )}
     </button>
 );
 
@@ -255,11 +252,12 @@ const App: React.FC = () => {
             'noir': 'noir', 'terminal': 'terminal', 'liquid-glass': 'sleek',
             'brutalist': 'brutalist', 'claymorphism': 'claymorphism',
             'monochrome-zen': 'monochrome-zen', 'y2k': 'y2k', 'bento-grid': 'bento',
-            'comic': 'comic'
+            'comic': 'comic', 'aurora': 'aurora', 'retro': 'retro', 'refraction': 'refraction',
+            'sleek': 'sleek'
         };
         doc.setAttribute('data-theme', dataThemeMap[theme] || 'noir');
 
-        const themeClasses = ['theme-liquid-glass', 'theme-bento-grid', 'theme-brutalist', 'theme-claymorphism', 'theme-monochrome-zen', 'theme-y2k', 'theme-terminal', 'theme-comic'];
+        const themeClasses = ['theme-liquid-glass', 'theme-bento-grid', 'theme-brutalist', 'theme-claymorphism', 'theme-monochrome-zen', 'theme-y2k', 'theme-terminal', 'theme-comic', 'theme-aurora', 'theme-retro', 'theme-refraction'];
         themeClasses.forEach(c => doc.classList.remove(c));
         if (theme !== 'noir') doc.classList.add(`theme-${theme}`);
 
@@ -277,7 +275,7 @@ const App: React.FC = () => {
     }, [selection.type]);
 
     const handleToggleTheme = useCallback(() => {
-        const themes: Theme[] = ['noir', 'liquid-glass', 'bento-grid', 'brutalist', 'claymorphism', 'monochrome-zen', 'y2k', 'terminal', 'comic'];
+        const themes: Theme[] = ['noir', 'liquid-glass', 'bento-grid', 'brutalist', 'claymorphism', 'monochrome-zen', 'y2k', 'terminal', 'comic', 'aurora', 'retro', 'refraction'];
         const nextIndex = (themes.indexOf(theme) + 1) % themes.length;
         setTheme(themes[nextIndex]);
         soundService.playClick();
@@ -359,6 +357,37 @@ const App: React.FC = () => {
         if (selection.type === 'splash' && feeds.length > 0) prefetchContentFrequencies();
     }, [prefetchCipherFrequency, prefetchContentFrequencies, selection.type, feeds.length]);
 
+    const handleForceRotation = async () => {
+        try {
+            const isLandscape = window.innerWidth > window.innerHeight;
+            
+            // Try Android WebView interface first
+            if ((window as any).AndroidInterface) {
+                if (isLandscape) {
+                    (window as any).AndroidInterface.forcePortrait();
+                } else {
+                    (window as any).AndroidInterface.forceLandscape();
+                }
+                return;
+            }
+
+            // Fallback to Web API
+            if (!document.fullscreenElement) {
+                await document.documentElement.requestFullscreen();
+            }
+            if (window.screen && window.screen.orientation) {
+                const currentType = window.screen.orientation.type;
+                if (currentType.startsWith('portrait')) {
+                    await window.screen.orientation.lock('landscape');
+                } else {
+                    await window.screen.orientation.lock('portrait');
+                }
+            }
+        } catch (err) {
+            console.error("Failed to force rotation:", err);
+        }
+    };
+
     if (selection.type === 'splash') {
         return <SplashScreen theme={theme} onEnterFeeds={() => updateSelection({ type: 'all', id: null })} onEnterArcade={() => updateSelection({ type: 'game_hub', id: null })} onToggleTheme={handleToggleTheme} isDecoding={isDecoding} onReset={handleResetSystem} />;
     }
@@ -367,15 +396,15 @@ const App: React.FC = () => {
 
     return (
         <div className="h-screen w-full font-sans text-sm relative flex flex-col overflow-hidden bg-app-bg text-app-text transition-colors duration-300">
-            <header className="fixed top-0 left-0 right-0 z-[60] bg-black border-b border-white/10 pt-[var(--safe-top)] shrink-0">
-                <div className="h-11 md:h-12 flex items-center justify-between px-4 md:px-8 flex-nowrap">
-                    <div className="flex items-center h-full gap-2 md:gap-3 overflow-x-auto scrollbar-hide">
+            <header className="relative z-[60] bg-app-card border-b border-app-border pt-[var(--safe-top)] shrink-0">
+                <div className="min-h-[2.75rem] md:min-h-[3rem] py-2 flex items-center justify-between px-4 md:px-8 flex-wrap gap-2">
+                    <div className="flex items-center gap-2 md:gap-3 flex-wrap">
                         <button 
                             onClick={() => updateSelection({ type: 'all', id: null })} 
-                            className="flex items-center gap-1.5 shrink-0 pr-2 border-r border-white/10 cursor-pointer transition-transform outline-none group relative"
+                            className={`flex items-center gap-1.5 shrink-0 pr-2 border-r border-app-border cursor-pointer transition-transform outline-none group relative py-1 ${selection.type === 'all' ? 'category-active-glow' : ''}`}
                         >
-                            <VoidIcon className={`w-4 h-4 md:w-5 md:h-5 transition-all ${selection.type === 'all' ? 'text-app-accent nav-illumination' : 'text-white'}`} />
-                            <span className="text-[10px] font-black italic text-white tracking-tighter hidden sm:inline uppercase group-focus:font-black group-focus:scale-110 transition-all">Void</span>
+                            <VoidIcon className="w-4 h-4 md:w-5 md:h-5 transition-all" />
+                            <span className="text-xs font-bold text-app-text hidden sm:inline uppercase group-focus:scale-110 transition-all">Void</span>
                         </button>
                         <nav className="flex h-full items-center gap-1 md:gap-2">
                             <GlobalNavLink active={selection.type === 'game_hub'} onClick={() => updateSelection({ type: 'game_hub', id: null })} label="ARCADE" icon={<RadioIcon className="w-3.5 h-3.5"/>} />
@@ -386,11 +415,19 @@ const App: React.FC = () => {
                     </div>
                     <div className="flex items-center gap-2 md:gap-4 shrink-0">
                         <button 
-                            onClick={handleToggleTheme}
-                            className="flex items-center gap-2 px-3 py-1.5 bg-zinc-900 border border-white/10 rounded-full text-[8px] font-black uppercase text-zinc-400 hover:text-pulse-500 transition-all active-scale-95 outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-black focus:ring-pulse-500"
+                            onClick={handleForceRotation}
+                            className="flex items-center gap-2 px-3 py-1.5 bg-app-card border border-app-border rounded-lg text-xs font-medium text-muted hover:text-app-text hover:bg-app-border/50 transition-all outline-none focus-visible:ring-2 focus-visible:ring-app-accent"
+                            title="Force Rotation"
                         >
-                            <PaletteIcon className="w-3.5 h-3.5"/>
-                            <span>{themeLabel}</span>
+                            <ArrowPathIcon className="w-4 h-4"/>
+                            <span className="hidden md:inline">Rotate</span>
+                        </button>
+                        <button 
+                            onClick={handleToggleTheme}
+                            className="flex items-center gap-2 px-3 py-1.5 bg-app-card border border-app-border rounded-lg text-xs font-medium text-muted hover:text-app-text hover:bg-app-border/50 transition-all outline-none focus-visible:ring-2 focus-visible:ring-app-accent"
+                        >
+                            <PaletteIcon className="w-4 h-4"/>
+                            <span className="capitalize">{theme}</span>
                         </button>
                     </div>
                 </div>

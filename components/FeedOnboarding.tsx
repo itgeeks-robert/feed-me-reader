@@ -218,41 +218,41 @@ const FeedOnboarding: React.FC<FeedOnboardingProps> = ({ onComplete }) => {
 
     return (
         <div className="max-w-6xl mx-auto px-4 md:px-6 py-8 animate-fade-in font-mono flex flex-col min-h-screen main-content-area">
-            <header className="mb-6 text-center shrink-0 border-b border-white/5 pb-8">
-                <div className="p-4 bg-pulse-500 w-14 h-14 mx-auto mb-6 flex items-center justify-center shadow-[0_0_30px_rgba(225,29,72,0.4)] border-2 border-white/20">
+            <header className="mb-6 text-center shrink-0 border-b border-app-border pb-8">
+                <div className="p-4 bg-app-accent w-14 h-14 mx-auto mb-6 flex items-center justify-center rounded-2xl shadow-lg">
                     <RadioIcon className="w-8 h-8 text-white animate-pulse" />
                 </div>
-                <h2 className="text-3xl md:text-5xl font-black text-terminal italic uppercase tracking-tighter mb-4 glitch-text">Initial Calibration</h2>
+                <h2 className="text-3xl md:text-4xl font-bold text-app-text tracking-tight mb-4">Initial Setup</h2>
                 
                 <div className="flex flex-wrap items-center justify-center gap-4 mt-6">
                     {/* Focusable Region Button (instead of Select) */}
                     <button 
                         onClick={() => { soundService.playClick(); setShowRegionOverlay(true); }}
-                        className="bg-void-900 border-2 border-zinc-800 px-6 py-2.5 rounded-2xl flex items-center gap-3 transition-all hover:border-app-accent focus:ring-8 focus:ring-app-accent/40 outline-none"
+                        className="bg-app-card border border-app-border px-5 py-2.5 rounded-xl flex items-center gap-3 transition-all hover:border-app-accent focus-visible:ring-2 focus-visible:ring-app-accent outline-none"
                     >
-                        <span className="text-[10px] font-black text-muted uppercase tracking-widest italic">Region:</span>
+                        <span className="text-xs font-semibold text-muted uppercase tracking-wider">Region:</span>
                         {isDetecting ? (
-                            <ArrowPathIcon className="w-4 h-4 text-pulse-500 animate-spin" />
+                            <ArrowPathIcon className="w-4 h-4 text-app-accent animate-spin" />
                         ) : (
-                            <span className="text-terminal text-xs font-black uppercase">{regionLabels[region]}</span>
+                            <span className="text-app-text text-sm font-medium">{regionLabels[region]}</span>
                         )}
-                        <div className="w-2 h-2 rounded-full bg-pulse-500 animate-pulse" />
+                        <div className="w-2 h-2 rounded-full bg-app-accent animate-pulse" />
                     </button>
                     
                     <button 
                         onClick={handleQuickStart}
-                        className="group flex items-center gap-3 px-6 py-2.5 bg-pulse-600 border-2 border-pulse-400 rounded-2xl transition-all shadow-xl text-white outline-none focus:ring-8 focus:ring-app-accent"
+                        className="group flex items-center gap-2 px-5 py-2.5 bg-app-accent border border-app-accent rounded-xl transition-all shadow-md text-white outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-app-bg focus-visible:ring-app-accent hover:opacity-90"
                     >
-                        <SparklesIcon className="w-5 h-5 animate-pulse" />
-                        <span className="text-[10px] font-black uppercase italic tracking-widest">Tactical Auto-Sync</span>
+                        <SparklesIcon className="w-5 h-5" />
+                        <span className="text-sm font-semibold tracking-wide">Auto-Setup</span>
                     </button>
                 </div>
             </header>
 
             <div className="flex flex-col md:flex-row gap-8 flex-grow pb-48">
                 {/* Vertical Category Column */}
-                <div className="w-full md:w-64 flex flex-row md:flex-col gap-3 shrink-0 overflow-x-auto md:overflow-x-visible scrollbar-hide pb-4 md:pb-0">
-                    <h3 className="hidden md:block text-[9px] font-black text-zinc-600 uppercase tracking-[0.4em] mb-4 px-2 italic">Select_Category</h3>
+                <div className="w-full md:w-64 flex flex-row md:flex-col gap-2 shrink-0 overflow-x-auto md:overflow-x-visible scrollbar-hide pb-4 md:pb-0">
+                    <h3 className="hidden md:block text-xs font-semibold text-muted uppercase tracking-wider mb-4 px-2">Categories</h3>
                     {CATEGORIES.map(cat => {
                         const allAvailable = [...PRESETS, ...discoveredSignals];
                         const countInSelected = allAvailable.filter(p => p.category === cat.id && selectedIds.has(p.id)).length;
@@ -260,19 +260,18 @@ const FeedOnboarding: React.FC<FeedOnboardingProps> = ({ onComplete }) => {
                             <button
                                 key={cat.id}
                                 onClick={() => { soundService.playClick(); setActiveCategory(cat.id as Category); }}
-                                className={`flex items-center justify-between px-5 py-4 rounded-2xl border-2 transition-all shrink-0 md:shrink outline-none relative group
+                                className={`flex items-center justify-between px-4 py-3 rounded-xl transition-all shrink-0 md:shrink outline-none relative group
                                     ${activeCategory === cat.id 
-                                        ? 'bg-void-surface border-app-accent text-white shadow-xl' 
-                                        : 'bg-void-900 border-void-border text-muted'}`}
+                                        ? 'bg-app-accent/10 text-app-accent font-medium' 
+                                        : 'bg-transparent text-muted hover:bg-app-border/30 hover:text-app-text'}`}
                             >
                                 <div className="flex items-center gap-3">
                                     {cat.icon}
-                                    <span className="text-[11px] font-black italic uppercase tracking-widest">{cat.id}</span>
+                                    <span className="text-sm tracking-wide">{cat.id}</span>
                                 </div>
                                 {countInSelected > 0 && (
-                                    <span className="bg-app-accent text-white text-[10px] font-black px-2 py-0.5 rounded-full ml-2 shadow-lg">{countInSelected}</span>
+                                    <span className="bg-app-accent text-white text-xs font-bold px-2 py-0.5 rounded-full ml-2">{countInSelected}</span>
                                 )}
-                                <div className={`nav-underline ${activeCategory === cat.id ? 'w-[60%]' : 'w-0'}`} />
                             </button>
                         );
                     })}
@@ -281,37 +280,36 @@ const FeedOnboarding: React.FC<FeedOnboardingProps> = ({ onComplete }) => {
                 {/* Right Side Body */}
                 <div className="flex-grow flex flex-col gap-6">
                     {activeCategory === 'CUSTOM' && (
-                        <div className="bg-void-900 p-8 border-2 border-emerald-500/30 rounded-[2rem] mb-4 animate-fade-in shadow-2xl relative overflow-hidden">
-                            <div className="absolute inset-0 cctv-overlay opacity-10 pointer-events-none" />
-                            <h3 className="text-xs font-black text-terminal italic uppercase tracking-widest mb-6 flex items-center gap-3">
-                                <SearchIcon className="w-5 h-5 text-emerald-500" />
-                                Custom Node Probing
+                        <div className="bg-app-card p-6 border border-app-accent/30 rounded-2xl mb-4 animate-fade-in shadow-sm relative overflow-hidden">
+                            <h3 className="text-sm font-semibold text-app-text tracking-wide mb-4 flex items-center gap-2">
+                                <SearchIcon className="w-5 h-5 text-app-accent" />
+                                Custom Source
                             </h3>
-                            <form onSubmit={handleProbe} className="flex gap-3 relative z-10">
+                            <form onSubmit={handleProbe} className="flex flex-col sm:flex-row gap-3 relative z-10">
                                 <div className="flex-grow relative">
                                     <input 
                                         type="text" 
                                         value={customUrl} 
                                         onChange={(e) => setCustomUrl(e.target.value)}
                                         placeholder="Enter website URL..."
-                                        className="w-full bg-void-950 border-2 border-void-border rounded-xl py-4 px-6 text-sm text-terminal outline-none focus:border-emerald-500 transition-all font-mono"
+                                        className="w-full bg-app-bg border border-app-border rounded-xl py-3 px-4 text-sm text-app-text outline-none focus:ring-2 focus:ring-app-accent transition-all"
                                     />
-                                    {isProbing && <div className="absolute right-4 top-1/2 -translate-y-1/2"><ArrowPathIcon className="w-5 h-5 text-emerald-500 animate-spin" /></div>}
+                                    {isProbing && <div className="absolute right-4 top-1/2 -translate-y-1/2"><ArrowPathIcon className="w-5 h-5 text-app-accent animate-spin" /></div>}
                                 </div>
-                                <button type="submit" disabled={!customUrl.trim() || isProbing} className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-4 rounded-xl font-black uppercase italic text-xs transition-all disabled:opacity-30 flex items-center gap-3 active:scale-95 shadow-xl">
+                                <button type="submit" disabled={!customUrl.trim() || isProbing} className="bg-app-accent hover:opacity-90 text-white px-6 py-3 rounded-xl font-medium text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm whitespace-nowrap">
                                     <PlusIcon className="w-5 h-5" />
-                                    <span>Probe</span>
+                                    <span>Discover</span>
                                 </button>
                             </form>
-                            {probeError && <p className="mt-4 text-[10px] font-black text-pulse-500 uppercase italic tracking-widest animate-shake leading-relaxed">{probeError}</p>}
+                            {probeError && <p className="mt-3 text-sm font-medium text-app-error">{probeError}</p>}
                         </div>
                     )}
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pb-20">
                         {filteredPresets.length === 0 ? (
-                            <div className="col-span-full py-24 text-center border-4 border-dashed border-void-border rounded-[3rem] bg-void-surface/30">
-                                <p className="text-sm text-muted font-black uppercase tracking-[0.4em] italic">No sector packets found</p>
-                                <button onClick={() => setRegion('GLOBAL')} className="mt-6 text-pulse-500 text-xs font-black uppercase underline hover:text-white transition-colors">Access Global Nodes</button>
+                            <div className="col-span-full py-16 text-center border-2 border-dashed border-app-border rounded-2xl bg-app-bg/50">
+                                <p className="text-sm text-muted font-medium">No sources found in this category.</p>
+                                <button onClick={() => setRegion('GLOBAL')} className="mt-4 text-app-accent text-sm font-medium hover:underline transition-colors">View Global Sources</button>
                             </div>
                         ) : (
                             filteredPresets.map(preset => {
@@ -320,18 +318,20 @@ const FeedOnboarding: React.FC<FeedOnboardingProps> = ({ onComplete }) => {
                                     <button 
                                         key={preset.id}
                                         onClick={() => { soundService.playClick(); togglePreset(preset.id); }}
-                                        className={`group text-left relative bg-zinc-900 border-[3px] transition-all duration-300 p-6 flex flex-col h-56 rounded-void shadow-2xl outline-none focus:ring-8 focus:ring-app-accent
-                                            ${isSelected ? 'border-app-accent scale-105 z-10' : 'border-void-border opacity-70 grayscale hover:opacity-100 hover:grayscale-0'}`}
+                                        className={`group text-left relative bg-app-card border transition-all duration-200 p-5 flex flex-col h-48 rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-app-accent
+                                            ${isSelected ? 'border-app-accent shadow-md ring-1 ring-app-accent' : 'border-app-border shadow-sm hover:border-app-accent/50 hover:shadow-md'}`}
                                     >
-                                        <div className="flex justify-between items-start mb-3">
-                                            <span className="text-[8px] font-black text-muted uppercase tracking-widest italic">{preset.isCustom ? 'DISCOVERED NODE' : `${preset.region} NODE`}</span>
-                                            <div className={`w-3 h-3 rounded-full border-2 ${isSelected ? 'bg-app-accent border-white animate-pulse' : 'bg-void-border border-zinc-700'}`} />
+                                        <div className="flex justify-between items-start mb-2">
+                                            <span className="text-[10px] font-semibold text-muted uppercase tracking-wider">{preset.isCustom ? 'Custom' : preset.region}</span>
+                                            <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${isSelected ? 'bg-app-accent border-app-accent' : 'bg-transparent border-app-border group-hover:border-app-accent/50'}`}>
+                                                {isSelected && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
+                                            </div>
                                         </div>
-                                        <h3 className="text-lg font-black text-terminal italic uppercase tracking-tighter mb-2 leading-tight line-clamp-2">{preset.title}</h3>
-                                        <p className="text-[10px] text-zinc-500 uppercase leading-relaxed font-bold line-clamp-3 mb-4 group-hover:text-zinc-300 transition-colors italic">{preset.description}</p>
+                                        <h3 className="text-base font-bold text-app-text mb-1 line-clamp-2">{preset.title}</h3>
+                                        <p className="text-xs text-muted leading-relaxed line-clamp-3 mb-3">{preset.description}</p>
                                         <div className="mt-auto flex justify-between items-end">
-                                            <span className="text-[7px] text-muted/40 uppercase font-mono tracking-tighter">NODE_{preset.id.substring(0, 8)}</span>
-                                            {isSelected && <span className="text-[8px] font-black text-app-accent uppercase animate-pulse italic tracking-widest">Uplink_Confirmed</span>}
+                                            <span className="text-[10px] text-muted/50 font-mono">ID: {preset.id.substring(0, 8)}</span>
+                                            {isSelected && <span className="text-[10px] font-bold text-app-accent uppercase tracking-wider">Selected</span>}
                                         </div>
                                     </button>
                                 );
@@ -343,45 +343,42 @@ const FeedOnboarding: React.FC<FeedOnboardingProps> = ({ onComplete }) => {
 
             {/* Region Selection Overlay */}
             {showRegionOverlay && (
-                <div className="fixed inset-0 z-[110] bg-black/95 backdrop-blur-xl flex items-center justify-center p-6 animate-fade-in">
-                    <div className="bg-zinc-900 border-4 border-app-accent shadow-[0_0_80px_rgba(0,0,0,0.5)] w-full max-w-sm relative overflow-hidden flex flex-col rounded-[2.5rem]">
-                        <header className="h-12 bg-app-accent flex items-center justify-between px-4 border-b-2 border-black">
-                            <div className="flex items-center gap-2 h-full">
-                                <GlobeAltIcon className="w-5 h-5 text-black" />
-                                <h2 className="text-black text-[10px] font-black uppercase tracking-[0.2em] italic px-2">GEOGRAPHIC_SYNC.DAT</h2>
+                <div className="fixed inset-0 z-[110] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+                    <div className="bg-app-card border border-app-border shadow-xl w-full max-w-sm relative overflow-hidden flex flex-col rounded-2xl">
+                        <header className="h-14 flex items-center justify-between px-6 border-b border-app-border">
+                            <div className="flex items-center gap-2">
+                                <GlobeAltIcon className="w-5 h-5 text-app-text" />
+                                <h2 className="text-app-text text-sm font-bold tracking-wide">Select Region</h2>
                             </div>
-                            <button onClick={() => setShowRegionOverlay(false)} className="hover:scale-110 transition-transform"><XIcon className="w-5 h-5 text-black"/></button>
+                            <button onClick={() => setShowRegionOverlay(false)} className="p-2 -mr-2 text-muted hover:text-app-text hover:bg-app-border/50 rounded-lg transition-colors"><XIcon className="w-5 h-5"/></button>
                         </header>
-                        <div className="p-8 space-y-3">
-                            <p className="text-[9px] text-zinc-500 uppercase font-black tracking-widest mb-4 italic text-center">Select Local Intercept Point</p>
+                        <div className="p-6 space-y-2">
                             {(Object.keys(regionLabels) as Region[]).map((r, i) => (
                                 <button 
                                     key={r}
                                     ref={i === 0 ? firstRegionButtonRef : null}
                                     onClick={() => { setRegion(r); setShowRegionOverlay(false); soundService.playCorrect(); }}
-                                    className={`w-full py-4 px-6 rounded-xl font-black uppercase italic text-xs tracking-widest transition-all outline-none border-2
-                                        ${region === r ? 'bg-app-accent text-black border-white shadow-xl' : 'bg-zinc-800 text-zinc-400 border-zinc-700 hover:text-white'}`}
+                                    className={`w-full py-3 px-4 rounded-xl font-medium text-sm transition-all outline-none border flex items-center justify-between
+                                        ${region === r ? 'bg-app-accent/10 text-app-accent border-app-accent' : 'bg-app-bg text-muted border-app-border hover:text-app-text hover:border-app-accent/50'}`}
                                 >
-                                    {regionLabels[r]}
+                                    <span>{regionLabels[r]}</span>
+                                    {region === r && <div className="w-2 h-2 rounded-full bg-app-accent" />}
                                 </button>
                             ))}
                         </div>
-                        <footer className="p-4 bg-zinc-300 border-t-2 border-black">
-                             <button onClick={() => setShowRegionOverlay(false)} className="w-full py-3 bg-zinc-400 text-zinc-800 font-black uppercase italic text-[10px] outline-none">Cancel Sync</button>
-                        </footer>
                     </div>
                 </div>
             )}
 
-            <div className="fixed bottom-10 left-0 right-0 z-[60] px-8 pointer-events-none flex justify-center">
+            <div className="fixed bottom-6 left-0 right-0 z-[60] px-4 md:px-8 pointer-events-none flex justify-center">
                 <div className="max-w-2xl w-full pointer-events-auto">
                     <button 
                         onClick={() => handleConfirm()}
                         disabled={selectedIds.size === 0}
-                        className="w-full py-6 bg-terminal text-inverse font-black uppercase italic text-2xl rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.5)] border-4 border-void-border hover:bg-app-accent hover:text-white transition-all active:scale-95 disabled:opacity-30 outline-none focus:ring-12 focus:ring-app-accent/40"
+                        className="w-full py-4 bg-app-accent text-white font-bold text-lg rounded-2xl shadow-lg hover:opacity-90 transition-all active:scale-95 disabled:opacity-50 outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-app-bg focus-visible:ring-app-accent flex items-center justify-center gap-3"
                     >
-                        <RssIcon className="w-8 h-8" />
-                        <span>Establish Uplink ({selectedIds.size})</span>
+                        <RssIcon className="w-6 h-6" />
+                        <span>Add {selectedIds.size} Source{selectedIds.size !== 1 ? 's' : ''}</span>
                     </button>
                 </div>
             </div>

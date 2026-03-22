@@ -21,35 +21,34 @@ const CCTVMonitor: React.FC<{ src: string | null; label: string; headline: strin
     const activeSrc = src || reconstructedSrc;
 
     return (
-        <div className="relative w-full h-full bg-black overflow-hidden group/monitor image-halftone-overlay">
+        <div className="relative w-full h-full bg-app-bg overflow-hidden group/monitor">
             <div className="absolute inset-0 z-0">
                 <ImageWithProxy
                     src={activeSrc}
                     alt=""
-                    className="w-full h-full object-cover transition-transform duration-[20s] group-hover/monitor:scale-110 contrast-[1.1] brightness-[1.0]"
+                    className="w-full h-full object-cover transition-transform duration-[20s] group-hover/monitor:scale-105"
                     wrapperClassName="w-full h-full"
                     fallback={
-                        <div className="w-full h-full static-noise flex flex-col items-center justify-center p-4">
+                        <div className="w-full h-full bg-app-card flex flex-col items-center justify-center p-4">
                             {isSearching ? (
                                 <div className="flex flex-col items-center gap-3">
-                                    <div className="void-spinner w-8 h-8 border-4 border-pulse-500/20 border-t-pulse-500 rounded-full animate-spin" />
-                                    <span className="text-[10px] font-black text-pulse-500 tracking-widest uppercase italic animate-pulse">RECONSTRUCTING_SIGNAL...</span>
+                                    <ArrowPathIcon className="w-6 h-6 text-app-accent animate-spin" />
+                                    <span className="text-xs font-medium text-muted tracking-wide">Loading Image...</span>
                                 </div>
                             ) : (
-                                <span className="text-xl font-black text-pulse-500 tracking-widest uppercase italic animate-pulse">NO_SIGNAL</span>
+                                <span className="text-sm font-medium text-muted tracking-wide">No Image Available</span>
                             )}
                         </div>
                     }
                 />
             </div>
 
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent pointer-events-none z-10" />
-            <div className="absolute inset-0 cctv-overlay opacity-30 pointer-events-none z-10" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none z-10" />
             
             <div className="absolute top-4 left-4 flex flex-col gap-2 z-20">
-                <div className="flex items-center gap-2 px-2 py-1 bg-black/80 border border-pulse-500/40 rounded-sm">
-                    <div className="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse shadow-[0_0_8px_red]" />
-                    <span className="text-[9px] font-black text-white uppercase tracking-widest italic">LIVE_INTERCEPT</span>
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-black/50 backdrop-blur-md border border-white/10 rounded-full">
+                    <div className="w-2 h-2 rounded-full bg-app-accent animate-pulse" />
+                    <span className="text-[10px] font-bold text-white uppercase tracking-wider">Featured</span>
                 </div>
             </div>
         </div>
@@ -61,30 +60,30 @@ const FeaturedStory: React.FC<{article: Article; onReadHere: () => void; onReadE
         <div className="relative group/wrapper mb-8">
             <button 
                 onClick={onReadHere}
-                className={`w-full text-left group relative grid grid-cols-1 lg:grid-cols-[1.5fr,1fr] bg-app-card border border-app-border overflow-hidden min-h-[450px] md:min-h-[500px] transition-all duration-500 hover:border-app-accent hover:shadow-[0_20px_60px_rgba(0,0,0,0.1)] focus:ring-4 focus:ring-pulse-500 rounded-void shadow-[0_20px_40px_rgba(0,0,0,0.4)] outline-none ${isRead ? 'opacity-40' : ''}`}
+                className={`w-full text-left group relative grid grid-cols-1 lg:grid-cols-[1.5fr,1fr] bg-app-card border border-app-border overflow-hidden min-h-[400px] md:min-h-[450px] transition-all duration-300 hover:border-app-accent/50 hover:shadow-xl focus-visible:ring-2 focus-visible:ring-app-accent rounded-[var(--void-radius)] shadow-md outline-none ${isRead ? 'opacity-60' : ''}`}
             >
                 <div className="h-64 sm:h-96 lg:h-auto border-b lg:border-b-0 lg:border-r border-app-border pointer-events-none">
                     <CCTVMonitor src={article.imageUrl} label={article.source} headline={article.title} url={article.link} />
                 </div>
 
-                <div className="relative p-6 md:p-12 flex flex-col justify-center bg-app-card pointer-events-none">
-                    <div className="flex items-center gap-3 mb-6">
-                        <span className="bg-pulse-600 text-white text-[8px] font-black px-2 py-0.5 uppercase tracking-widest italic rounded-sm">BREAKING_INTEL</span>
-                        <span className="text-muted text-[8px] font-black uppercase tracking-widest truncate">{article.source}</span>
+                <div className="relative p-6 md:p-10 flex flex-col justify-center bg-app-card pointer-events-none">
+                    <div className="flex items-center gap-3 mb-4">
+                        <span className="bg-app-accent/10 text-app-accent text-[10px] font-bold px-2.5 py-1 uppercase tracking-wider rounded-full">Top Story</span>
+                        <span className="text-muted text-xs font-medium tracking-wide truncate">{article.source}</span>
                     </div>
                     
-                    <h1 className="text-2xl md:text-5xl font-black italic uppercase tracking-tighter mb-8 leading-[0.95] line-clamp-4 text-app-text group-hover:text-pulse-400 transition-colors drop-shadow-md">
+                    <h1 className="text-2xl md:text-4xl font-bold tracking-tight mb-6 leading-tight line-clamp-4 text-app-text group-hover:text-app-accent transition-colors">
                         {article.title}
                     </h1>
                     
-                    <p className="text-sm md:text-base text-muted line-clamp-3 mb-10 leading-relaxed uppercase tracking-tight italic border-l border-app-border pl-6">
+                    <p className="text-sm md:text-base text-muted line-clamp-3 mb-8 leading-relaxed">
                         {article.snippet}
                     </p>
                     
                     <div className="mt-auto">
-                        <div className="inline-flex items-center gap-2 px-4 py-2 bg-app-text/5 border border-app-border rounded-sm">
-                            <BoltIcon className="w-4 h-4 text-pulse-500" />
-                            <span className="text-[10px] font-black uppercase text-app-text/50 tracking-widest italic">TAP_TO_DECODE</span>
+                        <div className="inline-flex items-center gap-2 px-4 py-2 bg-app-bg border border-app-border rounded-[var(--void-radius)] group-hover:bg-app-accent/5 transition-colors">
+                            <BookOpenIcon className="w-4 h-4 text-app-accent" />
+                            <span className="text-xs font-semibold text-app-text tracking-wide">Read Article</span>
                         </div>
                     </div>
                 </div>
@@ -92,9 +91,10 @@ const FeaturedStory: React.FC<{article: Article; onReadHere: () => void; onReadE
             
             <button 
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); onReadExternal(); }}
-                className="absolute -bottom-6 right-2 text-[8px] font-black uppercase tracking-[0.3em] text-muted hover:text-app-text transition-colors italic z-20 focus:text-app-text outline-none"
+                className="absolute -bottom-8 right-4 text-xs font-medium text-muted hover:text-app-accent transition-colors z-20 focus-visible:text-app-accent outline-none flex items-center gap-1"
             >
-                Access_Raw_Data_Stream_0x{article.id.substring(0,4)}
+                <span>View Original</span>
+                <GlobeAltIcon className="w-3 h-3" />
             </button>
         </div>
     );

@@ -34,40 +34,44 @@ const MagazineArticleListItem: React.FC<MagazineArticleListItemProps> = ({ artic
     const activeSrc = article.imageUrl || reconstructedSrc;
 
     return (
-        <div className="relative group/wrapper pb-6">
+        <div className="relative group/wrapper h-full">
             <button 
                 onClick={onReadHere}
-                className={`w-full text-left group relative flex flex-col bg-app-card border border-app-border overflow-hidden h-full transition-all duration-300 hover:shadow-xl focus:ring-4 focus:ring-pulse-500 rounded-sm outline-none ${isRead ? 'opacity-30' : ''}`}
+                className={`w-full text-left group relative flex flex-col bg-app-card border border-app-border overflow-hidden h-full transition-all duration-300 hover:border-app-accent/50 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-app-accent rounded-[var(--void-radius)] shadow-sm outline-none ${isRead ? 'opacity-60' : ''}`}
             >
-                <div className="relative aspect-[16/10] w-full overflow-hidden border-b border-app-border shrink-0 pointer-events-none image-halftone-overlay bg-black">
+                <div className="relative aspect-[16/10] w-full overflow-hidden border-b border-app-border shrink-0 pointer-events-none bg-app-bg">
                     <ImageWithProxy
                         src={activeSrc}
                         alt=""
-                        className="w-full h-full object-cover transition-all duration-700 group-hover:scale-105 opacity-100"
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                         wrapperClassName="w-full h-full"
                         fallback={
-                            <div className="w-full h-full static-noise flex items-center justify-center">
-                                {isSearching && <div className="void-spinner w-6 h-6 border-2 border-pulse-500/20 border-t-pulse-500 rounded-full animate-spin" />}
+                            <div className="w-full h-full bg-app-bg flex items-center justify-center">
+                                {isSearching ? (
+                                    <div className="w-5 h-5 border-2 border-app-accent/20 border-t-app-accent rounded-full animate-spin" />
+                                ) : (
+                                    <span className="text-xs font-medium text-muted">No Image</span>
+                                )}
                             </div>
                         }
                     />
-                    <div className="absolute inset-0 cctv-overlay pointer-events-none opacity-20" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
                 </div>
 
-                <div className="p-4 flex flex-col flex-grow pointer-events-none">
+                <div className="p-5 flex flex-col flex-grow pointer-events-none">
                     <div className="flex items-center gap-2 mb-3">
-                        <span className="text-[8px] font-black text-pulse-500 uppercase tracking-widest italic">{article.source}</span>
+                        <span className="text-[10px] font-bold text-app-accent uppercase tracking-wider">{article.source}</span>
                     </div>
                     
-                    <h3 className="font-black text-app-text italic uppercase tracking-tighter line-clamp-3 leading-[1.05] mb-4 text-base md:text-lg group-hover:text-pulse-400 transition-colors">
+                    <h3 className="font-bold text-app-text line-clamp-3 leading-snug mb-4 text-base md:text-lg group-hover:text-app-accent transition-colors">
                         {article.title}
                     </h3>
                     
-                    <div className="mt-auto pt-4 border-t border-app-border flex items-center justify-between">
-                        <span className="text-[8px] font-mono font-black text-muted uppercase tracking-widest">{timeAgo(article.publishedDate)}</span>
-                        <div className="flex items-center gap-1.5 opacity-40 group-hover:opacity-100 transition-opacity">
-                            <div className="w-1 h-1 rounded-full bg-pulse-500 animate-pulse" />
-                            <span className="text-[7px] font-black text-app-text/50 uppercase italic tracking-widest">DECODE</span>
+                    <div className="mt-auto pt-4 border-t border-app-border/50 flex items-center justify-between">
+                        <span className="text-xs font-medium text-muted">{timeAgo(article.publishedDate)}</span>
+                        <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity text-app-accent">
+                            <span className="text-xs font-semibold tracking-wide">Read</span>
+                            <BookOpenIcon className="w-3.5 h-3.5" />
                         </div>
                     </div>
                 </div>
@@ -75,9 +79,10 @@ const MagazineArticleListItem: React.FC<MagazineArticleListItemProps> = ({ artic
             
             <button 
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); onReadExternal(); }}
-                className="absolute bottom-0 right-1 text-[7px] font-black uppercase tracking-[0.2em] text-muted hover:text-app-text transition-colors italic z-20 focus:text-app-text outline-none"
+                className="absolute -bottom-6 right-2 text-[10px] font-medium text-muted hover:text-app-accent transition-colors z-20 focus-visible:text-app-accent outline-none flex items-center gap-1 opacity-0 group-hover/wrapper:opacity-100"
             >
-                Raw_Dat_0x{article.id.substring(0,4)}
+                <span>Original</span>
+                <GlobeAltIcon className="w-3 h-3" />
             </button>
         </div>
     );

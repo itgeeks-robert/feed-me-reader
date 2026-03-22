@@ -21,7 +21,11 @@ const THEME_VERSIONS: Record<Theme, { v: string; tag: string; refraction: string
     'monochrome-zen': { v: 'v4.0.0', tag: 'ZEN_FOCUSED', refraction: '2px' },
     'y2k': { v: 'v9.9.9', tag: 'FUTURE_WAVE', refraction: '20px' },
     'terminal': { v: 'v0.0.1', tag: 'KERNEL_LEVEL', refraction: '0px' },
-    'comic': { v: 'v5.2.0', tag: 'INKED_FRAME', refraction: '0px' }
+    'comic': { v: 'v5.2.0', tag: 'INKED_FRAME', refraction: '0px' },
+    'aurora': { v: 'v7.7.7', tag: 'NEBULA_GLOW', refraction: '10px' },
+    'retro': { v: 'v1.0.0', tag: 'VINTAGE_GRID', refraction: '0px' },
+    'refraction': { v: 'v8.8.8', tag: 'PRISMATIC_CORE', refraction: '30px' },
+    'sleek': { v: 'v1.0.0', tag: 'SLEEK_UI', refraction: '10px' }
 };
 
 const BOOT_MESSAGES = [

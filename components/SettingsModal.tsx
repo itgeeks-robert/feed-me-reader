@@ -28,15 +28,18 @@ interface SettingsModalProps {
 type Tab = 'CORE' | 'NODES' | 'DISPLAY' | 'MEMORY';
 
 const THEME_PREVIEWS: { id: Theme; name: string; desc: string; colors: string }[] = [
-    { id: 'noir', name: 'NOIR', desc: 'Default technical neon.', colors: 'bg-black border-pulse-500' },
-    { id: 'liquid-glass', name: 'GLASS', desc: 'Frosted crystal light.', colors: 'bg-white border-blue-600 shadow-sm' },
+    { id: 'noir', name: 'NOIR', desc: 'Default technical neon.', colors: 'bg-black border-rose-600' },
+    { id: 'liquid-glass', name: 'GLASS', desc: 'Frosted crystal light.', colors: 'bg-white border-blue-500 shadow-sm' },
     { id: 'bento-grid', name: 'BENTO', desc: 'Clean iOS light mode.', colors: 'bg-slate-100 border-blue-600' },
     { id: 'brutalist', name: 'BRUTAL', desc: 'Stark B&W Newspaper.', colors: 'bg-white border-black' },
     { id: 'claymorphism', name: 'CLAY', desc: 'Squishy 3D tactile.', colors: 'bg-indigo-200 border-pink-500' },
-    { id: 'monochrome-zen', name: 'ZEN', desc: 'Low-stimulus focus.', colors: 'bg-teal-950 border-teal-500' },
-    { id: 'y2k', name: 'Y2K', desc: 'Glossy retro-future.', colors: 'bg-cyan-500 border-yellow-300' },
+    { id: 'monochrome-zen', name: 'ZEN', desc: 'Low-stimulus focus.', colors: 'bg-neutral-50 border-neutral-600' },
+    { id: 'y2k', name: 'Y2K', desc: 'Glossy retro-future.', colors: 'bg-slate-900 border-pink-400' },
     { id: 'terminal', name: 'TERMINAL', desc: 'DOS green phosphor.', colors: 'bg-black border-green-500' },
     { id: 'comic', name: 'COMIC', desc: 'Ink-lined pop art.', colors: 'bg-[#fffceb] border-[#1a1a1a]' },
+    { id: 'aurora', name: 'AURORA', desc: 'Deep space glowing neon.', colors: 'bg-[#020014] border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.5)]' },
+    { id: 'retro', name: 'RETRO', desc: 'Sleek modern vintage.', colors: 'bg-[#2c2421] border-[#e67e22]' },
+    { id: 'refraction', name: 'REFRACT', desc: 'Stylized prismatic glass.', colors: 'bg-gradient-to-br from-indigo-900 via-purple-900 to-black border-cyan-400' },
 ];
 
 const hiddenInputStyle: React.CSSProperties = { display: 'none' };
@@ -157,9 +160,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                     <button 
                                         key={t.id}
                                         onClick={() => setLocalSettings(p => ({...p, theme: t.id}))}
-                                        className={`p-4 rounded-void border-2 transition-all flex flex-col gap-3 group text-left outline-none focus:ring-4 focus:ring-pulse-500
-                                            ${localSettings.theme === t.id ? 'border-pulse-500 bg-void-bg shadow-lg' : 'border-void-border bg-void-surface opacity-60 hover:opacity-100 hover:border-terminal/20'}`}
+                                        className={`p-4 rounded-void border-2 transition-all flex flex-col gap-3 group text-left outline-none focus:ring-4 focus:ring-pulse-500 relative overflow-hidden
+                                            ${localSettings.theme === t.id ? 'border-white bg-void-bg shadow-[0_0_15px_rgba(255,255,255,0.3)] scale-[1.02]' : 'border-void-border bg-void-surface opacity-60 hover:opacity-100 hover:border-white/50'}`}
                                     >
+                                        {localSettings.theme === t.id && (
+                                            <div className="absolute top-0 left-0 w-full h-1 bg-white animate-pulse" />
+                                        )}
                                         <div className={`w-full h-12 rounded-xl border-2 ${t.colors} relative overflow-hidden pointer-events-none`}>
                                             <div className="absolute inset-0 opacity-10 bg-black/20" />
                                             <div className="absolute top-1 left-1 w-2 h-2 rounded-full bg-white/40" />
