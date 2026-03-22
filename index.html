@@ -76,10 +76,83 @@
             transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
         }
 
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+        }
+
         /* Ensure background covers everything including safe areas */
         #root {
             background: var(--void-bg);
             min-height: 100dvh;
+            padding: env(safe-area-inset-top, 12px) env(safe-area-inset-right, 12px) env(safe-area-inset-bottom, 12px) env(safe-area-inset-left, 12px);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* The "95%ish" safety margin requested by the user */
+        .safe-container {
+            width: 100%;
+            height: 100%;
+            padding: 1.5% 2.5%;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        @media (orientation: landscape) {
+            .safe-container {
+                padding: 1% 4%;
+            }
+        }
+
+        /* TV mode specific adjustments */
+        [data-tv-mode="true"] .safe-container {
+            padding: 3% 5%;
+        }
+
+        [data-tv-mode="true"] .article-list-grid {
+            gap: 1.5rem !important;
+        }
+
+        [data-tv-mode="true"] .void-card, 
+        [data-tv-mode="true"] .magazine-article-card {
+            transform: scale(0.9);
+            transform-origin: center;
+        }
+
+        [data-tv-mode="true"] .featured-story-card {
+            min-height: 350px !important;
+        }
+
+        [data-tv-mode="true"] .featured-story-card h1 {
+            font-size: 1.75rem !important;
+        }
+
+        /* TV FOCUS STYLES - Refined to be less "ring-like" if preferred, but keeping the user's "red ring" feedback in mind */
+        [data-tv-mode="true"] *:focus {
+            outline: none !important;
+            box-shadow: 0 0 0 2px var(--void-bg-solid), 0 0 0 6px var(--void-accent) !important;
+            transform: scale(1.03) !important;
+            z-index: 50 !important;
+            transition: all 0.15s ease-out !important;
+        }
+
+        /* Prevent bleed on mobile devices with notches */
+        @supports (padding: max(0px)) {
+            #root {
+                padding-left: max(12px, env(safe-area-inset-left));
+                padding-right: max(12px, env(safe-area-inset-right));
+                padding-top: max(12px, env(safe-area-inset-top));
+                padding-bottom: max(12px, env(safe-area-inset-bottom));
+            }
         }
 
         /* THEME 2: LIQUID GLASS (Frosted Crystal Light) */

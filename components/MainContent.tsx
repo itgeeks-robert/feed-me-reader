@@ -46,6 +46,7 @@ interface MainContentProps {
     onOpenIntegrityBriefing?: () => void;
     ambientEnabled: boolean;
     onToggleAmbient: () => void;
+    tvMode?: boolean;
 }
 
 const ARTICLES_PER_PAGE = 25;
@@ -62,10 +63,9 @@ const CATEGORY_MAP = [
 ];
 
 const MainContent: React.FC<MainContentProps> = (props) => {
-    const { selection, onSelectCategory, readArticleIds, bookmarkedArticleIds, onMarkAsRead, onSearch, onOpenReader, onOpenExternal, refreshKey, onRefresh, theme, onToggleTheme, animationClass, allFeeds, onSetFeeds, onSetFolders, initialArticles } = props;
+    const { selection, onSelectCategory, readArticleIds, bookmarkedArticleIds, onMarkAsRead, onSearch, onOpenReader, onOpenExternal, refreshKey, onRefresh, theme, onToggleTheme, animationClass, allFeeds, onSetFeeds, onSetFolders, initialArticles, tvMode } = props;
     
     const [articles, setArticles] = useState<Article[]>(initialArticles || []);
-    const [loading, setLoading] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearchActive, setIsSearchActive] = useState(false);
     const [visibleCount, setVisibleCount] = useState(ARTICLES_PER_PAGE);
@@ -86,7 +86,6 @@ const MainContent: React.FC<MainContentProps> = (props) => {
         if (activeFeeds.length === 0) { setArticles([]); return; };
         
         const fetchRssSubset = async (targetFeeds: Feed[], append: boolean = false) => {
-            setLoading(true);
             const promises = targetFeeds.map(feed => 
                 resilientFetch(feed.url, { timeout: 10000 })
                     .then(response => response.text())
@@ -104,7 +103,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                     combined.sort((a, b) => (b.publishedDate?.getTime() || 0) - (a.publishedDate?.getTime() || 0));
                     return Array.from(new Map(combined.map(a => [a.id, a])).values());
                 });
-            } finally { setLoading(false); }
+            } finally { }
         };
 
         const firstBatch = activeFeeds.slice(0, 6);
@@ -184,7 +183,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                     </div>
                 )}
 
-                <div className="px-4 md:px-6 mb-16 grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-10 article-list-grid">
+                <div className={`px-4 md:px-6 mb-16 grid gap-8 md:gap-10 article-list-grid ${tvMode ? 'grid-cols-2 lg:grid-cols-4' : 'grid-cols-1 md:grid-cols-3'}`}>
                     {trendingArticles.map(article => (
                         <div key={article.id} className="void-card p-1">
                             <MagazineArticleListItem 
@@ -219,7 +218,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8 article-list-grid">
+                    <div className={`grid gap-6 md:gap-8 article-list-grid ${tvMode ? 'grid-cols-2 lg:grid-cols-5' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'}`}>
                         {rollingNews.map(article => (
                             <div key={article.id} className="group">
                                 <MagazineArticleListItem 
@@ -249,7 +248,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
     );
 };
 
-const LocalHeader: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuery, isSearchActive, setIsSearchActive, onToggleTheme, onRefresh, selection, handleCategoryClick, theme }) => {
+const LocalHeader: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuery, isSearchActive, setIsSearchActive, selection, handleCategoryClick }) => {
     const inputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {

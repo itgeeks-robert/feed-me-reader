@@ -68,19 +68,30 @@ const OrientationGuard: React.FC<OrientationGuardProps> = ({ children, portraitO
             }
 
             // Fallback to Web API
-            if (!document.fullscreenElement) {
-                await document.documentElement.requestFullscreen();
-            }
             if (window.screen && window.screen.orientation) {
                 const currentType = window.screen.orientation.type;
                 if (currentType.startsWith('portrait')) {
-                    await window.screen.orientation.lock('landscape');
+                    await (window.screen.orientation as any).lock('landscape');
                 } else {
-                    await window.screen.orientation.lock('portrait');
+                    await (window.screen.orientation as any).lock('portrait');
                 }
             }
         } catch (err) {
             console.error("Failed to force rotation:", err);
+        }
+    };
+
+    const handleUnlockRotation = async () => {
+        try {
+            if ((window as any).AndroidInterface) {
+                (window as any).AndroidInterface.unlockOrientation();
+                return;
+            }
+            if (window.screen && window.screen.orientation) {
+                (window.screen.orientation as any).unlock();
+            }
+        } catch (err) {
+            console.error("Failed to unlock rotation:", err);
         }
     };
 
@@ -128,13 +139,22 @@ const OrientationGuard: React.FC<OrientationGuardProps> = ({ children, portraitO
                                     : 'Vertical clearance is insufficient. Terminal sync requires a wider horizontal plane for optimal data visualization.'}
                             </p>
 
-                            <button
-                                onClick={handleForceRotation}
-                                className="w-full py-2 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-lg text-[10px] font-black text-amber-500 uppercase tracking-widest transition-colors active:scale-95 flex items-center justify-center gap-2"
-                            >
-                                <ArrowPathIcon className="w-3.5 h-3.5" />
-                                Force Rotation
-                            </button>
+                            <div className="flex gap-2 mb-3">
+                                <button
+                                    onClick={handleForceRotation}
+                                    className="flex-1 py-2 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-lg text-[10px] font-black text-amber-500 uppercase tracking-widest transition-colors active:scale-95 flex items-center justify-center gap-2"
+                                >
+                                    <ArrowPathIcon className="w-3.5 h-3.5" />
+                                    Force
+                                </button>
+                                <button
+                                    onClick={handleUnlockRotation}
+                                    className="flex-1 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-lg text-[10px] font-black text-zinc-400 hover:text-white uppercase tracking-widest transition-colors active:scale-95 flex items-center justify-center gap-2"
+                                >
+                                    <XIcon className="w-3.5 h-3.5" />
+                                    Auto
+                                </button>
+                            </div>
                             
                             <div className="mt-3 pt-2 border-t border-white/5 flex items-center justify-between">
                                 <span className="text-[7px] font-black text-zinc-600 uppercase tracking-widest italic">Error_Code: 0xORNT_FAIL</span>

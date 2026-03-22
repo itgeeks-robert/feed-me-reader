@@ -37,7 +37,7 @@ const MagazineArticleListItem: React.FC<MagazineArticleListItemProps> = ({ artic
         <div className="relative group/wrapper h-full">
             <button 
                 onClick={onReadHere}
-                className={`w-full text-left group relative flex flex-col bg-app-card border border-app-border overflow-hidden h-full transition-all duration-300 hover:border-app-accent/50 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-app-accent rounded-[var(--void-radius)] shadow-sm outline-none ${isRead ? 'opacity-60' : ''}`}
+                className={`w-full text-left group relative flex flex-col bg-app-card border border-app-border overflow-hidden h-full transition-all duration-300 hover:border-app-accent/50 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-app-accent rounded-[var(--void-radius)] shadow-sm outline-none magazine-article-card ${isRead ? 'opacity-60' : ''}`}
             >
                 <div className="relative aspect-[16/10] w-full overflow-hidden border-b border-app-border shrink-0 pointer-events-none bg-app-bg">
                     <ImageWithProxy

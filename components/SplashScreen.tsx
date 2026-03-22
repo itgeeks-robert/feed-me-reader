@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { VoidIcon, ControllerIcon, ListIcon, TrashIcon, XIcon, ExclamationTriangleIcon, PaletteIcon } from './icons';
+import { VoidIcon, ControllerIcon, ListIcon, PaletteIcon, PlayIcon } from './icons';
 import { soundService } from '../services/soundService';
 import type { Theme } from '../src/App';
 
@@ -7,9 +7,8 @@ interface SplashScreenProps {
     theme: Theme;
     onEnterFeeds: () => void;
     onEnterArcade: () => void;
+    onEnterTube: () => void;
     onToggleTheme: () => void;
-    isDecoding: boolean;
-    onReset?: () => void;
 }
 
 const THEME_VERSIONS: Record<Theme, { v: string; tag: string; refraction: string }> = {
@@ -56,13 +55,11 @@ const TechnicalBlueprint: React.FC<{ progress: number }> = ({ progress }) => (
     </div>
 );
 
-const SplashScreen: React.FC<SplashScreenProps> = ({ theme, onEnterFeeds, onEnterArcade, onToggleTheme, isDecoding, onReset }) => {
+const SplashScreen: React.FC<SplashScreenProps> = ({ theme, onEnterFeeds, onEnterArcade, onEnterTube, onToggleTheme }) => {
     const [loadingProgress, setLoadingProgress] = useState(0);
     const [currentMessage, setCurrentMessage] = useState(BOOT_MESSAGES[0]);
     const [isBootComplete, setIsBootComplete] = useState(false);
-    const [showWipeConfirm, setShowWipeConfirm] = useState(false);
     const [breached, setBreached] = useState(false);
-    const lastPingRef = useRef(0);
     const mainButtonRef = useRef<HTMLButtonElement>(null);
 
     const themeMeta = THEME_VERSIONS[theme];
@@ -117,16 +114,16 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ theme, onEnterFeeds, onEnte
                 
                 {/* Brand Assets Column */}
                 <div className="flex flex-col items-center landscape:items-start landscape:mr-20 landscape:flex-1 shrink-0 landscape:pl-4">
-                    <div className="mb-8 landscape:mb-12 group relative">
+                    <div className="mb-4 md:mb-8 landscape:mb-12 group relative">
                         <div className="absolute inset-[-20px] blur-[40px] md:blur-[60px] transition-all duration-1000 rounded-full opacity-30" style={{ backgroundColor: 'var(--app-accent)' }} />
                         
-                        <div className="relative p-8 md:p-10 rounded-full transition-all duration-1000 border-4 border-zinc-950 bg-app-card shadow-[10px_10px_0_black]">
-                            <VoidIcon className="w-16 h-16 md:w-24 md:h-24 transition-colors duration-1000 text-app-text" />
+                        <div className="relative p-6 md:p-10 rounded-full transition-all duration-1000 border-4 border-zinc-950 bg-app-card shadow-[10px_10px_0_black]">
+                            <VoidIcon className="w-12 h-12 md:w-24 md:h-24 transition-colors duration-1000 text-app-text" />
                         </div>
                     </div>
 
-                    <div className="mb-8 landscape:mb-0 flex flex-col items-center landscape:items-start">
-                        <h1 className="void-title text-4xl xs:text-5xl md:text-8xl font-black italic uppercase tracking-tighter mb-4 transition-all duration-1000 text-app-text whitespace-nowrap">
+                    <div className="mb-6 md:mb-8 landscape:mb-0 flex flex-col items-center landscape:items-start">
+                        <h1 className="void-title text-3xl xs:text-5xl md:text-8xl font-black italic uppercase tracking-tighter mb-2 md:mb-4 transition-all duration-1000 text-app-text whitespace-nowrap">
                             THE VOID
                         </h1>
 
@@ -156,25 +153,35 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ theme, onEnterFeeds, onEnte
                             </div>
                         </div>
                     ) : (
-                        <div className="w-full flex flex-col gap-6 landscape:gap-8 animate-fade-in max-w-md items-center landscape:items-stretch main-content-area px-4 landscape:px-0">
-                            <div className="glass-reveal p-1 shadow-2xl overflow-hidden w-full transform -rotate-1 landscape:rotate-0">
+                        <div className="w-full flex flex-col gap-3 md:gap-6 landscape:gap-8 animate-fade-in max-w-md items-center landscape:items-stretch main-content-area px-4 landscape:px-0 pb-20 landscape:pb-0">
+                            <div className="glass-reveal p-0.5 md:p-1 shadow-2xl overflow-hidden w-full transform -rotate-1 landscape:rotate-0">
                                 <button 
                                     ref={mainButtonRef}
                                     onClick={onEnterFeeds}
-                                    className="group relative w-full py-6 bg-app-text text-app-bg font-black uppercase italic text-lg shadow-xl transition-all active:translate-x-1 active:translate-y-1 flex items-center justify-center gap-4 border-2 border-app-bg outline-none focus:ring-8 focus:ring-app-accent"
+                                    className="group relative w-full py-4 md:py-6 bg-app-text text-app-bg font-black uppercase italic text-base md:text-lg shadow-xl transition-all active:translate-x-1 active:translate-y-1 flex items-center justify-center gap-3 md:gap-4 border-2 border-app-bg outline-none focus:ring-8 focus:ring-app-accent"
                                 >
-                                    <ListIcon className="w-8 h-8" />
+                                    <ListIcon className="w-6 h-6 md:w-8 md:h-8" />
                                     <span>RECON_INTELLIGENCE</span>
                                 </button>
                             </div>
                             
-                            <div className="glass-reveal p-1 shadow-2xl overflow-hidden w-full transform rotate-1 landscape:rotate-0">
+                            <div className="glass-reveal p-0.5 md:p-1 shadow-2xl overflow-hidden w-full transform rotate-1 landscape:rotate-0">
                                 <button 
                                     onClick={onEnterArcade}
-                                    className="group w-full py-6 bg-app-card border-2 border-zinc-950 text-app-text font-black uppercase italic text-lg hover:bg-app-bg transition-all active:translate-x-1 active:translate-y-1 flex items-center justify-center gap-4 outline-none focus:ring-8 focus:ring-app-accent"
+                                    className="group w-full py-4 md:py-6 bg-app-card border-2 border-zinc-950 text-app-text font-black uppercase italic text-base md:text-lg hover:bg-app-bg transition-all active:translate-x-1 active:translate-y-1 flex items-center justify-center gap-3 md:gap-4 outline-none focus:ring-8 focus:ring-app-accent"
                                 >
-                                    <ControllerIcon className="w-8 h-8" />
+                                    <ControllerIcon className="w-6 h-6 md:w-8 md:h-8" />
                                     <span>ARCADE_QUICK_ACCESS</span>
+                                </button>
+                            </div>
+
+                            <div className="glass-reveal p-0.5 md:p-1 shadow-2xl overflow-hidden w-full transform -rotate-1 landscape:rotate-0">
+                                <button 
+                                    onClick={onEnterTube}
+                                    className="group w-full py-4 md:py-6 bg-app-card border-2 border-zinc-950 text-app-text font-black uppercase italic text-base md:text-lg hover:bg-app-bg transition-all active:translate-x-1 active:translate-y-1 flex items-center justify-center gap-3 md:gap-4 outline-none focus:ring-8 focus:ring-app-accent"
+                                >
+                                    <PlayIcon className="w-6 h-6 md:w-8 md:h-8 text-red-600" />
+                                    <span>VOIDTUBE_ARCHIVE</span>
                                 </button>
                             </div>
                         </div>
@@ -190,14 +197,6 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ theme, onEnterFeeds, onEnte
                     >
                         <PaletteIcon className="w-4 h-4 md:w-5 md:h-5" />
                         <span>SKIN CHANGE</span>
-                    </button>
-                    
-                    <button 
-                        onClick={() => setShowWipeConfirm(true)}
-                        className="footer-button group inline-flex items-center justify-center gap-2 md:gap-3 text-zinc-500 hover:text-red-500 transition-all py-2 md:py-3 px-4 md:px-6 bg-app-card border-2 md:border-4 border-zinc-950 uppercase text-[8px] md:text-[10px] font-black italic tracking-widest active:translate-x-1 active:translate-y-1 outline-none focus:ring-8 focus:ring-red-500 pointer-events-auto shadow-[4px_4px_0_black] shrink-0"
-                    >
-                        <TrashIcon className="w-4 h-4 md:w-5 md:h-5" />
-                        <span>PURGE</span>
                     </button>
                 </div>
             )}

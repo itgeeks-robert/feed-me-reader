@@ -60,7 +60,7 @@ const FeaturedStory: React.FC<{article: Article; onReadHere: () => void; onReadE
         <div className="relative group/wrapper mb-8">
             <button 
                 onClick={onReadHere}
-                className={`w-full text-left group relative grid grid-cols-1 lg:grid-cols-[1.5fr,1fr] bg-app-card border border-app-border overflow-hidden min-h-[400px] md:min-h-[450px] transition-all duration-300 hover:border-app-accent/50 hover:shadow-xl focus-visible:ring-2 focus-visible:ring-app-accent rounded-[var(--void-radius)] shadow-md outline-none ${isRead ? 'opacity-60' : ''}`}
+                className={`w-full text-left group relative grid grid-cols-1 lg:grid-cols-[1.5fr,1fr] bg-app-card border border-app-border overflow-hidden min-h-[400px] md:min-h-[450px] transition-all duration-300 hover:border-app-accent/50 hover:shadow-xl focus-visible:ring-2 focus-visible:ring-app-accent rounded-[var(--void-radius)] shadow-md outline-none featured-story-card ${isRead ? 'opacity-60' : ''}`}
             >
                 <div className="h-64 sm:h-96 lg:h-auto border-b lg:border-b-0 lg:border-r border-app-border pointer-events-none">
                     <CCTVMonitor src={article.imageUrl} label={article.source} headline={article.title} url={article.link} />
