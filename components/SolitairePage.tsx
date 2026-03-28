@@ -1,11 +1,10 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { ArrowPathIcon, XIcon, VoidIcon, RadioIcon, BookOpenIcon, SparklesIcon, ExclamationTriangleIcon } from './icons';
+import { XIcon, VoidIcon, RadioIcon, BookOpenIcon, SparklesIcon } from './icons';
 import type { SolitaireStats, SolitaireSettings } from '../src/App';
 import { saveHighScore, getHighScores } from '../services/highScoresService';
 import { soundService } from '../services/soundService';
 import HighScoreTable from './HighScoreTable';
-import Tooltip from './Tooltip';
 
 const SUITS = ['♥', '♦', '♠', '♣'];
 const RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
@@ -112,9 +111,8 @@ const IntroScreen: React.FC<{
     onStart: () => void; 
     onBackToHub: () => void; 
     onShowHelp: () => void; 
-    stats: SolitaireStats; 
     showScores: boolean;
-}> = ({ onStart, onBackToHub, onShowHelp, stats, showScores }) => (
+}> = ({ onStart, onBackToHub, onShowHelp, showScores }) => (
     <div className="w-full h-full flex flex-col items-center justify-center p-6 animate-fade-in">
         <div className="w-full max-w-sm text-center bg-zinc-900 p-10 rounded-[3rem] border-4 border-emerald-500 shadow-2xl">
             <header className="mb-8">
@@ -136,7 +134,7 @@ const IntroScreen: React.FC<{
 );
 
 const SolitairePage: React.FC<SolitairePageProps> = (props) => {
-  const { onBackToHub, stats, onGameWin, onGameStart } = props;
+  const { onBackToHub, onGameWin, onGameStart } = props;
   const [gamePhase, setGamePhase] = useState<GamePhase>('intro');
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [history, setHistory] = useState<GameState[]>([]);
@@ -410,7 +408,7 @@ const SolitairePage: React.FC<SolitairePageProps> = (props) => {
             }
         `}</style>
         {gamePhase === 'intro' ? 
-            <IntroScreen onStart={startNewGame} onBackToHub={onBackToHub} onShowHelp={() => { soundService.playClick(); setShowHelp(true); }} stats={stats} showScores={showScores} /> : 
+            <IntroScreen onStart={startNewGame} onBackToHub={onBackToHub} onShowHelp={() => { soundService.playClick(); setShowHelp(true); }} showScores={showScores} /> : 
             <div className="w-full h-full alley-bg p-4 flex flex-col items-center">
                  <div className="w-full max-w-5xl flex flex-col md:flex-row justify-between items-center mb-6 px-2 game-content gap-4">
                     <div className="flex gap-4">
@@ -445,7 +443,7 @@ const SolitairePage: React.FC<SolitairePageProps> = (props) => {
                         </div>
                         
                         <div className="relative">
-                            {gameState?.waste.slice(-1).map((card, i) => (
+                            {gameState?.waste.slice(-1).map((card) => (
                                 <div key={card.id} className="absolute inset-0 z-10">
                                     <Card 
                                         card={card} 

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { XIcon, WalkieTalkieIcon, KeypadIcon, EntityIcon, RadioIcon, SparklesIcon, ClockIcon } from './icons';
+import { XIcon, WalkieTalkieIcon, KeypadIcon, EntityIcon, RadioIcon, ClockIcon } from './icons';
 
 interface ShopItemProps {
     name: string;

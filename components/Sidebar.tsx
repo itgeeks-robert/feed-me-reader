@@ -3,7 +3,7 @@ import type { Feed, Folder, Selection } from '../src/App';
 import type { SourceType } from './AddSource';
 import AddSource from './AddSource';
 import {
-    VoidIcon, ListIcon, PlusIcon, TrashIcon, FolderIcon, BookmarkIcon, SettingsIcon, XIcon, RadioIcon, ShieldCheckIcon, ControllerIcon
+    VoidIcon, ListIcon, PlusIcon, FolderIcon, BookmarkIcon, SettingsIcon, XIcon, RadioIcon, ShieldCheckIcon, ControllerIcon
 } from './icons';
 
 interface SidebarProps {
@@ -23,7 +23,7 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = (props) => {
-    const { feeds, folders, selection, onAddSource, onSelect, onAddFolder, isSidebarOpen, onClose, onOpenSettings } = props;
+    const { folders, selection, onAddSource, onSelect, onAddFolder, isSidebarOpen, onClose, onOpenSettings } = props;
     
     const NavItem: React.FC<{sel: Selection, label: string, icon: React.ReactNode}> = ({sel, label, icon}) => {
         const isActive = selection.type === sel.type && (sel.id === null || selection.id === sel.id);
@@ -51,7 +51,11 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
     };
 
     return (
-        <aside className={`fixed inset-y-0 left-0 z-[70] w-72 bg-app-card border-r border-app-border flex flex-col h-full transform transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} shadow-2xl pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]`}>
+        <aside className={`fixed inset-y-0 left-0 z-[70] w-72 bg-app-card border-r border-app-border flex flex-col h-full transform transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} shadow-2xl`} style={{ 
+            paddingTop: 'var(--safe-top)',
+            paddingBottom: 'var(--safe-bottom)',
+            paddingLeft: 'var(--safe-left)'
+        }}>
             <div className="p-6 flex-shrink-0">
                 <div className="flex items-center justify-between space-x-2 mb-10">
                     <div className="flex items-center space-x-4">

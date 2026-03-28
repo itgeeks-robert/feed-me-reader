@@ -1,134 +1,262 @@
-
 /**
- * THE VOID // SOUND_SYNTH_v1.3
- * Procedural audio generation for technical noir aesthetic.
+ * THE VOID // SOUND_SYNTH v2.0
+ * Mode-aware procedural audio. Tones adapt to noir / glass / terminal aesthetics.
+ * All synthesis is Web Audio API only — zero dependencies, zero network calls.
  */
 
-import { Theme } from '../src/App';
+import type { Mode } from '../src/App';
+
+/* ─── Tone profiles per mode ─── */
+interface ModeProfile {
+  oscType:    OscillatorType;
+  baseFreq:   number;          // root pitch multiplier (1 = neutral)
+  filterFreq: number;          // ambient low-pass cutoff
+  ambientFreq: number;         // drone frequency
+  volume:     number;          // master output scale
+}
+
+const MODE_PROFILES: Record<string, ModeProfile> = {
+  noir: {
+    oscType:    'sawtooth',
+    baseFreq:   1,
+    filterFreq: 380,
+    ambientFreq: 55,           // low industrial hum
+    volume:     0.05,
+  },
+  glass: {
+    oscType:    'sine',
+    baseFreq:   1.25,          // brighter pitch
+    filterFreq: 800,
+    ambientFreq: 110,          // airy, higher drone
+    volume:     0.035,
+  },
+  terminal: {
+    oscType:    'square',
+    baseFreq:   0.9,
+    filterFreq: 250,           // narrower, more retro
+    ambientFreq: 40,           // deep CRT hum
+    volume:     0.06,
+  },
+};
 
 class SoundManager {
-    private ctx: AudioContext | null = null;
-    private ambientOsc: OscillatorNode | null = null;
-    private ambientGain: GainNode | null = null;
-    private filter: BiquadFilterNode | null = null;
-    private isAmbientPlaying: boolean = false;
+  private ctx:             AudioContext | null = null;
+  private masterGain:      GainNode | null = null;
+  private ambientOsc:      OscillatorNode | null = null;
+  private ambientGain:     GainNode | null = null;
+  private ambientFilter:   BiquadFilterNode | null = null;
+  private isAmbientActive: boolean = false;
+  private currentMode:     string = 'noir';
+  private isMuted:         boolean = false;
 
-    private getContext() {
-        if (!this.ctx) {
-            this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-        }
-        if (this.ctx.state === 'suspended') {
-            this.ctx.resume();
-        }
-        return this.ctx;
+  /* ── Context lazy-init ── */
+  private ctx_(): AudioContext {
+    if (!this.ctx) {
+      this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
     }
+    if (this.ctx.state === 'suspended') this.ctx.resume();
+    return this.ctx;
+  }
 
-    private playTone(freq: number, type: OscillatorType, duration: number, volume: number = 0.1, fade: boolean = true) {
-        try {
-            const ctx = this.getContext();
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-
-            osc.type = type;
-            osc.frequency.setValueAtTime(freq, ctx.currentTime);
-
-            gain.gain.setValueAtTime(volume, ctx.currentTime);
-            if (fade) {
-                gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
-            }
-
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-
-            osc.start();
-            osc.stop(ctx.currentTime + duration);
-        } catch (e) {
-            console.warn("Audio Context Restriction Active.");
-        }
+  /* ── Master gain (shared across all sounds) ── */
+  private master(): GainNode {
+    const ctx = this.ctx_();
+    if (!this.masterGain) {
+      this.masterGain = ctx.createGain();
+      this.masterGain.gain.value = this.isMuted ? 0 : 1;
+      this.masterGain.connect(ctx.destination);
     }
+    return this.masterGain;
+  }
 
-    public setAmbient(enabled: boolean, theme: Theme = 'noir') {
-        if (!enabled) {
-            this.stopAmbientInternal();
-            return;
-        }
-        if (!this.isAmbientPlaying) {
-            this.startAmbientInternal(theme);
-        }
+  /* ── Core tone builder ── */
+  private tone(
+    freq:     number,
+    type:     OscillatorType,
+    duration: number,
+    volume:   number = 0.08,
+    options:  { detune?: number; attack?: number; decay?: number } = {}
+  ) {
+    if (this.isMuted) return;
+    try {
+      const ctx  = this.ctx_();
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const now  = ctx.currentTime;
+      const { detune = 0, attack = 0.005, decay = duration } = options;
+
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, now);
+      if (detune) osc.detune.setValueAtTime(detune, now);
+
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(volume, now + attack);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + decay);
+
+      osc.connect(gain);
+      gain.connect(this.master());
+
+      osc.start(now);
+      osc.stop(now + decay + 0.01);
+    } catch {
+      /* AudioContext restrictions (autoplay policy) — silent fail */
     }
+  }
 
-    private startAmbientInternal(theme: Theme) {
-        try {
-            const ctx = this.getContext();
-            this.isAmbientPlaying = true;
-            this.ambientGain = ctx.createGain();
-            this.ambientGain.gain.setValueAtTime(0.0001, ctx.currentTime);
-            this.ambientGain.gain.exponentialRampToValueAtTime(0.05, ctx.currentTime + 2);
+  /* ── Profile helper ── */
+  private profile(): ModeProfile {
+    return MODE_PROFILES[this.currentMode] ?? MODE_PROFILES.noir;
+  }
 
-            this.filter = ctx.createBiquadFilter();
-            this.filter.type = 'lowpass';
-            this.filter.frequency.value = 400;
-
-            this.ambientOsc = ctx.createOscillator();
-            this.ambientOsc.type = 'sawtooth';
-            this.ambientOsc.frequency.value = 55;
-
-            this.ambientOsc.connect(this.filter);
-            this.filter.connect(this.ambientGain);
-            this.ambientGain.connect(ctx.destination);
-            this.ambientOsc.start();
-        } catch (e) {
-            this.isAmbientPlaying = false;
-        }
+  /* ═══════════════════════════════════════
+     PUBLIC: Ambient drone
+  ═══════════════════════════════════════ */
+  public setAmbient(enabled: boolean, mode: Mode | string = 'noir') {
+    this.currentMode = mode;
+    if (!enabled) {
+      this.stopAmbient();
+      return;
     }
+    if (!this.isAmbientActive) this.startAmbient();
+    else this.updateAmbientForMode(); // live-update if mode changed while ambient running
+  }
 
-    private stopAmbientInternal() {
-        if (this.ambientGain && this.ctx) {
-            this.ambientGain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + 1);
-            setTimeout(() => {
-                this.ambientOsc?.stop();
-                this.ambientOsc?.disconnect();
-                this.ambientGain?.disconnect();
-                this.isAmbientPlaying = false;
-            }, 1000);
-        }
+  private startAmbient() {
+    try {
+      const ctx   = this.ctx_();
+      const prof  = this.profile();
+      const now   = ctx.currentTime;
+
+      this.ambientFilter = ctx.createBiquadFilter();
+      this.ambientFilter.type            = 'lowpass';
+      this.ambientFilter.frequency.value = prof.filterFreq;
+      this.ambientFilter.Q.value         = 0.8;
+
+      this.ambientGain = ctx.createGain();
+      this.ambientGain.gain.setValueAtTime(0.0001, now);
+      this.ambientGain.gain.exponentialRampToValueAtTime(prof.volume, now + 3);
+
+      this.ambientOsc = ctx.createOscillator();
+      this.ambientOsc.type = prof.oscType;
+      this.ambientOsc.frequency.setValueAtTime(prof.ambientFreq, now);
+
+      this.ambientOsc.connect(this.ambientFilter);
+      this.ambientFilter.connect(this.ambientGain);
+      this.ambientGain.connect(this.master());
+
+      this.ambientOsc.start();
+      this.isAmbientActive = true;
+    } catch {
+      this.isAmbientActive = false;
     }
+  }
 
-    // --- UI SOUNDS ---
-    public playClick() { this.playTone(800, 'sine', 0.05, 0.05); }
-    public playCorrect() { this.playTone(600, 'sine', 0.1, 0.1); setTimeout(() => this.playTone(900, 'sine', 0.15, 0.1), 50); }
-    public playWrong() { this.playTone(150, 'sawtooth', 0.3, 0.08); }
-    public playAction() { this.playTone(250, 'square', 0.08, 0.04); }
-    public playPop() { this.playTone(1200, 'sine', 0.03, 0.03); }
+  private updateAmbientForMode() {
+    if (!this.ctx || !this.ambientOsc || !this.ambientFilter || !this.ambientGain) return;
+    const prof = this.profile();
+    const now  = this.ctx.currentTime;
+    this.ambientOsc.frequency.exponentialRampToValueAtTime(prof.ambientFreq, now + 2);
+    this.ambientFilter.frequency.exponentialRampToValueAtTime(prof.filterFreq, now + 2);
+    this.ambientGain.gain.exponentialRampToValueAtTime(prof.volume, now + 2);
+  }
 
-    public playWin() {
-        const notes = [523.25, 659.25, 783.99, 1046.50];
-        notes.forEach((f, i) => {
-            setTimeout(() => this.playTone(f, 'sine', 0.4, 0.06, true), i * 100);
-        });
-    }
+  private stopAmbient() {
+    if (!this.ctx || !this.ambientGain) return;
+    const now = this.ctx.currentTime;
+    this.ambientGain.gain.exponentialRampToValueAtTime(0.0001, now + 1.5);
+    setTimeout(() => {
+      try {
+        this.ambientOsc?.stop();
+        this.ambientOsc?.disconnect();
+        this.ambientFilter?.disconnect();
+        this.ambientGain?.disconnect();
+      } catch {}
+      this.ambientOsc     = null;
+      this.ambientFilter  = null;
+      this.ambientGain    = null;
+      this.isAmbientActive = false;
+    }, 1600);
+  }
 
-    public playLoss() {
-        const notes = [220, 164.81, 110];
-        notes.forEach((f, i) => {
-            setTimeout(() => this.playTone(f, 'sawtooth', 0.6, 0.08, true), i * 200);
-        });
-    }
+  /* ═══════════════════════════════════════
+     PUBLIC: UI sounds — mode-adaptive
+  ═══════════════════════════════════════ */
 
-    // --- BOOT SEQUENCE ---
-    public playBootPing(progress: number) {
-        // High frequency ping that rises slightly with progress
-        const freq = 1200 + (progress * 5);
-        this.playTone(freq, 'sine', 0.06, 0.03, true);
-    }
+  /** Short confirm click */
+  public playClick() {
+    const p = this.profile();
+    this.tone(800 * p.baseFreq, 'sine', 0.06, 0.05, { attack: 0.002 });
+  }
 
-    public playBootComplete() {
-        // Uplifting major sequence for successful breach
-        const notes = [440, 554.37, 659.25, 880];
-        notes.forEach((f, i) => {
-            setTimeout(() => this.playTone(f, 'sine', 1.2, 0.05, true), i * 120);
-        });
-    }
+  /** Lightweight pop (nav hover, toggle) */
+  public playPop() {
+    const p = this.profile();
+    this.tone(1200 * p.baseFreq, 'sine', 0.04, 0.03, { attack: 0.001, decay: 0.04 });
+  }
+
+  /** Correct answer / success */
+  public playCorrect() {
+    const p = this.profile();
+    this.tone(600 * p.baseFreq, 'sine', 0.12, 0.08);
+    setTimeout(() => this.tone(900 * p.baseFreq, 'sine', 0.18, 0.08), 60);
+  }
+
+  /** Wrong answer / error */
+  public playWrong() {
+    this.tone(120, 'sawtooth', 0.35, 0.07, { attack: 0.01 });
+    setTimeout(() => this.tone(90, 'sawtooth', 0.25, 0.05), 80);
+  }
+
+  /** Action (hard drop, confirm, lock-in) */
+  public playAction() {
+    const p = this.profile();
+    this.tone(260 * p.baseFreq, p.oscType, 0.1, 0.06, { attack: 0.003 });
+  }
+
+  /** Victory fanfare */
+  public playWin() {
+    const p    = this.profile();
+    const base = p.baseFreq;
+    [523.25, 659.25, 783.99, 1046.50].forEach((f, i) => {
+      setTimeout(() => this.tone(f * base, 'sine', 0.45, 0.06), i * 110);
+    });
+  }
+
+  /** Defeat / loss */
+  public playLoss() {
+    [220, 164.81, 110].forEach((f, i) => {
+      setTimeout(() => this.tone(f, 'sawtooth', 0.7, 0.07, { attack: 0.02 }), i * 220);
+    });
+  }
+
+  /** Splash screen boot ping (progress 0–100) */
+  public playBootPing(progress: number) {
+    const freq = 1200 + progress * 6;
+    this.tone(freq, 'sine', 0.07, 0.025, { attack: 0.003, decay: 0.06 });
+  }
+
+  /** Splash screen boot complete */
+  public playBootComplete() {
+    const p = this.profile();
+    [440, 554.37, 659.25, 880].forEach((f, i) => {
+      setTimeout(() => this.tone(f * p.baseFreq, 'sine', 1.4, 0.05, { attack: 0.02 }), i * 130);
+    });
+  }
+
+  /* ═══════════════════════════════════════
+     PUBLIC: Utility
+  ═══════════════════════════════════════ */
+
+  /** Toggle global mute without stopping ambient (fades master gain) */
+  public setMuted(muted: boolean) {
+    this.isMuted = muted;
+    if (!this.masterGain || !this.ctx) return;
+    const now = this.ctx.currentTime;
+    this.masterGain.gain.cancelScheduledValues(now);
+    this.masterGain.gain.linearRampToValueAtTime(muted ? 0 : 1, now + 0.2);
+  }
+
+  public getMuted() { return this.isMuted; }
 }
 
 export const soundService = new SoundManager();

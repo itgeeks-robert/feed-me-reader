@@ -1,8 +1,7 @@
-import React, { useMemo } from 'react';
-import { WalkieTalkieIcon, ControllerIcon, RadioIcon, EntityIcon, KeypadIcon, SparklesIcon, XIcon, ListIcon, CpuChipIcon, BoltIcon, StarIcon, PaletteIcon } from './icons';
-import { getHighScores, ScoreCategory } from '../services/highScoresService';
+import React, { useMemo, useState } from 'react';
+import { WalkieTalkieIcon, ControllerIcon, RadioIcon, EntityIcon, KeypadIcon, SparklesIcon, ListIcon, CpuChipIcon, BoltIcon, StarIcon, XIcon, SearchIcon } from './icons';
+import { ScoreCategory } from '../services/highScoresService';
 import ContextualIntel from './ContextualIntel';
-import { Theme } from '../src/App';
 
 interface GameInfo {
     id: string;
@@ -20,64 +19,10 @@ interface GameInfo {
     glowColor: string;
 }
 
-const CabinetPoster: React.FC<{ 
-    game: GameInfo; 
-    onPlay: () => void; 
-    isFavorite: boolean; 
-    onToggleFavorite: (id: string) => void; 
-}> = ({ game, onPlay, isFavorite, onToggleFavorite }) => {
-    return (
-        <div className="relative group cabinet-poster aspect-[2/3] sm:aspect-[3/4]">
-            <button 
-                onClick={onPlay}
-                className="w-full h-full text-left relative bg-zinc-900 border-[3px] border-void-border overflow-hidden shadow-2xl transition-all duration-300 outline-none focus:ring-8 focus:ring-pulse-500 hover:z-10 flex flex-col"
-            >
-                <div className={`relative flex-grow ${game.artStyle} opacity-90 group-hover:opacity-100 transition-opacity overflow-hidden image-halftone-overlay`}>
-                    <div className="absolute -right-4 -bottom-4 opacity-20 group-hover:opacity-40 transition-opacity pointer-events-none">
-                         {React.cloneElement(game.icon, { className: "w-40 h-40 md:w-56 md:h-56" })}
-                    </div>
-                    
-                    <div className="absolute top-4 left-4 z-20">
-                         <span className="text-[7px] md:text-[9px] font-black text-white px-2 py-1 rounded-sm uppercase tracking-[0.2em] shadow-xl" style={{ backgroundColor: game.accentColor }}>
-                            {game.protocol}
-                        </span>
-                    </div>
-                </div>
-
-                <div className="p-4 md:p-6 bg-app-card border-t-4 border-zinc-950">
-                    <h3 className="text-base sm:text-xl font-black text-app-text italic uppercase tracking-tighter leading-none mb-1 line-clamp-1">
-                        {game.title}
-                    </h3>
-                    <p className="text-[8px] font-black text-zinc-500 uppercase tracking-widest italic truncate opacity-60">
-                        {game.description}
-                    </p>
-                </div>
-            </button>
-
-            <button 
-                onClick={(e) => { e.stopPropagation(); onToggleFavorite(game.id); }}
-                className={`absolute top-2 right-2 p-2 rounded-full backdrop-blur-xl transition-all z-30 active:scale-75 shadow-lg
-                    ${isFavorite ? 'bg-yellow-500 text-black border-2 border-white' : 'bg-black/40 text-zinc-400 hover:text-white border border-white/10'}`}
-            >
-                <StarIcon className="w-4 h-4" filled={isFavorite} />
-            </button>
-        </div>
-    );
-};
-
 const GameHubPage: React.FC<any> = (props) => {
-    const { onSelect, favoriteGameIds, onToggleFavorite, theme, onToggleTheme } = props;
-
-    const themeLabel = useMemo(() => {
-        switch(theme) {
-            case 'liquid-glass': return 'GLASS';
-            case 'bento-grid': return 'BENTO';
-            case 'monochrome-zen': return 'ZEN';
-            case 'claymorphism': return 'CLAY';
-            case 'brutalist': return 'BRUTAL';
-            default: return theme.toUpperCase();
-        }
-    }, [theme]);
+    const { onSelect, favoriteGameIds, onToggleFavorite, onBack } = props;
+    const [filter, setFilter] = useState<'all' | 'logic' | 'arcade'>('all');
+    const [searchQuery, setSearchQuery] = useState('');
 
     const games: GameInfo[] = [
         { 
@@ -142,62 +87,141 @@ const GameHubPage: React.FC<any> = (props) => {
         }
     ];
 
-    const sortedGames = useMemo(() => {
-        return [...games].sort((a, b) => {
-            const aFav = favoriteGameIds.has(a.id);
-            const bFav = favoriteGameIds.has(b.id);
-            if (aFav && !bFav) return -1;
-            if (!aFav && bFav) return 1;
-            return 0;
+    const filteredGames = useMemo(() => {
+        return games.filter(game => {
+            const isLogic = ['synapse_link', 'cipher_core', 'sudoku', 'grid_reset'].includes(game.id);
+            const matchesFilter = filter === 'all' || (filter === 'logic' && isLogic) || (filter === 'arcade' && !isLogic);
+            const matchesSearch = game.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                                 game.description.toLowerCase().includes(searchQuery.toLowerCase());
+            return matchesFilter && matchesSearch;
         });
-    }, [games, favoriteGameIds]);
+    }, [games, filter, searchQuery]);
+
+    const featuredGames = games.slice(0, 3);
 
     return (
-        <main className="h-full min-h-0 flex-grow overflow-y-auto bg-void-bg p-4 md:p-14 pt-[calc(4rem+var(--safe-top))] pb-[calc(10rem+var(--safe-bottom))] pl-[var(--safe-left)] pr-[var(--safe-right)] animate-fade-in relative scrollbar-hide font-mono main-content-area">
-            <ContextualIntel 
-                tipId="arcade_intel" 
-                title="The Void Arcade" 
-                content="Engage with technical simulations to maintain neural sync. In Comic mode, look for the skewed panels representing your active session blocks." 
-            />
-            
-            <div className="max-w-7xl mx-auto relative z-10">
-                <header className="mb-12 md:mb-16 flex flex-col items-start gap-6 border-b-8 border-zinc-950 pb-8 md:pb-10">
-                    <div className="flex items-center gap-6 md:gap-8">
-                        <div className="p-3 md:p-4 bg-pulse-500 border-4 border-zinc-950 shadow-[8px_8px_0_black] -rotate-3 shrink-0">
-                            <ControllerIcon className="w-8 h-8 md:w-12 md:h-12 text-white" />
-                        </div>
-                        <div>
-                            <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-app-text tracking-tighter uppercase italic leading-none drop-shadow-[4px_4px_0_rgba(0,0,0,0.2)]">VOID_ARCADE</h1>
-                            <div className="flex items-center gap-3 mt-3">
-                                <span className="bg-app-accent text-white font-black uppercase text-[10px] md:text-xs px-4 py-1 italic tracking-widest shadow-[4px_4px_0_black]">Simulation_Active</span>
-                            </div>
-                        </div>
+        <div className="flex flex-col h-full bg-void-bg text-app-text overflow-hidden font-mono">
+            {/* App Store Style Header */}
+            <header className="px-6 pt-8 pb-4 flex flex-col gap-4 shrink-0 border-b border-white/5">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h1 className="text-3xl font-black tracking-tighter uppercase leading-none italic">ARCADE</h1>
+                        <p className="text-[8px] font-bold opacity-40 uppercase tracking-[0.3em] mt-1">Void OS Store v3.1</p>
                     </div>
-                    
-                    <div className="flex items-center gap-4 mt-2">
-                        <button onClick={onToggleTheme} className="flex items-center gap-3 p-3 bg-app-card border-4 border-zinc-950 rounded-2xl text-zinc-500 hover:text-app-accent shadow-[6px_6px_0_black] active:translate-x-1 active:translate-y-1 transition-all focus:ring-4 focus:ring-pulse-500 outline-none">
-                            <PaletteIcon className="w-5 h-5 md:w-7 md:h-7" />
-                            <span className="text-[10px] font-black uppercase italic tracking-widest">{themeLabel}</span>
-                        </button>
-                        <button onClick={props.onReturnToFeeds} className="px-8 py-3 bg-app-text text-app-bg text-[10px] font-black uppercase italic tracking-widest hover:bg-app-accent hover:text-white transition-all shadow-[8px_8px_0_black] active:translate-x-1 active:translate-y-1 focus:ring-4 focus:ring-pulse-500 outline-none">
-                            Exit
-                        </button>
-                    </div>
-                </header>
+                    <button 
+                        onClick={onBack}
+                        className="w-10 h-10 rounded-full bg-app-card border border-white/10 flex items-center justify-center hover:scale-105 active:scale-95 transition-transform shadow-lg"
+                    >
+                        <XIcon className="w-5 h-5" />
+                    </button>
+                </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-8 md:gap-12 pb-40 cabinet-grid">
-                    {sortedGames.map(game => (
-                        <CabinetPoster 
-                            key={game.id} 
-                            game={game} 
-                            onPlay={() => onSelect(game.id)} 
-                            isFavorite={favoriteGameIds.has(game.id)}
-                            onToggleFavorite={onToggleFavorite}
-                        />
+                {/* Search Bar */}
+                <div className="relative group">
+                    <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 opacity-30 group-focus-within:opacity-100 transition-opacity w-4 h-4" />
+                    <input 
+                        type="text"
+                        placeholder="Search simulations..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full bg-app-card border border-white/5 rounded-2xl py-3 pl-12 pr-4 text-xs font-bold focus:border-app-accent/50 outline-none transition-all placeholder:opacity-30"
+                    />
+                </div>
+
+                {/* Categories */}
+                <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                    {['all', 'logic', 'arcade'].map((cat) => (
+                        <button
+                            key={cat}
+                            onClick={() => setFilter(cat as any)}
+                            className={`px-5 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border transition-all whitespace-nowrap ${
+                                filter === cat 
+                                ? 'bg-app-accent text-app-on-accent border-app-accent' 
+                                : 'bg-transparent border-white/10 opacity-50 hover:opacity-100'
+                            }`}
+                        >
+                            {cat}
+                        </button>
                     ))}
                 </div>
+            </header>
+
+            <div className="flex-1 overflow-y-auto no-scrollbar px-6 pb-32 pt-6 space-y-8">
+                {/* Featured Section - Horizontal Scroll */}
+                {searchQuery === '' && filter === 'all' && (
+                    <section>
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-[10px] font-black uppercase tracking-widest italic opacity-60">Featured Signals</h2>
+                        </div>
+                        <div className="flex gap-4 overflow-x-auto no-scrollbar -mx-6 px-6 snap-x">
+                            {featuredGames.map(game => (
+                                <div 
+                                    key={game.id}
+                                    onClick={() => onSelect(game.id)}
+                                    className="relative shrink-0 w-[80vw] max-w-[320px] aspect-[16/9] rounded-3xl overflow-hidden group cursor-pointer border border-white/5 snap-start shadow-2xl"
+                                >
+                                    <div className={`absolute inset-0 ${game.artStyle} opacity-90 group-hover:opacity-100 transition-opacity flex items-center justify-center`}>
+                                        {React.cloneElement(game.icon, { className: "w-16 h-16 text-white/5 absolute -right-4 -bottom-4 rotate-12" })}
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent p-5 flex flex-col justify-end">
+                                            <p className="text-[8px] font-black uppercase tracking-[0.3em] text-app-accent mb-1">{game.protocol}</p>
+                                            <h3 className="text-xl font-black text-white leading-none tracking-tighter uppercase italic">{game.title}</h3>
+                                        </div>
+                                    </div>
+                                    <div className="absolute top-4 right-4">
+                                        <div className="px-3 py-1 bg-white/10 backdrop-blur-md border border-white/20 text-white text-[8px] font-black uppercase italic rounded-full">GET</div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+                )}
+
+                {/* Discovery List - Compact Rows */}
+                <section>
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-[10px] font-black uppercase tracking-widest italic opacity-60">
+                            {searchQuery ? 'Search Results' : 'Discovery'}
+                        </h2>
+                    </div>
+                    <div className="space-y-3">
+                        {filteredGames.map(game => (
+                            <div 
+                                key={game.id}
+                                onClick={() => onSelect(game.id)}
+                                className="flex items-center gap-4 p-3 rounded-2xl bg-app-card border border-white/5 hover:border-app-accent/30 transition-all cursor-pointer group shadow-sm"
+                            >
+                                <div className={`w-14 h-14 rounded-2xl overflow-hidden shrink-0 border border-white/10 flex items-center justify-center ${game.artStyle}`}>
+                                    {React.cloneElement(game.icon, { className: "w-6 h-6 text-white/40 group-hover:scale-110 transition-transform" })}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <h3 className="font-black text-xs uppercase tracking-tight truncate">{game.title}</h3>
+                                    <p className="text-[8px] font-bold opacity-40 uppercase tracking-widest mb-1">{game.inspiredBy}</p>
+                                    <p className="text-[10px] opacity-60 line-clamp-1 leading-tight">{game.description}</p>
+                                </div>
+                                <div className="flex flex-col items-end gap-1">
+                                    <button className="px-4 py-1.5 rounded-full bg-app-accent/10 text-app-accent text-[9px] font-black uppercase tracking-widest group-hover:bg-app-accent group-hover:text-app-on-accent transition-colors">
+                                        GET
+                                    </button>
+                                    {favoriteGameIds.has(game.id) && <StarIcon className="w-2.5 h-2.5 text-yellow-500" filled />}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </section>
+
+                {filteredGames.length === 0 && (
+                    <div className="py-20 text-center opacity-20">
+                        <p className="text-xs font-black uppercase tracking-widest">No signals found in this sector</p>
+                    </div>
+                )}
+
+                <ContextualIntel 
+                    tipId="arcade_intel_v3" 
+                    title="Neural Sync" 
+                    content="Simulations are optimized for your current synaptic frequency. Signal integrity is monitored." 
+                />
             </div>
-        </main>
+        </div>
     );
 };
 

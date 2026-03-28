@@ -1,12 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { generateSudoku } from '../services/sudoku';
-import { PencilIcon, LightBulbIcon, EraserIcon, VoidIcon, XIcon, ArrowPathIcon, CpuChipIcon, SparklesIcon, BookOpenIcon, ExclamationTriangleIcon } from './icons';
+import { PencilIcon, LightBulbIcon, EraserIcon, XIcon, CpuChipIcon, SparklesIcon, BookOpenIcon } from './icons';
 import type { SudokuStats, SudokuDifficulty as Difficulty } from '../src/App';
 import { saveHighScore, getHighScores, ScoreCategory } from '../services/highScoresService';
-import { useLocalStorage } from '../hooks/useLocalStorage';
 import { soundService } from '../services/soundService';
 import HighScoreTable from './HighScoreTable';
-import Tooltip from './Tooltip';
 
 type GameState = 'LOADING' | 'BOOTING' | 'IDLE' | 'PLAYING' | 'ERROR' | 'WON' | 'LOST';
 
@@ -53,7 +51,7 @@ interface SudokuPageProps {
   onReturnToFeeds: () => void;
 }
 
-const SudokuPage: React.FC<SudokuPageProps> = ({ stats, onGameWin, onGameLoss, onBackToHub, onReturnToFeeds }) => {
+const SudokuPage: React.FC<SudokuPageProps> = ({ onGameWin, onGameLoss, onBackToHub }) => {
     const [view, setView] = useState<'IDLE' | 'BOOTING' | 'PLAYING'>('IDLE');
     const [gameState, setGameState] = useState<GameState>('IDLE');
     const [difficulty, setDifficulty] = useState<Difficulty>('Medium');

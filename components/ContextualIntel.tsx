@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
-import { XIcon, SparklesIcon, ShieldCheckIcon } from './icons';
+import { XIcon, ShieldCheckIcon } from './icons';
 
 interface ContextualIntelProps {
     tipId: string;

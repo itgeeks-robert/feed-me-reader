@@ -4,7 +4,7 @@ import { startGame, PieceType } from '../services/tetrisGame';
 import { saveHighScore, getHighScores } from '../services/highScoresService';
 import { soundService } from '../services/soundService';
 import HighScoreTable from './HighScoreTable';
-import { XIcon, ArrowPathIcon, ControllerIcon, VoidIcon, BookOpenIcon, SparklesIcon, ExclamationTriangleIcon, CpuChipIcon } from './icons';
+import { XIcon, ControllerIcon, BookOpenIcon, SparklesIcon, CpuChipIcon } from './icons';
 
 interface TetrisPageProps {
   onBackToHub: () => void;
@@ -36,7 +36,7 @@ const TetrisGraphic: React.FC = () => (
     </div>
 );
 
-const TetrisPage: React.FC<TetrisPageProps> = ({ onBackToHub, onReturnToFeeds }) => {
+const TetrisPage: React.FC<TetrisPageProps> = ({ onBackToHub }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const previewRef = useRef<HTMLCanvasElement>(null);
     const holdRef = useRef<HTMLCanvasElement>(null);

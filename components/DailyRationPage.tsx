@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { Feed, Article } from '../src/App';
-import { WalkieTalkieIcon, RadioIcon, EntityIcon, SparklesIcon, ChevronRightIcon } from './icons';
+import { WalkieTalkieIcon, RadioIcon, ChevronRightIcon } from './icons';
 import { resilientFetch } from '../services/fetch';
 import { parseRssXml } from '../services/rssParser';
 import FeaturedStory from './articles/FeaturedStory';

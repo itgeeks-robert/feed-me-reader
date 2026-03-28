@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import type { Article } from '../../src/App';
-import { BookOpenIcon, GlobeAltIcon, RadioIcon, BoltIcon, ArrowPathIcon } from '../icons';
+import { BookOpenIcon, GlobeAltIcon, ArrowPathIcon } from '../icons';
 import ImageWithProxy from '../ImageWithProxy';
 import { reconstructSignalImage } from '../../services/imageSearchService';
 
-const CCTVMonitor: React.FC<{ src: string | null; label: string; headline: string; url: string }> = ({ src, label, headline, url }) => {
+const CCTVMonitor: React.FC<{ src: string | null; headline: string; url: string }> = ({ src, headline, url }) => {
     const [reconstructedSrc, setReconstructedSrc] = useState<string | null>(null);
     const [isSearching, setIsSearching] = useState(false);
 
     useEffect(() => {
         if (!src && !reconstructedSrc && !isSearching) {
             setIsSearching(true);
-            reconstructSignalImage(headline, url).then(foundUrl => {
+            reconstructSignalImage(url).then(foundUrl => {
                 if (foundUrl) setReconstructedSrc(foundUrl);
                 setIsSearching(false);
             });
@@ -63,7 +63,7 @@ const FeaturedStory: React.FC<{article: Article; onReadHere: () => void; onReadE
                 className={`w-full text-left group relative grid grid-cols-1 lg:grid-cols-[1.5fr,1fr] bg-app-card border border-app-border overflow-hidden min-h-[400px] md:min-h-[450px] transition-all duration-300 hover:border-app-accent/50 hover:shadow-xl focus-visible:ring-2 focus-visible:ring-app-accent rounded-[var(--void-radius)] shadow-md outline-none featured-story-card ${isRead ? 'opacity-60' : ''}`}
             >
                 <div className="h-64 sm:h-96 lg:h-auto border-b lg:border-b-0 lg:border-r border-app-border pointer-events-none">
-                    <CCTVMonitor src={article.imageUrl} label={article.source} headline={article.title} url={article.link} />
+                    <CCTVMonitor src={article.imageUrl} headline={article.title} url={article.link} />
                 </div>
 
                 <div className="relative p-6 md:p-10 flex flex-col justify-center bg-app-card pointer-events-none">

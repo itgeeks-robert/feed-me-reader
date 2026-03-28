@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { ArrowPathIcon, FlagIcon, XIcon, VoidIcon, EntityIcon, BookOpenIcon, SparklesIcon, ExclamationTriangleIcon, CpuChipIcon } from './icons';
+import { ArrowPathIcon, FlagIcon, XIcon, VoidIcon, EntityIcon, BookOpenIcon, SparklesIcon, CpuChipIcon } from './icons';
 import { saveHighScore, getHighScores, ScoreCategory } from '../services/highScoresService';
 import { soundService } from '../services/soundService';
 import HighScoreTable from './HighScoreTable';
-import Tooltip from './Tooltip';
 
 type Difficulty = 'Easy' | 'Medium' | 'Hard';
 type GameState = 'IDLE' | 'BOOTING' | 'PLAYING' | 'WON' | 'LOST';
@@ -56,7 +55,7 @@ const AnomalyGraphic: React.FC = () => (
     </div>
 );
 
-const MinesweeperPage: React.FC<MinesweeperPageProps> = ({ onBackToHub, onReturnToFeeds, onDefuse }) => {
+const MinesweeperPage: React.FC<MinesweeperPageProps> = ({ onBackToHub, onDefuse }) => {
   const [difficulty, setDifficulty] = useState<Difficulty>('Easy');
   const [grid, setGrid] = useState<Cell[]>([]);
   const [gameState, setGameState] = useState<GameState>('IDLE');

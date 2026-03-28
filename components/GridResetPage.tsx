@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { XIcon, VoidIcon, CpuChipIcon, ArrowPathIcon, SparklesIcon, BookOpenIcon, ExclamationTriangleIcon } from './icons';
-import { saveHighScore, getHighScores, HighScoreEntry } from '../services/highScoresService';
+import { XIcon, SparklesIcon, BookOpenIcon, CpuChipIcon } from './icons';
+import { saveHighScore, getHighScores } from '../services/highScoresService';
 import { soundService } from '../services/soundService';
 import HighScoreTable from './HighScoreTable';
 import Tooltip from './Tooltip';

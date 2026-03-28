@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { XIcon, ClockIcon, SparklesIcon, FireIcon, BookOpenIcon, ArrowPathIcon, VoidIcon } from './icons';
+import { XIcon, VoidIcon } from './icons';
 import { VOID_DATA } from '../voidDataArchive';
 import { NEON_IMAGES } from '../neonSignalAssets';
 import { soundService } from '../services/soundService';
@@ -29,7 +29,6 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
     const [gameState, setGameState] = useState<'MENU' | 'COUNTDOWN' | 'PLAYING' | 'RESULTS'>('MENU');
     const [activePool, setActivePool] = useState<string[]>([]);
     const [selectedCatId, setSelectedCatId] = useState("");
-    const [selectedCatName, setSelectedCatName] = useState("");
     const [currentIndex, setCurrentIndex] = useState(0);
     const [score, setScore] = useState(0);
     const [timeLeft, setTimeLeft] = useState(3); 
@@ -42,7 +41,7 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
     const gracePeriodActive = useRef(false);
     const timerRef = useRef<number | null>(null);
 
-    const startTransmission = async (catId: string, catName: string) => {
+    const startTransmission = async (catId: string, _catName: string) => {
         soundService.playClick();
         if (typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
             try {
@@ -73,7 +72,6 @@ const NeonSignalPage: React.FC<NeonSignalProps> = ({ onBack, onReturnToFeeds, on
 
         setActivePool(shuffled);
         setSelectedCatId(catId);
-        setSelectedCatName(catName.toUpperCase());
         setGameState('COUNTDOWN');
         setTimeLeft(3);
         setHistory([]);

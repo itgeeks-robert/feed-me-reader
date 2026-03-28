@@ -1,7 +1,6 @@
-import React, { useMemo } from 'react';
-import { ShieldCheckIcon, MusicIcon, CodeBracketIcon, ClockIcon, XIcon, RadioIcon, SparklesIcon, CpuChipIcon, BookmarkIcon, ContrastIcon, WandIcon, PaletteIcon, SkinsIcon, StyleIcon, GlobeAltIcon } from './icons';
+import React from 'react';
+import { MusicIcon, CodeBracketIcon, XIcon, SparklesIcon, CpuChipIcon, BookmarkIcon, PaletteIcon, GlobeAltIcon } from './icons';
 import ContextualIntel from './ContextualIntel';
-import { Theme } from '../src/App';
 
 interface UtilityInfo {
     id: string;
@@ -13,18 +12,9 @@ interface UtilityInfo {
     nodeId: string;
 }
 
-const UtilityHubPage: React.FC<{ onSelect: (id: string) => void; onBackToHub: () => void; theme: Theme; onToggleTheme: () => void }> = ({ onSelect, onBackToHub, theme, onToggleTheme }) => {
+const UtilityHubPage: React.FC<{ onSelect: (id: string) => void; onBackToHub: () => void; onToggleTheme: () => void }> = ({ onSelect, onBackToHub, onToggleTheme }) => {
     
-    const themeLabel = useMemo(() => {
-        switch(theme) {
-            case 'liquid-glass': return 'GLASS';
-            case 'bento-grid': return 'BENTO';
-            case 'monochrome-zen': return 'ZEN';
-            case 'claymorphism': return 'CLAY';
-            case 'brutalist': return 'BRUTAL';
-            default: return theme.toUpperCase();
-        }
-    }, [theme]);
+    const themeLabel = 'SYSTEM';
 
     const utils: UtilityInfo[] = [
         {

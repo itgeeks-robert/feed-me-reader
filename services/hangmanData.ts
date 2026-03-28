@@ -15,7 +15,6 @@ const REMOTE_SOURCES = [
 ];
 
 export const fetchDynamicHangmanData = async (): Promise<HangmanWord[]> => {
-    const allDiscovered: HangmanWord[] = [];
     const fetchSource = async (src: { url: string, cat: string }) => {
         try {
             const res = await resilientFetch(src.url, { timeout: 8000 });

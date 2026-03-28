@@ -45,6 +45,9 @@ export const TubePage: React.FC<{ onReturnToFeeds: () => void }> = ({ onReturnTo
     const [deviceAuthData, setDeviceAuthData] = useState<{ user_code: string; verification_url: string; device_code: string; expires_in: number; interval: number } | null>(null);
     const [isPolling, setIsPolling] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [isLoggingIn, setIsLoggingIn] = useState(false);
+    const [loginError, setLoginError] = useState<string | null>(null);
+    const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
     const [tubeSettings, setTubeSettings] = useState<TubeSettings>({
         quality: 'Auto',
         speed: 1,
@@ -62,6 +65,7 @@ export const TubePage: React.FC<{ onReturnToFeeds: () => void }> = ({ onReturnTo
             if (res.ok) {
                 const data = await res.json();
                 setVideos(data);
+                setLastUpdated(new Date());
             } else {
                 // Fallback to mock data if API key is missing or error
                 setVideos(MOCK_VIDEOS);
@@ -129,8 +133,11 @@ export const TubePage: React.FC<{ onReturnToFeeds: () => void }> = ({ onReturnTo
     };
 
     const handleLogin = async () => {
+        console.log('VOIDTUBE_UPLINK_INITIATED');
+        setLoginError(null);
+        
         if (isLoggedIn) {
-            // Logout
+            console.log('VOIDTUBE_TERMINATING_SESSION');
             try {
                 await fetch('/api/auth/logout', { method: 'POST' });
                 setIsLoggedIn(false);
@@ -141,26 +148,37 @@ export const TubePage: React.FC<{ onReturnToFeeds: () => void }> = ({ onReturnTo
             return;
         }
 
+        setIsLoggingIn(true);
         try {
             const res = await fetch('/api/auth/device/code');
+            console.log('VOIDTUBE_AUTH_RESPONSE_STATUS:', res.status);
+            
             if (res.status === 412) {
-                alert('VOIDTUBE_AUTH_ERROR: GOOGLE_CLIENT_ID NOT CONFIGURED. PLEASE SET UP CREDENTIALS IN SETTINGS.');
+                setLoginError('MISSING_CREDENTIALS: GOOGLE_CLIENT_ID NOT CONFIGURED IN SETTINGS.');
+                setIsLoggingIn(false);
                 return;
             }
+            
             const data = await res.json();
             if (data.error) {
-                alert(`AUTH_ERROR: ${data.error_description || data.error}`);
+                setLoginError(`AUTH_ERROR: ${data.error_description || data.error}`);
+                setIsLoggingIn(false);
                 return;
             }
+            
+            console.log('VOIDTUBE_DEVICE_CODE_RECEIVED:', data.user_code);
             setDeviceAuthData(data);
             setIsPolling(true);
         } catch (error) {
             console.error('Login failed:', error);
+            setLoginError('UPLINK_FAILED: NETWORK_ERROR_OR_SERVER_OFFLINE');
+        } finally {
+            setIsLoggingIn(false);
         }
     };
 
     useEffect(() => {
-        let pollTimer: NodeJS.Timeout;
+        let pollTimer: any;
 
         if (isPolling && deviceAuthData) {
             const poll = async () => {
@@ -173,18 +191,17 @@ export const TubePage: React.FC<{ onReturnToFeeds: () => void }> = ({ onReturnTo
                     const data = await res.json();
 
                     if (data.success) {
+                        console.log('VOIDTUBE_UPLINK_SUCCESSFUL');
                         setIsPolling(false);
                         setDeviceAuthData(null);
                         checkLoginStatus();
                     } else if (data.error === 'authorization_pending') {
-                        // Continue polling
                         pollTimer = setTimeout(poll, deviceAuthData.interval * 1000);
                     } else {
-                        // Error (expired, slow down, etc)
                         setIsPolling(false);
                         setDeviceAuthData(null);
                         if (data.error !== 'authorization_pending') {
-                            alert(`AUTH_SESSION_ENDED: ${data.error_description || data.error}`);
+                            setLoginError(`AUTH_SESSION_ENDED: ${data.error_description || data.error}`);
                         }
                     }
                 } catch (error) {
@@ -350,7 +367,12 @@ export const TubePage: React.FC<{ onReturnToFeeds: () => void }> = ({ onReturnTo
     }
 
     return (
-        <div className="flex-1 flex min-h-0 bg-[#0f0f0f] text-white font-sans overflow-hidden animate-fade-in">
+        <div className="flex-1 flex min-h-0 bg-[#0f0f0f] text-white font-sans overflow-hidden animate-fade-in" style={{ 
+            paddingTop: 'var(--safe-top)',
+            paddingBottom: 'var(--safe-bottom)',
+            paddingLeft: 'var(--safe-left)',
+            paddingRight: 'var(--safe-right)'
+        }}>
             {/* Sidebar */}
             <aside className={`flex flex-col border-r border-white/5 bg-[#0f0f0f] transition-all duration-300 ${isSidebarCollapsed ? 'w-20' : 'w-64'} shrink-0`}>
                 <div className="flex-1 flex flex-col overflow-y-auto scrollbar-hide">
@@ -384,13 +406,15 @@ export const TubePage: React.FC<{ onReturnToFeeds: () => void }> = ({ onReturnTo
                             >
                                 {userProfile?.picture ? (
                                     <img src={userProfile.picture} alt="Profile" className="w-6 h-6 rounded-full border border-emerald-500/50" referrerPolicy="no-referrer" />
+                                ) : isLoggingIn ? (
+                                    <ArrowPathIcon className="w-5 h-5 animate-spin text-red-500" />
                                 ) : (
                                     <UserIcon className="w-5 h-5" />
                                 )}
                                 {!isSidebarCollapsed && (
                                     <div className="flex flex-col items-start overflow-hidden">
                                         <span className="font-bold text-sm uppercase tracking-wider truncate w-full">
-                                            {isLoggedIn ? userProfile?.name || 'Survivor_01' : 'Login'}
+                                            {isLoggedIn ? userProfile?.name || 'Survivor_01' : isLoggingIn ? 'Syncing...' : 'Login'}
                                         </span>
                                         {isLoggedIn && <span className="text-[8px] font-black text-zinc-500 italic uppercase">Uplink_Active</span>}
                                     </div>
@@ -398,6 +422,26 @@ export const TubePage: React.FC<{ onReturnToFeeds: () => void }> = ({ onReturnTo
                             </button>
                         </div>
                     </nav>
+
+                    {loginError && (
+                        <div className="px-6 py-4 animate-fade-in">
+                            <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex flex-col gap-2">
+                                <div className="flex items-center gap-2 text-red-500">
+                                    <CpuChipIcon className="w-4 h-4" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest">System_Error</span>
+                                </div>
+                                <p className="text-[10px] text-zinc-400 font-bold leading-relaxed uppercase tracking-wider">
+                                    {loginError}
+                                </p>
+                                <button 
+                                    onClick={() => setLoginError(null)}
+                                    className="text-[8px] font-black text-red-500 uppercase tracking-[0.2em] hover:text-white transition-colors text-left"
+                                >
+                                    [ DISMISS_SIGNAL ]
+                                </button>
+                            </div>
+                        </div>
+                    )}
 
                     <div className="mt-auto p-4 border-t border-white/5">
                         <button 
@@ -414,7 +458,7 @@ export const TubePage: React.FC<{ onReturnToFeeds: () => void }> = ({ onReturnTo
             {/* Main Content */}
             <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
                 {/* Header / Search */}
-                <header className="h-20 border-b border-white/5 flex items-center px-8 gap-8 shrink-0">
+                <header className="h-20 border-b border-white/5 flex items-center px-4 md:px-8 gap-4 md:gap-8 shrink-0">
                     {activeCategory === 'Search' ? (
                         <form onSubmit={handleSearch} className="flex-1 flex items-center gap-4">
                             <div className="flex-1 relative">
@@ -444,8 +488,18 @@ export const TubePage: React.FC<{ onReturnToFeeds: () => void }> = ({ onReturnTo
                                 {activeCategory}
                             </h2>
                             <div className="flex items-center gap-4">
-                                <button className="p-3 text-zinc-400 hover:text-white transition-all outline-none focus:ring-4 focus:ring-red-500 rounded-xl bg-white/5">
-                                    <ArrowPathIcon className="w-5 h-5" />
+                                {lastUpdated && (
+                                    <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest hidden md:block">
+                                        Last_Sync: {lastUpdated.toLocaleTimeString()}
+                                    </span>
+                                )}
+                                <button 
+                                    onClick={fetchTrending}
+                                    disabled={isLoading}
+                                    className={`p-3 text-zinc-400 hover:text-white transition-all outline-none focus:ring-4 focus:ring-red-500 rounded-xl bg-white/5 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    title="Refresh Trending"
+                                >
+                                    <ArrowPathIcon className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
                                 </button>
                             </div>
                         </div>
@@ -468,7 +522,7 @@ export const TubePage: React.FC<{ onReturnToFeeds: () => void }> = ({ onReturnTo
                             <span className="text-zinc-500 font-bold uppercase tracking-widest">Scanning Signal...</span>
                         </div>
                     ) : activeCategory === 'Home' ? (
-                        <div className="p-8 space-y-12">
+                        <div className="p-4 md:p-8 space-y-8 md:space-y-12">
                             {homeRows.map(row => (
                                 <section key={row} className="space-y-4">
                                     <div className="flex items-center justify-between">
@@ -486,7 +540,7 @@ export const TubePage: React.FC<{ onReturnToFeeds: () => void }> = ({ onReturnTo
                             ))}
                         </div>
                     ) : (
-                        <div className="p-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                        <div className="p-4 md:p-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-8">
                             {videos.map(video => renderVideoCard(video))}
                         </div>
                     )}

@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import type { Article } from '../../src/App';
 import type { SourceType } from '../AddSource';
-import { BookOpenIcon, GlobeAltIcon, RadioIcon } from '../icons';
+import { BookOpenIcon, GlobeAltIcon } from '../icons';
 import ImageWithProxy from '../ImageWithProxy';
 import { timeAgo } from '../../services/utils';
-import { SmartFeedIcon } from '../SmartFeedIcon';
 import { reconstructSignalImage } from '../../services/imageSearchService';
 
 interface MagazineArticleListItemProps {
@@ -17,14 +16,14 @@ interface MagazineArticleListItemProps {
     iconUrl?: string;
 }
 
-const MagazineArticleListItem: React.FC<MagazineArticleListItemProps> = ({ article, onMarkAsRead, onReadHere, onReadExternal, isRead, sourceType, iconUrl }) => {
+const MagazineArticleListItem: React.FC<MagazineArticleListItemProps> = ({ article, onReadHere, onReadExternal, isRead }) => {
     const [reconstructedSrc, setReconstructedSrc] = useState<string | null>(null);
     const [isSearching, setIsSearching] = useState(false);
 
     useEffect(() => {
         if (!article.imageUrl && !reconstructedSrc && !isSearching) {
             setIsSearching(true);
-            reconstructSignalImage(article.title, article.link).then(foundUrl => {
+            reconstructSignalImage(article.link).then(foundUrl => {
                 if (foundUrl) setReconstructedSrc(foundUrl);
                 setIsSearching(false);
             });
@@ -58,17 +57,17 @@ const MagazineArticleListItem: React.FC<MagazineArticleListItemProps> = ({ artic
                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
                 </div>
 
-                <div className="p-5 flex flex-col flex-grow pointer-events-none">
-                    <div className="flex items-center gap-2 mb-3">
-                        <span className="text-[10px] font-bold text-app-accent uppercase tracking-wider">{article.source}</span>
+                <div className="p-3 md:p-4 flex flex-col flex-grow pointer-events-none">
+                    <div className="flex items-center gap-2 mb-2">
+                        <span className="text-[9px] font-bold text-app-accent uppercase tracking-wider">{article.source}</span>
                     </div>
                     
-                    <h3 className="font-bold text-app-text line-clamp-3 leading-snug mb-4 text-base md:text-lg group-hover:text-app-accent transition-colors">
+                    <h3 className="font-bold text-app-text line-clamp-2 leading-tight mb-2 text-sm md:text-base group-hover:text-app-accent transition-colors">
                         {article.title}
                     </h3>
                     
-                    <div className="mt-auto pt-4 border-t border-app-border/50 flex items-center justify-between">
-                        <span className="text-xs font-medium text-muted">{timeAgo(article.publishedDate)}</span>
+                    <div className="mt-auto pt-2 border-t border-app-border/50 flex items-center justify-between">
+                        <span className="text-[10px] font-medium text-muted">{timeAgo(article.publishedDate)}</span>
                         <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity text-app-accent">
                             <span className="text-xs font-semibold tracking-wide">Read</span>
                             <BookOpenIcon className="w-3.5 h-3.5" />

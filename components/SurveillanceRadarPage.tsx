@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { XIcon, RadioIcon, GlobeAltIcon, ArrowPathIcon } from './icons';
+import { XIcon, RadioIcon, GlobeAltIcon } from './icons';
 import { soundService } from '../services/soundService';
 
 const SurveillanceRadarPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => {

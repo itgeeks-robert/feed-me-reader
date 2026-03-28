@@ -1,10 +1,10 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import type { Feed, Folder } from '../src/App';
 import { 
-    RadioIcon, GlobeAltIcon, RssIcon, ShieldCheckIcon, 
+    RadioIcon, GlobeAltIcon, RssIcon, 
     CpuChipIcon, FireIcon, BeakerIcon, ChartBarIcon,
     ControllerIcon, FlagIcon, SparklesIcon, ArrowPathIcon,
-    ExclamationTriangleIcon, SearchIcon, PlusIcon, XIcon
+    SearchIcon, PlusIcon, XIcon
 } from './icons';
 import { discoverFeedSignals } from '../services/feedDiscoveryService';
 import { soundService } from '../services/soundService';

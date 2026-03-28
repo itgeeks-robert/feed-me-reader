@@ -183,7 +183,6 @@ const PoolGamePage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () => v
         const canvas = canvasRef.current; if (!canvas) return;
         const { width, height } = canvas.getBoundingClientRect();
         const BALL_RADIUS = width * BALL_RADIUS_RATIO;
-        const POCKET_RADIUS = width * POCKET_RADIUS_RATIO;
         const TABLE_INSET = width * TABLE_INSET_RATIO;
         const pocketInset = TABLE_INSET * 0.9;
         game.current.pockets = [

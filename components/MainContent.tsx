@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import type { Feed, Folder, Selection, WidgetSettings, Article, ArticleView, Theme } from '../src/App';
+import type { Feed, Folder, Selection, WidgetSettings, Article, ArticleView, Mode } from '../src/App';
 import type { SourceType } from './AddSource';
 import { SearchIcon, ControllerIcon, ArrowPathIcon, XIcon, RadioIcon, NewspaperIcon, DoubleGearIcon, TestTubeIcon, CoinsIcon, SoccerBallIcon, BuildingIcon } from './icons';
 import { resilientFetch } from '../services/fetch';
@@ -32,7 +32,7 @@ interface MainContentProps {
     onRefresh: () => void;
     widgetSettings: WidgetSettings;
     articleView: ArticleView;
-    theme: Theme;
+    theme: Mode;
     onToggleTheme: () => void;
     onOpenSettings: () => void;
     onOpenAddSource: () => void;
@@ -156,7 +156,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
     const rollingNews = filteredArticles.slice(4, visibleCount);
 
     return (
-        <main className={`flex-grow overflow-y-auto scrollbar-hide ${animationClass} bg-void-bg pb-40 scroll-smooth main-content-area pl-[var(--safe-left)] pr-[var(--safe-right)]`}>
+        <main className={`flex-grow overflow-y-auto scrollbar-hide ${animationClass} bg-void-bg pb-40 scroll-smooth main-content-area pl-[max(1rem,var(--safe-left),var(--safe-right))] pr-[max(1rem,var(--safe-left),var(--safe-right))]`}>
             <LocalHeader 
                 onSearchSubmit={(e: any) => { e.preventDefault(); onSearch(searchQuery); setIsSearchActive(false); }} 
                 isSearchActive={isSearchActive}
@@ -183,7 +183,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                     </div>
                 )}
 
-                <div className={`px-4 md:px-6 mb-16 grid gap-8 md:gap-10 article-list-grid ${tvMode ? 'grid-cols-2 lg:grid-cols-4' : 'grid-cols-1 md:grid-cols-3'}`}>
+                <div className={`px-4 md:px-6 mb-16 grid gap-4 md:gap-10 article-list-grid ${tvMode ? 'grid-cols-2 lg:grid-cols-4' : 'grid-cols-2 md:grid-cols-3'}`}>
                     {trendingArticles.map(article => (
                         <div key={article.id} className="void-card p-1">
                             <MagazineArticleListItem 
@@ -218,7 +218,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                         </div>
                     </div>
 
-                    <div className={`grid gap-6 md:gap-8 article-list-grid ${tvMode ? 'grid-cols-2 lg:grid-cols-5' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'}`}>
+                    <div className={`grid gap-4 md:gap-8 article-list-grid ${tvMode ? 'grid-cols-2 lg:grid-cols-5' : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4'}`}>
                         {rollingNews.map(article => (
                             <div key={article.id} className="group">
                                 <MagazineArticleListItem 
@@ -256,7 +256,7 @@ const LocalHeader: React.FC<any> = ({ onSearchSubmit, searchQuery, setSearchQuer
     }, [isSearchActive]);
 
     return (
-        <div className="sticky top-0 z-30 bg-app-bg/80 backdrop-blur-md border-b border-app-border px-4 md:px-8 py-0 flex flex-row items-center gap-2 md:gap-4 overflow-hidden">
+        <div className="sticky top-0 z-30 bg-app-bg/80 backdrop-blur-md border-b border-app-border px-4 md:px-8 py-0 flex flex-row items-center gap-2 md:gap-4 overflow-hidden" style={{ paddingTop: 'var(--safe-top)' }}>
             <div className="flex items-center gap-2 md:gap-4 flex-nowrap flex-grow overflow-x-auto scrollbar-hide py-6 px-4">
                 {CATEGORY_MAP.map(cat => (
                     <button 

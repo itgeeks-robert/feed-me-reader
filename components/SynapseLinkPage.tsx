@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { XIcon, VoidIcon, SparklesIcon, ArrowPathIcon, ListIcon, BookOpenIcon, ExclamationTriangleIcon } from './icons';
-import { saveHighScore, getHighScores, HighScoreEntry } from '../services/highScoresService';
+import { XIcon, SparklesIcon, ListIcon, BookOpenIcon, ExclamationTriangleIcon } from './icons';
+import { saveHighScore, getHighScores } from '../services/highScoresService';
 import { soundService } from '../services/soundService';
 import { resilientFetch } from '../services/fetch';
 import { ARCADE_RULES } from '../services/gameRules';

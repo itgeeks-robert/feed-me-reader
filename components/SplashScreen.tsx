@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { VoidIcon, ControllerIcon, ListIcon, PaletteIcon, PlayIcon } from './icons';
 import { soundService } from '../services/soundService';
-import type { Theme } from '../src/App';
+import type { Mode as Theme } from '../src/App';
 
 interface SplashScreenProps {
     theme: Theme;
@@ -11,20 +11,11 @@ interface SplashScreenProps {
     onToggleTheme: () => void;
 }
 
-const THEME_VERSIONS: Record<Theme, { v: string; tag: string; refraction: string }> = {
-    'noir': { v: 'v2.0.5', tag: 'STABLE_CORE', refraction: '0px' },
-    'liquid-glass': { v: 'v3.1.2', tag: 'REFRACTION_OS', refraction: '60px' },
-    'bento-grid': { v: 'v1.9.8', tag: 'GRID_STRUCTURE', refraction: '4px' },
-    'brutalist': { v: 'v0.4.1', tag: 'RAW_BINARY', refraction: '0px' },
-    'claymorphism': { v: 'v2.2.4', tag: 'TACTILE_BUILD', refraction: '12px' },
-    'monochrome-zen': { v: 'v4.0.0', tag: 'ZEN_FOCUSED', refraction: '2px' },
-    'y2k': { v: 'v9.9.9', tag: 'FUTURE_WAVE', refraction: '20px' },
+const THEME_VERSIONS: Record<string, { v: string; tag: string; refraction: string }> = {
+    'glass': { v: 'v3.1.2', tag: 'REFRACTION_OS', refraction: '60px' },
+    'noir': { v: 'v4.0.0', tag: 'ZEN_FOCUSED', refraction: '2px' },
     'terminal': { v: 'v0.0.1', tag: 'KERNEL_LEVEL', refraction: '0px' },
-    'comic': { v: 'v5.2.0', tag: 'INKED_FRAME', refraction: '0px' },
-    'aurora': { v: 'v7.7.7', tag: 'NEBULA_GLOW', refraction: '10px' },
-    'retro': { v: 'v1.0.0', tag: 'VINTAGE_GRID', refraction: '0px' },
-    'refraction': { v: 'v8.8.8', tag: 'PRISMATIC_CORE', refraction: '30px' },
-    'sleek': { v: 'v1.0.0', tag: 'SLEEK_UI', refraction: '10px' }
+    'horizon': { v: 'v1.0.0', tag: 'HORIZON_OS', refraction: '20px' }
 };
 
 const BOOT_MESSAGES = [
@@ -62,7 +53,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ theme, onEnterFeeds, onEnte
     const [breached, setBreached] = useState(false);
     const mainButtonRef = useRef<HTMLButtonElement>(null);
 
-    const themeMeta = THEME_VERSIONS[theme];
+    const themeMeta = (theme && THEME_VERSIONS[theme]) || THEME_VERSIONS['horizon'] || THEME_VERSIONS['noir'] || { v: 'v1.0.0', tag: 'VOID_OS', refraction: '20px' };
 
     useEffect(() => {
         const totalDuration = 2000;
@@ -88,14 +79,21 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ theme, onEnterFeeds, onEnte
         return () => clearInterval(timer);
     }, []);
 
+    const refractionValue = themeMeta?.refraction || '20px';
+
     return (
-        <div className="fixed inset-0 z-[100] transition-all duration-[800ms] flex flex-col items-center justify-center overflow-hidden font-mono bg-app-bg text-app-text">
+        <div className="fixed inset-0 z-[100] transition-all duration-[800ms] flex flex-col items-center justify-center overflow-hidden font-mono bg-app-bg text-app-text" style={{ 
+            paddingTop: 'max(2rem, var(--safe-top))',
+            paddingBottom: 'max(2rem, var(--safe-bottom))',
+            paddingLeft: 'max(1.5rem, var(--safe-left), var(--safe-right))',
+            paddingRight: 'max(1.5rem, var(--safe-left), var(--safe-right))'
+        }}>
             
             <style>{`
                 .glass-reveal {
                     background: var(--app-card);
-                    backdrop-filter: blur(${themeMeta.refraction});
-                    -webkit-backdrop-filter: blur(${themeMeta.refraction});
+                    backdrop-filter: blur(${refractionValue});
+                    -webkit-backdrop-filter: blur(${refractionValue});
                     border: 4px solid var(--comic-ink);
                     box-shadow: var(--panel-shadow);
                     width: 100%;
@@ -110,10 +108,10 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ theme, onEnterFeeds, onEnte
 
             {!breached && <TechnicalBlueprint progress={loadingProgress} />}
             
-            <div className={`relative z-20 w-full max-w-lg landscape:max-w-6xl flex flex-col landscape:flex-row items-center landscape:justify-center text-center landscape:text-left py-6 px-6 landscape:px-12 transition-all duration-1000 ${breached ? 'translate-y-0 scale-100' : 'translate-y-4 scale-95'}`}>
+            <div className={`relative z-20 w-full max-w-lg landscape:max-w-6xl flex flex-col landscape:flex-row items-center landscape:justify-center text-center landscape:gap-12 md:landscape:gap-20 py-6 px-6 landscape:px-12 transition-all duration-1000 ${breached ? 'translate-y-0 scale-100' : 'translate-y-4 scale-95'}`}>
                 
                 {/* Brand Assets Column */}
-                <div className="flex flex-col items-center landscape:items-start landscape:mr-20 landscape:flex-1 shrink-0 landscape:pl-4">
+                <div className="flex flex-col items-center landscape:flex-1 shrink-0">
                     <div className="mb-4 md:mb-8 landscape:mb-12 group relative">
                         <div className="absolute inset-[-20px] blur-[40px] md:blur-[60px] transition-all duration-1000 rounded-full opacity-30" style={{ backgroundColor: 'var(--app-accent)' }} />
                         
@@ -122,12 +120,12 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ theme, onEnterFeeds, onEnte
                         </div>
                     </div>
 
-                    <div className="mb-6 md:mb-8 landscape:mb-0 flex flex-col items-center landscape:items-start">
+                    <div className="mb-6 md:mb-8 landscape:mb-0 flex flex-col items-center">
                         <h1 className="void-title text-3xl xs:text-5xl md:text-8xl font-black italic uppercase tracking-tighter mb-2 md:mb-4 transition-all duration-1000 text-app-text whitespace-nowrap">
                             THE VOID
                         </h1>
 
-                        <div className="flex items-center justify-center landscape:justify-start gap-3 w-full">
+                        <div className="flex items-center justify-center gap-3 w-full">
                             <div className="h-1 w-12 bg-zinc-950 transition-colors duration-1000 landscape:hidden"></div>
                             <p className="font-bold uppercase tracking-[0.6em] text-[8px] md:text-[10px] transition-colors duration-1000 whitespace-nowrap" style={{ color: 'var(--app-accent)' }}>
                                 {themeMeta.v}_{themeMeta.tag}
@@ -138,7 +136,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ theme, onEnterFeeds, onEnte
                 </div>
 
                 {/* Interaction Section Column */}
-                <div className="w-full max-w-md flex flex-col items-center landscape:items-stretch landscape:flex-1 landscape:pl-8">
+                <div className="w-full max-w-md flex flex-col items-center landscape:items-stretch landscape:flex-1">
                     {!isBootComplete ? (
                         <div className="w-full space-y-4 landscape:space-y-6 max-w-[280px] md:max-w-full mx-auto animate-fade-in">
                             <div className="w-full h-4 bg-zinc-950 border-2 border-zinc-900 rounded-sm overflow-hidden p-1 shadow-inner">
@@ -153,36 +151,73 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ theme, onEnterFeeds, onEnte
                             </div>
                         </div>
                     ) : (
-                        <div className="w-full flex flex-col gap-3 md:gap-6 landscape:gap-8 animate-fade-in max-w-md items-center landscape:items-stretch main-content-area px-4 landscape:px-0 pb-20 landscape:pb-0">
-                            <div className="glass-reveal p-0.5 md:p-1 shadow-2xl overflow-hidden w-full transform -rotate-1 landscape:rotate-0">
-                                <button 
-                                    ref={mainButtonRef}
-                                    onClick={onEnterFeeds}
-                                    className="group relative w-full py-4 md:py-6 bg-app-text text-app-bg font-black uppercase italic text-base md:text-lg shadow-xl transition-all active:translate-x-1 active:translate-y-1 flex items-center justify-center gap-3 md:gap-4 border-2 border-app-bg outline-none focus:ring-8 focus:ring-app-accent"
-                                >
-                                    <ListIcon className="w-6 h-6 md:w-8 md:h-8" />
-                                    <span>RECON_INTELLIGENCE</span>
-                                </button>
-                            </div>
-                            
-                            <div className="glass-reveal p-0.5 md:p-1 shadow-2xl overflow-hidden w-full transform rotate-1 landscape:rotate-0">
-                                <button 
-                                    onClick={onEnterArcade}
-                                    className="group w-full py-4 md:py-6 bg-app-card border-2 border-zinc-950 text-app-text font-black uppercase italic text-base md:text-lg hover:bg-app-bg transition-all active:translate-x-1 active:translate-y-1 flex items-center justify-center gap-3 md:gap-4 outline-none focus:ring-8 focus:ring-app-accent"
-                                >
-                                    <ControllerIcon className="w-6 h-6 md:w-8 md:h-8" />
-                                    <span>ARCADE_QUICK_ACCESS</span>
-                                </button>
+                        <div className="w-full flex flex-col gap-2 md:gap-3 animate-fade-in max-w-md items-center landscape:items-stretch main-content-area px-4 landscape:px-0">
+                            <div className="relative group/menu w-full border-4 border-zinc-950 bg-zinc-950/40 backdrop-blur-xl p-2 md:p-4 rounded-2xl shadow-[30px_30px_0_rgba(0,0,0,0.4)] transform landscape:-skew-x-1">
+                                {/* Corner Brackets */}
+                                <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-app-accent -translate-x-2 -translate-y-2 opacity-50" />
+                                <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-app-accent translate-x-2 -translate-y-2 opacity-50" />
+                                <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-app-accent -translate-x-2 translate-y-2 opacity-50" />
+                                <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-app-accent translate-x-2 translate-y-2 opacity-50" />
+
+                                {/* Scanline effect */}
+                                <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.1)_50%),linear-gradient(90deg,rgba(255,0,0,0.03),rgba(0,255,0,0.01),rgba(0,0,255,0.03))] z-10 bg-[length:100%_3px,3px_100%]" />
+                                
+                                <div className="flex flex-col gap-2 relative z-20">
+                                    <button 
+                                        ref={mainButtonRef}
+                                        onClick={onEnterFeeds}
+                                        className="group relative w-full py-4 md:py-6 bg-app-text text-app-bg font-black uppercase italic text-sm md:text-base transition-all active:scale-[0.97] flex items-center justify-between px-6 border-2 border-transparent outline-none focus:border-app-accent focus:ring-8 focus:ring-app-accent/30 rounded-xl overflow-hidden"
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <ListIcon className="w-5 h-5 md:w-7 md:h-7" />
+                                            <span className="tracking-tight">RECON_INTELLIGENCE</span>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-[10px] opacity-40 font-bold tracking-[0.3em] hidden sm:block">UPLINK_01</span>
+                                            <div className="w-2 h-2 rounded-full bg-app-bg animate-pulse" />
+                                        </div>
+                                        <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+                                    </button>
+                                    
+                                    <button 
+                                        onClick={onEnterArcade}
+                                        className="group relative w-full py-4 md:py-6 bg-app-card text-app-text font-black uppercase italic text-sm md:text-base transition-all active:scale-[0.97] flex items-center justify-between px-6 border-2 border-zinc-900/50 hover:border-app-accent/50 outline-none focus:border-app-accent focus:ring-8 focus:ring-app-accent/30 rounded-xl overflow-hidden"
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <ControllerIcon className="w-5 h-5 md:w-7 md:h-7" />
+                                            <span className="tracking-tight">ARCADE_QUICK_ACCESS</span>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-[10px] opacity-40 font-bold tracking-[0.3em] hidden sm:block">SIM_02</span>
+                                            <div className="w-2 h-2 rounded-full bg-app-accent/30" />
+                                        </div>
+                                        <div className="absolute inset-0 bg-app-accent/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+                                    </button>
+
+                                    <button 
+                                        onClick={onEnterTube}
+                                        className="group relative w-full py-4 md:py-6 bg-app-card text-app-text font-black uppercase italic text-sm md:text-base transition-all active:scale-[0.97] flex items-center justify-between px-6 border-2 border-zinc-900/50 hover:border-app-accent/50 outline-none focus:border-app-accent focus:ring-8 focus:ring-app-accent/30 rounded-xl overflow-hidden"
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <PlayIcon className="w-5 h-5 md:w-7 md:h-7 text-red-600" />
+                                            <span className="tracking-tight">VOIDTUBE_ARCHIVE</span>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-[10px] opacity-40 font-bold tracking-[0.3em] hidden sm:block">BROADCAST_03</span>
+                                            <div className="w-2 h-2 rounded-full bg-red-600/30" />
+                                        </div>
+                                        <div className="absolute inset-0 bg-red-600/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+                                    </button>
+                                </div>
                             </div>
 
-                            <div className="glass-reveal p-0.5 md:p-1 shadow-2xl overflow-hidden w-full transform -rotate-1 landscape:rotate-0">
-                                <button 
-                                    onClick={onEnterTube}
-                                    className="group w-full py-4 md:py-6 bg-app-card border-2 border-zinc-950 text-app-text font-black uppercase italic text-base md:text-lg hover:bg-app-bg transition-all active:translate-x-1 active:translate-y-1 flex items-center justify-center gap-3 md:gap-4 outline-none focus:ring-8 focus:ring-app-accent"
-                                >
-                                    <PlayIcon className="w-6 h-6 md:w-8 md:h-8 text-red-600" />
-                                    <span>VOIDTUBE_ARCHIVE</span>
-                                </button>
+                            <div className="flex items-center gap-6 mt-6 w-full px-4">
+                                <div className="h-[2px] flex-1 bg-zinc-900" />
+                                <div className="flex items-center gap-2">
+                                    <div className="w-1 h-1 bg-app-accent rounded-full animate-ping" />
+                                    <span className="text-[9px] font-black tracking-[0.5em] uppercase text-zinc-500">System_Ready</span>
+                                </div>
+                                <div className="h-[2px] flex-1 bg-zinc-900" />
                             </div>
                         </div>
                     )}
@@ -190,7 +225,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ theme, onEnterFeeds, onEnte
             </div>
 
             {isBootComplete && (
-                <div className="fixed bottom-0 left-0 right-0 p-4 md:p-8 landscape:p-4 pb-[calc(1.5rem+var(--safe-bottom))] flex justify-end items-center z-50 pointer-events-none gap-3 md:gap-4">
+                <div className="fixed bottom-0 left-0 right-0 p-4 md:p-8 landscape:p-4 pb-[max(1.5rem,var(--safe-bottom))] flex justify-end items-center z-50 pointer-events-none gap-3 md:gap-4">
                     <button 
                         onClick={onToggleTheme}
                         className="footer-button group inline-flex items-center justify-center gap-2 md:gap-3 text-zinc-500 hover:text-app-accent transition-all py-2 md:py-3 px-4 md:px-6 bg-app-card border-2 md:border-4 border-zinc-950 uppercase text-[8px] md:text-[10px] font-black italic tracking-widest active:translate-x-1 active:translate-y-1 outline-none focus:ring-8 focus:ring-app-accent pointer-events-auto shadow-[4px_4px_0_black] shrink-0"

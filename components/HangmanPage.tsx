@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { XIcon, RadioIcon, BoltIcon, SparklesIcon, VoidIcon, ShieldCheckIcon, GlobeAltIcon, ControllerIcon, FireIcon, CpuChipIcon, ArrowPathIcon, ExclamationTriangleIcon, BookOpenIcon } from './icons';
-import { VOID_DATA, CategoryNode } from '../voidDataArchive';
-import { saveHighScore, getHighScores } from '../services/highScoresService';
+import { XIcon, SparklesIcon, ExclamationTriangleIcon, BookOpenIcon } from './icons';
+import { VOID_DATA } from '../voidDataArchive';
+import { saveHighScore } from '../services/highScoresService';
 import { soundService } from '../services/soundService';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { NEON_IMAGES } from '../neonSignalAssets';
@@ -28,7 +28,7 @@ const LEVEL_THEMES = [
     { color: '#e11d48', name: 'CRIMSON' }, 
 ];
 
-const MainframeBackground: React.FC<{ level: number; isUrgent: boolean; urgencyType: 'NONE' | 'AMBER' | 'RED' }> = ({ level, isUrgent, urgencyType }) => {
+const MainframeBackground: React.FC<{ level: number; urgencyType: 'NONE' | 'AMBER' | 'RED' }> = ({ level, urgencyType }) => {
     const themeIndex = Math.min(level - 1, LEVEL_THEMES.length - 1);
     const baseTheme = LEVEL_THEMES[themeIndex];
     const activeColor = urgencyType === 'RED' ? '#ef4444' : urgencyType === 'AMBER' ? '#f59e0b' : baseTheme.color;
@@ -198,7 +198,7 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
     const [showSeverConfirm, setShowSeverConfirm] = useState(false);
     const timerRef = useRef<number | null>(null);
 
-    const startRound = useCallback((lvl: number, catId?: string) => {
+    const startRound = useCallback((_lvl: number, catId?: string) => {
         const categoryIdToUse = catId || activeCategoryId;
         let pool: { word: string, catName: string }[] = [];
         
@@ -309,7 +309,12 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
 
     if (gameState === 'LOBBY') {
         return (
-            <div className="w-full h-full bg-zinc-950 p-6 font-mono overflow-y-auto scrollbar-hide flex flex-col animate-fade-in pb-32">
+            <div className="w-full h-full bg-zinc-950 p-4 md:p-8 font-mono overflow-y-auto scrollbar-hide flex flex-col animate-fade-in pb-32" style={{ 
+                paddingTop: 'max(1.5rem, var(--safe-top))',
+                paddingBottom: 'max(2rem, var(--safe-bottom))',
+                paddingLeft: 'max(1rem, var(--safe-left))',
+                paddingRight: 'max(1rem, var(--safe-right))'
+            }}>
                 <header className="flex justify-between items-center mb-6 md:mb-12 shrink-0 mt-[var(--safe-top)]">
                     <button onClick={() => { soundService.playClick(); onBackToHub(); }} className="p-3 md:p-4 bg-zinc-900 rounded-2xl border border-white/10 active:scale-90 transition-all shadow-lg">
                         <XIcon className="w-5 h-5 md:w-6 md:h-6 text-white"/>
@@ -380,11 +385,16 @@ const HangmanPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => 
 
     return (
         <main className={`w-full h-full bg-zinc-950 flex flex-col overflow-hidden font-mono text-white transition-all duration-75 relative ${isShocking ? 'bg-red-900/40' : ''}`}>
-            <MainframeBackground level={level} isUrgent={timeLeft <= 30} urgencyType={timeLeft <= 10 ? 'RED' : timeLeft <= 30 ? 'AMBER' : 'NONE'} />
+            <MainframeBackground level={level} urgencyType={timeLeft <= 10 ? 'RED' : timeLeft <= 30 ? 'AMBER' : 'NONE'} />
             <UrgencyOverlay timeLeft={timeLeft} />
             <div className="absolute inset-0 border-[4px] md:border-[16px] border-zinc-900 pointer-events-none z-50"><div className="absolute inset-0 border-2 border-white/5" /></div>
             
-            <div className="flex-1 flex flex-col landscape:flex-row items-center justify-between p-4 md:p-8 landscape:p-6 relative z-10 overflow-hidden">
+            <div className="flex-1 flex flex-col landscape:flex-row items-center justify-between p-4 md:p-8 landscape:p-6 relative z-10 overflow-hidden" style={{ 
+                paddingTop: 'max(1rem, var(--safe-top))',
+                paddingBottom: 'max(1.5rem, var(--safe-bottom))',
+                paddingLeft: 'max(1rem, var(--safe-left))',
+                paddingRight: 'max(1rem, var(--safe-right))'
+            }}>
                 
                 <div className="w-full landscape:w-[50%] flex flex-col items-center justify-center gap-4 landscape:gap-2 landscape:h-full py-2 shrink-0">
                     <HieroglyphicHangmanVisual mistakes={mistakes} isShaking={isShocking} level={level} />

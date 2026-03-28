@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { Article } from '../src/App';
-import { XIcon, GlobeAltIcon, SparklesIcon, CpuChipIcon } from './icons';
+import { XIcon, GlobeAltIcon, SparklesIcon } from './icons';
 import { fetchAndCacheArticleContent } from '../services/readerService';
 import { soundService } from '../services/soundService';
 
@@ -89,7 +89,12 @@ const ReaderViewModal: React.FC<ReaderViewModalProps> = ({ article, onClose, onM
     const displayCategory = parsedContent?.category || article.feedCategory || 'GENERAL';
 
     return (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4 md:p-6" onClick={onClose} role="dialog" aria-modal="true">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4 md:p-8" style={{ 
+            paddingTop: 'max(1rem, var(--safe-top))',
+            paddingBottom: 'max(1rem, var(--safe-bottom))',
+            paddingLeft: 'max(1rem, var(--safe-left))',
+            paddingRight: 'max(1rem, var(--safe-right))'
+        }} onClick={onClose} role="dialog" aria-modal="true">
             {/* THEME WRAPPER: uses CSS variables for colors */}
             <div className="bg-app-bg w-full max-w-4xl h-full max-h-[90vh] flex flex-col shadow-2xl rounded-3xl relative animate-fade-in overflow-hidden border border-app-border" onClick={e => e.stopPropagation()}>
                 

@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import type { Settings, Theme, ArticleView, WidgetSettings, Feed, Folder, Selection } from '../src/App';
-import { XIcon, SunIcon, MoonIcon, CloudArrowUpIcon, CloudArrowDownIcon, TrashIcon, BookmarkIcon, ListIcon, PlusIcon, FolderIcon, ShieldCheckIcon, SparklesIcon, CpuChipIcon, ExclamationTriangleIcon, RadioIcon, GlobeAltIcon } from './icons';
-import AddSource, { SourceType } from './AddSource';
-import { exportToOpml, parseOpml } from '../services/opmlService';
+import type { Settings, Mode, Feed, Folder, Selection } from '../src/App';
+import { XIcon, CloudArrowUpIcon, CloudArrowDownIcon, TrashIcon, FolderIcon, ShieldCheckIcon, CpuChipIcon, ExclamationTriangleIcon, PlusIcon } from './icons';
+import { SourceType } from './AddSource';
+import { parseOpml } from '../services/opmlService';
 import ContextualIntel from './ContextualIntel';
 import { soundService } from '../services/soundService';
 
@@ -27,28 +27,19 @@ interface SettingsModalProps {
 
 type Tab = 'CORE' | 'NODES' | 'DISPLAY' | 'MEMORY';
 
-const THEME_PREVIEWS: { id: Theme; name: string; desc: string; colors: string }[] = [
-    { id: 'noir', name: 'NOIR', desc: 'Default technical neon.', colors: 'bg-black border-rose-600' },
-    { id: 'liquid-glass', name: 'GLASS', desc: 'Frosted crystal light.', colors: 'bg-white border-blue-500 shadow-sm' },
-    { id: 'bento-grid', name: 'BENTO', desc: 'Clean iOS light mode.', colors: 'bg-slate-100 border-blue-600' },
-    { id: 'brutalist', name: 'BRUTAL', desc: 'Stark B&W Newspaper.', colors: 'bg-white border-black' },
-    { id: 'claymorphism', name: 'CLAY', desc: 'Squishy 3D tactile.', colors: 'bg-indigo-200 border-pink-500' },
-    { id: 'monochrome-zen', name: 'ZEN', desc: 'Low-stimulus focus.', colors: 'bg-neutral-50 border-neutral-600' },
-    { id: 'y2k', name: 'Y2K', desc: 'Glossy retro-future.', colors: 'bg-slate-900 border-pink-400' },
+const THEME_PREVIEWS: { id: Mode; name: string; desc: string; colors: string }[] = [
+    { id: 'noir', name: 'NOIR', desc: 'OLED-black, ember accent.', colors: 'bg-black border-red-500' },
+    { id: 'glass', name: 'GLASS', desc: 'Frosted crystal light.', colors: 'bg-white border-blue-500 shadow-sm' },
     { id: 'terminal', name: 'TERMINAL', desc: 'DOS green phosphor.', colors: 'bg-black border-green-500' },
-    { id: 'comic', name: 'COMIC', desc: 'Ink-lined pop art.', colors: 'bg-[#fffceb] border-[#1a1a1a]' },
-    { id: 'aurora', name: 'AURORA', desc: 'Deep space glowing neon.', colors: 'bg-[#020014] border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.5)]' },
-    { id: 'retro', name: 'RETRO', desc: 'Sleek modern vintage.', colors: 'bg-[#2c2421] border-[#e67e22]' },
-    { id: 'refraction', name: 'REFRACT', desc: 'Stylized prismatic glass.', colors: 'bg-gradient-to-br from-indigo-900 via-purple-900 to-black border-cyan-400' },
+    { id: 'horizon', name: 'HORIZON', desc: 'Sunset gradient warm tones.', colors: 'bg-[#1a141a] border-[#ff6b6b]' },
 ];
 
 const hiddenInputStyle: React.CSSProperties = { display: 'none' };
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ 
-    isOpen, onClose, settings, onUpdateSettings, onSelect, 
-    onAddFolder, onRenameFolder, onDeleteFolder, onRemoveFeed,
-    onImportOpml, onExportOpml, onImportSettings, onExportSettings,
-    onAddSource, onEnterUtils, onResetFeeds
+    isOpen, onClose, settings, onUpdateSettings, 
+    onAddFolder, onRenameFolder, onDeleteFolder,
+    onImportOpml, onExportOpml, onResetFeeds
 }) => {
     const [activeTab, setActiveTab] = useState<Tab>('CORE');
     const [localSettings, setLocalSettings] = useState({ ...settings });
@@ -103,7 +94,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     );
 
     return (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-2 md:p-4" onClick={onClose} role="dialog" aria-modal="true">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-4 md:p-8" style={{ 
+            paddingTop: 'max(1rem, var(--safe-top))',
+            paddingBottom: 'max(1rem, var(--safe-bottom))',
+            paddingLeft: 'max(1rem, var(--safe-left))',
+            paddingRight: 'max(1rem, var(--safe-right))'
+        }} onClick={onClose} role="dialog" aria-modal="true">
             <div className="void-card w-full max-w-xl max-h-[85vh] flex flex-col relative overflow-hidden" onClick={e => e.stopPropagation()}>
                 <ContextualIntel 
                     tipId="settings_intel" 

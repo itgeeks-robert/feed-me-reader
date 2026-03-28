@@ -1,11 +1,9 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { XIcon, VoidIcon, SparklesIcon, ArrowPathIcon, WalkieTalkieIcon, BookOpenIcon, ExclamationTriangleIcon } from './icons';
-import { saveHighScore, getHighScores, HighScoreEntry } from '../services/highScoresService';
+import { XIcon, SparklesIcon, WalkieTalkieIcon, BookOpenIcon, ExclamationTriangleIcon } from './icons';
+import { saveHighScore, getHighScores } from '../services/highScoresService';
 import { soundService } from '../services/soundService';
-import { resilientFetch } from '../services/fetch';
 import HighScoreTable from './HighScoreTable';
-import Tooltip from './Tooltip';
 
 /**
  * CIPHER CORE v5.4 - NAVIGATION RESOLVED

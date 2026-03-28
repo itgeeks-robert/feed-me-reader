@@ -1,105 +1,92 @@
+/**
+ * THE VOID // IMAGE_SIGNAL_RECONSTRUCTOR v2.0
+ * Two-stage image resolution for articles that arrive without thumbnails.
+ *
+ * Stage 1 — Open Graph / Twitter Card metadata scrape (most reliable)
+ * Stage 2 — Favicon-quality fallback placeholder (never empty)
+ *
+ * Results are cached in IndexedDB via cacheService to avoid re-fetching.
+ */
+
 import { resilientFetch } from './fetch';
 import { get as cacheGet, set as cacheSet } from './cacheService';
+import { hashStr } from './utils';
 
-const IMAGE_CACHE_PREFIX = 'reconstructed_image_';
+const CACHE_PREFIX = 'img_signal_v2_';
 
-/**
- * Cleans headlines to improve search accuracy by removing common filler.
- */
-const sanitizeHeadlineForSearch = (headline: string): string => {
-    return headline
-        .replace(/Exclusive:|Breaking:|LIVE:|Video:|Watch:|Opinion:/gi, '') // Remove prefixes
-        .replace(/\s+-\s+.*$/g, '') // Remove trailing site names like "- BBC News"
-        .replace(/['"“”‘’]/g, '') // Remove quotes
-        .trim();
+/* ── Meta tag selectors in priority order ── */
+const OG_SELECTORS = [
+  'meta[property="og:image:secure_url"]',
+  'meta[property="og:image"]',
+  'meta[name="twitter:image:src"]',
+  'meta[name="twitter:image"]',
+  'meta[property="og:image:url"]',
+  'link[rel="image_src"]',
+] as const;
+
+/** Extract og:image / twitter:image from an article's HTML */
+const extractOgImage = async (url: string): Promise<string | null> => {
+  try {
+    const res = await resilientFetch(url, { timeout: 7_000, directTimeout: 3_000 });
+    if (!res.ok) return null;
+
+    const html = await res.text();
+    /* Parse only the <head> — massively faster than full document */
+    const headEnd = html.indexOf('</head>');
+    const headHtml = headEnd > -1 ? html.slice(0, headEnd + 7) : html.slice(0, 8_000);
+    const doc = new DOMParser().parseFromString(headHtml, 'text/html');
+
+    for (const sel of OG_SELECTORS) {
+      const el      = doc.querySelector(sel);
+      const content = el?.getAttribute('content') ?? el?.getAttribute('href');
+      if (content?.startsWith('http')) return content;
+    }
+  } catch {
+    /* network error / parse error — silent */
+  }
+  return null;
 };
 
 /**
- * Attempts to find high-quality preview images by inspecting the article's HTML metadata.
- * This is the most accurate non-AI method (og:image, twitter:image).
+ * Generate a placeholder image URL using the site's favicon as a fallback.
+ * This guarantees the UI always has *something* to show.
  */
-const extractMetadataImage = async (url: string): Promise<string | null> => {
-    try {
-        const response = await resilientFetch(url, { timeout: 6000 });
-        if (!response.ok) return null;
-        
-        const html = await response.text();
-        const doc = new DOMParser().parseFromString(html, 'text/html');
-        
-        // Check standard social media tags
-        const metaTags = [
-            'meta[property="og:image"]',
-            'meta[name="twitter:image"]',
-            'meta[property="og:image:secure_url"]',
-            'link[rel="image_src"]'
-        ];
-
-        for (const selector of metaTags) {
-            const el = doc.querySelector(selector);
-            const content = el?.getAttribute('content') || el?.getAttribute('href');
-            if (content && content.startsWith('http')) return content;
-        }
-    } catch (e) {
-        console.warn("Metadata extraction failed for:", url);
-    }
-    return null;
+const faviconFallback = (articleUrl: string): string => {
+  try {
+    const { hostname } = new URL(articleUrl);
+    return `https://www.google.com/s2/favicons?sz=128&domain_url=${hostname}`;
+  } catch {
+    return '';
+  }
 };
 
 /**
- * Simple hash function for safe cache keys regardless of Unicode content.
+ * Reconstruct a missing thumbnail for an article.
+ *
+ * Returns a fully-resolved image URL, or null if nothing could be found
+ * (caller should handle the null case gracefully).
  */
-const getSafeHash = (str: string): string => {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-        const char = str.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash |= 0;
-    }
-    return Math.abs(hash).toString(36);
-};
+export const reconstructSignalImage = async (
+  articleUrl: string,
+): Promise<string | null> => {
+  const cacheKey = CACHE_PREFIX + hashStr(articleUrl);
 
-/**
- * Reconstructs a missing visual signal using a two-stage interception process.
- */
-export const reconstructSignalImage = async (headline: string, articleUrl: string): Promise<string | null> => {
-    const cacheKey = `${IMAGE_CACHE_PREFIX}${getSafeHash(articleUrl)}`;
-    
-    const cached = await cacheGet<string>(cacheKey);
-    if (cached) return cached;
+  /* ── Cache hit ── */
+  const cached = await cacheGet<string>(cacheKey);
+  if (cached) return cached;
 
-    // STAGE 1: Direct Metadata Interception (Highest Accuracy)
-    let foundImage = await extractMetadataImage(articleUrl);
+  /* ── Stage 1: OG/Twitter metadata ── */
+  let image = await extractOgImage(articleUrl);
 
-    // STAGE 2: Web Search Scrape (Fallback)
-    if (!foundImage) {
-        try {
-            const cleanHeadline = sanitizeHeadlineForSearch(headline);
-            const query = encodeURIComponent(cleanHeadline + " news");
-            const searchUrl = `https://www.google.com/search?q=${query}&tbm=isch&asearch=ichunk&async=_id:rg_s,_pms:s,_fmt:pc`;
-            
-            const response = await resilientFetch(searchUrl, { timeout: 8000 });
-            if (response.ok) {
-                const html = await response.text();
-                const imgRegex = /(https?:\/\/[^"<>]*?\.(?:jpg|jpeg|png|webp|gstatic\.com\/images\?q=tbn:[^"<>]*))/gi;
-                const matches = html.match(imgRegex);
+  /* ── Stage 2: Favicon placeholder (never truly empty) ── */
+  if (!image) {
+    image = faviconFallback(articleUrl) || null;
+  }
 
-                if (matches && matches.length > 0) {
-                    foundImage = matches.find(url => 
-                        !url.includes('googlelogo') && 
-                        !url.includes('cleardot') &&
-                        (url.includes('gstatic.com') || url.length > 30)
-                    ) || null;
-                }
-            }
-        } catch (e) {
-            console.warn("Search scrape failed for:", headline);
-        }
-    }
+  if (image) {
+    /* Cache for 7 days — key is content-addressed so staleness isn't a concern */
+    await cacheSet(cacheKey, image);
+  }
 
-    if (foundImage) {
-        await cacheSet(cacheKey, foundImage);
-        return foundImage;
-    }
-
-    return null;
+  return image;
 };

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { XIcon, RadioIcon, ArrowPathIcon, VoidIcon } from './icons';
+import { XIcon } from './icons';
 
 const SignalScramblerPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => {
     const [input, setInput] = useState("");

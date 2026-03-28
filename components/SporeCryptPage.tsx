@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { XIcon, VoidIcon, SparklesIcon, ArrowPathIcon, WalkieTalkieIcon, BookOpenIcon, ExclamationTriangleIcon } from './icons';
-import { saveHighScore, getHighScores, HighScoreEntry } from '../services/highScoresService';
-import { resilientFetch } from '../services/fetch';
+import { XIcon, SparklesIcon, WalkieTalkieIcon, BookOpenIcon, ExclamationTriangleIcon } from './icons';
+import { saveHighScore, getHighScores } from '../services/highScoresService';
 import HighScoreTable from './HighScoreTable';
 
 /**

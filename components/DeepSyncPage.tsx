@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { XIcon, RadioIcon, ClockIcon, ArrowPathIcon } from './icons';
+import { XIcon, RadioIcon } from './icons';
 
 const DeepSyncPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => {
     const [isActive, setIsActive] = useState(false);

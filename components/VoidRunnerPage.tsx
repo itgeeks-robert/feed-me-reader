@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { XIcon, SparklesIcon, VoidIcon, BookOpenIcon, ExclamationTriangleIcon } from './icons';
+import { XIcon, SparklesIcon, VoidIcon, BookOpenIcon } from './icons';
 import { GameboyControls, GameboyButton } from './GameboyControls';
 import { saveHighScore, getHighScores, HighScoreEntry } from '../services/highScoresService';
 import { soundService } from '../services/soundService';
@@ -29,8 +29,6 @@ interface Ghost {
 
 const TILE_SIZE = 20;
 const BASE_SPEED = 1.25; 
-const MAX_PLAYABLE_SECTORS = 7;
-
 const MAZE_LAYOUT = [
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
     [1,3,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,3,1],
@@ -196,7 +194,7 @@ const VoidRunnerPage: React.FC<{ onBackToHub: () => void; onReturnToFeeds: () =>
     }, []);
 
     const update = useCallback(() => {
-        const { player, ghosts, maze, bonus } = gameData.current;
+        const { player, ghosts, maze } = gameData.current;
         const currentSpeed = BASE_SPEED + (sector * 0.08);
         const pAligned = Math.abs(player.x % TILE_SIZE) < currentSpeed && Math.abs(player.y % TILE_SIZE) < currentSpeed;
         const tx = Math.round(player.x / TILE_SIZE);

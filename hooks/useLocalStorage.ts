@@ -1,6 +1,6 @@
 import { useState, Dispatch, SetStateAction } from 'react';
 
-const reviver = (key: string, value: any) => {
+const reviver = (_key: string, value: any) => {
     if (typeof value === 'object' && value !== null) {
         // Hardened check: Ensure value.value is iterable before creating a Map.
         if (value.dataType === 'Map') {
@@ -14,7 +14,7 @@ const reviver = (key: string, value: any) => {
     return value;
 };
 
-const replacer = (key: string, value: any) => {
+const replacer = (_key: string, value: any) => {
     if (value instanceof Map) {
         return { dataType: 'Map', value: Array.from(value.entries()) };
     }

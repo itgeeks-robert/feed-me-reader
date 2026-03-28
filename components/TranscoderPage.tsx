@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { XIcon, CodeBracketIcon, ArrowPathIcon } from './icons';
+import { XIcon } from './icons';
 
 const TranscoderPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => {
     const [input, setInput] = useState("");

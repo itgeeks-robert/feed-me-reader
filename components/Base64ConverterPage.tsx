@@ -1,23 +1,18 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 /* Added ExclamationTriangleIcon to the imports from ./icons to fix the "Cannot find name" error */
 import { XIcon, BookmarkIcon, CloudArrowUpIcon, CloudArrowDownIcon, SparklesIcon, ArrowPathIcon, ExclamationTriangleIcon } from './icons';
-import Tooltip from './Tooltip';
 
 const Base64ConverterPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHub }) => {
     const [inputString, setInputString] = useState("");
     const [outputString, setOutputString] = useState("");
     const [isProcessing, setIsProcessing] = useState(false);
-    const [fileName, setFileName] = useState<string | null>(null);
-    const [mimeType, setMimeType] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
             setIsProcessing(true);
-            setFileName(file.name);
-            setMimeType(file.type);
             const reader = new FileReader();
             reader.onload = (event) => {
                 const b64 = event.target?.result as string;
@@ -52,8 +47,6 @@ const Base64ConverterPage: React.FC<{ onBackToHub: () => void }> = ({ onBackToHu
     const clearBuffers = () => {
         setInputString("");
         setOutputString("");
-        setFileName(null);
-        setMimeType(null);
         if (fileInputRef.current) fileInputRef.current.value = "";
     };
 

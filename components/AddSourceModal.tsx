@@ -12,7 +12,12 @@ const AddSourceModal: React.FC<AddSourceModalProps> = ({ isOpen, onClose, onAddS
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose} role="dialog" aria-modal="true">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 md:p-8" style={{ 
+            paddingTop: 'max(1rem, var(--safe-top))',
+            paddingBottom: 'max(1rem, var(--safe-bottom))',
+            paddingLeft: 'max(1rem, var(--safe-left))',
+            paddingRight: 'max(1rem, var(--safe-right))'
+        }} onClick={onClose} role="dialog" aria-modal="true">
             <div className="bg-zinc-900 border-4 border-zinc-800 shadow-2xl w-full max-w-md relative animate-fade-in" onClick={e => e.stopPropagation()}>
                 {/* 3D Frame Highlighting */}
                 <div className="absolute inset-0 border-t-2 border-l-2 border-zinc-700 pointer-events-none z-10" />

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { RssIcon, PlusIcon, GlobeAltIcon, RedditIcon, ArrowPathIcon, ExclamationTriangleIcon } from './icons';
+import { PlusIcon, ArrowPathIcon, ExclamationTriangleIcon } from './icons';
 import { discoverFeedSignals } from '../services/feedDiscoveryService';
 
 export type SourceType = 'rss' | 'website' | 'reddit';

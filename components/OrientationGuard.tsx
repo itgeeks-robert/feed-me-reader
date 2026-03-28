@@ -101,7 +101,12 @@ const OrientationGuard: React.FC<OrientationGuardProps> = ({ children, portraitO
             {children}
             
             {showAdvisory && (
-                <div className="fixed inset-0 z-[200] flex items-start justify-center pt-8 sm:pt-16 bg-black/70 backdrop-blur-sm animate-fade-in" onClick={(e) => e.stopPropagation()}>
+                <div className="fixed inset-0 z-[200] flex items-start justify-center pt-8 sm:pt-16 bg-black/70 backdrop-blur-sm animate-fade-in" style={{ 
+                    paddingTop: 'max(2rem, var(--safe-top))',
+                    paddingBottom: 'max(1rem, var(--safe-bottom))',
+                    paddingLeft: 'max(1rem, var(--safe-left))',
+                    paddingRight: 'max(1rem, var(--safe-right))'
+                }} onClick={(e) => e.stopPropagation()}>
                     <div className="bg-zinc-900/90 border-2 border-amber-500/50 rounded-2xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex items-start gap-4 border-l-[6px] w-[90%] max-w-sm relative">
                         
                         {/* Dismiss Button */}
