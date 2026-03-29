@@ -11,7 +11,7 @@ interface GameInfo {
     description: string;
     icon: React.ReactElement<{ className?: string }>;
     cameraId: string;
-    gameType: 'sudoku' | 'tetris' | 'minesweeper' | 'pacman' | 'wordle' | 'connections' | 'cards' | 'gyro' | 'hangman' | 'grid';
+    gameType: 'sudoku' | 'tetris' | 'minesweeper' | 'pacman' | 'wordle' | 'connections' | 'cards' | 'gyro' | 'hangman' | 'grid' | 'pool';
     scoreKey?: ScoreCategory;
     isDaily?: boolean;
     artStyle: string; 
@@ -34,61 +34,67 @@ const GameHubPage: React.FC<any> = (props) => {
     const games: GameInfo[] = [
         { 
             id: 'neon_signal', title: 'NEON SIGNAL', protocol: 'GYRO_SYNC', inspiredBy: 'Heads Up!',
-            description: 'Physical modulation simulation.',
+            description: 'Physical modulation simulation. Tilt to transmit.',
             icon: <RadioIcon />, cameraId: 'FEED_01', gameType: 'gyro', scoreKey: 'neon_signal',
             accentColor: '#38bdf8', glowColor: '#0ea5e9', artStyle: 'bg-sky-950'
         },
         { 
             id: 'synapse_link', title: 'SYNAPSE LINK', protocol: 'LOGIC_CLUSTER', inspiredBy: 'Connections',
-            description: 'Synaptic cluster analysis.',
+            description: 'Synaptic cluster analysis. Group related data nodes.',
             icon: <ListIcon />, cameraId: 'FEED_02', gameType: 'connections', scoreKey: 'synapse_link',
             accentColor: '#fbbf24', glowColor: '#f59e0b', artStyle: 'bg-amber-950'
         },
         { 
             id: 'cipher_core', title: 'CIPHER CORE', protocol: 'BIT_SEQUENCE', inspiredBy: 'Wordle',
-            description: 'Daily signal decryption.',
+            description: 'Daily signal decryption. Identify the 5-bit code.',
             icon: <WalkieTalkieIcon />, cameraId: 'FEED_03', gameType: 'wordle', isDaily: true,
             accentColor: '#10b981', glowColor: '#059669', artStyle: 'bg-emerald-950'
         },
         { 
             id: 'hangman', title: 'SIGNAL BREACH', protocol: 'CORE_SHIELD', inspiredBy: 'Hangman',
-            description: 'Contain the core leak.',
+            description: 'Contain the core leak. Identify the breach sequence.',
             icon: <BoltIcon />, cameraId: 'FEED_04', gameType: 'hangman', scoreKey: 'hangman' as any,
             accentColor: '#f43f5e', glowColor: '#e11d48', artStyle: 'bg-rose-950'
         },
         { 
+            id: 'pool', title: 'SIGNAL ALIGN', protocol: 'KINETIC_SYNC', inspiredBy: '8-Ball Pool',
+            description: 'Orchestrate kinetic collisions to align data spheres.',
+            icon: <SparklesIcon />, cameraId: 'FEED_11', gameType: 'pool', scoreKey: 'pool' as any,
+            accentColor: '#06b6d4', glowColor: '#0891b2', artStyle: 'bg-cyan-950'
+        },
+        { 
             id: 'grid_reset', title: 'GRID RESET', protocol: 'MODULE_FLIP', inspiredBy: 'Lights Out',
-            description: 'Manual node blackout.',
+            description: 'Manual node blackout. Toggle all nodes to zero.',
             icon: <CpuChipIcon />, cameraId: 'FEED_05', gameType: 'grid', scoreKey: 'grid_reset',
             accentColor: '#a78bfa', glowColor: '#8b5cf6', artStyle: 'bg-violet-950'
         },
         { 
             id: 'sudoku', title: 'PATTERN ZERO', protocol: 'GRID_LOGIC', inspiredBy: 'Sudoku',
-            description: 'Mathematical grid stability.',
+            description: 'Mathematical grid stability. No duplicate signals.',
             icon: <KeypadIcon />, cameraId: 'FEED_06', gameType: 'sudoku', scoreKey: 'sudoku_medium',
             accentColor: '#22d3ee', glowColor: '#06b6d4', artStyle: 'bg-cyan-950'
         },
         { 
             id: 'void_runner', title: 'VOID RUNNER', protocol: 'PATH_RECON', inspiredBy: 'Pac-Man',
-            description: 'Navigate sector architectures.',
+            description: 'Navigate sector architectures. Avoid the sentinels.',
             icon: <SparklesIcon />, cameraId: 'FEED_07', gameType: 'pacman', scoreKey: 'void_runner',
             accentColor: '#fcd34d', glowColor: '#fbbf24', artStyle: 'bg-yellow-950'
         },
         { 
             id: 'minesweeper', title: 'ANOMALY DETECTOR', protocol: 'HAZARD_ID', inspiredBy: 'Minesweeper',
-            description: 'Isolate signal fractures.',
+            description: 'Isolate signal fractures. Avoid the traps.',
             icon: <EntityIcon />, cameraId: 'FEED_08', gameType: 'minesweeper', scoreKey: 'minesweeper_medium',
             accentColor: '#fb7185', glowColor: '#f43f5e', artStyle: 'bg-rose-950'
         },
         { 
             id: 'solitaire', title: 'SIGNAL ALIGN', protocol: 'DATA_STACK', inspiredBy: 'Solitaire',
-            description: 'Sorting frequency packets.',
+            description: 'Sorting frequency packets. Stack in sequence.',
             icon: <RadioIcon />, cameraId: 'FEED_09', gameType: 'cards', scoreKey: 'solitaire',
             accentColor: '#e4e4e4', glowColor: '#71717a', artStyle: 'bg-zinc-900'
         },
         { 
             id: 'tetris', title: 'STACK TRACE', protocol: 'BUFFER_FILL', inspiredBy: 'Tetris',
-            description: 'Consolidate data line buffers.',
+            description: 'Consolidate data line buffers. Clear the lines.',
             icon: <ControllerIcon />, cameraId: 'FEED_10', gameType: 'tetris', scoreKey: 'tetris',
             accentColor: '#60a5fa', glowColor: '#3b82f6', artStyle: 'bg-blue-950'
         }
@@ -99,12 +105,13 @@ const GameHubPage: React.FC<any> = (props) => {
             const isLogic = ['synapse_link', 'cipher_core', 'sudoku', 'grid_reset'].includes(game.id);
             const matchesFilter = filter === 'all' || (filter === 'logic' && isLogic) || (filter === 'arcade' && !isLogic);
             const matchesSearch = game.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                                 game.description.toLowerCase().includes(searchQuery.toLowerCase());
+                                 game.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                 game.inspiredBy.toLowerCase().includes(searchQuery.toLowerCase());
             return matchesFilter && matchesSearch;
         });
     }, [games, filter, searchQuery]);
 
-    const featuredGames = games.slice(0, 3);
+    const featuredGames = games.filter(g => ['neon_signal', 'pool', 'cipher_core'].includes(g.id));
 
     return (
         <div className="flex flex-col h-full bg-void-bg text-app-text overflow-hidden font-mono">
@@ -203,9 +210,22 @@ const GameHubPage: React.FC<any> = (props) => {
                                     {React.cloneElement(game.icon, { className: "w-6 h-6 text-white/40 group-hover:scale-110 transition-transform" })}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <h3 className="font-black text-xs uppercase tracking-tight truncate">{game.title}</h3>
-                                    <p className="text-[8px] font-bold opacity-40 uppercase tracking-widest mb-1">{game.inspiredBy}</p>
-                                    <p className="text-[10px] opacity-60 line-clamp-1 leading-tight">{game.description}</p>
+                                    <div className="flex items-center gap-2 mb-0.5">
+                                        <h3 className="font-black text-xs uppercase tracking-tight truncate">{game.title}</h3>
+                                        <span className={`px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-widest ${
+                                            ['synapse_link', 'cipher_core', 'sudoku', 'grid_reset'].includes(game.id)
+                                            ? 'bg-amber-500/20 text-amber-500'
+                                            : 'bg-blue-500/20 text-blue-500'
+                                        }`}>
+                                            {['synapse_link', 'cipher_core', 'sudoku', 'grid_reset'].includes(game.id) ? 'Logic' : 'Arcade'}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <p className="text-[8px] font-bold opacity-40 uppercase tracking-widest">Protocol: {game.protocol}</p>
+                                        <span className="w-1 h-1 rounded-full bg-white/10" />
+                                        <p className="text-[8px] font-bold text-app-accent uppercase tracking-widest">Inspired by {game.inspiredBy}</p>
+                                    </div>
+                                    <p className="text-[10px] opacity-70 line-clamp-2 leading-tight">{game.description}</p>
                                 </div>
                                 <div className="flex flex-col items-end gap-1">
                                     <div className="px-4 py-1.5 rounded-full bg-app-accent/10 text-app-accent text-[9px] font-black uppercase tracking-widest group-hover:bg-app-accent group-hover:text-app-on-accent transition-colors">
