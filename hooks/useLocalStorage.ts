@@ -1,72 +1,138 @@
-import { useState, Dispatch, SetStateAction } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
-const reviver = (_key: string, value: any) => {
-    if (typeof value === 'object' && value !== null) {
-        // Hardened check: Ensure value.value is iterable before creating a Map.
-        if (value.dataType === 'Map') {
-            return Array.isArray(value.value) ? new Map(value.value) : new Map();
-        }
-        // Hardened check: Ensure value.value is iterable before creating a Set.
-        if (value.dataType === 'Set') {
-            return Array.isArray(value.value) ? new Set(value.value) : new Set();
-        }
-    }
-    return value;
-};
-
-const replacer = (_key: string, value: any) => {
-    if (value instanceof Map) {
-        return { dataType: 'Map', value: Array.from(value.entries()) };
-    }
-    if (value instanceof Set) {
-        return { dataType: 'Set', value: Array.from(value.values()) };
-    }
-    return value;
-};
-
-export function useLocalStorage<T>(key: string, initialValue: T | (() => T)): [T, Dispatch<SetStateAction<T>>] {
-    const [storedValue, setStoredValue] = useState<T>(() => {
-        const resolvedInitialValue = initialValue instanceof Function ? initialValue() : initialValue;
-        try {
-            const item = window.localStorage.getItem(key);
-            if (item === null) {
-                return resolvedInitialValue;
-            }
-            
-            const parsed = JSON.parse(item, reviver);
-
-            if (parsed === null || typeof parsed === 'undefined') {
-                 console.warn(`LocalStorage key "${key}" was null or undefined. Reverting to default.`);
-                return resolvedInitialValue;
-            }
-
-            // **DEFINITIVE FIX**: Perform strict type validation. If the stored data's type
-            // doesn't match the initial value's type (e.g., loaded an array but expected a Set),
-            // discard the stored value and use the default. This prevents crashes from stale
-            // data formats from older versions of the app.
-            const initialType = Object.prototype.toString.call(resolvedInitialValue);
-            const parsedType = Object.prototype.toString.call(parsed);
-
-            if (initialType !== parsedType) {
-                console.warn(`Type mismatch for localStorage key "${key}". Expected ${initialType}, but got ${parsedType}. Falling back to default value to prevent crash.`);
-                return resolvedInitialValue;
-            }
-
-            return parsed;
-        } catch (error) {
-            console.warn(`Error reading or parsing localStorage key "${key}":`, error);
-            return resolvedInitialValue;
-        }
+/**
+ * Custom hook for persisting state in localStorage.
+ * Handles Set and Map types by serializing them as arrays.
+ */
+export function useLocalStorage<T>(key: string, initialValue: T | (() => T)): [T, (value: T | ((prev: T) => T)) => void] {
+  // Helper to serialize data, handling Set and Map
+  const serialize = (value: any): string => {
+    return JSON.stringify(value, (_key, val) => {
+      if (val instanceof Set) {
+        return { _type: 'Set', value: Array.from(val) };
+      }
+      if (val instanceof Map) {
+        return { _type: 'Map', value: Array.from(val.entries()) };
+      }
+      return val;
     });
+  };
 
-    const setValue: Dispatch<SetStateAction<T>> = value => {
-        try {
-            const valueToStore = value instanceof Function ? value(storedValue) : value;
-            setStoredValue(valueToStore);
-            window.localStorage.setItem(key, JSON.stringify(valueToStore, replacer));
-        } catch (error) {
-            console.warn(`Error setting localStorage key "${key}":`, error);
+  // Helper to deserialize data, handling Set and Map
+  const deserialize = (value: string): any => {
+    return JSON.parse(value, (_key, val) => {
+      if (val && typeof val === 'object' && val._type === 'Set') {
+        return new Set(val.value);
+      }
+      if (val && typeof val === 'object' && val._type === 'Map') {
+        return new Map(val.value);
+      }
+      return val;
+    });
+  };
+
+  // Initialize state
+  const [state, setState] = useState<T>(() => {
+    const initial = typeof initialValue === 'function' ? (initialValue as () => T)() : initialValue;
+    try {
+      const item = window.localStorage.getItem(key);
+      if (item) {
+        let val = deserialize(item);
+        
+        // Robust type conversion for legacy data or unexpected formats
+        if (initial instanceof Set) {
+          if (val && typeof val === 'object' && val._type === 'Set') {
+            val = new Set(val.value);
+          } else if (Array.isArray(val)) {
+            val = new Set(val);
+          } else if (!(val instanceof Set)) {
+            val = new Set();
+          }
+          return val as unknown as T;
         }
+        
+        if (initial instanceof Map) {
+          if (val && typeof val === 'object' && val._type === 'Map') {
+            val = new Map(val.value);
+          } else if (Array.isArray(val)) {
+            val = new Map(val);
+          } else if (!(val instanceof Map)) {
+            val = new Map();
+          }
+          return val as unknown as T;
+        }
+        
+        return val;
+      }
+    } catch (error) {
+      console.warn(`Error reading localStorage key "${key}":`, error);
+    }
+    return initial;
+  });
+
+  // Atomic update function
+  const setValue = useCallback((value: T | ((prev: T) => T)) => {
+    try {
+      setState((prev) => {
+        const nextValue = typeof value === 'function' ? (value as (prev: T) => T)(prev) : value;
+        
+        // Write to localStorage
+        try {
+          window.localStorage.setItem(key, serialize(nextValue));
+        } catch (e) {
+          // Catch QuotaExceededError silently
+          if (e instanceof DOMException && (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED')) {
+            console.warn('LocalStorage quota exceeded');
+          } else {
+            throw e;
+          }
+        }
+        
+        return nextValue;
+      });
+    } catch (error) {
+      console.error(`Error setting localStorage key "${key}":`, error);
+    }
+  }, [key]);
+
+  // Listen for changes in other tabs
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === key && e.newValue) {
+        try {
+          let val = deserialize(e.newValue);
+          const initial = typeof initialValue === 'function' ? (initialValue as () => T)() : initialValue;
+          
+          if (initial instanceof Set) {
+            if (val && typeof val === 'object' && val._type === 'Set') {
+              val = new Set(val.value);
+            } else if (Array.isArray(val)) {
+              val = new Set(val);
+            } else if (!(val instanceof Set)) {
+              val = new Set();
+            }
+            setState(val as unknown as T);
+          } else if (initial instanceof Map) {
+            if (val && typeof val === 'object' && val._type === 'Map') {
+              val = new Map(val.value);
+            } else if (Array.isArray(val)) {
+              val = new Map(val);
+            } else if (!(val instanceof Map)) {
+              val = new Map();
+            }
+            setState(val as unknown as T);
+          } else {
+            setState(val);
+          }
+        } catch (error) {
+          console.error(`Error syncing localStorage key "${key}":`, error);
+        }
+      }
     };
-    return [storedValue, setValue];
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [key]);
+
+  return [state, setValue];
 }

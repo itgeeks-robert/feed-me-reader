@@ -56,7 +56,7 @@ const UtilityHubPage: React.FC<{ onSelect: (id: string) => void; onBackToHub: ()
     ];
 
     return (
-        <main className="h-full min-h-0 flex-grow overflow-y-auto bg-void-bg p-4 md:p-16 pt-[calc(4rem+var(--safe-top))] pb-[calc(10rem+env(safe-area-inset-bottom))] animate-fade-in relative scrollbar-hide font-mono">
+        <div className="h-full min-h-0 flex-grow overflow-y-auto bg-void-bg p-4 md:p-16 pt-[calc(4rem+var(--safe-top))] pb-[calc(10rem+env(safe-area-inset-bottom))] animate-fade-in relative scrollbar-hide font-mono">
             <ContextualIntel 
                 tipId="utility_intel" 
                 title="Tactical Hub" 
@@ -125,7 +125,7 @@ const UtilityHubPage: React.FC<{ onSelect: (id: string) => void; onBackToHub: ()
                     ))}
                 </div>
             </div>
-        </main>
+        </div>
     );
 };
 

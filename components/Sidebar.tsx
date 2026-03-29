@@ -29,9 +29,10 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
         const isActive = selection.type === sel.type && (sel.id === null || selection.id === sel.id);
         
         return (
-            <div 
+            <button 
                 onClick={() => onSelect(sel)} 
-                className={`group relative flex items-center space-x-3 px-4 py-3 rounded-xl cursor-pointer transition-all duration-200 overflow-hidden
+                tabIndex={isSidebarOpen ? 0 : -1}
+                className={`w-full group relative flex items-center space-x-3 px-4 py-3 rounded-xl cursor-pointer transition-all duration-200 overflow-hidden outline-none focus-visible:ring-2 focus-visible:ring-app-accent
                     ${isActive 
                         ? 'bg-app-accent/10 text-app-accent font-medium' 
                         : 'hover:bg-app-border/30 text-muted hover:text-app-text'}`}
@@ -46,12 +47,14 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                 <span className="truncate text-sm tracking-wide min-w-0 transition-all duration-200">
                     {label}
                 </span>
-            </div>
+            </button>
         )
     };
 
     return (
-        <aside className={`fixed inset-y-0 left-0 z-[70] w-72 bg-app-card border-r border-app-border flex flex-col h-full transform transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} shadow-2xl`} style={{ 
+        <aside 
+            aria-hidden={!isSidebarOpen}
+            className={`fixed inset-y-0 left-0 z-[70] w-72 bg-app-card border-r border-app-border flex flex-col h-full transform transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} shadow-2xl`} style={{ 
             paddingTop: 'var(--safe-top)',
             paddingBottom: 'var(--safe-bottom)',
             paddingLeft: 'var(--safe-left)'
@@ -67,7 +70,11 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                             <span className="text-[10px] font-medium text-muted uppercase tracking-widest">S I G N A L</span>
                         </div>
                     </div>
-                    <button onClick={onClose} className="p-2 -mr-2 rounded-xl text-muted hover:bg-app-border/50 focus:outline-none focus:ring-2 focus:ring-app-accent">
+                    <button 
+                        onClick={onClose} 
+                        tabIndex={isSidebarOpen ? 0 : -1}
+                        className="p-2 -mr-2 rounded-xl text-muted hover:bg-app-border/50 focus:outline-none focus:ring-2 focus:ring-app-accent"
+                    >
                         <XIcon className="w-6 h-6" />
                     </button>
                 </div>
@@ -91,7 +98,11 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                 <div className="pt-6 pb-2 border-t border-app-border mt-4">
                     <div className="flex items-center justify-between px-3 mb-3">
                         <h3 className="text-xs font-semibold text-muted uppercase tracking-wider">Zones</h3>
-                        <button onClick={() => onAddFolder("New Zone")} className="p-1.5 hover:bg-app-border/50 rounded-lg text-muted transition-colors">
+                        <button 
+                            onClick={() => onAddFolder("New Zone")} 
+                            tabIndex={isSidebarOpen ? 0 : -1}
+                            className="p-1.5 hover:bg-app-border/50 rounded-lg text-muted transition-colors focus:ring-2 focus:ring-app-accent outline-none"
+                        >
                             <PlusIcon className="w-4 h-4" />
                         </button>
                     </div>
@@ -99,10 +110,11 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                         {folders.map(folder => {
                             const isActive = selection.type === 'folder' && selection.id === folder.id;
                             return (
-                                <div 
+                                <button 
                                     key={folder.id} 
                                     onClick={() => onSelect({type: 'folder', id: folder.id})} 
-                                    className={`relative flex items-center gap-3 px-4 py-2.5 rounded-xl cursor-pointer transition-all duration-200 group
+                                    tabIndex={isSidebarOpen ? 0 : -1}
+                                    className={`w-full relative flex items-center gap-3 px-4 py-2.5 rounded-xl cursor-pointer transition-all duration-200 group outline-none focus-visible:ring-2 focus-visible:ring-app-accent
                                         ${isActive 
                                             ? 'bg-app-accent/10 text-app-accent font-medium' 
                                             : 'text-muted hover:text-app-text hover:bg-app-border/30'}`}
@@ -114,7 +126,7 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                                     <span className="text-sm truncate transition-all">
                                         {folder.name}
                                     </span>
-                                </div>
+                                </button>
                             );
                         })}
                     </nav>
@@ -122,7 +134,11 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
             </div>
             
             <div className="p-6 mt-auto flex-shrink-0 bg-app-card border-t border-app-border">
-                <button onClick={onOpenSettings} className="w-full flex items-center gap-3 py-3 px-4 text-sm font-medium rounded-xl text-muted bg-app-bg hover:bg-app-border/30 hover:text-app-text transition-all focus:ring-2 focus:ring-app-accent outline-none">
+                <button 
+                    onClick={onOpenSettings} 
+                    tabIndex={isSidebarOpen ? 0 : -1}
+                    className="w-full flex items-center gap-3 py-3 px-4 text-sm font-medium rounded-xl text-muted bg-app-bg hover:bg-app-border/30 hover:text-app-text transition-all focus:ring-2 focus:ring-app-accent outline-none"
+                >
                     <SettingsIcon className="w-5 h-5" />
                     <span>Diagnostics</span>
                 </button>

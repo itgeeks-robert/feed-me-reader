@@ -20,9 +20,16 @@ interface GameInfo {
 }
 
 const GameHubPage: React.FC<any> = (props) => {
-    const { onSelect, favoriteGameIds, onToggleFavorite, onBack } = props;
+    const { onSelect, favoriteGameIds, onBack } = props;
     const [filter, setFilter] = useState<'all' | 'logic' | 'arcade'>('all');
     const [searchQuery, setSearchQuery] = useState('');
+
+    // Defensive check for favoriteGameIds to ensure it's always a Set
+    const safeFavIds = useMemo(() => {
+        if (favoriteGameIds instanceof Set) return favoriteGameIds;
+        if (Array.isArray(favoriteGameIds)) return new Set(favoriteGameIds);
+        return new Set<string>();
+    }, [favoriteGameIds]);
 
     const games: GameInfo[] = [
         { 
@@ -155,14 +162,15 @@ const GameHubPage: React.FC<any> = (props) => {
                         </div>
                         <div className="flex gap-4 overflow-x-auto no-scrollbar -mx-6 px-6 snap-x">
                             {featuredGames.map(game => (
-                                <div 
+                                <button 
                                     key={game.id}
                                     onClick={() => onSelect(game.id)}
-                                    className="relative shrink-0 w-[80vw] max-w-[320px] aspect-[16/9] rounded-3xl overflow-hidden group cursor-pointer border border-white/5 snap-start shadow-2xl"
+                                    className="relative shrink-0 w-[80vw] max-w-[320px] aspect-[16/9] rounded-3xl overflow-hidden group cursor-pointer border border-white/5 snap-start shadow-2xl outline-none focus-visible:ring-2 focus-visible:ring-app-accent"
+                                    aria-label={`Play ${game.title}`}
                                 >
                                     <div className={`absolute inset-0 ${game.artStyle} opacity-90 group-hover:opacity-100 transition-opacity flex items-center justify-center`}>
                                         {React.cloneElement(game.icon, { className: "w-16 h-16 text-white/5 absolute -right-4 -bottom-4 rotate-12" })}
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent p-5 flex flex-col justify-end">
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent p-5 flex flex-col justify-end text-left">
                                             <p className="text-[8px] font-black uppercase tracking-[0.3em] text-app-accent mb-1">{game.protocol}</p>
                                             <h3 className="text-xl font-black text-white leading-none tracking-tighter uppercase italic">{game.title}</h3>
                                         </div>
@@ -170,7 +178,7 @@ const GameHubPage: React.FC<any> = (props) => {
                                     <div className="absolute top-4 right-4">
                                         <div className="px-3 py-1 bg-white/10 backdrop-blur-md border border-white/20 text-white text-[8px] font-black uppercase italic rounded-full">GET</div>
                                     </div>
-                                </div>
+                                </button>
                             ))}
                         </div>
                     </section>
@@ -185,10 +193,11 @@ const GameHubPage: React.FC<any> = (props) => {
                     </div>
                     <div className="space-y-3">
                         {filteredGames.map(game => (
-                            <div 
+                            <button 
                                 key={game.id}
                                 onClick={() => onSelect(game.id)}
-                                className="flex items-center gap-4 p-3 rounded-2xl bg-app-card border border-white/5 hover:border-app-accent/30 transition-all cursor-pointer group shadow-sm"
+                                className="w-full flex items-center gap-4 p-3 rounded-2xl bg-app-card border border-white/5 hover:border-app-accent/30 transition-all cursor-pointer group shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-app-accent text-left"
+                                aria-label={`Play ${game.title}`}
                             >
                                 <div className={`w-14 h-14 rounded-2xl overflow-hidden shrink-0 border border-white/10 flex items-center justify-center ${game.artStyle}`}>
                                     {React.cloneElement(game.icon, { className: "w-6 h-6 text-white/40 group-hover:scale-110 transition-transform" })}
@@ -199,12 +208,12 @@ const GameHubPage: React.FC<any> = (props) => {
                                     <p className="text-[10px] opacity-60 line-clamp-1 leading-tight">{game.description}</p>
                                 </div>
                                 <div className="flex flex-col items-end gap-1">
-                                    <button className="px-4 py-1.5 rounded-full bg-app-accent/10 text-app-accent text-[9px] font-black uppercase tracking-widest group-hover:bg-app-accent group-hover:text-app-on-accent transition-colors">
+                                    <div className="px-4 py-1.5 rounded-full bg-app-accent/10 text-app-accent text-[9px] font-black uppercase tracking-widest group-hover:bg-app-accent group-hover:text-app-on-accent transition-colors">
                                         GET
-                                    </button>
-                                    {favoriteGameIds.has(game.id) && <StarIcon className="w-2.5 h-2.5 text-yellow-500" filled />}
+                                    </div>
+                                    {safeFavIds.has(game.id) && <StarIcon className="w-2.5 h-2.5 text-yellow-500" filled />}
                                 </div>
-                            </div>
+                            </button>
                         ))}
                     </div>
                 </section>

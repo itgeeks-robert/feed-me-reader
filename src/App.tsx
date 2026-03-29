@@ -31,6 +31,8 @@ import { TubePage } from '../components/TubePage';
 import { resilientFetch } from '../services/fetch';
 import { parseRssXml } from '../services/rssParser';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useServiceWorker } from '../hooks/useServiceWorker';
+import { useToast } from '../components/Toast';
 import {
   GlobeAltIcon,
   RadioIcon,
@@ -135,6 +137,20 @@ const App: React.FC = () => {
   const [ambientEnabled, setAmbientEnabled] = useLocalStorage<boolean>(KEY('ambient'), false);
   const [tvMode,         setTvMode]         = useLocalStorage<boolean>(KEY('tv_mode'), false);
 
+  const toast = useToast();
+  const { isUpdateAvailable } = useServiceWorker({
+    onBackgroundSync: () => {
+      toast.info('Background sync complete. Feeds updated.');
+      setLastRefresh(Date.now());
+    }
+  });
+
+  useEffect(() => {
+    if (isUpdateAvailable) {
+      toast.info('A new version is available. Click to update.');
+    }
+  }, [isUpdateAvailable, toast]);
+
   /* ── Session-only state ── */
   const [selection,         setSelection]         = useState<Selection>({ type: 'splash', id: null });
   const [isSettingsOpen,    setIsSettingsOpen]    = useState(false);
@@ -217,7 +233,17 @@ const App: React.FC = () => {
         )
       ).filter(el => {
         const rect = el.getBoundingClientRect();
-        return rect.width > 0 && rect.height > 0;
+        const isVisible = rect.width > 0 && rect.height > 0;
+        const isNotHidden = !el.closest('[aria-hidden="true"]');
+        const isNotTabIndexMinusOne = el.tabIndex !== -1;
+        
+        // If a modal is open, only allow focus within that modal
+        const openModal = document.querySelector('[role="dialog"], .modal-overlay, .settings-modal-overlay');
+        if (openModal) {
+          return isVisible && isNotHidden && isNotTabIndexMinusOne && openModal.contains(el);
+        }
+        
+        return isVisible && isNotHidden && isNotTabIndexMinusOne;
       });
 
       if (!active || active === document.body) {

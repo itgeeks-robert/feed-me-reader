@@ -3,6 +3,7 @@ import type { Article } from '../src/App';
 import { XIcon, GlobeAltIcon, SparklesIcon } from './icons';
 import { fetchAndCacheArticleContent } from '../services/readerService';
 import { soundService } from '../services/soundService';
+import { SummaryButton } from './SummaryButton';
 
 interface ReaderViewModalProps {
     article: Article;
@@ -111,10 +112,10 @@ const ReaderViewModal: React.FC<ReaderViewModalProps> = ({ article, onClose, onM
                             </div>
                         </div>
                         <div className="flex items-center gap-2 shrink-0 ml-4">
-                            <button onClick={handleExternalJump} className="w-10 h-10 rounded-full hover:bg-app-border/50 flex items-center justify-center transition-colors text-muted hover:text-app-text outline-none focus-visible:ring-2 focus-visible:ring-app-accent" title="Open Original">
+                            <button onClick={handleExternalJump} className="w-10 h-10 rounded-full hover:bg-app-border/50 flex items-center justify-center transition-colors text-muted hover:text-app-text hover:text-app-text outline-none focus-visible:ring-2 focus-visible:ring-app-accent" title="Open Original">
                                 <GlobeAltIcon className="w-5 h-5" />
                             </button>
-                            <button ref={closeBtnRef} onClick={onClose} className="w-10 h-10 rounded-full hover:bg-app-border/50 flex items-center justify-center transition-colors text-muted hover:text-app-text outline-none focus-visible:ring-2 focus-visible:ring-app-accent" title="Close">
+                            <button ref={closeBtnRef} onClick={onClose} className="w-10 h-10 rounded-full hover:bg-app-border/50 flex items-center justify-center transition-colors text-muted hover:text-app-text hover:text-app-text outline-none focus-visible:ring-2 focus-visible:ring-app-accent" title="Close">
                                 <XIcon className="w-5 h-5" />
                             </button>
                         </div>
@@ -144,8 +145,10 @@ const ReaderViewModal: React.FC<ReaderViewModalProps> = ({ article, onClose, onM
                                         </div>
                                         <h3 className="text-sm font-bold text-app-text tracking-wide m-0">AI Summary</h3>
                                     </div>
+                                    <SummaryButton articleTitle={parsedContent.title} articleText={contentRef.current?.innerText || ""} />
                                     {intelBriefing ? (
-                                        <div className="animate-fade-in space-y-3 mt-4">
+                                        <div className="animate-fade-in space-y-3 mt-4 pt-4 border-t border-app-border/50">
+                                            <h4 className="text-[10px] font-bold text-muted uppercase tracking-widest mb-2">Tactical Pattern Analysis</h4>
                                             {intelBriefing.map((point, idx) => (
                                                 <div key={idx} className="text-sm leading-relaxed text-app-text/80 flex gap-3">
                                                     <span className="text-app-accent font-bold">•</span>
@@ -157,14 +160,14 @@ const ReaderViewModal: React.FC<ReaderViewModalProps> = ({ article, onClose, onM
                                         <button 
                                             onClick={handleLocalIntelAnalysis}
                                             disabled={isProcessing}
-                                            className="w-full mt-2 py-3 bg-app-bg border border-app-border rounded-xl text-app-text hover:border-app-accent/50 hover:shadow-sm transition-all font-medium text-sm outline-none focus-visible:ring-2 focus-visible:ring-app-accent flex items-center justify-center gap-2 disabled:opacity-50"
+                                            className="w-full mt-4 py-3 bg-app-bg border border-app-border rounded-xl text-app-text hover:border-app-accent/50 hover:shadow-sm transition-all font-medium text-sm outline-none focus-visible:ring-2 focus-visible:ring-app-accent flex items-center justify-center gap-2 disabled:opacity-50"
                                         >
                                             {isProcessing ? (
                                                 <>
                                                     <div className="w-4 h-4 border-2 border-app-accent/20 border-t-app-accent rounded-full animate-spin" />
-                                                    <span>Generating Summary...</span>
+                                                    <span>Analyzing Patterns...</span>
                                                 </>
-                                            ) : 'Generate Summary'}
+                                            ) : 'Run Pattern Analysis'}
                                         </button>
                                     )}
                                 </div>

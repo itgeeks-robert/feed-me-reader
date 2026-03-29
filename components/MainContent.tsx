@@ -6,6 +6,7 @@ import { resilientFetch } from '../services/fetch';
 import { parseRssXml } from '../services/rssParser';
 import FeaturedStory from './articles/FeaturedStory';
 import MagazineArticleListItem from './articles/MagazineArticleListItem';
+import { SkeletonFeedList } from './SkeletonFeed';
 import { getCacheCount } from '../services/cacheService';
 import FeedOnboarding, { PRESETS } from './FeedOnboarding';
 
@@ -65,11 +66,25 @@ const CATEGORY_MAP = [
 const MainContent: React.FC<MainContentProps> = (props) => {
     const { selection, onSelectCategory, readArticleIds, bookmarkedArticleIds, onMarkAsRead, onSearch, onOpenReader, onOpenExternal, refreshKey, onRefresh, theme, onToggleTheme, animationClass, allFeeds, onSetFeeds, onSetFolders, initialArticles, tvMode } = props;
     
+    // Defensive checks for Set types
+    const safeReadIds = useMemo(() => {
+        if (readArticleIds instanceof Set) return readArticleIds;
+        if (Array.isArray(readArticleIds)) return new Set(readArticleIds);
+        return new Set();
+    }, [readArticleIds]);
+
+    const safeBookmarkIds = useMemo(() => {
+        if (bookmarkedArticleIds instanceof Set) return bookmarkedArticleIds;
+        if (Array.isArray(bookmarkedArticleIds)) return new Set(bookmarkedArticleIds);
+        return new Set();
+    }, [bookmarkedArticleIds]);
+
     const [articles, setArticles] = useState<Article[]>(initialArticles || []);
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearchActive, setIsSearchActive] = useState(false);
     const [visibleCount, setVisibleCount] = useState(ARTICLES_PER_PAGE);
     const [showOnlyUnread, setShowOnlyUnread] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => { getCacheCount(); }, [refreshKey]);
 
@@ -86,6 +101,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
         if (activeFeeds.length === 0) { setArticles([]); return; };
         
         const fetchRssSubset = async (targetFeeds: Feed[], append: boolean = false) => {
+            if (!append) setIsLoading(true);
             const promises = targetFeeds.map(feed => 
                 resilientFetch(feed.url, { timeout: 10000 })
                     .then(response => response.text())
@@ -103,7 +119,9 @@ const MainContent: React.FC<MainContentProps> = (props) => {
                     combined.sort((a, b) => (b.publishedDate?.getTime() || 0) - (a.publishedDate?.getTime() || 0));
                     return Array.from(new Map(combined.map(a => [a.id, a])).values());
                 });
-            } finally { }
+            } finally {
+                setIsLoading(false);
+            }
         };
 
         const firstBatch = activeFeeds.slice(0, 6);
@@ -123,7 +141,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
 
     const filteredArticles = useMemo(() => {
         let result = articles;
-        if (selection.type === 'bookmarks') result = result.filter(a => bookmarkedArticleIds.has(a.id));
+        if (selection.type === 'bookmarks') result = result.filter(a => safeBookmarkIds.has(a.id));
         else if (selection.type === 'search' && selection.query) {
              const filter = selection.query.toLowerCase();
              result = result.filter(a => a.title.toLowerCase().includes(filter) || a.snippet.toLowerCase().includes(filter) || a.source.toLowerCase().includes(filter));
@@ -132,9 +150,9 @@ const MainContent: React.FC<MainContentProps> = (props) => {
             const catLower = selection.category.toLowerCase();
             result = result.filter(a => a.feedCategory === selection.category || a.source.toLowerCase().includes(catLower));
         }
-        if (showOnlyUnread) result = result.filter(a => !readArticleIds.has(a.id));
+        if (showOnlyUnread) result = result.filter(a => !safeReadIds.has(a.id));
         return result;
-    }, [articles, selection, bookmarkedArticleIds, showOnlyUnread, readArticleIds]);
+    }, [articles, selection, safeBookmarkIds, showOnlyUnread, safeReadIds]);
 
     const handleCategoryClick = (catId: string | null) => {
         onSelectCategory(catId);
@@ -156,7 +174,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
     const rollingNews = filteredArticles.slice(4, visibleCount);
 
     return (
-        <main className={`flex-grow overflow-y-auto scrollbar-hide ${animationClass} bg-void-bg pb-40 scroll-smooth main-content-area pl-[max(1rem,var(--safe-left),var(--safe-right))] pr-[max(1rem,var(--safe-left),var(--safe-right))]`}>
+        <div className={`flex-grow overflow-y-auto scrollbar-hide ${animationClass} bg-void-bg pb-40 scroll-smooth main-content-area pl-[max(1rem,var(--safe-left),var(--safe-right))] pr-[max(1rem,var(--safe-left),var(--safe-right))]`}>
             <LocalHeader 
                 onSearchSubmit={(e: any) => { e.preventDefault(); onSearch(searchQuery); setIsSearchActive(false); }} 
                 isSearchActive={isSearchActive}
@@ -172,79 +190,87 @@ const MainContent: React.FC<MainContentProps> = (props) => {
             
             <div className="max-w-[1400px] mx-auto transition-all relative pt-8 md:pt-12">
                 
-                {latestArticle && (
-                    <div className="px-4 md:px-6 mb-12">
-                        <FeaturedStory 
-                            article={latestArticle} 
-                            onReadHere={() => onOpenReader(latestArticle)} 
-                            onReadExternal={() => onOpenExternal(latestArticle.link, latestArticle.id)} 
-                            isRead={readArticleIds.has(latestArticle.id)} 
-                        />
+                {isLoading ? (
+                    <div className="px-4 md:px-6">
+                        <SkeletonFeedList view={props.articleView} count={12} />
                     </div>
-                )}
-
-                <div className={`px-4 md:px-6 mb-16 grid gap-4 md:gap-10 article-list-grid ${tvMode ? 'grid-cols-2 lg:grid-cols-4' : 'grid-cols-2 md:grid-cols-3'}`}>
-                    {trendingArticles.map(article => (
-                        <div key={article.id} className="void-card p-1">
-                            <MagazineArticleListItem 
-                                article={article} 
-                                onMarkAsRead={() => onMarkAsRead(article.id)} 
-                                onReadHere={() => onOpenReader(article)} 
-                                onReadExternal={() => onOpenExternal(article.link, article.id)} 
-                                isRead={readArticleIds.has(article.id)} 
-                            />
-                        </div>
-                    ))}
-                </div>
-
-                <div className="px-4 md:px-6 border-t border-app-border/50 pt-16">
-                    <div className="flex flex-wrap items-center justify-between mb-12 gap-6">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-app-accent/10 text-app-accent rounded-xl">
-                                <RadioIcon className="w-5 h-5" />
-                            </div>
-                            <h2 className="font-bold text-2xl md:text-3xl text-app-text tracking-tight leading-none">Latest Stories</h2>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <button 
-                                onClick={onRefresh}
-                                className="flex items-center gap-2 px-4 py-2 bg-app-card border border-app-border rounded-xl text-sm font-medium text-muted hover:text-app-text hover:border-app-accent/50 transition-all shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-app-accent"
-                                title="Refresh Stories"
-                            >
-                                <ArrowPathIcon className="w-4 h-4" />
-                                <span className="hidden sm:inline">Refresh</span>
-                            </button>
-                            <UnreadFilterToggle checked={showOnlyUnread} onChange={setShowOnlyUnread} />
-                        </div>
-                    </div>
-
-                    <div className={`grid gap-4 md:gap-8 article-list-grid ${tvMode ? 'grid-cols-2 lg:grid-cols-5' : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4'}`}>
-                        {rollingNews.map(article => (
-                            <div key={article.id} className="group">
-                                <MagazineArticleListItem 
-                                    article={article} 
-                                    onMarkAsRead={() => onMarkAsRead(article.id)} 
-                                    onReadHere={() => onOpenReader(article)} 
-                                    onReadExternal={() => onOpenExternal(article.link, article.id)} 
-                                    isRead={readArticleIds.has(article.id)} 
+                ) : (
+                    <>
+                        {latestArticle && (
+                            <div className="px-4 md:px-6 mb-12">
+                                <FeaturedStory 
+                                    article={latestArticle} 
+                                    onReadHere={() => onOpenReader(latestArticle)} 
+                                    onReadExternal={() => onOpenExternal(latestArticle.link, latestArticle.id)} 
+                                    isRead={safeReadIds.has(latestArticle.id)} 
                                 />
                             </div>
-                        ))}
-                    </div>
+                        )}
 
-                    {filteredArticles.length > visibleCount && (
-                        <div className="mt-16 text-center pb-24">
-                            <button 
-                                onClick={() => setVisibleCount(c => c + LOAD_MORE_BATCH)} 
-                                className="bg-app-card border border-app-border text-app-text font-medium py-3 px-8 rounded-xl text-sm hover:border-app-accent/50 hover:shadow-md transition-all outline-none focus-visible:ring-2 focus-visible:ring-app-accent"
-                            >
-                                Load More Stories
-                            </button>
+                        <div className={`px-4 md:px-6 mb-16 grid gap-4 md:gap-10 article-list-grid ${tvMode ? 'grid-cols-2 lg:grid-cols-4' : 'grid-cols-2 md:grid-cols-3'}`}>
+                            {trendingArticles.map(article => (
+                                <div key={article.id} className="void-card p-1">
+                                    <MagazineArticleListItem 
+                                        article={article} 
+                                        onMarkAsRead={() => onMarkAsRead(article.id)} 
+                                        onReadHere={() => onOpenReader(article)} 
+                                        onReadExternal={() => onOpenExternal(article.link, article.id)} 
+                                        isRead={safeReadIds.has(article.id)} 
+                                    />
+                                </div>
+                            ))}
                         </div>
-                    )}
-                </div>
+
+                        <div className="px-4 md:px-6 border-t border-app-border/50 pt-16">
+                            <div className="flex flex-wrap items-center justify-between mb-12 gap-6">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-app-accent/10 text-app-accent rounded-xl">
+                                        <RadioIcon className="w-5 h-5" />
+                                    </div>
+                                    <h2 className="font-bold text-2xl md:text-3xl text-app-text tracking-tight leading-none">Latest Stories</h2>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <button 
+                                        onClick={onRefresh}
+                                        className="flex items-center gap-2 px-4 py-2 bg-app-card border border-app-border rounded-xl text-sm font-medium text-muted hover:text-app-text hover:border-app-accent/50 transition-all shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-app-accent"
+                                        title="Refresh Stories"
+                                    >
+                                        <ArrowPathIcon className="w-4 h-4" />
+                                        <span className="hidden sm:inline">Refresh</span>
+                                    </button>
+                                    <UnreadFilterToggle checked={showOnlyUnread} onChange={setShowOnlyUnread} />
+                                </div>
+                            </div>
+
+                            <div className={`grid gap-4 md:gap-8 article-list-grid ${tvMode ? 'grid-cols-2 lg:grid-cols-5' : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4'}`}>
+                                {rollingNews.map(article => (
+                                    <div key={article.id} className="group">
+                                        <MagazineArticleListItem 
+                                            article={article} 
+                                            onMarkAsRead={() => onMarkAsRead(article.id)} 
+                                            onReadHere={() => onOpenReader(article)} 
+                                            onReadExternal={() => onOpenExternal(article.link, article.id)} 
+                                            isRead={safeReadIds.has(article.id)} 
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+
+                            {filteredArticles.length > visibleCount && (
+                                <div className="mt-16 text-center pb-24">
+                                    <button 
+                                        onClick={() => setVisibleCount(c => c + LOAD_MORE_BATCH)} 
+                                        className="bg-app-card border border-app-border text-app-text font-medium py-3 px-8 rounded-xl text-sm hover:border-app-accent/50 hover:shadow-md transition-all outline-none focus-visible:ring-2 focus-visible:ring-app-accent"
+                                    >
+                                        Load More Stories
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </>
+                )}
             </div>
-        </main>
+        </div>
     );
 };
 

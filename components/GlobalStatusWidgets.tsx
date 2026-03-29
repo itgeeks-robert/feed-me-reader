@@ -2,14 +2,17 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { ClockIcon, BoltIcon, RadioIcon, GlobeAltIcon, SparklesIcon, ChevronDownIcon } from './icons';
 
 interface GlobalStatusWidgetsProps {
-    initialLocation?: string;
+    location?: string;
 }
 
 const LOCATIONS = ['NEON_CITY', 'VOID_SECTOR', 'TOKYO', 'LONDON', 'NEW_YORK', 'BERLIN'];
 
-const GlobalStatusWidgets: React.FC<GlobalStatusWidgetsProps> = ({ initialLocation = 'NEON_CITY' }) => {
+const GlobalStatusWidgets: React.FC<GlobalStatusWidgetsProps> = ({ location = 'NEON_CITY' }) => {
     const [time, setTime] = useState(new Date());
-    const [locationIndex, setLocationIndex] = useState(0);
+    const [locationIndex, setLocationIndex] = useState(() => {
+        const idx = LOCATIONS.indexOf(location);
+        return idx !== -1 ? idx : 0;
+    });
     const [weather, setWeather] = useState<{ temp: string; city: string; desc: string }>({ temp: '--', city: LOCATIONS[0], desc: 'SCANNING...' });
     const [sysLoad, setSysLoad] = useState(85);
     const [showLocationPicker, setShowLocationPicker] = useState(false);
@@ -52,11 +55,6 @@ const GlobalStatusWidgets: React.FC<GlobalStatusWidgetsProps> = ({ initialLocati
         };
     }, [currentLocation, fetchWeather]);
 
-    const cycleLocation = () => {
-        setLocationIndex((prev) => (prev + 1) % LOCATIONS.length);
-        setShowLocationPicker(false);
-    };
-
     const timeString = time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
     const dateString = time.toLocaleDateString([], { month: 'short', day: 'numeric' }).toUpperCase();
 
@@ -80,7 +78,7 @@ const GlobalStatusWidgets: React.FC<GlobalStatusWidgetsProps> = ({ initialLocati
             <div className="relative shrink-0">
                 <button 
                     onClick={() => setShowLocationPicker(!showLocationPicker)}
-                    className="flex items-center gap-2 group hover:text-app-text transition-colors"
+                    className="flex items-center gap-2 group hover:text-app-text transition-colors outline-none focus-visible:ring-1 focus-visible:ring-app-accent rounded-sm"
                 >
                     <GlobeAltIcon className="w-3 h-3 text-app-accent opacity-50 group-hover:opacity-100 transition-opacity" />
                     <div className="flex flex-col leading-none text-left">
@@ -102,7 +100,7 @@ const GlobalStatusWidgets: React.FC<GlobalStatusWidgetsProps> = ({ initialLocati
                                     setLocationIndex(idx);
                                     setShowLocationPicker(false);
                                 }}
-                                className={`w-full px-3 py-2 text-left text-[8px] font-black uppercase tracking-widest hover:bg-app-accent hover:text-app-on-accent transition-colors ${locationIndex === idx ? 'text-app-accent' : 'text-app-text/60'}`}
+                                className={`w-full px-3 py-2 text-left text-[8px] font-black uppercase tracking-widest hover:bg-app-accent hover:text-app-on-accent transition-colors outline-none focus:bg-app-accent focus:text-app-on-accent ${locationIndex === idx ? 'text-app-accent' : 'text-app-text/60'}`}
                             >
                                 {loc.replace('_', ' ')}
                             </button>
