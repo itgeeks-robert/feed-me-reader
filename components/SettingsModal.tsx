@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { Settings, Mode, Feed, Folder, Selection } from '../src/App';
 import { XIcon, CloudArrowUpIcon, CloudArrowDownIcon, TrashIcon, FolderIcon, ShieldCheckIcon, CpuChipIcon, ExclamationTriangleIcon, PlusIcon } from './icons';
-import { SourceType } from './AddSource';
+import type { SourceType } from './SharedUI';
 import { parseOpml } from '../services/opmlService';
 import ContextualIntel from './ContextualIntel';
 import { soundService } from '../services/soundService';

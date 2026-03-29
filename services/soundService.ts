@@ -188,6 +188,9 @@ class SoundManager {
     this.tone(800 * p.baseFreq, 'sine', 0.06, 0.05, { attack: 0.002 });
   }
 
+  /** Alias for playClick */
+  public playTick() { this.playClick(); }
+
   /** Lightweight pop (nav hover, toggle) */
   public playPop() {
     const p = this.profile();
@@ -201,11 +204,17 @@ class SoundManager {
     setTimeout(() => this.tone(900 * p.baseFreq, 'sine', 0.18, 0.08), 60);
   }
 
+  /** Alias for playCorrect */
+  public playSuccess() { this.playCorrect(); }
+
   /** Wrong answer / error */
   public playWrong() {
     this.tone(120, 'sawtooth', 0.35, 0.07, { attack: 0.01 });
     setTimeout(() => this.tone(90, 'sawtooth', 0.25, 0.05), 80);
   }
+
+  /** Alias for playWrong */
+  public playError() { this.playWrong(); }
 
   /** Action (hard drop, confirm, lock-in) */
   public playAction() {

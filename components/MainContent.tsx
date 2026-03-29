@@ -1,12 +1,10 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import type { Feed, Folder, Selection, WidgetSettings, Article, ArticleView, Mode } from '../src/App';
-import type { SourceType } from './AddSource';
 import { SearchIcon, ControllerIcon, ArrowPathIcon, XIcon, RadioIcon, NewspaperIcon, DoubleGearIcon, TestTubeIcon, CoinsIcon, SoccerBallIcon, BuildingIcon } from './icons';
 import { resilientFetch } from '../services/fetch';
 import { parseRssXml } from '../services/rssParser';
-import FeaturedStory from './articles/FeaturedStory';
-import MagazineArticleListItem from './articles/MagazineArticleListItem';
-import { SkeletonFeedList } from './SkeletonFeed';
+import { FeaturedStory, ArticleListItem as MagazineArticleListItem } from './articles/ArticleComponents';
+import { SkeletonFeedList } from './SharedUI';
 import { getCacheCount } from '../services/cacheService';
 import FeedOnboarding, { PRESETS } from './FeedOnboarding';
 
@@ -38,7 +36,6 @@ interface MainContentProps {
     onOpenSettings: () => void;
     onOpenAddSource: () => void;
     onOpenSidebar: () => void;
-    onAddSource: (url: string, type: SourceType) => Promise<void>;
     animationClass: string;
     pageTitle: string;
     initialArticles?: Article[];
@@ -163,7 +160,7 @@ const MainContent: React.FC<MainContentProps> = (props) => {
             <main className={`flex-grow overflow-y-auto scrollbar-hide ${animationClass} bg-void-bg pb-40`}>
                 <LocalHeader onSearchSubmit={(e: any) => { e.preventDefault(); onSearch(searchQuery); setIsSearchActive(false); }} isSearchActive={isSearchActive} setIsSearchActive={setIsSearchActive} searchQuery={searchQuery} setSearchQuery={setSearchQuery} onToggleTheme={onToggleTheme} onRefresh={onRefresh} selection={selection} handleCategoryClick={handleCategoryClick} theme={theme} />
                 <div className="pt-12 md:pt-16">
-                    <FeedOnboarding onComplete={(f, fld) => { onSetFolders(fld); onSetFeeds(f); }} />
+                    <FeedOnboarding onComplete={(f, fld) => { onSetFolders?.(fld); onSetFeeds?.(f); }} />
                 </div>
             </main>
         );

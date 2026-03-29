@@ -4,7 +4,7 @@ import type { Feed, Article } from '../src/App';
 import { WalkieTalkieIcon, RadioIcon, ChevronRightIcon } from './icons';
 import { resilientFetch } from '../services/fetch';
 import { parseRssXml } from '../services/rssParser';
-import FeaturedStory from './articles/FeaturedStory';
+import { FeaturedStory } from './articles/ArticleComponents';
 import ReaderViewModal from './ReaderViewModal';
 
 interface DailyUplinkPageProps {

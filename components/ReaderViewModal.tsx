@@ -3,7 +3,7 @@ import type { Article } from '../src/App';
 import { XIcon, GlobeAltIcon, SparklesIcon } from './icons';
 import { fetchAndCacheArticleContent } from '../services/readerService';
 import { soundService } from '../services/soundService';
-import { SummaryButton } from './SummaryButton';
+import { SummaryButton } from './SharedUI';
 
 interface ReaderViewModalProps {
     article: Article;

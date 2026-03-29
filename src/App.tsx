@@ -6,33 +6,39 @@ import React, {
   useLayoutEffect,
 } from 'react';
 import MainContent from '../components/MainContent';
-import type { SourceType } from '../components/AddSource';
 import Sidebar from '../components/Sidebar';
-import GameHubPage from '../components/GameHubPage';
+import { 
+  GameHubPage,
+  SudokuPage,
+  SolitairePage,
+  MinesweeperPage,
+  PoolGamePage,
+  TetrisPage,
+  CipherCorePage,
+  VoidRunnerPage,
+  SynapseLinkPage,
+  GridResetPage,
+  HangmanPage,
+  NeonSignalPage
+} from '../components/GamePages';
 import ReaderViewModal from '../components/ReaderViewModal';
 import SplashScreen from '../components/SplashScreen';
-import UtilityHubPage from '../components/UtilityHubPage';
-import SignalStreamerPage from '../components/SignalStreamerPage';
-import SurveillanceRadarPage from '../components/SurveillanceRadarPage';
-import TranscoderPage from '../components/TranscoderPage';
-import Base64ConverterPage from '../components/Base64ConverterPage';
-import SudokuPage from '../components/SudokuPage';
-import SolitairePage from '../components/SolitairePage';
-import MinesweeperPage from '../components/MinesweeperPage';
-import TetrisPage from '../components/TetrisPage';
-import PoolGamePage from '../components/PoolGamePage';
-import CipherCorePage from '../components/CipherCorePage';
-import VoidRunnerPage from '../components/VoidRunnerPage';
-import SynapseLinkPage from '../components/SynapseLinkPage';
-import GridResetPage from '../components/GridResetPage';
-import HangmanPage from '../components/HangmanPage';
-import NeonSignalPage from '../components/NeonSignalPage';
+import { 
+  UtilityHubPage,
+  SignalStreamerPage, 
+  SurveillanceRadarPage, 
+  TranscoderPage, 
+  Base64ConverterPage,
+  DeepSyncPage,
+  SignalScramblerPage
+} from '../components/UtilityPages';
+import DailyUplinkPage from '../components/DailyUplinkPage';
 import { TubePage } from '../components/TubePage';
 import { resilientFetch } from '../services/fetch';
 import { parseRssXml } from '../services/rssParser';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useServiceWorker } from '../hooks/useServiceWorker';
-import { useToast } from '../components/Toast';
+import { useToast, GlobalStatusWidgets, type SourceType } from '../components/SharedUI';
 import {
   GlobeAltIcon,
   RadioIcon,
@@ -41,7 +47,6 @@ import {
   PlayIcon,
 } from '../components/icons';
 import { soundService } from '../services/soundService';
-import GlobalStatusWidgets from '../components/GlobalStatusWidgets';
 import SettingsModal from '../components/SettingsModal';
 
 /* ─────────────────────────────────────────────────
@@ -306,10 +311,16 @@ const App: React.FC = () => {
   }, [selection.type, tvMode]);
 
   /* ── Derived flags ── */
-  const isGamePage = useMemo(() => {
-    const games = new Set(['sudoku','solitaire','minesweeper','tetris','pool',
-      'cipher_core','void_runner','synapse_link','hangman','neon_signal','grid_reset']);
-    return games.has(selection.type);
+  const hideSidebar = useMemo(() => {
+    const fullScreenPages = new Set([
+      'splash', 'game_hub', 'tube', 'daily_uplink',
+      'utility_hub', 'signal_streamer', 'surveillance_radar',
+      'transcoder', 'base64_converter', 'deep_sync', 'signal_scrambler',
+      'sudoku', 'solitaire', 'minesweeper', 'tetris', 'pool',
+      'cipher_core', 'void_runner', 'synapse_link', 'grid_reset',
+      'hangman', 'neon_signal'
+    ]);
+    return fullScreenPages.has(selection.type);
   }, [selection.type]);
 
   const isUtilPage = useMemo(() => {
@@ -440,6 +451,7 @@ const App: React.FC = () => {
         onEnterFeeds={() => navigate({ type: 'all', id: null })}
         onEnterArcade={() => navigate({ type: 'game_hub', id: null })}
         onEnterTube={() => navigate({ type: 'tube', id: null })}
+        onEnterUplink={() => navigate({ type: 'daily_uplink', id: null })}
         onToggleTheme={cycleMode}
       />
     );
@@ -473,6 +485,12 @@ const App: React.FC = () => {
 
           {/* Primary navigation */}
           <nav className="flex items-center gap-1 overflow-x-auto" style={{ scrollbarWidth: 'none' }} aria-label="Main navigation">
+            <NavLink
+              active={selection.type === 'daily_uplink'}
+              onClick={() => navigate({ type: 'daily_uplink', id: null })}
+              label="DAILY"
+              icon={<RadioIcon className="w-3.5 h-3.5 flex-shrink-0" />}
+            />
             <NavLink
               active={selection.type === 'game_hub'}
               onClick={() => navigate({ type: 'game_hub', id: null })}
@@ -544,8 +562,8 @@ const App: React.FC = () => {
         {/* ── BODY ── */}
         <div className="flex flex-1 min-h-0 gap-2 overflow-hidden">
 
-          {/* Sidebar — hidden on game pages */}
-          {!isGamePage && (
+          {/* Sidebar — hidden on full-screen pages */}
+          {!hideSidebar && (
             <Sidebar
               feeds={feeds}
               folders={folders}
@@ -645,6 +663,19 @@ const App: React.FC = () => {
       case 'surveillance_radar':  return <SurveillanceRadarPage onBackToHub={goUtil} />;
       case 'transcoder':          return <TranscoderPage onBackToHub={goUtil} />;
       case 'base64_converter':    return <Base64ConverterPage onBackToHub={goUtil} />;
+      case 'deep_sync':           return <DeepSyncPage onBackToHub={goUtil} />;
+      case 'signal_scrambler':    return <SignalScramblerPage onBackToHub={goUtil} />;
+
+      case 'daily_uplink':
+        return (
+          <DailyUplinkPage 
+            feeds={feeds}
+            uptime={98}
+            onComplete={goFeeds}
+            onEnterArcade={goHub}
+            onSelectGame={(id: any) => navigate({ type: id, id })}
+          />
+        );
 
       case 'sudoku':
         return <SudokuPage stats={{ totalWins: 0 }} onGameWin={() => {}} onGameLoss={() => {}} onBackToHub={goHub} onReturnToFeeds={goFeeds} />;
@@ -697,7 +728,6 @@ const App: React.FC = () => {
             onOpenSettings={() => setIsSettingsOpen(true)}
             onOpenAddSource={() => {}}
             onOpenSidebar={() => setIsSidebarOpen(true)}
-            onAddSource={handleAddSource}
             animationClass="animate-fade-up"
             pageTitle="Signals"
             initialArticles={prefetchedArticles}

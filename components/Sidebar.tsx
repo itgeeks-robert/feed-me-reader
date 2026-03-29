@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Feed, Folder, Selection } from '../src/App';
-import type { SourceType } from './AddSource';
+import type { SourceType } from './SharedUI';
 import AddSource from './AddSource';
 import {
     VoidIcon, ListIcon, PlusIcon, FolderIcon, BookmarkIcon, SettingsIcon, XIcon, RadioIcon, ShieldCheckIcon, ControllerIcon

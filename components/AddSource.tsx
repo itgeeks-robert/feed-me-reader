@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { PlusIcon, ArrowPathIcon, ExclamationTriangleIcon } from './icons';
 import { discoverFeedSignals } from '../services/feedDiscoveryService';
-
-export type SourceType = 'rss' | 'website' | 'reddit';
+import { type SourceType } from './SharedUI';
 
 interface AddSourceProps {
     onAddSource: (url: string, type: SourceType) => Promise<void>;

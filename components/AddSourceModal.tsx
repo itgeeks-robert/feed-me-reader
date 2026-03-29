@@ -1,5 +1,6 @@
 import React from 'react';
-import AddSource, { SourceType } from './AddSource';
+import AddSource from './AddSource';
+import { type SourceType } from './SharedUI';
 import { XIcon } from './icons';
 
 interface AddSourceModalProps {
