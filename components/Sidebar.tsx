@@ -3,7 +3,7 @@ import type { Feed, Folder, Selection } from '../src/App';
 import type { SourceType } from './SharedUI';
 import AddSource from './AddSource';
 import {
-    VoidIcon, ListIcon, PlusIcon, FolderIcon, BookmarkIcon, SettingsIcon, XIcon, RadioIcon, ShieldCheckIcon, ControllerIcon
+    VoidIcon, ListIcon, PlusIcon, FolderIcon, BookmarkIcon, SettingsIcon, XIcon, RadioIcon, ShieldCheckIcon, ControllerIcon, PlayIcon
 } from './icons';
 
 interface SidebarProps {
@@ -90,9 +90,10 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
             
             <div className="flex-grow overflow-y-auto px-6 space-y-1 scrollbar-hide pb-12">
                 <h3 className="px-3 mb-2 text-xs font-semibold text-muted uppercase tracking-wider">Core Interface</h3>
-                <NavItem sel={{type: 'game_hub', id: null}} label="The Arcade" icon={<ControllerIcon className="w-5 h-5 flex-shrink-0" />} />
-                <NavItem sel={{type: 'utility_hub', id: null}} label="Tactical Hub" icon={<ShieldCheckIcon className="w-5 h-5 flex-shrink-0" />} />
                 <NavItem sel={{type: 'all', id: null}} label="Incoming Intel" icon={<ListIcon className="w-5 h-5 flex-shrink-0" />} />
+                <NavItem sel={{type: 'game_hub', id: null}} label="The Arcade" icon={<ControllerIcon className="w-5 h-5 flex-shrink-0" />} />
+                <NavItem sel={{type: 'tube', id: null}} label="Tube" icon={<PlayIcon className="w-5 h-5 flex-shrink-0" />} />
+                <NavItem sel={{type: 'utility_hub', id: null}} label="Utilities" icon={<ShieldCheckIcon className="w-5 h-5 flex-shrink-0" />} />
                 <NavItem sel={{type: 'bookmarks', id: 'bookmarks'}} label="Saved Signals" icon={<BookmarkIcon className="w-5 h-5 flex-shrink-0" />} />
                 
                 <div className="pt-6 pb-2 border-t border-app-border mt-4">

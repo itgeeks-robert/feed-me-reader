@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { VoidIcon, ControllerIcon, ListIcon, PaletteIcon, PlayIcon, RadioIcon } from './icons';
+import { VoidIcon, ControllerIcon, ListIcon, PaletteIcon, PlayIcon } from './icons';
 import { soundService } from '../services/soundService';
 import type { Mode as Theme } from '../src/App';
 
 interface SplashScreenProps {
     theme: Theme;
     onEnterFeeds: () => void;
-    onEnterUplink: () => void;
     onEnterArcade: () => void;
     onEnterTube: () => void;
     onToggleTheme: () => void;
@@ -47,7 +46,7 @@ const TechnicalBlueprint: React.FC<{ progress: number }> = ({ progress }) => (
     </div>
 );
 
-const SplashScreen: React.FC<SplashScreenProps> = ({ theme, onEnterFeeds, onEnterUplink, onEnterArcade, onEnterTube, onToggleTheme }) => {
+const SplashScreen: React.FC<SplashScreenProps> = ({ theme, onEnterFeeds, onEnterArcade, onEnterTube, onToggleTheme }) => {
     const [loadingProgress, setLoadingProgress] = useState(0);
     const [currentMessage, setCurrentMessage] = useState(BOOT_MESSAGES[0]);
     const [isBootComplete, setIsBootComplete] = useState(false);
@@ -166,23 +165,8 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ theme, onEnterFeeds, onEnte
                                 <div className="flex flex-col gap-2 relative z-20">
                                     <button 
                                         ref={mainButtonRef}
-                                        onClick={onEnterUplink}
-                                        className="group relative w-full py-4 md:py-6 bg-app-text text-app-bg font-black uppercase italic text-sm md:text-base transition-all active:scale-[0.97] flex items-center justify-between px-6 border-2 border-transparent outline-none focus:border-app-accent focus:ring-8 focus:ring-app-accent/30 rounded-xl overflow-hidden"
-                                    >
-                                        <div className="flex items-center gap-4">
-                                            <RadioIcon className="w-5 h-5 md:w-7 md:h-7" />
-                                            <span className="tracking-tight">DAILY_UPLINK_SYNC</span>
-                                        </div>
-                                        <div className="flex items-center gap-3">
-                                            <span className="text-[10px] opacity-40 font-bold tracking-[0.3em] hidden sm:block">SYNC_00</span>
-                                            <div className="w-2 h-2 rounded-full bg-app-bg animate-pulse" />
-                                        </div>
-                                        <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
-                                    </button>
-
-                                    <button 
                                         onClick={onEnterFeeds}
-                                        className="group relative w-full py-4 md:py-6 bg-app-card text-app-text font-black uppercase italic text-sm md:text-base transition-all active:scale-[0.97] flex items-center justify-between px-6 border-2 border-zinc-900/50 hover:border-app-accent/50 outline-none focus:border-app-accent focus:ring-8 focus:ring-app-accent/30 rounded-xl overflow-hidden"
+                                        className="group relative w-full py-4 md:py-6 bg-app-text text-app-bg font-black uppercase italic text-sm md:text-base transition-all active:scale-[0.97] flex items-center justify-between px-6 border-2 border-transparent outline-none focus:border-app-accent focus:ring-8 focus:ring-app-accent/30 rounded-xl overflow-hidden"
                                     >
                                         <div className="flex items-center gap-4">
                                             <ListIcon className="w-5 h-5 md:w-7 md:h-7" />
@@ -190,9 +174,9 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ theme, onEnterFeeds, onEnte
                                         </div>
                                         <div className="flex items-center gap-3">
                                             <span className="text-[10px] opacity-40 font-bold tracking-[0.3em] hidden sm:block">UPLINK_01</span>
-                                            <div className="w-2 h-2 rounded-full bg-app-accent/30" />
+                                            <div className="w-2 h-2 rounded-full bg-app-bg animate-pulse" />
                                         </div>
-                                        <div className="absolute inset-0 bg-app-accent/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+                                        <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
                                     </button>
                                     
                                     <button 

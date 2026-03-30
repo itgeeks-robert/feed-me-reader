@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 interface ServiceWorkerHookOptions {
   onBackgroundSync?: () => void;
@@ -10,13 +10,17 @@ interface ServiceWorkerHookOptions {
 export function useServiceWorker(options: ServiceWorkerHookOptions = {}) {
   const [isUpdateAvailable, setIsUpdateAvailable] = useState(false);
   const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
-  const { onBackgroundSync } = options;
+  const onBackgroundSyncRef = useRef(options.onBackgroundSync);
 
   const applyUpdate = useCallback(() => {
     if (registration && registration.waiting) {
       registration.waiting.postMessage({ type: 'SKIP_WAITING' });
     }
   }, [registration]);
+
+  useEffect(() => {
+    onBackgroundSyncRef.current = options.onBackgroundSync;
+  }, [options.onBackgroundSync]);
 
   useEffect(() => {
     if ('serviceWorker' in navigator) {
@@ -54,7 +58,7 @@ export function useServiceWorker(options: ServiceWorkerHookOptions = {}) {
       // Listen for messages from the Service Worker
       const handleMessage = (event: MessageEvent) => {
         if (event.data && event.data.type === 'BACKGROUND_SYNC') {
-          onBackgroundSync?.();
+          onBackgroundSyncRef.current?.();
         }
       };
 
@@ -62,18 +66,20 @@ export function useServiceWorker(options: ServiceWorkerHookOptions = {}) {
 
       // Handle controller change (reload on update)
       let refreshing = false;
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
+      const handleControllerChange = () => {
         if (!refreshing) {
           refreshing = true;
           window.location.reload();
         }
-      });
+      };
+      navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
 
       return () => {
         navigator.serviceWorker.removeEventListener('message', handleMessage);
+        navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
       };
     }
-  }, [onBackgroundSync]);
+  }, []);
 
   return { isUpdateAvailable, applyUpdate };
 }

@@ -32,7 +32,6 @@ import {
   DeepSyncPage,
   SignalScramblerPage
 } from '../components/UtilityPages';
-import DailyUplinkPage from '../components/DailyUplinkPage';
 import { TubePage } from '../components/TubePage';
 import { resilientFetch } from '../services/fetch';
 import { parseRssXml } from '../services/rssParser';
@@ -74,7 +73,7 @@ export type SelectionType =
   | 'signal_streamer' | 'surveillance_radar' | 'transcoder' | 'base64_converter'
   | 'sudoku' | 'solitaire' | 'minesweeper' | 'tetris' | 'pool'
   | 'cipher_core' | 'void_runner' | 'synapse_link' | 'grid_reset'
-  | 'hangman' | 'neon_signal' | 'daily_uplink' | 'deep_sync'
+  | 'hangman' | 'neon_signal' | 'deep_sync'
   | 'signal_scrambler' | 'reddit';
 
 export type Selection = {
@@ -313,7 +312,7 @@ const App: React.FC = () => {
   /* ── Derived flags ── */
   const hideSidebar = useMemo(() => {
     const fullScreenPages = new Set([
-      'splash', 'game_hub', 'tube', 'daily_uplink',
+      'splash', 'game_hub', 'tube',
       'utility_hub', 'signal_streamer', 'surveillance_radar',
       'transcoder', 'base64_converter', 'deep_sync', 'signal_scrambler',
       'sudoku', 'solitaire', 'minesweeper', 'tetris', 'pool',
@@ -451,7 +450,6 @@ const App: React.FC = () => {
         onEnterFeeds={() => navigate({ type: 'all', id: null })}
         onEnterArcade={() => navigate({ type: 'game_hub', id: null })}
         onEnterTube={() => navigate({ type: 'tube', id: null })}
-        onEnterUplink={() => navigate({ type: 'daily_uplink', id: null })}
         onToggleTheme={cycleMode}
       />
     );
@@ -486,10 +484,10 @@ const App: React.FC = () => {
           {/* Primary navigation */}
           <nav className="flex items-center gap-1 overflow-x-auto" style={{ scrollbarWidth: 'none' }} aria-label="Main navigation">
             <NavLink
-              active={selection.type === 'daily_uplink'}
-              onClick={() => navigate({ type: 'daily_uplink', id: null })}
-              label="DAILY"
-              icon={<RadioIcon className="w-3.5 h-3.5 flex-shrink-0" />}
+              active={selection.type === 'all' && !selection.category}
+              onClick={() => navigate({ type: 'all', id: null })}
+              label="INTEL"
+              icon={<GlobeAltIcon className="w-3.5 h-3.5 flex-shrink-0" />}
             />
             <NavLink
               active={selection.type === 'game_hub'}
@@ -502,12 +500,6 @@ const App: React.FC = () => {
               onClick={() => navigate({ type: 'tube', id: null })}
               label="TUBE"
               icon={<PlayIcon className="w-3.5 h-3.5 flex-shrink-0" />}
-            />
-            <NavLink
-              active={selection.type === 'all' && !selection.category}
-              onClick={() => navigate({ type: 'all', id: null })}
-              label="INTEL"
-              icon={<GlobeAltIcon className="w-3.5 h-3.5 flex-shrink-0" />}
             />
             <NavLink
               active={isUtilPage}
@@ -665,17 +657,6 @@ const App: React.FC = () => {
       case 'base64_converter':    return <Base64ConverterPage onBackToHub={goUtil} />;
       case 'deep_sync':           return <DeepSyncPage onBackToHub={goUtil} />;
       case 'signal_scrambler':    return <SignalScramblerPage onBackToHub={goUtil} />;
-
-      case 'daily_uplink':
-        return (
-          <DailyUplinkPage 
-            feeds={feeds}
-            uptime={98}
-            onComplete={goFeeds}
-            onEnterArcade={goHub}
-            onSelectGame={(id: any) => navigate({ type: id, id })}
-          />
-        );
 
       case 'sudoku':
         return <SudokuPage stats={{ totalWins: 0 }} onGameWin={() => {}} onGameLoss={() => {}} onBackToHub={goHub} onReturnToFeeds={goFeeds} />;

@@ -237,27 +237,27 @@ async function startServer() {
         try {
             // Using a more reliable public API key used by YouTube's web client
             // This is a known public key for the YouTube Web client
-            const INNERTUBE_API_KEY = process.env.INNERTUBE_API_KEY_FALLBACK || 'AIzaSy' + 'BbGv26' + 'E_f' + '2' + 'N' + 'm' + 'S7yvG' + 'v_3_3_3_3_3_3_3_3'; 
-            // Note: The above is still a placeholder-ish key. Let's use a more standard approach.
-            // We'll try to fetch with a more robust client context.
+            const INNERTUBE_API_KEY = process.env.INNERTUBE_API_KEY_FALLBACK || 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8'; 
             
-            const response = await fetch('https://www.youtube.com/youtubei/v1/browse?key=' + (process.env.INNERTUBE_API_KEY_FALLBACK || 'AIzaSy' + 'AO_FJ2nm_S7yvG' + 'v_3_3_3_3_3_3_3_3'), {
+            const response = await fetch('https://www.youtube.com/youtubei/v1/browse?key=' + INNERTUBE_API_KEY, {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
-                    'User-Agent': 'com.google.android.youtube.tv/2.12.08 (Linux; U; Android 9; en_US;)'
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Origin': 'https://www.youtube.com',
+                    'Referer': 'https://www.youtube.com/'
                 },
                 body: JSON.stringify({
                     context: {
                         client: {
-                            clientName: 'ANDROID_TV',
-                            clientVersion: '2.12.08',
+                            clientName: 'WEB',
+                            clientVersion: '2.20210622.10.00',
                             hl: 'en',
                             gl: 'US',
                             utcOffsetMinutes: 0
                         }
                     },
-                    browseId: 'FEtrending'
+                    browseId: 'UC4R8DWoMoI7CAwX8_LjQHig' // YouTube Trending Channel ID
                 })
             });
 
