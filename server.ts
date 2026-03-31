@@ -1,13 +1,9 @@
-
+import 'dotenv/config';
 import express from 'express';
 import { createServer as createViteServer } from 'vite';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import cookieParser from 'cookie-parser';
 import { google } from 'googleapis';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const PORT = 3000;
 
@@ -24,7 +20,7 @@ async function startServer() {
     app.use(express.json());
 
     // API Routes
-    app.get('/api/auth/device/code', async (req, res) => {
+    app.get('/api/auth/device/code', async (_req, res) => {
         if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
             return res.status(412).json({ 
                 error: 'MISSING_CREDENTIALS',
@@ -187,7 +183,7 @@ async function startServer() {
         }
     });
 
-    app.post('/api/auth/logout', (req, res) => {
+    app.post('/api/auth/logout', (_req, res) => {
         res.clearCookie('youtube_tokens', {
             httpOnly: true,
             secure: true,
@@ -235,9 +231,15 @@ async function startServer() {
 
         // InnerTube "Piggyback" Mode (No API Key required)
         try {
-            // Using a more reliable public API key used by YouTube's web client
-            // This is a known public key for the YouTube Web client
-            const INNERTUBE_API_KEY = process.env.INNERTUBE_API_KEY_FALLBACK || 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8'; 
+            // Fetch YouTube homepage to extract the INNERTUBE_API_KEY
+            const ytResponse = await fetch('https://www.youtube.com/');
+            const ytHtml = await ytResponse.text();
+            const match = ytHtml.match(/"INNERTUBE_API_KEY":"([^"]+)"/);
+            const INNERTUBE_API_KEY = match ? match[1] : '';
+
+            if (!INNERTUBE_API_KEY) {
+                throw new Error('Could not extract INNERTUBE_API_KEY from YouTube homepage');
+            }
             
             const response = await fetch('https://www.youtube.com/youtubei/v1/browse?key=' + INNERTUBE_API_KEY, {
                 method: 'POST',
@@ -317,7 +319,7 @@ async function startServer() {
     } else {
         const distPath = path.join(process.cwd(), 'dist');
         app.use(express.static(distPath));
-        app.get('*all', (req, res) => {
+        app.get('*all', (_req, res) => {
             res.sendFile(path.join(distPath, 'index.html'));
         });
     }

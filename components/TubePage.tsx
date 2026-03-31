@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { SearchIcon, PlayIcon, ArrowPathIcon, XIcon, RadioIcon, GlobeAltIcon, BoltIcon, CpuChipIcon, UserIcon, MusicIcon, ControllerIcon, SettingsIcon } from './icons';
+import { SearchIcon, PlayIcon, ArrowPathIcon, XIcon, RadioIcon, GlobeAltIcon, BoltIcon, CpuChipIcon, MusicIcon, ControllerIcon, SettingsIcon } from './icons';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
